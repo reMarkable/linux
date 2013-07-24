@@ -66,6 +66,7 @@ struct caam_drv_private_jr {
  * Driver-private storage for a single CAAM block instance
  */
 struct caam_drv_private {
+	struct device *smdev;
 
 	/* Physical-presence section */
 	struct caam_ctrl __iomem *ctrl; /* controller region */
@@ -73,6 +74,9 @@ struct caam_drv_private {
 	struct caam_assurance __iomem *assure;
 	struct caam_queue_if __iomem *qi; /* QI control region */
 	struct caam_job_ring __iomem *jr[4];	/* JobR's register space */
+	dma_addr_t __iomem *sm_base;	/* Secure memory storage base */
+	phys_addr_t sm_phy;		/* Secure memory storage physical */
+	u32 sm_size;
 
 	struct iommu_domain *domain;
 

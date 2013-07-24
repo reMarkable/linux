@@ -17,6 +17,7 @@
 #include "jr.h"
 #include "desc_constr.h"
 #include "ctrl.h"
+#include "sm.h"
 
 bool caam_dpaa2;
 EXPORT_SYMBOL(caam_dpaa2);
@@ -573,6 +574,7 @@ static int caam_probe(struct platform_device *pdev)
 	const struct soc_device_attribute *imx_soc_match;
 	struct device *dev;
 	struct device_node *nprop, *np;
+	struct resource res_regs;
 	struct caam_ctrl __iomem *ctrl;
 	struct caam_drv_private *ctrlpriv;
 	struct caam_perfmon __iomem *perfmon;
@@ -719,9 +721,44 @@ iomap_ctrl:
 			 BLOCK_OFFSET * DECO_BLOCK_NUMBER
 			 );
 
+	/* Only i.MX SoCs have sm */
+	if (!imx_soc_match)
+		goto mc_fw;
+
+	/* Get CAAM-SM node and of_iomap() and save */
+	np = of_find_compatible_node(NULL, NULL, "fsl,imx6q-caam-sm");
+	if (!np)
+		return -ENODEV;
+
+	/* Get CAAM SM registers base address from device tree */
+	ret = of_address_to_resource(np, 0, &res_regs);
+	if (ret) {
+		dev_err(dev, "failed to retrieve registers base from device tree\n");
+		of_node_put(np);
+		return -ENODEV;
+	}
+
+	ctrlpriv->sm_phy = res_regs.start;
+	ctrlpriv->sm_base = devm_ioremap_resource(dev, &res_regs);
+	if (IS_ERR(ctrlpriv->sm_base)) {
+		of_node_put(np);
+		return PTR_ERR(ctrlpriv->sm_base);
+	}
+
+	if (!of_machine_is_compatible("fsl,imx8mn") &&
+	    !of_machine_is_compatible("fsl,imx8mm") &&
+	    !of_machine_is_compatible("fsl,imx8mq") &&
+	    !of_machine_is_compatible("fsl,imx8qm") &&
+	    !of_machine_is_compatible("fsl,imx8qxp"))
+		ctrlpriv->sm_size = resource_size(&res_regs);
+	else
+		ctrlpriv->sm_size = PG_SIZE_64K;
+	of_node_put(np);
+
 	if (!reg_access)
 		goto set_dma_mask;
 
+mc_fw:
 	/*
 	 * Enable DECO watchdogs and, if this is a PHYS_ADDR_T_64BIT kernel,
 	 * long pointers in master configuration register.
