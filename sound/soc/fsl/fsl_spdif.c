@@ -2,7 +2,7 @@
 //
 // Freescale S/PDIF ALSA SoC Digital Audio Interface (DAI) driver
 //
-// Copyright (C) 2013 Freescale Semiconductor, Inc.
+// Copyright (C) 2013-2015 Freescale Semiconductor, Inc.
 //
 // Based on stmp3xxx_spdif_dai.c
 // Vladimir Barinov <vbarinov@embeddedalley.com>
@@ -378,7 +378,6 @@ static int spdif_set_sample_rate(struct snd_pcm_substream *substream,
 	u32 stc, mask, rate;
 	u16 sysclk_df;
 	u8 clk, txclk_df;
-	int ret;
 
 	switch (sample_rate) {
 	case 32000:
@@ -420,19 +419,6 @@ static int spdif_set_sample_rate(struct snd_pcm_substream *substream,
 
 	sysclk_df = spdif_priv->sysclk_df[rate];
 
-	/* Don't mess up the clocks from other modules */
-	if (clk != STC_TXCLK_SPDIF_ROOT)
-		goto clk_set_bypass;
-
-	/* The S/PDIF block needs a clock of 64 * fs * txclk_df */
-	ret = clk_set_rate(spdif_priv->txclk[rate],
-			   64 * sample_rate * txclk_df);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to set tx clock rate\n");
-		return ret;
-	}
-
-clk_set_bypass:
 	dev_dbg(&pdev->dev, "expected clock rate = %d\n",
 			(64 * sample_rate * txclk_df * sysclk_df));
 	dev_dbg(&pdev->dev, "actual clock rate = %ld\n",
@@ -1120,11 +1106,8 @@ static u32 fsl_spdif_txclk_caldiv(struct fsl_spdif_priv *spdif_priv,
 
 	for (sysclk_df = sysclk_dfmin; sysclk_df <= sysclk_dfmax; sysclk_df++) {
 		for (txclk_df = 1; txclk_df <= 128; txclk_df++) {
-			rate_ideal = rate[index] * txclk_df * 64ULL;
-			if (round)
-				rate_actual = clk_round_rate(clk, rate_ideal);
-			else
-				rate_actual = clk_get_rate(clk);
+
+			rate_actual = clk_get_rate(clk);
 
 			arate = rate_actual / 64;
 			arate /= txclk_df * sysclk_df;
