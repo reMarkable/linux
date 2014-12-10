@@ -897,7 +897,7 @@ fec_restart(struct net_device *ndev)
 	u32 val;
 	u32 temp_mac[2];
 	u32 rcntl = OPT_FRAME_SIZE | 0x04;
-	u32 ecntl = 0x2; /* ETHEREN */
+	u32 ecntl = FEC_ENET_ETHEREN; /* ETHEREN */
 
 	/* Whack a reset.  We should wait for this.
 	 * For i.MX6SX SOC, enet use AXI bus, we use disable MAC
@@ -1891,6 +1891,17 @@ failed_clk_enet_out:
 	return ret;
 }
 
+static void fec_restore_mii_bus(struct net_device *ndev)
+{
+	struct fec_enet_private *fep = netdev_priv(ndev);
+
+	fec_enet_clk_enable(ndev, true);
+	writel(0xffc00000, fep->hwp + FEC_IEVENT);
+	writel(fep->phy_speed, fep->hwp + FEC_MII_SPEED);
+	writel(FEC_ENET_MII, fep->hwp + FEC_IMASK);
+	writel(FEC_ENET_ETHEREN, fep->hwp + FEC_ECNTRL);
+}
+
 static int fec_enet_mii_probe(struct net_device *ndev)
 {
 	struct fec_enet_private *fep = netdev_priv(ndev);
@@ -1958,6 +1969,7 @@ static int fec_enet_mii_probe(struct net_device *ndev)
 static int fec_enet_mii_init(struct platform_device *pdev)
 {
 	static struct mii_bus *fec0_mii_bus;
+	static int *fec_mii_bus_share;
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct fec_enet_private *fep = netdev_priv(ndev);
 	struct device_node *node;
@@ -1980,10 +1992,11 @@ static int fec_enet_mii_init(struct platform_device *pdev)
 	 * mdio interface in board design, and need to be configured by
 	 * fec0 mii_bus.
 	 */
-	if ((fep->quirks & FEC_QUIRK_SINGLE_MDIO) && fep->dev_id > 0) {
+	if ((fep->quirks & FEC_QUIRK_ENET_MAC) && fep->dev_id > 0) {
 		/* fec1 uses fec0 mii_bus */
 		if (mii_cnt && fec0_mii_bus) {
 			fep->mii_bus = fec0_mii_bus;
+			*fec_mii_bus_share = FEC0_MII_BUS_SHARE_TRUE;
 			mii_cnt++;
 			return 0;
 		}
@@ -2057,8 +2070,10 @@ static int fec_enet_mii_init(struct platform_device *pdev)
 	mii_cnt++;
 
 	/* save fec0 mii_bus */
-	if (fep->quirks & FEC_QUIRK_SINGLE_MDIO)
+	if (fep->quirks & FEC_QUIRK_ENET_MAC) {
 		fec0_mii_bus = fep->mii_bus;
+		fec_mii_bus_share = &fep->mii_bus_share;
+	}
 
 	return 0;
 
@@ -2896,11 +2911,13 @@ fec_enet_open(struct net_device *ndev)
 err_enet_mii_probe:
 	fec_enet_free_buffers(ndev);
 err_enet_alloc:
-	fec_enet_clk_enable(ndev, false);
+	if (!fep->mii_bus_share)
+		fec_enet_clk_enable(ndev, false);
 clk_enable:
 	pm_runtime_mark_last_busy(&fep->pdev->dev);
 	pm_runtime_put_autosuspend(&fep->pdev->dev);
-	pinctrl_pm_select_sleep_state(&fep->pdev->dev);
+	if (!fep->mii_bus_share)
+		pinctrl_pm_select_sleep_state(&fep->pdev->dev);
 	return ret;
 }
 
@@ -3609,6 +3626,10 @@ static int __maybe_unused fec_suspend(struct device *dev)
 		fec_enet_clk_enable(ndev, false);
 		if (!(fep->wol_flag & FEC_WOL_FLAG_ENABLE))
 			pinctrl_pm_select_sleep_state(&fep->pdev->dev);
+		pinctrl_pm_select_sleep_state(&fep->pdev->dev);
+	} else if (fep->mii_bus_share && !ndev->phydev) {
+		fec_enet_clk_enable(ndev, false);
+		pinctrl_pm_select_sleep_state(&fep->pdev->dev);
 	}
 	rtnl_unlock();
 
@@ -3661,6 +3682,9 @@ static int __maybe_unused fec_resume(struct device *dev)
 		netif_tx_unlock_bh(ndev);
 		napi_enable(&fep->napi);
 		phy_start(ndev->phydev);
+	} else if (fep->mii_bus_share && !ndev->phydev) {
+		pinctrl_pm_select_default_state(&fep->pdev->dev);
+		fec_restore_mii_bus(ndev);
 	}
 	rtnl_unlock();
 
