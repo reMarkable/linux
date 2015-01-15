@@ -29,5 +29,6 @@ int imx_usbmisc_init_post(struct imx_usbmisc_data *data);
 int imx_usbmisc_set_wakeup(struct imx_usbmisc_data *data, bool enabled);
 int imx_usbmisc_hsic_set_connect(struct imx_usbmisc_data *data);
 int imx_usbmisc_hsic_set_clk(struct imx_usbmisc_data *data, bool on);
+int imx_usbmisc_power_lost_check(struct imx_usbmisc_data *);
 
 #endif /* __DRIVER_USB_CHIPIDEA_CI_HDRC_IMX_H */

@@ -111,6 +111,8 @@ struct usbmisc_ops {
 	int (*hsic_set_connect)(struct imx_usbmisc_data *data);
 	/* It's called during suspend/resume */
 	int (*hsic_set_clk)(struct imx_usbmisc_data *data, bool enabled);
+	/* It's called when system resume from usb power lost */
+	int (*power_lost_check)(struct imx_usbmisc_data *data);
 };
 
 struct imx_usbmisc {
@@ -606,6 +608,25 @@ static int usbmisc_imx7d_init(struct imx_usbmisc_data *data)
 	return 0;
 }
 
+static int usbmisc_imx6sx_power_lost_check(struct imx_usbmisc_data *data)
+{
+	struct imx_usbmisc *usbmisc = dev_get_drvdata(data->dev);
+	unsigned long flags;
+	u32 val;
+
+	spin_lock_irqsave(&usbmisc->lock, flags);
+	val = readl(usbmisc->base + data->index * 4);
+	spin_unlock_irqrestore(&usbmisc->lock, flags);
+	/*
+	 * Here use a power on reset value to judge
+	 * if the controller experienced a power lost
+	 */
+	if (val == 0x30001000)
+		return 1;
+	else
+		return 0;
+}
+
 static const struct usbmisc_ops imx25_usbmisc_ops = {
 	.init = usbmisc_imx25_init,
 	.post = usbmisc_imx25_post,
@@ -639,6 +660,7 @@ static const struct usbmisc_ops imx6sx_usbmisc_ops = {
 	.init = usbmisc_imx6sx_init,
 	.hsic_set_connect = usbmisc_imx6_hsic_set_connect,
 	.hsic_set_clk = usbmisc_imx6_hsic_set_clk,
+	.power_lost_check = usbmisc_imx6sx_power_lost_check,
 };
 
 static const struct usbmisc_ops imx7d_usbmisc_ops = {
@@ -722,6 +744,21 @@ int imx_usbmisc_hsic_set_clk(struct imx_usbmisc_data *data, bool on)
 	return usbmisc->ops->hsic_set_clk(data, on);
 }
 EXPORT_SYMBOL_GPL(imx_usbmisc_hsic_set_clk);
+
+int imx_usbmisc_power_lost_check(struct imx_usbmisc_data *data)
+{
+	struct imx_usbmisc *usbmisc;
+
+	if (!data)
+		return 0;
+
+	usbmisc = dev_get_drvdata(data->dev);
+	if (!usbmisc->ops->power_lost_check)
+		return 0;
+	return usbmisc->ops->power_lost_check(data);
+}
+EXPORT_SYMBOL_GPL(imx_usbmisc_power_lost_check);
+
 static const struct of_device_id usbmisc_imx_dt_ids[] = {
 	{
 		.compatible = "fsl,imx25-usbmisc",
