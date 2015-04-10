@@ -605,6 +605,11 @@ static int fsl_sai_startup(struct snd_pcm_substream *substream,
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 	int ret;
 
+	if (sai->is_stream_opened[tx])
+		return -EBUSY;
+	else
+		sai->is_stream_opened[tx] = true;
+
 	regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx), FSL_SAI_CR3_TRCE,
 			   FSL_SAI_CR3_TRCE);
 
@@ -621,6 +626,11 @@ static void fsl_sai_shutdown(struct snd_pcm_substream *substream,
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 
 	regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx), FSL_SAI_CR3_TRCE, 0);
+
+	if (sai->is_stream_opened[tx]) {
+		regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx), FSL_SAI_CR3_TRCE, 0);
+		sai->is_stream_opened[tx] = false;
+	}
 }
 
 static const struct snd_soc_dai_ops fsl_sai_pcm_dai_ops = {
