@@ -56,6 +56,10 @@
 #define	S32V234_CLK_ARMPLL_DFS1			36
 #define	S32V234_CLK_ARMPLL_DFS2			37
 
-#define	S32V234_CLK_END				38
+/* CAN Clock */
+#define S32V234_CLK_CAN				38
+#define S32V234_CLK_CAN_SEL			39
+
+#define	S32V234_CLK_END				40
 
 #endif /* __DT_BINDINGS_CLOCK_S32V234_H */
