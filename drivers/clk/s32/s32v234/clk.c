@@ -19,6 +19,10 @@ DEFINE_SPINLOCK(s32v234_lock);
 /* sources for multiplexer clocks, this is used multiple times */
 PNAME(osc_sels) = {"firc", "fxosc", };
 
+PNAME(lin_sels) = {"firc", "fxosc", "dummy",
+		   "periphpll_phi0_div3", "dummy", "dummy",
+		   "dummy", "dummy", "sys6",};
+
 static struct clk *clk[S32V234_CLK_END];
 static struct clk_onecell_data clk_data;
 
@@ -88,6 +92,21 @@ static void __init s32v234_clocks_init(struct device_node *mc_cgm0_node)
 
 	clk[S32V234_CLK_PERIPHPLL_PHI0_DIV5] = s32_clk_fixed_factor(
 		"periphpll_phi0_div5", "periphpll_phi0", 1, 5);
+
+	/* Lin Clock */
+	clk[S32V234_CLK_LIN_SEL] = s32_clk_mux("lin_sel",
+		CGM_ACn_SC(mc_cgm0_base, 3),
+		MC_CGM_ACn_SEL_OFFSET,
+		MC_CGM_ACn_SEL_SIZE,
+		lin_sels, ARRAY_SIZE(lin_sels), &s32v234_lock);
+
+	clk[S32V234_CLK_LIN] = s32_clk_divider("lin", "lin_sel",
+		CGM_ACn_DCm(mc_cgm0_base, 3, 0),
+		MC_CGM_ACn_DCm_PREDIV_OFFSET,
+		MC_CGM_ACn_DCm_PREDIV_SIZE, &s32v234_lock);
+
+	clk[S32V234_CLK_LIN_IPG] = s32_clk_fixed_factor("lin_ipg",
+		"lin", 1, 2);
 
 	/* enable PERIPHPLL */
 	enable_clocks_sources(0, MC_ME_MODE_MC_PERIPHPLL,
