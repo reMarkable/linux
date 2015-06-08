@@ -23,6 +23,9 @@ PNAME(lin_sels) = {"firc", "fxosc", "dummy",
 		   "periphpll_phi0_div3", "dummy", "dummy",
 		   "dummy", "dummy", "sys6",};
 
+PNAME(sdhc_sels) = {"firc", "fxosc", "dummy",
+		    "dummy",};
+
 static struct clk *clk[S32V234_CLK_END];
 static struct clk_onecell_data clk_data;
 
@@ -111,6 +114,18 @@ static void __init s32v234_clocks_init(struct device_node *mc_cgm0_node)
 	/* enable PERIPHPLL */
 	enable_clocks_sources(0, MC_ME_MODE_MC_PERIPHPLL,
 			      MC_ME_RUNn_MC(mc_me_base, 0));
+
+	/* SDHC Clock */
+	clk[S32V234_CLK_SDHC_SEL] = s32_clk_mux("sdhc_sel",
+		CGM_ACn_SC(mc_cgm0_base, 15),
+		MC_CGM_ACn_SEL_OFFSET,
+		MC_CGM_ACn_SEL_SIZE,
+		sdhc_sels, ARRAY_SIZE(sdhc_sels), &s32v234_lock);
+
+	clk[S32V234_CLK_SDHC] = s32_clk_divider("sdhc", "sdhc_sel",
+		CGM_ACn_DCm(mc_cgm0_base, 15, 0),
+		MC_CGM_ACn_DCm_PREDIV_OFFSET,
+		MC_CGM_ACn_DCm_PREDIV_SIZE, &s32v234_lock);
 
 	/* set the system clock */
 	enable_sysclock(MC_ME_MODE_MC_SYSCLK(0x2),

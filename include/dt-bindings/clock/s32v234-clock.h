@@ -21,6 +21,9 @@
 #define	S32V234_CLK_LIN				9
 #define	S32V234_CLK_LIN_SEL			10
 #define	S32V234_CLK_LIN_IPG			11
+/* SDHC Clock */
+#define	S32V234_CLK_SDHC			12
+#define	S32V234_CLK_SDHC_SEL			13
 
-#define	S32V234_CLK_END				12
+#define	S32V234_CLK_END				14
 #endif /* __DT_BINDINGS_CLOCK_S32V234_H */
