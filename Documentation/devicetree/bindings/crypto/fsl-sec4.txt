@@ -394,18 +394,14 @@ Secure Non-Volatile Storage (SNVS) Low Power (LP) RTC Node
 	value type: <u32>
 	Definition: LP register offset. default it is 0x34.
 
-   - clocks
-      Usage: optional, required if SNVS LP RTC requires explicit
-          enablement of clocks
-      Value type: <prop_encoded-array>
-      Definition:  a clock specifier describing the clock required for
-          enabling and disabling SNVS LP RTC.
-
-   - clock-names
-      Usage: optional, required if SNVS LP RTC requires explicit
-          enablement of clocks
-      Value type: <string>
-      Definition: clock name string should be "snvs-rtc".
+  - clocks
+      Usage: optional
+      Value type: <prop-encoded-array>
+      Definition: A standard property.  Specifies the source clock for
+	  snvs register access. If i.MX clk driver defines the clock node,
+	  it needs user to specify the clocks in device tree for all modules
+	  with snvs LP/HP registers access. The modules involved snvs LP/HP
+	  registers access are snvs-power key, snvs-rtc, and caam.
 
 EXAMPLE
 	sec_mon_rtc_lp@1 {
