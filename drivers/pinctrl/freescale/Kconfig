@@ -177,3 +177,16 @@ config PINCTRL_IMX23
 config PINCTRL_IMX28
 	bool
 	select PINCTRL_MXS
+
+config PINCTRL_S32V_CORE
+	bool "Core driver for the S32V pin controller"
+	help
+	  Say Y here to enable the S32V pin controller
+
+config PINCTRL_S32V234
+	bool "Freescale S32V234 pinctrl driver"
+	depends on SOC_S32V234
+	select PINCTRL_IMX
+	select PINCTRL_S32V_CORE
+	help
+	  Say Y here to enable the Freescale S32V234 pinctrl driver
