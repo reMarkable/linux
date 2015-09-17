@@ -184,6 +184,9 @@ enum s32v234_pins {
 	S32V234_MSCR_PL4 = 164,
 	S32V234_MSCR_PL5 = 165,
 	S32V234_MSCR_PL8 = 166,
+
+	S32V234_IMCR_UART0_RXD = 712,
+	S32V234_IMCR_UART1_RXD = 714,
 };
 
 /* Pad names for the pinmux subsystem */
@@ -355,6 +358,9 @@ static const struct pinctrl_pin_desc s32v234_pinctrl_pads[] = {
 	S32V_PINCTRL_PIN(S32V234_MSCR_PL4),
 	S32V_PINCTRL_PIN(S32V234_MSCR_PL5),
 	S32V_PINCTRL_PIN(S32V234_MSCR_PL8),
+
+	S32V_PINCTRL_PIN(S32V234_IMCR_UART0_RXD),
+	S32V_PINCTRL_PIN(S32V234_IMCR_UART1_RXD),
 };
 
 static struct s32v_pinctrl_soc_info s32v234_pinctrl_info = {
