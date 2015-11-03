@@ -24,6 +24,9 @@ PNAME(osc_sels) = {"firc", "fxosc", };
 
 PNAME(sys_sels) = {"firc", "fxosc", "armpll_dfs0", };
 
+PNAME(can_sels) = {"firc", "fxosc", "dummy",
+		   "periphpll_phi0_div5", };
+
 PNAME(lin_sels) = {"firc", "fxosc", "dummy",
 		   "periphpll_phi0_div3", "dummy", "dummy",
 		   "dummy", "dummy", "sys6",};
@@ -178,6 +181,18 @@ static void __init s32v234_clocks_init(struct device_node *mc_cgm0_node)
 
 	clk[S32V234_CLK_PERIPHPLL_PHI0_DIV5] = s32_clk_fixed_factor(
 		"periphpll_phi0_div5", "periphpll_phi0", 1, 5);
+
+	clk[S32V234_CLK_CAN_SEL] = s32_clk_mux("can_sel",
+		CGM_ACn_SC(mc_cgm0_base, 6),
+		MC_CGM_ACn_SEL_OFFSET,
+		MC_CGM_ACn_SEL_SIZE,
+		can_sels, ARRAY_SIZE(can_sels), &s32v234_lock);
+
+	/* CAN Clock */
+	clk[S32V234_CLK_CAN] = s32_clk_divider("can", "can_sel",
+		CGM_ACn_DCm(mc_cgm0_base, 6, 0),
+		MC_CGM_ACn_DCm_PREDIV_OFFSET,
+		MC_CGM_ACn_DCm_PREDIV_SIZE, &s32v234_lock);
 
 	/* Lin Clock */
 	clk[S32V234_CLK_LIN_SEL] = s32_clk_mux("lin_sel",
