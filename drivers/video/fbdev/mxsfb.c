@@ -1371,7 +1371,16 @@ static int mxsfb_init_fbinfo_dt(struct mxsfb_info *host)
 
 		if (!(vm.flags & DISPLAY_FLAGS_DE_HIGH))
 			fb_vm.sync |= FB_SYNC_OE_LOW_ACT;
-		if (vm.flags & DISPLAY_FLAGS_PIXDATA_NEGEDGE)
+
+		/*
+		 * The PIXDATA flags of the display_flags enum are controller
+		 * centric, e.g. NEGEDGE means drive data on negative edge.
+		 * However, the drivers flag is display centric: Sample the
+		 * data on negative (falling) edge. Therefore, check for the
+		 * POSEDGE flag:
+		 * drive on positive edge => sample on negative edge
+		 */
+		if (vm.flags & DISPLAY_FLAGS_PIXDATA_POSEDGE)
 			fb_vm.sync |= FB_SYNC_CLK_LAT_FALL;
 		fb_add_videomode(&fb_vm, &fb_info->modelist);
 	}
