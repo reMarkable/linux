@@ -116,6 +116,13 @@ extern pgprot_t		pgprot_s2_device;
 #define pgprot_noncached(prot) \
 	__pgprot_modify(prot, L_PTE_MT_MASK, L_PTE_MT_UNCACHED)
 
+#define pgprot_cached(prot) \
+	__pgprot_modify(prot, L_PTE_MT_MASK, L_PTE_MT_DEV_CACHED)
+
+#define pgprot_cached_ns(prot) \
+	__pgprot_modify(prot, L_PTE_MT_MASK, L_PTE_MT_DEV_CACHED | \
+			L_PTE_MT_DEV_NONSHARED)
+
 #define pgprot_writecombine(prot) \
 	__pgprot_modify(prot, L_PTE_MT_MASK, L_PTE_MT_BUFFERABLE)
 
