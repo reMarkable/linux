@@ -527,4 +527,8 @@ config NET_FAILOVER
 	  a VM with direct attached VF by failing over to the paravirtual
 	  datapath when the VF is unplugged.
 
+config IVSHMEM_NET
+	tristate "IVSHMEM virtual network device"
+	depends on PCI
+
 endif # NETDEVICES
