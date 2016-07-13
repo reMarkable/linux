@@ -286,6 +286,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6dl-wandboard.dtb \
 	imx6dl-wandboard-revb1.dtb \
 	imx6q-arm2.dtb \
+	imx6q-arm2-hsic.dtb \
 	imx6q-pop-arm2.dtb \
 	imx6q-cm-fx6.dtb \
 	imx6q-cubox-i.dtb \
@@ -376,6 +377,7 @@ dtb-$(CONFIG_SOC_IMX6UL) += \
 dtb-$(CONFIG_SOC_IMX7D) += \
 	imx7d-12x12-lpddr3-arm2.dtb \
 	imx7d-12x12-lpddr3-arm2-m4.dtb \
+	imx7d-12x12-ddr3-arm2.dtb \
 	imx7d-12x12-lpddr3-arm2-ecspi.dtb \
 	imx7d-12x12-lpddr3-arm2-enet2.dtb \
 	imx7d-12x12-lpddr3-arm2-flexcan.dtb \
@@ -383,12 +385,14 @@ dtb-$(CONFIG_SOC_IMX7D) += \
 	imx7d-12x12-lpddr3-arm2-qspi.dtb \
 	imx7d-12x12-lpddr3-arm2-sai.dtb \
 	imx7d-12x12-lpddr3-arm2-mqs.dtb \
+	imx7d-12x12-lpddr3-arm2-pcie.dtb \
 	imx7d-19x19-lpddr2-arm2.dtb \
 	imx7d-sdb.dtb \
 	imx7d-sdb-epdc.dtb \
 	imx7d-sdb-gpmi-weim.dtb \
 	imx7d-sdb-m4.dtb \
 	imx7d-sdb-qspi.dtb \
+	imx7d-sdb-mipi-dsi.dtb \
 	imx7d-sdb-reva.dtb \
 	imx7d-sdb-reva-epdc.dtb \
 	imx7d-sdb-reva-gpmi-weim.dtb \

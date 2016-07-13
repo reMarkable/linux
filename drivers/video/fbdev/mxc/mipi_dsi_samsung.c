@@ -56,6 +56,18 @@ static struct mipi_dsi_match_lcd mipi_dsi_lcd_db[] = {
 	 {mipid_hx8369_get_lcd_videomode, mipid_hx8369_lcd_setup}
 	},
 #endif
+#ifdef CONFIG_FB_MXC_TRULY_PANEL_TFT3P5079E
+	{
+	 "TRULY-WVGA-TFT3P5079E",
+	 {mipid_otm8018b_get_lcd_videomode, mipid_otm8018b_lcd_setup}
+	},
+#endif
+#ifdef CONFIG_FB_MXC_TRULY_PANEL_TFT3P5581E
+	{
+	 "TRULY-WVGA-TFT3P5581E",
+	 {mipid_hx8363_get_lcd_videomode, mipid_hx8363_lcd_setup}
+	},
+#endif
 	{
 	"", {NULL, NULL}
 	}
@@ -66,13 +78,18 @@ enum mipi_dsi_mode {
 	DSI_VIDEO_MODE
 };
 
+enum mipi_dsi_trans_mode {
+	DSI_LP_MODE,
+	DSI_HS_MODE
+};
+
 static struct regulator *mipi_phy_reg;
 static DECLARE_COMPLETION(dsi_rx_done);
 static DECLARE_COMPLETION(dsi_tx_done);
 
 static void mipi_dsi_dphy_power_down(void);
 static void mipi_dsi_set_mode(struct mipi_dsi_info *mipi_dsi,
-				enum mipi_dsi_mode mode);
+			      enum mipi_dsi_trans_mode mode);
 
 static int mipi_dsi_lcd_init(struct mipi_dsi_info *mipi_dsi,
 			     struct mxc_dispdrv_setting *setting)
@@ -214,6 +231,7 @@ static int mipi_dsi_pkt_write(struct mipi_dsi_info *mipi_dsi,
 			return -ETIMEDOUT;
 		}
 	}
+	mdelay(10);
 
 	return 0;
 }
@@ -374,9 +392,13 @@ static int mipi_dsi_master_init(struct mipi_dsi_info *mipi_dsi,
 	       MIPI_DSI_PLL_BYPASS(0) |
 	       MIPI_DSI_BYTE_CLK_SRC(0),
 	       mipi_dsi->mmio_base + MIPI_DSI_CLKCTRL);
-	writel(MIPI_DSI_PLL_EN(1) |
-	       MIPI_DSI_PMS(0x4190),
-	       mipi_dsi->mmio_base + MIPI_DSI_PLLCTRL);
+	if (!strcmp(mipi_dsi->lcd_panel, "TRULY-WVGA-TFT3P5581E"))
+		writel(MIPI_DSI_PLL_EN(1) | MIPI_DSI_PMS(0x3141),
+		       mipi_dsi->mmio_base + MIPI_DSI_PLLCTRL);
+	else
+		writel(MIPI_DSI_PLL_EN(1) | MIPI_DSI_PMS(0x4190),
+		       mipi_dsi->mmio_base + MIPI_DSI_PLLCTRL);
+
 	/* set PLLTMR: stable time */
 	writel(33024, mipi_dsi->mmio_base + MIPI_DSI_PLLTMR);
 	udelay(300);
@@ -392,17 +414,6 @@ static int mipi_dsi_master_init(struct mipi_dsi_info *mipi_dsi,
 	reg |= MIPI_DSI_ESC_CLK_EN(1);
 	writel(reg, mipi_dsi->mmio_base + MIPI_DSI_CLKCTRL);
 
-	/* check clock and data lanes are in stop state
-	 * which means dphy is in low power mode
-	 */
-	while (!mipi_dsi_lane_stop_state(mipi_dsi)) {
-		time_out--;
-		if (time_out == 0) {
-			dev_err(dev, "MIPI DSI is not stop state.\n");
-			return -EINVAL;
-		}
-	}
-
 	/* set main display resolution */
 	writel(MIPI_DSI_MAIN_HRESOL(mode->xres) |
 	       MIPI_DSI_MAIN_VRESOL(mode->yres) |
@@ -412,8 +423,8 @@ static int mipi_dsi_master_init(struct mipi_dsi_info *mipi_dsi,
 	/* set config register */
 	writel(MIPI_DSI_MFLUSH_VS(1) |
 	       MIPI_DSI_SYNC_IN_FORM(0) |
-	       MIPI_DSI_BURST_MODE(0) |
-	       MIPI_DSI_VIDEO_MODE(0) |
+	       MIPI_DSI_BURST_MODE(1) |
+	       MIPI_DSI_VIDEO_MODE(1) |
 	       MIPI_DSI_AUTO_MODE(0)  |
 	       MIPI_DSI_HSE_DISABLE_MODE(0) |
 	       MIPI_DSI_HFP_DISABLE_MODE(0) |
@@ -442,17 +453,31 @@ static int mipi_dsi_master_init(struct mipi_dsi_info *mipi_dsi,
 	       mipi_dsi->mmio_base + MIPI_DSI_MSYNC);
 
 	/* configure d-phy timings */
-	writel(MIPI_DSI_M_TLPXCTL(11) | MIPI_DSI_M_THSEXITCTL(18),
-	       mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING);
-	writel(MIPI_DSI_M_TCLKPRPRCTL(13) |
-	       MIPI_DSI_M_TCLKZEROCTL(65) |
-	       MIPI_DSI_M_TCLKPOSTCTL(17) |
-	       MIPI_DSI_M_TCLKTRAILCTL(13),
-	       mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING1);
-	writel(MIPI_DSI_M_THSPRPRCTL(16) |
-	       MIPI_DSI_M_THSZEROCTL(24) |
-	       MIPI_DSI_M_THSTRAILCTL(16),
-	       mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING2);
+	if (!strcmp(mipi_dsi->lcd_panel, "TRULY-WVGA-TFT3P5581E")) {
+		writel(MIPI_DSI_M_TLPXCTL(2) | MIPI_DSI_M_THSEXITCTL(4),
+			mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING);
+		writel(MIPI_DSI_M_TCLKPRPRCTL(5) |
+			MIPI_DSI_M_TCLKZEROCTL(14) |
+			MIPI_DSI_M_TCLKPOSTCTL(8) |
+			MIPI_DSI_M_TCLKTRAILCTL(3),
+			mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING1);
+		writel(MIPI_DSI_M_THSPRPRCTL(3) |
+			MIPI_DSI_M_THSZEROCTL(3) |
+			MIPI_DSI_M_THSTRAILCTL(3),
+			mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING2);
+	} else {
+		writel(MIPI_DSI_M_TLPXCTL(11) | MIPI_DSI_M_THSEXITCTL(18),
+			mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING);
+		writel(MIPI_DSI_M_TCLKPRPRCTL(13) |
+			MIPI_DSI_M_TCLKZEROCTL(65) |
+			MIPI_DSI_M_TCLKPOSTCTL(17) |
+			MIPI_DSI_M_TCLKTRAILCTL(13),
+			mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING1);
+		writel(MIPI_DSI_M_THSPRPRCTL(16) |
+			MIPI_DSI_M_THSZEROCTL(24) |
+			MIPI_DSI_M_THSTRAILCTL(16),
+			mipi_dsi->mmio_base + MIPI_DSI_PHYTIMING2);
+	}
 
 	writel(0xf000f, mipi_dsi->mmio_base + MIPI_DSI_TIMEOUT);
 
@@ -460,6 +485,20 @@ static int mipi_dsi_master_init(struct mipi_dsi_info *mipi_dsi,
 	writel(0x0, mipi_dsi->mmio_base + MIPI_DSI_FIFOCTRL);
 	udelay(300);
 	writel(0x1f, mipi_dsi->mmio_base + MIPI_DSI_FIFOCTRL);
+
+	/* check clock and data lanes are in stop state
+	 * which means dphy is in low power mode
+	 */
+	while (!mipi_dsi_lane_stop_state(mipi_dsi)) {
+		time_out--;
+		if (time_out == 0) {
+			dev_err(dev, "MIPI DSI is not stop state.\n");
+			return -EINVAL;
+		}
+	}
+
+	/* transfer commands always in lp mode */
+	writel(MIPI_DSI_CMD_LPDT, mipi_dsi->mmio_base + MIPI_DSI_ESCMODE);
 
 	mipi_dsi_init_interrupt(mipi_dsi);
 
@@ -496,23 +535,17 @@ static void mipi_dsi_disp_deinit(struct mxc_dispdrv_handle *disp)
 }
 
 static void mipi_dsi_set_mode(struct mipi_dsi_info *mipi_dsi,
-				enum mipi_dsi_mode mode)
+			      enum mipi_dsi_trans_mode mode)
 {
-	unsigned int dsi_config, escape_mode, dsi_clkctrl;
+	unsigned int dsi_clkctrl;
 
-	dsi_config  = readl(mipi_dsi->mmio_base + MIPI_DSI_CONFIG);
-	escape_mode = readl(mipi_dsi->mmio_base + MIPI_DSI_ESCMODE);
 	dsi_clkctrl = readl(mipi_dsi->mmio_base + MIPI_DSI_CLKCTRL);
 
 	switch (mode) {
-	case DSI_COMMAND_MODE:
-		dsi_config  &= ~MIPI_DSI_VIDEO_MODE(1);
-		escape_mode |= (MIPI_DSI_CMD_LPDT | MIPI_DSI_TX_LPDT);
+	case DSI_LP_MODE:
 		dsi_clkctrl &= ~MIPI_DSI_TX_REQUEST_HSCLK(1);
 		break;
-	case DSI_VIDEO_MODE:
-		dsi_config  |= (MIPI_DSI_VIDEO_MODE(1) | MIPI_DSI_BURST_MODE(1));
-		escape_mode &= ~(MIPI_DSI_CMD_LPDT | MIPI_DSI_TX_LPDT);
+	case DSI_HS_MODE:
 		dsi_clkctrl |= MIPI_DSI_TX_REQUEST_HSCLK(1);
 		break;
 	default:
@@ -521,10 +554,8 @@ static void mipi_dsi_set_mode(struct mipi_dsi_info *mipi_dsi,
 		return;
 	}
 
-	writel(escape_mode, mipi_dsi->mmio_base + MIPI_DSI_ESCMODE);
-	writel(dsi_config, mipi_dsi->mmio_base + MIPI_DSI_CONFIG);
-
 	writel(dsi_clkctrl, mipi_dsi->mmio_base + MIPI_DSI_CLKCTRL);
+	mdelay(1);
 }
 
 static int mipi_dsi_enable(struct mxc_dispdrv_handle *disp,
@@ -542,14 +573,6 @@ static int mipi_dsi_enable(struct mxc_dispdrv_handle *disp,
 				return ret;
 			}
 		}
-
-		ret = device_reset(&mipi_dsi->pdev->dev);
-		if (ret) {
-			dev_err(&mipi_dsi->pdev->dev,
-				"failed to reset device: %d\n", ret);
-			return -EINVAL;
-		}
-		msleep(120);
 	}
 
 	if (!mipi_dsi->dsi_power_on)
@@ -568,10 +591,15 @@ static int mipi_dsi_enable(struct mxc_dispdrv_handle *disp,
 		if (ret)
 			return -EINVAL;
 
-		/* the mipi lcd panel should be config
-		 * in the dsi command mode.
-		 */
-		mipi_dsi_set_mode(mipi_dsi, DSI_COMMAND_MODE);
+		msleep(20);
+		ret = device_reset(&mipi_dsi->pdev->dev);
+		if (ret) {
+			dev_err(&mipi_dsi->pdev->dev, "failed to reset device: %d\n", ret);
+			return -EINVAL;
+		}
+		msleep(120);
+
+		/* the panel should be config under LP mode */
 		ret = mipi_dsi->lcd_callback->mipi_lcd_setup(mipi_dsi);
 		if (ret < 0) {
 			dev_err(&mipi_dsi->pdev->dev,
@@ -580,8 +608,8 @@ static int mipi_dsi_enable(struct mxc_dispdrv_handle *disp,
 		}
 		mipi_dsi->lcd_inited = 1;
 
-		/* change to video mode for panel display */
-		mipi_dsi_set_mode(mipi_dsi, DSI_VIDEO_MODE);
+		/* change to HS mode for panel display */
+		mipi_dsi_set_mode(mipi_dsi, DSI_HS_MODE);
 	} else {
 		ret = mipi_dsi_dcs_cmd(mipi_dsi, MIPI_DCS_EXIT_SLEEP_MODE,
 			NULL, 0);
@@ -775,12 +803,6 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 		}
 	}
 
-	ret = device_reset(&pdev->dev);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to reset device: %d\n", ret);
-		goto dev_reset_fail;
-	}
-
 	mipi_dsi->lcd_panel = kstrdup(lcd_panel, GFP_KERNEL);
 	if (!mipi_dsi->lcd_panel) {
 		dev_err(&pdev->dev, "failed to allocate lcd panel name\n");
@@ -810,7 +832,6 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 dispdrv_reg_fail:
 	kfree(mipi_dsi->lcd_panel);
 kstrdup_fail:
-dev_reset_fail:
 	if (mipi_dsi->disp_power_on)
 		regulator_disable(mipi_dsi->disp_power_on);
 
