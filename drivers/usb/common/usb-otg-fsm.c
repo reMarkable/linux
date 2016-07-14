@@ -21,6 +21,7 @@
  * 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/mutex.h>
@@ -491,3 +492,5 @@ int otg_hnp_polling(struct otg_fsm *fsm)
 	return retval;
 }
 EXPORT_SYMBOL_GPL(otg_hnp_polling);
+
+MODULE_LICENSE("GPL");
