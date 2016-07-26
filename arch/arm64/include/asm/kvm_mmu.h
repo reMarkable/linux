@@ -341,8 +341,16 @@ static inline void __invalidate_icache_guest_page(kvm_pfn_t pfn,
 static inline void __kvm_flush_dcache_pte(pte_t pte)
 {
 	if (!cpus_have_const_cap(ARM64_HAS_STAGE2_FWB)) {
-		struct page *page = pte_page(pte);
-		kvm_flush_dcache_to_poc(page_address(page), PAGE_SIZE);
+		if (pfn_valid(pte_pfn(pte))) {
+			struct page *page = pte_page(pte);
+
+			kvm_flush_dcache_to_poc(page_address(page), PAGE_SIZE);
+		} else {
+			void __iomem *va = ioremap_cache_ns(pte_pfn(pte) << PAGE_SHIFT, PAGE_SIZE);
+
+			kvm_flush_dcache_to_poc(va, PAGE_SIZE);
+			iounmap(va);
+		}
 	}
 }
 
