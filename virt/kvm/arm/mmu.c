@@ -1330,9 +1330,11 @@ static int stage2_pudp_test_and_clear_young(pud_t *pud)
  * @guest_ipa:	The IPA at which to insert the mapping
  * @pa:		The physical address of the device
  * @size:	The size of the mapping
+ * @prot:	S2 page translation bits
  */
 int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
-			  phys_addr_t pa, unsigned long size, bool writable)
+			  phys_addr_t pa, unsigned long size, bool writable,
+			  pgprot_t prot)
 {
 	phys_addr_t addr, end;
 	int ret = 0;
@@ -1343,7 +1345,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
 	pfn = __phys_to_pfn(pa);
 
 	for (addr = guest_ipa; addr < end; addr += PAGE_SIZE) {
-		pte_t pte = kvm_pfn_pte(pfn, PAGE_S2_DEVICE);
+		pte_t pte = kvm_pfn_pte(pfn, prot);
 
 		if (writable)
 			pte = kvm_s2pte_mkwrite(pte);
@@ -2332,7 +2334,7 @@ int kvm_arch_prepare_memory_region(struct kvm *kvm,
 
 			ret = kvm_phys_addr_ioremap(kvm, gpa, pa,
 						    vm_end - vm_start,
-						    writable);
+						    writable, PAGE_S2_DEVICE);
 			if (ret)
 				break;
 		}
