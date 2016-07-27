@@ -451,7 +451,8 @@ dtb-$(CONFIG_SOC_IMX6SL) += \
 	imx6sl-evk-ldo.dtb \
 	imx6sl-evk-csi.dtb \
 	imx6sl-evk-uart.dtb \
-	imx6sl-warp.dtb
+	imx6sl-warp.dtb \
+	zero-gravitas.dtb
 dtb-$(CONFIG_SOC_IMX6SX) += \
 	imx6sx-nitrogen6sx.dtb \
 	imx6sx-14x14-arm2.dtb \
