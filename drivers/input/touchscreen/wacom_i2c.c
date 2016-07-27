@@ -18,6 +18,7 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
+#include <linux/of.h>
 #include <asm/unaligned.h>
 
 #define WACOM_CMD_QUERY0	0x04
@@ -268,10 +269,21 @@ static const struct i2c_device_id wacom_i2c_id[] = {
 };
 MODULE_DEVICE_TABLE(i2c, wacom_i2c_id);
 
+#ifdef CONFIG_OF
+static const struct of_device_id wacom_i2c_of_match_table[] = {
+	{ .compatible = "wacom,wacom-i2c" },
+	{}
+};
+MODULE_DEVICE_TABLE(of, wacom_i2c_of_match_table);
+#endif
+
 static struct i2c_driver wacom_i2c_driver = {
 	.driver	= {
 		.name	= "wacom_i2c",
 		.pm	= &wacom_i2c_pm,
+#ifdef CONFIG_OF
+		.of_match_table = of_match_ptr(wacom_i2c_of_match_table),
+#endif
 	},
 
 	.probe		= wacom_i2c_probe,
