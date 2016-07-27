@@ -225,7 +225,7 @@
 		};
 	};
 
-	max17135@48 {
+	max17135@90 {
 		compatible = "maxim,max17135";
 		reg = <0x48>;
 		vneg_pwrup = <1>;
