@@ -97,6 +97,14 @@
 	};
 };
 
+&fec {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&pinctrl_fec>;
+	pinctrl-1 = <&pinctrl_fec_sleep>;
+	phy-mode = "rmii";
+	status = "okay";
+};
+
 &epdc {
         pinctrl-names = "default";
         pinctrl-0 = <&pinctrl_epdc_0>;
