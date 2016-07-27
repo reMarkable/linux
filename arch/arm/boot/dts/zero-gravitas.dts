@@ -225,22 +225,6 @@
 		};
 	};
 
-	elan@10 {
-		compatible = "elan,elan-touch";
-		reg = <0x10>;
-		interrupt-parent = <&gpio2>;
-		interrupts = <10 2>;
-		gpio_elan_cs = <&gpio2 9 0>;
-		gpio_elan_rst = <&gpio4 4 0>;
-		gpio_intr = <&gpio2 10 0>;
-		status = "okay";
-	};
-
-	mma8450@1c {
-		compatible = "fsl,mma8450";
-		reg = <0x1c>;
-	};
-
 	max17135@48 {
 		compatible = "maxim,max17135";
 		reg = <0x48>;
@@ -315,30 +299,6 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
-	codec: wm8962@1a {
-		compatible = "wlf,wm8962";
-		reg = <0x1a>;
-		clocks = <&clks IMX6SL_CLK_EXTERN_AUDIO>;
-		DCVDD-supply = <&vgen3_reg>;
-		DBVDD-supply = <&reg_aud3v>;
-		AVDD-supply = <&vgen3_reg>;
-		CPVDD-supply = <&vgen3_reg>;
-		MICVDD-supply = <&reg_aud3v>;
-		PLLVDD-supply = <&vgen3_reg>;
-		SPKVDD1-supply = <&reg_aud4v>;
-		SPKVDD2-supply = <&reg_aud4v>;
-		amic-mono;
-	};
-
-	sii902x@39 {
-		compatible = "SiI,sii902x";
-		interrupt-parent = <&gpio2>;
-		interrupts = <10 2>;
-		mode_str ="1280x720M@60";
-		bits-per-pixel = <16>;
-		resets = <&sii902x_reset>;
-		reg = <0x39>;
-	};
 };
 
 &i2c3 {
