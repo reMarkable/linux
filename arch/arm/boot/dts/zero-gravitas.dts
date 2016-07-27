@@ -115,7 +115,7 @@
 };
 
 &gpc {
-	 fsl,ldo-bypass = <1>;
+	 fsl,ldo-bypass = <0>;
 };
 
 &i2c1 {
