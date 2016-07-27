@@ -320,27 +320,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "disabled";
-
-	ov5640: ov5640@3c {
-		compatible = "ovti,ov5640";
-		reg = <0x3c>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_csi_0>;
-		clocks = <&clks IMX6SL_CLK_CSI>;
-		clock-names = "csi_mclk";
-		AVDD-supply = <&vgen6_reg>;  /* 2.8v */
-		DVDD-supply = <&vgen2_reg>;  /* 1.5v*/
-		pwn-gpios = <&gpio1 25 1>;
-		rst-gpios = <&gpio1 26 0>;
-		csi_id = <0>;
-		mclk = <24000000>;
-		mclk_source = <0>;
-		port {
-			ov5640_ep: endpoint {
-				remote-endpoint = <&csi_ep>;
-			};
-		};
-	};
 };
 
 &iomuxc {
