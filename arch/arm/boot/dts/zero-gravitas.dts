@@ -299,6 +299,12 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
+	digitizer: wacom-i2c@09 {
+		compatible = "wacom,wacom-i2c";
+		reg = <0x09>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <10 2>;
+	};
 };
 
 &i2c3 {
