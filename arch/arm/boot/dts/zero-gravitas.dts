@@ -74,6 +74,13 @@
 			enable-active-high;
 		};
 	};
+
+	wacom_reset: wacom-reset {
+		compatible = "gpio-reset";
+		reset-gpios = <&gpio4 4 1>;
+		reset-delay-us = <100000>;
+		#reset-cells = <0>;
+	};
 };
 
 &cpu0 {
@@ -312,6 +319,7 @@
 		reg = <0x09>;
 		interrupt-parent = <&gpio2>;
 		interrupts = <10 2>;
+		resets = <&wacom_reset>;
 	};
 };
 
