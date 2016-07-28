@@ -163,7 +163,7 @@
 			};
 
 			sw2_reg: sw2 {
-				regulator-min-microvolt = <800000>;
+				regulator-min-microvolt = <400000>;
 				regulator-max-microvolt = <3300000>;
 				regulator-boot-on;
 				regulator-always-on;
