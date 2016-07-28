@@ -244,14 +244,14 @@
 	max17135@90 {
 		compatible = "maxim,max17135";
 		reg = <0x48>;
-		vneg_pwrup = <1>;
 		gvee_pwrup = <2>;
+		vneg_pwrup = <1>;
 		vpos_pwrup = <10>;
 		gvdd_pwrup = <12>;
 		gvdd_pwrdn = <1>;
 		vpos_pwrdn = <2>;
-		gvee_pwrdn = <8>;
 		vneg_pwrdn = <10>;
+		gvee_pwrdn = <8>;
 		gpio_pmic_pwrgood = <&gpio2 13 0>;
 		gpio_pmic_vcom_ctrl = <&gpio2 3 0>;
 		gpio_pmic_wakeup = <&gpio2 14 0>;
