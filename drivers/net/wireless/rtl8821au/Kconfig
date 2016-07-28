@@ -1,0 +1,7 @@
+config RTL8821AU
+	tristate "Realtek 8821 USB WiFi"
+	depends on USB
+	depends on WEXT_CORE
+	---help---
+	  Help message of RTL8821AU
+
