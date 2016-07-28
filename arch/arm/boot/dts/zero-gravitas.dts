@@ -138,6 +138,7 @@
 		status = "okay";
 		interrupt-parent = <&gpio3>;
 		interrupts = <31 IRQ_TYPE_LEVEL_HIGH>;
+		ti,resistor-sense = <10>;
 	};
 
 	pmic: pfuze100@08 {
