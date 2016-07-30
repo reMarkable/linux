@@ -14,7 +14,7 @@
 
 / {
 	model = "reMarkable Prototype 1";
-	compatible = "fsl,zero-gravitas", "fsl,imx6sl";
+	compatible = "remarkable,zero-gravitas", "fsl,imx6sl";
 
 
 	memory {
