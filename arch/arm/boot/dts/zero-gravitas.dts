@@ -48,7 +48,7 @@
 	usb_charger: charger {
 		compatible = "gpio-charger";
 		gpios = <&gpio4 1 0>;
-	}
+	};
 };
 
 &cpu0 {
@@ -103,7 +103,7 @@
 	battery: bq27441@aa {
 		reg = <0xaa>;
 		compatible = "ti,bq27441";
-		power-supplies: <&usb_charger>;
+		power-supplies = <&usb_charger>;
 		status = "okay";
 		interrupt-parent = <&gpio3>;
 		interrupts = <31 IRQ_TYPE_LEVEL_HIGH>;
