@@ -200,6 +200,35 @@ unsigned long ddr3_dll_mx6dl[][2] = {
 	{0x818, 0x0},
 };
 
+unsigned long ddr3_dll_mx6sl[][2] = {
+	{0x0c, 0x0},
+	{0x10, 0x0},
+	{0x30, 0x0},
+	{0x1C, 0x04008032},
+	{0x1C, 0x0400803a},
+	{0x1C, 0x00048031},
+	{0x1C, 0x00048039},
+	{0x1C, 0x05208030},
+	{0x1C, 0x05208038},
+	{0x1C, 0x04008040},
+	{0x1C, 0x04008048},
+	{0x818, 0x0},
+};
+
+unsigned long iomux_offsets_mx6sl[][2] = {
+	{0x344, 0x0},
+	{0x348, 0x0},
+	{0x34c, 0x0},
+	{0x350, 0x0},
+};
+
+unsigned long ddr3_calibration_mx6sl[][2] = {
+	{0x83c, 0x0},
+	{0x840, 0x0},
+	{0x848, 0x0},
+	{0x850, 0x0},
+};
+
 unsigned long iomux_offsets_mx6dl[][2] = {
 	{0x4BC, 0x0},
 	{0x4C0, 0x0},
@@ -389,7 +418,12 @@ int update_ddr_freq_imx6_up(int ddr_rate)
 		dll_off = true;
 
 	imx6_busfreq_info->dll_off = dll_off;
-	iram_ddr_settings[0][0] = ddr_settings_size;
+	if (cpu_is_imx6sl()) {
+		iram_ddr_settings[0][0] = ARRAY_SIZE(ddr3_dll_mx6sl);
+		iram_ddr_settings[0][1] = ARRAY_SIZE(ddr3_calibration_mx6sl);
+	} else {
+		iram_ddr_settings[0][0] = ddr_settings_size;
+	}
 	iram_iomux_settings[0][0] = iomux_settings_size;
 	for (i = 0; i < iram_ddr_settings[0][0]; i++) {
 		iram_ddr_settings[i + 1][0] =
@@ -515,14 +549,25 @@ int init_mmdc_ddr3_settings_imx6_up(struct platform_device *busfreq_pdev)
 	iomux_base = of_iomap(node, 0);
 	WARN(!iomux_base, "unable to map iomux registers\n");
 
-	ddr_settings_size = ARRAY_SIZE(ddr3_dll_mx6sx) +
-		ARRAY_SIZE(ddr3_calibration_mx6sx);
+	if (cpu_is_imx6sl())
+		ddr_settings_size = ARRAY_SIZE(ddr3_dll_mx6sl) +
+			ARRAY_SIZE(ddr3_calibration_mx6sl);
+	else
+		ddr_settings_size = ARRAY_SIZE(ddr3_dll_mx6sx) +
+			ARRAY_SIZE(ddr3_calibration_mx6sx);
 
 	normal_mmdc_settings = kmalloc((ddr_settings_size * 8), GFP_KERNEL);
-	memcpy(normal_mmdc_settings, ddr3_dll_mx6sx,
-		sizeof(ddr3_dll_mx6sx));
-	memcpy(((char *)normal_mmdc_settings + sizeof(ddr3_dll_mx6sx)),
-		ddr3_calibration_mx6sx, sizeof(ddr3_calibration_mx6sx));
+
+	if (cpu_is_imx6sl()) {
+		memcpy(normal_mmdc_settings, ddr3_dll_mx6sl, sizeof(ddr3_dll_mx6sl));
+		memcpy(((char *)normal_mmdc_settings + sizeof(ddr3_dll_mx6sl)),
+		       ddr3_calibration_mx6sl, sizeof(ddr3_calibration_mx6sl));
+	} else {
+		memcpy(normal_mmdc_settings, ddr3_dll_mx6sx,
+		       sizeof(ddr3_dll_mx6sx));
+		memcpy(((char *)normal_mmdc_settings + sizeof(ddr3_dll_mx6sx)),
+		       ddr3_calibration_mx6sx, sizeof(ddr3_calibration_mx6sx));
+	}
 
 	/* store the original DDR settings at boot. */
 	for (i = 0; i < ddr_settings_size; i++) {
@@ -539,6 +584,8 @@ int init_mmdc_ddr3_settings_imx6_up(struct platform_device *busfreq_pdev)
 
 	if (cpu_is_imx6ul())
 		iomux_settings_size = ARRAY_SIZE(iomux_offsets_mx6ul);
+	else if (cpu_is_imx6sl())
+		iomux_settings_size = ARRAY_SIZE(iomux_offsets_mx6sl);
 	else
 		iomux_settings_size = ARRAY_SIZE(iomux_offsets_mx6sx);
 
@@ -572,6 +619,14 @@ int init_mmdc_ddr3_settings_imx6_up(struct platform_device *busfreq_pdev)
 				iomux_offsets_mx6ul[i][0];
 			iram_iomux_settings[i + 1][1] =
 				iomux_offsets_mx6ul[i][1];
+		} else if (cpu_is_imx6sl()) {
+			iomux_offsets_mx6sl[i][1] =
+				readl_relaxed(iomux_base +
+				iomux_offsets_mx6sl[i][0]);
+			iram_iomux_settings[i+1][0] =
+				iomux_offsets_mx6sl[i][0];
+			iram_iomux_settings[i+1][1] =
+				iomux_offsets_mx6sl[i][1];
 		} else {
 			iomux_offsets_mx6sx[i][1] =
 				readl_relaxed(iomux_base +

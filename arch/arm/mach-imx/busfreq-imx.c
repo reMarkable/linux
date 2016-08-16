@@ -348,7 +348,10 @@ static void enter_lpm_imx6sl(void)
 		imx_clk_set_rate(ahb_clk, LPAPM_CLK / 3);
 
 		/* Set up DDR to 100MHz. */
-		update_lpddr2_freq(HIGH_AUDIO_CLK);
+		if (ddr_type == IMX_DDR_TYPE_DDR3)
+			update_ddr_freq_imx6_up(LOW_AUDIO_CLK);
+		else
+			update_lpddr2_freq(HIGH_AUDIO_CLK);
 
 		/* Fix the clock tree in kernel */
 		imx_clk_set_parent(periph2_pre_clk, pll2_200_clk);
@@ -445,7 +448,10 @@ static void enter_lpm_imx6sl(void)
 				 */
 				imx_clk_set_parent(step_clk, osc_clk);
 				/* Now set DDR to 24MHz. */
-				update_lpddr2_freq(LPAPM_CLK);
+				if (ddr_type == IMX_DDR_TYPE_DDR3)
+					update_ddr_freq_imx6_up(LPAPM_CLK);
+				else
+					update_lpddr2_freq(LPAPM_CLK);
 
 				/*
 				 * Fix the clock tree in kernel.
@@ -1174,7 +1180,11 @@ static int busfreq_probe(struct platform_device *pdev)
 		else if (ddr_type == MMDC_MDMISC_DDR_TYPE_LPDDR2)
 			err = init_mmdc_lpddr2_settings_mx6q(pdev);
 	} else if (cpu_is_imx6sl()) {
-		err = init_mmdc_lpddr2_settings(pdev);
+		ddr_type = imx_mmdc_get_ddr_type();
+		if (ddr_type == IMX_DDR_TYPE_DDR3)
+			err = init_mmdc_ddr3_settings_imx6_up(pdev);
+		else if (ddr_type == IMX_DDR_TYPE_LPDDR2)
+			err = init_mmdc_lpddr2_settings(pdev);
 	}
 
 	if (cpu_is_imx6sx()) {
