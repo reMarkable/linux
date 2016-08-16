@@ -1260,12 +1260,22 @@ static int mmc_select_hs200(struct mmc_card *card)
 	if (card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS200_1_2V)
 		err = __mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_120);
 
+	if (err) {
+		printk("Unable to set MMC voltage to 1.2V\n");
+	}
 	if (err && card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS200_1_8V)
 		err = __mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_180);
 
+	if (err) {
+		printk("Unable to set MMC voltage to 1.8V\n");
+	} else {
+		printk("Set MMC voltage to 1.8V\n");
+	}
 	/* If fails try again during next card power cycle */
-	if (err)
+	if (err) {
+		printk("Failed to set voltage, will try next power cycle\n");
 		goto err;
+	}
 
 	mmc_select_driver_type(card);
 
@@ -1284,8 +1294,10 @@ static int mmc_select_hs200(struct mmc_card *card)
 				   EXT_CSD_HS_TIMING, val,
 				   card->ext_csd.generic_cmd6_time,
 				   true, send_status, true);
-		if (err)
+		if (err) {
+			printk("Fail to switch to HS200 mode\n");
 			goto err;
+		}
 		old_timing = host->ios.timing;
 		mmc_set_timing(host, MMC_TIMING_MMC_HS200);
 		if (!send_status) {
@@ -1297,11 +1309,14 @@ static int mmc_select_hs200(struct mmc_card *card)
 			if (err == -EBADMSG)
 				mmc_set_timing(host, old_timing);
 		}
+	} else {
+		printk("Failed to set MMC bus width!");
 	}
 err:
-	if (err)
+	if (err) {
 		pr_err("%s: %s failed, error %d\n", mmc_hostname(card->host),
 		       __func__, err);
+	}
 	return err;
 }
 

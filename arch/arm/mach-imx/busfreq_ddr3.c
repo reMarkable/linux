@@ -540,6 +540,8 @@ int init_mmdc_ddr3_settings_imx6_up(struct platform_device *busfreq_pdev)
 
 	if (cpu_is_imx6sx())
 		node = of_find_compatible_node(NULL, NULL, "fsl,imx6sx-iomuxc");
+	else if (cpu_is_imx6sl())
+		node = of_find_compatible_node(NULL, NULL, "fsl,imx6sl-iomuxc");
 	else
 		node = of_find_compatible_node(NULL, NULL, "fsl,imx6ul-iomuxc");
 	if (!node) {
