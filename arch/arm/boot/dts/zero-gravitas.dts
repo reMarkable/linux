@@ -85,8 +85,8 @@
 	pinctrl-0 = <&pinctrl_i2c1>;
 	status = "okay";
 
-	battery: bq27441@aa {
-		reg = <0xaa>;
+	battery: bq27441@55 {
+		reg = <0x55>;
 		compatible = "ti,bq27441";
 		power-supplies = <&usb_charger>;
 		status = "okay";
@@ -195,7 +195,7 @@
 		};
 	};
 
-	max17135@90 {
+	max17135@48 {
 		compatible = "maxim,max17135";
 		reg = <0x48>;
 		vneg_pwrup = <1>;
