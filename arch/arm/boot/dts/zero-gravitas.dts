@@ -89,9 +89,8 @@
 		reg = <0x55>;
 		compatible = "ti,bq27441";
 		power-supplies = <&usb_charger>;
-		status = "okay";
-		interrupt-parent = <&gpio3>;
-		interrupts = <31 IRQ_TYPE_LEVEL_HIGH>;
+		/*interrupt-parent = <&gpio3>;
+		interrupts = <31 IRQ_TYPE_LEVEL_HIGH>;*/
 		ti,resistor-sense = <10>;
 	};
 
@@ -307,7 +306,7 @@
 				MX6SL_PAD_EPDC_PWRINT__GPIO2_IO12	0x80000000
 
 				/* BQ27441 low power */
-				MX6SL_PAD_KEY_ROW3__GPIO3_IO31		0x17000
+				/*MX6SL_PAD_KEY_ROW3__GPIO3_IO31		0x17000*/
 
 				/* Wacom interrupt */
 				MX6SL_PAD_EPDC_PWRCTRL3__GPIO2_IO10	0x17000
