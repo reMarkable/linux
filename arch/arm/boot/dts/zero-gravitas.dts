@@ -628,21 +628,19 @@
 	wp-controller;
 	keep-power-in-suspend;
 	enable-sdio-wakeup;
+	no-1-8-v;
 	/*disable-wp;*/
 	status = "okay";
 };
 
 &usdhc2 {
-	pinctrl-names = "default", "state_100mhz", "state_200mhz";
-	pinctrl-0 = <&pinctrl_usdhc2>;
-	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
-	pinctrl-2 = <&pinctrl_usdhc2_200mhz>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc2_100mhz>;
 	bus-width = <8>;
 	non-removable;
 	keep-power-in-suspend;
-	enable-sdio-wakeup;
-/*	disable-wp;
-	cap-sdio-irq;*/
+	no-1-8-v;
+	disable-wp;
 	status = "okay";
 };
 
@@ -652,11 +650,8 @@
 	pinctrl-1 = <&pinctrl_usdhc3_100mhz>;
 	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;
 	non-removable;
-/*	keep-power-in-suspend;
-	enable-sdio-wakeup;
 	enable-sdio-wakeup;
 	disable-wp;
-	cap-sdio-irq;
-	wifi-host;*/
+	/*wifi-host;*/
 	status = "okay";
 };
