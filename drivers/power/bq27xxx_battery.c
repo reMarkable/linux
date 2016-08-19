@@ -960,6 +960,7 @@ int bq27xxx_battery_setup(struct bq27xxx_device_info *di)
 {
 	struct power_supply_desc *psy_desc;
 	struct power_supply_config psy_cfg = { .drv_data = di, };
+	int volt;
 
 	INIT_DELAYED_WORK(&di->work, bq27xxx_battery_poll);
 	mutex_init(&di->lock);
@@ -983,6 +984,12 @@ int bq27xxx_battery_setup(struct bq27xxx_device_info *di)
 	}
 
 	dev_info(di->dev, "support ver. %s enabled\n", DRIVER_VERSION);
+
+	volt = bq27xxx_read(di, BQ27XXX_REG_VOLT, false);
+	if (volt < 0)
+		dev_err(di->dev, "error reading voltage\n");
+	else
+		dev_info(di->dev, "Measured voltage: %dmV\n", volt);
 
 	bq27xxx_battery_update(di);
 
