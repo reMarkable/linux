@@ -120,6 +120,7 @@ enum mxcfb_dithering_mode {
 };
 
 #define FB_POWERDOWN_DISABLE			-1
+#define FB_TEMP_AUTO_UPDATE_DISABLE		-1
 
 struct mxcfb_alt_buffer_data {
 	__u32 phys_addr;
@@ -193,6 +194,7 @@ struct mxcfb_csc_matrix {
 #define MXCFB_GET_PWRDOWN_DELAY		_IOR('F', 0x31, int32_t)
 #define MXCFB_SET_UPDATE_SCHEME		_IOW('F', 0x32, __u32)
 #define MXCFB_GET_WORK_BUFFER		_IOWR('F', 0x34, unsigned long)
+#define MXCFB_SET_TEMP_AUTO_UPDATE_PERIOD      _IOW('F', 0x36, int32_t)
 #define MXCFB_DISABLE_EPDC_ACCESS	_IO('F', 0x35)
 #define MXCFB_ENABLE_EPDC_ACCESS	_IO('F', 0x36)
 #endif

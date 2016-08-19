@@ -79,6 +79,7 @@
 
 #define DEFAULT_TEMP_INDEX	0
 #define DEFAULT_TEMP		20 /* room temp in deg Celsius */
+#define DEFAULT_TEMP_AUTO_UPDATE_PERIOD	60 /* 60 seconds */
 
 #define INIT_UPDATE_MARKER	0x12345678
 #define PAN_UPDATE_MARKER	0x12345679
@@ -153,6 +154,7 @@ struct mxc_epdc_fb_data {
 	struct regulator *display_regulator;
 	struct regulator *vcom_regulator;
 	struct regulator *v3p3_regulator;
+	struct regulator *tmst_regulator;
 	bool fw_default_load;
 	int rev;
 
@@ -172,6 +174,8 @@ struct mxc_epdc_fb_data {
 	struct update_data_list *cur_update;
 	struct mutex queue_mutex;
 	int trt_entries;
+	int temp_auto_update_period;
+	unsigned long last_time_temp_auto_update;
 	int temp_index;
 	u8 *temp_range_bounds;
 	struct mxcfb_waveform_modes wv_modes;
@@ -323,7 +327,38 @@ static struct fb_videomode e97_v110_mode = {
 	.flag = 0,
 };
 
+static struct fb_videomode es103cs1_mode = {
+	.name = "ES103CS1",
+	.refresh = 85,
+	.xres = 1872,
+	.yres = 1404,
+	.pixclock = 160000000,
+	.left_margin = 32,
+	.right_margin = 326,
+	.upper_margin = 4,
+	.lower_margin = 12,
+	.hsync_len = 44,
+	.vsync_len = 1,
+	.sync = 0,
+	.vmode = FB_VMODE_NONINTERLACED,
+	.flag = 0,
+};
+
+
 static struct imx_epdc_fb_mode panel_modes[] = {
+	{
+		&es103cs1_mode,
+		4,      /* vscan_holdoff */
+		10,     /* sdoed_width */
+		20,     /* sdoed_delay */
+		10,     /* sdoez_width */
+		20,     /* sdoez_delay */
+		1042,    /* gdclk_hp_offs */
+		762,     /* gdsp_offs */
+		0,      /* gdoe_offs */
+		91,      /* gdclk_offs */
+		1,      /* num_ce */
+	},
 	{
 		&e60_v110_mode,
 		4,      /* vscan_holdoff */
@@ -1074,7 +1109,8 @@ static void epdc_init_settings(struct mxc_epdc_fb_data *fb_data)
 	reg_val =
 	    ((epdc_mode->vscan_holdoff << EPDC_TCE_CTRL_VSCAN_HOLDOFF_OFFSET) &
 	     EPDC_TCE_CTRL_VSCAN_HOLDOFF_MASK)
-	    | EPDC_TCE_CTRL_PIXELS_PER_SDCLK_4;
+	    | EPDC_TCE_CTRL_PIXELS_PER_SDCLK_8
+	    | EPDC_TCE_CTRL_SDDO_WIDTH_16BIT;
 	__raw_writel(reg_val, EPDC_TCE_CTRL);
 
 	/* EPDC_TCE_HSCAN */
@@ -1227,7 +1263,7 @@ static void epdc_powerup(struct mxc_epdc_fb_data *fb_data)
 	ret = regulator_enable(fb_data->display_regulator);
 	if (IS_ERR((void *)ret)) {
 		dev_err(fb_data->dev, "Unable to enable DISPLAY regulator."
-			"err = 0x%x\n", ret);
+			"err = %d\n", PTR_ERR(ret));
 		mutex_unlock(&fb_data->power_mutex);
 		return;
 	}
@@ -1238,7 +1274,6 @@ static void epdc_powerup(struct mxc_epdc_fb_data *fb_data)
 		mutex_unlock(&fb_data->power_mutex);
 		return;
 	}
-
 	fb_data->power_state = POWER_STATE_ON;
 
 	mutex_unlock(&fb_data->power_mutex);
@@ -1567,7 +1602,7 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 	proc_data->hflip = 0;
 	proc_data->vflip = 0;
 	proc_data->rotate = screeninfo->rotate;
-	proc_data->bgcolor = 0;
+	proc_data->bgcolor = 65535;
 	proc_data->overlay_state = 0;
 	proc_data->lut_transform = PXP_LUT_NONE;
 
@@ -1615,6 +1650,8 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 	 */
 	if (!fb_data->hw_ready) {
 		struct fb_videomode mode;
+		struct fb_videomode cur_mode;
+		bool found_match = false;
 		u32 xres_temp;
 
 		fb_var_to_videomode(&mode, screeninfo);
@@ -1628,19 +1665,26 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 			mode.yres = xres_temp;
 		}
 
+		if(fb_data->cur_mode->vmode) {
+			cur_mode = *(fb_data->cur_mode->vmode);
+			cur_mode.pixclock = 1000000000/(fb_data->cur_mode->vmode->pixclock/1000);
+		}
+
 		/*
 		* If requested video mode does not match current video
 		* mode, search for a matching panel.
 		*/
 		if (fb_data->cur_mode &&
-			!fb_mode_is_equal(fb_data->cur_mode->vmode,
-			&mode)) {
-			bool found_match = false;
+		    fb_mode_is_equal(&cur_mode, &mode)) {
+			found_match = true;
+		}
+		else {
 
 			/* Match videomode against epdc modes */
 			for (i = 0; i < fb_data->pdata->num_modes; i++) {
-				if (!fb_mode_is_equal(epdc_modes[i].vmode,
-					&mode))
+				cur_mode = *(epdc_modes[i].vmode);
+				cur_mode.pixclock = 1000000000/(fb_data->cur_mode->vmode->pixclock/1000);
+				if (!fb_mode_is_equal(&cur_mode, &mode))
 					continue;
 				fb_data->cur_mode = &epdc_modes[i];
 				found_match = true;
@@ -1649,8 +1693,7 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 
 			if (!found_match) {
 				dev_err(fb_data->dev,
-					"Failed to match requested "
-					"video mode\n");
+					"Failed to match requested video mode\n");
 				return EINVAL;
 			}
 		}
@@ -1870,14 +1913,43 @@ static int mxc_epdc_fb_get_temp_index(struct mxc_epdc_fb_data *fb_data, int temp
 	}
 
 	if (index < 0) {
-		dev_err(fb_data->dev,
-			"No TRT index match...using default temp index\n");
+		if (temp < fb_data->temp_range_bounds[0]) {
+			dev_dbg(fb_data->dev, "temperature < minimum range\n");
+			return 0;
+		}
+		if (temp >= fb_data->temp_range_bounds[fb_data->trt_entries-1]) {
+			dev_dbg(fb_data->dev, "temperature >= maximum range\n");
+			return fb_data->trt_entries-1;
+		}
 		return DEFAULT_TEMP_INDEX;
 	}
 
 	dev_dbg(fb_data->dev, "Using temperature index %d\n", index);
 
 	return index;
+}
+
+int mxc_epdc_fb_read_temperature(struct mxc_epdc_fb_data *fb_data)
+{
+	unsigned long now;
+	int temperature;
+
+	/* Check if we need to auto update the temperature in regulate basis */
+	if (!IS_ERR(fb_data->tmst_regulator) &&
+		fb_data->temp_auto_update_period != FB_TEMP_AUTO_UPDATE_DISABLE) {
+		now = get_seconds();
+		if ((now - fb_data->last_time_temp_auto_update) >
+				fb_data->temp_auto_update_period) {
+			temperature = regulator_get_voltage(fb_data->tmst_regulator);
+			dev_dbg(fb_data->dev, "auto temperature reading = %d\n", temperature);
+
+			if (temperature != 0xFF) {
+				fb_data->last_time_temp_auto_update = now;
+				fb_data->temp_index = mxc_epdc_fb_get_temp_index(fb_data, temperature);
+			}
+		}
+	}
+	return 0;
 }
 
 int mxc_epdc_fb_set_temperature(int temperature, struct fb_info *info)
@@ -1893,6 +1965,16 @@ int mxc_epdc_fb_set_temperature(int temperature, struct fb_info *info)
 	return 0;
 }
 EXPORT_SYMBOL(mxc_epdc_fb_set_temperature);
+
+int mxc_epdc_fb_set_temp_auto_update_period(int period, struct fb_info *info)
+{
+	struct mxc_epdc_fb_data *fb_data = info ?
+		(struct mxc_epdc_fb_data *)info:g_fb_data;
+
+	fb_data->temp_auto_update_period = period;
+
+	return 0;
+}
 
 int mxc_epdc_fb_set_auto_update(u32 auto_mode, struct fb_info *info)
 {
@@ -2381,7 +2463,7 @@ static int epdc_submit_merge(struct update_desc_list *upd_desc_list,
 	/* Merged update should take on the earliest order */
 	upd_desc_list->update_order =
 		(upd_desc_list->update_order > update_to_merge->update_order) ?
-		upd_desc_list->update_order : update_to_merge->update_order;
+		update_to_merge->update_order : upd_desc_list->update_order;
 
 	return MERGE_OK;
 }
@@ -2612,6 +2694,9 @@ static void epdc_submit_work_func(struct work_struct *work)
 		fb_data->epdc_fb_var.yres, fb_data->epdc_fb_var.rotate,
 		&upd_data_list->update_desc->upd_data.update_region,
 		&adj_update_region);
+
+	/* Check if auto temperature update is needed */
+	mxc_epdc_fb_read_temperature(fb_data);
 
 	/*
 	 * Is the working buffer idle?
@@ -3000,6 +3085,9 @@ static int mxc_epdc_fb_send_single_update(struct mxcfb_update_data *upd_data,
 		return ret;
 	}
 
+	/* Check if auto temperature update is needed */
+	mxc_epdc_fb_read_temperature(fb_data);
+
 	/* Pass selected waveform mode back to user */
 	upd_data->waveform_mode = upd_desc->upd_data.waveform_mode;
 
@@ -3252,6 +3340,14 @@ static int mxc_epdc_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			int temperature;
 			if (!get_user(temperature, (int32_t __user *) arg))
 				ret = mxc_epdc_fb_set_temperature(temperature,
+					info);
+			break;
+		}
+	case MXCFB_SET_TEMP_AUTO_UPDATE_PERIOD:
+		{
+			int period;
+			if (!get_user(period, (int32_t __user *) arg))
+				ret = mxc_epdc_fb_set_temp_auto_update_period(period,
 					info);
 			break;
 		}
@@ -3550,7 +3646,7 @@ static int mxc_epdc_fb_pan_display(struct fb_var_screeninfo *var,
 	if (y_bottom > info->var.yres_virtual)
 		return -EINVAL;
 
-	mutex_lock(&fb_data->queue_mutex);
+	mutex_lock(&fb_data->pxp_mutex);
 
 	fb_data->fb_offset = (var->yoffset * var->xres_virtual + var->xoffset)
 		* (var->bits_per_pixel) / 8;
@@ -3563,7 +3659,7 @@ static int mxc_epdc_fb_pan_display(struct fb_var_screeninfo *var,
 	else
 		info->var.vmode &= ~FB_VMODE_YWRAP;
 
-	mutex_unlock(&fb_data->queue_mutex);
+	mutex_unlock(&fb_data->pxp_mutex);
 
 	return 0;
 }
@@ -4281,10 +4377,6 @@ static void mxc_epdc_fb_fw_handler(const struct firmware *fw,
 	struct mxcfb_waveform_data_file *wv_file;
 	int wv_data_offs;
 	int i;
-	struct mxcfb_update_data update;
-	struct mxcfb_update_marker_data upd_marker_data;
-	struct fb_var_screeninfo *screeninfo = &fb_data->epdc_fb_var;
-	u32 xres, yres;
 	struct clk *epdc_parent;
 	unsigned long rounded_parent_rate, epdc_pix_rate,
 			rounded_pix_clk, target_pix_clk;
@@ -4298,9 +4390,7 @@ static void mxc_epdc_fb_fw_handler(const struct firmware *fw,
 		dev_dbg(fb_data->dev,
 			"Can't find firmware. Trying fallback fw\n");
 		fb_data->fw_default_load = true;
-		ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
-			"imx/epdc/epdc.fw", fb_data->dev, GFP_KERNEL, fb_data,
-			mxc_epdc_fb_fw_handler);
+		ret = request_firmware(&fw, "imx/epdc/epdc.fw", fb_data->dev);
 		if (ret)
 			dev_err(fb_data->dev,
 				"Failed request_firmware_nowait err %d\n", ret);
@@ -4322,6 +4412,9 @@ static void mxc_epdc_fb_fw_handler(const struct firmware *fw,
 
 	/* Set default temperature index using TRT and room temp */
 	fb_data->temp_index = mxc_epdc_fb_get_temp_index(fb_data, DEFAULT_TEMP);
+
+	/* Set default temperature auto update period */
+	fb_data->temp_auto_update_period = DEFAULT_TEMP_AUTO_UPDATE_PERIOD;
 
 	/* Get offset and size for waveform data */
 	wv_data_offs = sizeof(wv_file->wdh) + fb_data->trt_entries + 1;
@@ -4380,43 +4473,12 @@ static void mxc_epdc_fb_fw_handler(const struct firmware *fw,
 
 	fb_data->hw_ready = true;
 	fb_data->hw_initializing = false;
-
-	/* Use unrotated (native) width/height */
-	if ((screeninfo->rotate == FB_ROTATE_CW) ||
-		(screeninfo->rotate == FB_ROTATE_CCW)) {
-		xres = screeninfo->yres;
-		yres = screeninfo->xres;
-	} else {
-		xres = screeninfo->xres;
-		yres = screeninfo->yres;
-	}
-
-	update.update_region.left = 0;
-	update.update_region.width = xres;
-	update.update_region.top = 0;
-	update.update_region.height = yres;
-	update.update_mode = UPDATE_MODE_FULL;
-	update.waveform_mode = WAVEFORM_MODE_AUTO;
-	update.update_marker = INIT_UPDATE_MARKER;
-	update.temp = TEMP_USE_AMBIENT;
-	update.flags = 0;
-
-	upd_marker_data.update_marker = update.update_marker;
-
-	mxc_epdc_fb_send_update(&update, &fb_data->info);
-
-	/* Block on initial update */
-	ret = mxc_epdc_fb_wait_update_complete(&upd_marker_data,
-		&fb_data->info);
-	if (ret < 0)
-		dev_err(fb_data->dev,
-			"Wait for initial update complete failed."
-			" Error = 0x%x", ret);
 }
 
 static int mxc_epdc_fb_init_hw(struct fb_info *info)
 {
 	struct mxc_epdc_fb_data *fb_data = (struct mxc_epdc_fb_data *)info;
+	const struct firmware *fw;
 	int ret;
 
 	/*
@@ -4431,12 +4493,11 @@ static int mxc_epdc_fb_init_hw(struct fb_info *info)
 
 	fb_data->fw_default_load = false;
 
-	ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
-				fb_data->fw_str, fb_data->dev, GFP_KERNEL,
-				fb_data, mxc_epdc_fb_fw_handler);
+	ret = request_firmware(&fw, fb_data->fw_str, fb_data->dev);
 	if (ret)
 		dev_dbg(fb_data->dev,
 			"Failed request_firmware_nowait err %d\n", ret);
+	mxc_epdc_fb_fw_handler(fw, fb_data);
 
 	return ret;
 }
@@ -4644,7 +4705,9 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 	/* Additional screens allow for panning  and buffer flipping */
 	var_info->yres_virtual = yres_virt * fb_data->num_screens;
 
-	var_info->pixclock = vmode->pixclock;
+	/* Should be (1000000000000LL/vmode->pixclock) but the kernel 
+	 * does not have long long division library! */
+	var_info->pixclock = 1000000000/(vmode->pixclock/1000);
 	var_info->left_margin = vmode->left_margin;
 	var_info->right_margin = vmode->right_margin;
 	var_info->upper_margin = vmode->upper_margin;
@@ -4926,9 +4989,15 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 	fb_data->v3p3_regulator = devm_regulator_get(&pdev->dev, "V3P3");
 	if (IS_ERR(fb_data->v3p3_regulator)) {
 		dev_err(&pdev->dev, "Unable to get V3P3 regulator."
-			"err = 0x%x\n", (int)fb_data->vcom_regulator);
+			"err = 0x%x\n", (int)fb_data->v3p3_regulator);
 		ret = -ENODEV;
 		goto out_dma_work_buf;
+	}
+
+	fb_data->tmst_regulator = devm_regulator_get(&pdev->dev, "TMST");
+	if (IS_ERR(fb_data->tmst_regulator)) {
+		dev_info(&pdev->dev, "Unable to get TMST regulator."
+			 "err = 0x%x\n", (int)fb_data->tmst_regulator);
 	}
 
 	if (device_create_file(info->dev, &fb_attrs[0]))
@@ -5161,12 +5230,19 @@ static int mxc_epdc_fb_suspend(struct device *dev)
 	struct mxc_epdc_fb_data *data = dev_get_drvdata(dev);
 	int ret;
 
+	int pwrdown_delay = data->pwrdown_delay;
+
+	if (data->pwrdown_delay != FB_POWERDOWN_DISABLE)
+		cancel_delayed_work_sync(&data->epdc_done_work);
+
 	data->pwrdown_delay = FB_POWERDOWN_DISABLE;
 	ret = mxc_epdc_fb_blank(FB_BLANK_POWERDOWN, &data->info);
 	if (ret)
 		goto out;
 
 out:
+	data->pwrdown_delay = pwrdown_delay;
+
 	return ret;
 }
 
