@@ -62,6 +62,9 @@
  */
 /*#define DEFAULT_PANEL_HW_INIT*/
 
+#warning "Disable KAIFA_EPDC_PMIC_TEST"
+#define KAIFA_EPDC_PMIC_TEST
+
 #define NUM_SCREENS_MIN	2
 
 #define EPDC_V1_NUM_LUTS	16
@@ -5055,6 +5058,10 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 	g_fb_data = fb_data;
 
 	pm_runtime_enable(fb_data->dev);
+
+#ifdef KAIFA_EPDC_PMIC_TEST
+	epdc_powerup(fb_data);
+#endif
 
 #ifdef DEFAULT_PANEL_HW_INIT
 	ret = mxc_epdc_fb_init_hw((struct fb_info *)fb_data);
