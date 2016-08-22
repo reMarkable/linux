@@ -595,6 +595,10 @@ static void reduce_bus_freq(void)
 
 static void reduce_bus_freq_handler(struct work_struct *work)
 {
+	printk("Reducing bus frequency\n");
+#warning "Re-enable down clocking of ram"
+	return;
+
 	mutex_lock(&bus_freq_mutex);
 
 	reduce_bus_freq();
