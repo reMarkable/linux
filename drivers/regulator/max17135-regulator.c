@@ -222,6 +222,7 @@ static int max17135_vcom_enable(struct regulator_dev *reg)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
 
+	printk("MAX17135 powering up VCOM (EPDC_VCOM0)\n");
 	/*
 	 * Check to see if we need to set the VCOM voltage.
 	 * Should only be done one time. And, we can
@@ -253,6 +254,8 @@ static int max17135_vcom_enable(struct regulator_dev *reg)
 static int max17135_vcom_disable(struct regulator_dev *reg)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
+
+	printk("MAX17135 powering down VCOM (EPDC_VCOM0)\n");
 
 	if (max17135->pass_num == 1)
 		gpio_set_value(max17135->gpio_pmic_vcom_ctrl, 0);
@@ -319,6 +322,9 @@ static int max17135_wait_power_good(struct max17135 *max17135)
 static int max17135_display_enable(struct regulator_dev *reg)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
+	int ret;
+
+	printk("MAX17135 powering up DISPLAY (EPDC_PWRWAKEUP)\n");
 
 	/* The Pass 1 parts cannot turn on the PMIC via I2C. */
 	if (max17135->pass_num == 1)
@@ -332,12 +338,21 @@ static int max17135_display_enable(struct regulator_dev *reg)
 		max17135_reg_write(REG_MAX17135_ENABLE, reg_val);
 	}
 
-	return max17135_wait_power_good(max17135);
+	ret = max17135_wait_power_good(max17135);
+	if (ret == -ETIMEDOUT) {
+		printk("MAX17135 timeout while powering up DISPLAY (EPDC_PWRWAKEUP)\n");
+	} else if (ret) {
+		printk("MAX17135 error while powering up DISPLAY (EPDC_PWRWAKEUP): %d\n", ret);
+	}
+
+	return ret;
 }
 
 static int max17135_display_disable(struct regulator_dev *reg)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
+
+	printk("MAX17135 powering down DISPLAY (EPDC_PWRWAKEUP)\n");
 
 	if (max17135->pass_num == 1)
 		gpio_set_value(max17135->gpio_pmic_wakeup, 0);
