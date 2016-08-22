@@ -157,10 +157,6 @@ struct max17135 {
 
 	/* MAX17135 part variables */
 	int pass_num;
-	int vcom_uV;
-
-	/* One-time VCOM setup marker */
-	bool vcom_setup;
 
 	/* powerup/powerdown wait time */
 	int max_wait;
@@ -177,6 +173,7 @@ enum {
     MAX17135_VNEG,
     MAX17135_VPOS,
     MAX17135_V3P3,
+    MAX17135_TMST,
     MAX17135_NUM_REGULATORS,
 };
 

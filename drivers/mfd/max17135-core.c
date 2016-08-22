@@ -99,7 +99,7 @@ int max17135_reg_write(int reg_num, const unsigned int reg_val)
 	result = i2c_smbus_write_byte_data(max17135_client, reg_num, reg_val);
 	if (result < 0) {
 		dev_err(&max17135_client->dev,
-			"Unable to write MAX17135 register via I2C\n");
+			"Unable to write MAX17135 register via I2C: %d\n", result);
 		return PMIC_ERROR;
 	}
 
