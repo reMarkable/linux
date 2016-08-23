@@ -302,7 +302,7 @@ static int max17135_is_power_good(struct max17135 *max17135)
     fld_val = (reg_val & BITFMASK(FAULT_POK)) >> FAULT_POK_LSH;
 
     /* Check the POK bit */
-    return fld_val;
+    return fld_val && gpio_get_value(max17135->gpio_pmic_pwrgood);
 }
 
 static int max17135_wait_power_good(struct max17135 *max17135)
