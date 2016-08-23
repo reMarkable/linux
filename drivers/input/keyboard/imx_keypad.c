@@ -175,7 +175,7 @@ static void imx_keypad_fire_events(struct imx_keypad *keypad,
 			input_event(input_dev, EV_MSC, MSC_SCAN, code);
 			input_report_key(input_dev, keypad->keycodes[code],
 				matrix_volatile_state[col] & (1 << row));
-			dev_dbg(&input_dev->dev, "Event code: %d, val: %d",
+			printk("Keypad event code: %d, val: %d",
 				keypad->keycodes[code],
 				matrix_volatile_state[col] & (1 << row));
 		}
