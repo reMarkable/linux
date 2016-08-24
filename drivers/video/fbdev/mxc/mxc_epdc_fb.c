@@ -1107,7 +1107,8 @@ static void epdc_init_settings(struct mxc_epdc_fb_data *fb_data)
 	reg_val =
 	    ((epdc_mode->vscan_holdoff << EPDC_TCE_CTRL_VSCAN_HOLDOFF_OFFSET) &
 	     EPDC_TCE_CTRL_VSCAN_HOLDOFF_MASK)
-	    | EPDC_TCE_CTRL_PIXELS_PER_SDCLK_4;
+	    | EPDC_TCE_CTRL_PIXELS_PER_SDCLK_8
+	    | EPDC_TCE_CTRL_SDDO_WIDTH_16BIT;
 	__raw_writel(reg_val, EPDC_TCE_CTRL);
 
 	/* EPDC_TCE_HSCAN */
