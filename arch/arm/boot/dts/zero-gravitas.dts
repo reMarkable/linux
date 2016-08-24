@@ -734,6 +734,7 @@
 	non-removable;
 	enable-sdio-wakeup;
 	disable-wp;
-	/*wifi-host;*/
+	no-1-8-v;
+	wifi-host;
 	status = "okay";
 };
