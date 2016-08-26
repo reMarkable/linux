@@ -330,12 +330,12 @@ static struct fb_videomode es103td1_mode = {
 	.refresh = 85,
 	.xres = 1872,
 	.yres = 1404,
-	.pixclock = 33333333,
-	.left_margin = 8,
-	.right_margin = 23,
+	.pixclock = 160000000,
+	.left_margin = 32,
+	.right_margin = 326,
 	.upper_margin = 4,
 	.lower_margin = 12,
-	.hsync_len = 11,
+	.hsync_len = 44,
 	.vsync_len = 1,
 	.sync = 0,
 	.vmode = FB_VMODE_NONINTERLACED,
@@ -351,11 +351,11 @@ static struct imx_epdc_fb_mode panel_modes[] = {
 		20,     /* sdoed_delay */
 		10,     /* sdoez_width */
 		20,     /* sdoez_delay */
-		215,    /* gdclk_hp_offs */
-		4,     /* gdsp_offs */
-		1,      /* gdoe_offs */
-		10,      /* gdclk_offs */
-		3,      /* num_ce */
+		1042,    /* gdclk_hp_offs */
+		762,     /* gdsp_offs */
+		0,      /* gdoe_offs */
+		91,      /* gdclk_offs */
+		1,      /* num_ce */
 	},
 	{
 		&e60_v110_mode,
