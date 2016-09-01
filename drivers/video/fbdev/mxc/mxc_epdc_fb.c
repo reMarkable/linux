@@ -60,10 +60,7 @@
  * Enable this define to have a default panel
  * loaded during driver initialization
  */
-/*#define DEFAULT_PANEL_HW_INIT*/
-
-#warning "Disable KAIFA_EPDC_PMIC_TEST"
-#define KAIFA_EPDC_PMIC_TEST
+#define DEFAULT_PANEL_HW_INIT
 
 #define NUM_SCREENS_MIN	2
 
