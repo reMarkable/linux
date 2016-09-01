@@ -196,13 +196,13 @@
 	max17135@48 {
 		compatible = "maxim,max17135";
 		reg = <0x48>;
-		vneg_pwrup = <1>;
-		gvee_pwrup = <2>;
+		gvee_pwrup = <1>;
+		vneg_pwrup = <5>;
 		vpos_pwrup = <10>;
-		gvdd_pwrup = <12>;
+		gvdd_pwrup = <10>;
 		gvdd_pwrdn = <1>;
 		vpos_pwrdn = <2>;
-		gvee_pwrdn = <8>;
+		gvee_pwrdn = <5>;
 		vneg_pwrdn = <10>;
 		gpio_pmic_pwrgood = <&gpio2 13 0>;
 		gpio_pmic_vcom_ctrl = <&gpio2 3 0>;
