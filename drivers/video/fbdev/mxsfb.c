@@ -1353,6 +1353,10 @@ static int mxsfb_init_fbinfo_dt(struct mxsfb_info *host)
 		struct videomode vm;
 		struct fb_videomode fb_vm;
 
+		/* Only consider native mode */
+		if (i != timings->native_mode)
+			continue;
+
 		ret = videomode_from_timings(timings, &vm, i);
 		if (ret < 0)
 			goto put_display_node;
