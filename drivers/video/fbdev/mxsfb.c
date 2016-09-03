@@ -1282,7 +1282,6 @@ static int mxsfb_init_fbinfo_dt(struct mxsfb_info *host)
 	struct device *dev = &host->pdev->dev;
 	struct device_node *np = host->pdev->dev.of_node;
 	struct device_node *display_np;
-	struct device_node *timings_np;
 	struct display_timings *timings = NULL;
 	const char *disp_dev, *disp_videomode;
 	u32 width;
@@ -1350,24 +1349,17 @@ static int mxsfb_init_fbinfo_dt(struct mxsfb_info *host)
 		goto put_display_node;
 	}
 
-	timings_np = of_find_node_by_name(display_np,
-					  "display-timings");
-	if (!timings_np) {
-		dev_err(dev, "failed to find display-timings node\n");
-		ret = -ENOENT;
-		goto put_display_node;
-	}
-
-	for (i = 0; i < of_get_child_count(timings_np); i++) {
+	for (i = 0; i < timings->num_timings; i++) {
 		struct videomode vm;
 		struct fb_videomode fb_vm;
 
 		ret = videomode_from_timings(timings, &vm, i);
 		if (ret < 0)
-			goto put_timings_node;
+			goto put_display_node;
+
 		ret = fb_videomode_from_videomode(&vm, &fb_vm);
 		if (ret < 0)
-			goto put_timings_node;
+			goto put_display_node;
 
 		if (!(vm.flags & DISPLAY_FLAGS_DE_HIGH))
 			fb_vm.sync |= FB_SYNC_OE_LOW_ACT;
@@ -1385,8 +1377,6 @@ static int mxsfb_init_fbinfo_dt(struct mxsfb_info *host)
 		fb_add_videomode(&fb_vm, &fb_info->modelist);
 	}
 
-put_timings_node:
-	of_node_put(timings_np);
 put_display_node:
 	if (timings)
 		kfree(timings);
