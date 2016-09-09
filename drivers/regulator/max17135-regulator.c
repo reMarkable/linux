@@ -90,7 +90,7 @@ struct max17135_data {
 	struct regulator_dev **rdev;
 };
 
-static long unsigned int max17135_pass_num = { 1 };
+static long unsigned int max17135_pass_num = { 2 };
 static int max17135_vcom = { -1250000 };
 
 struct max17135_vcom_programming_data vcom_data[2] = {
