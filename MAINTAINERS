@@ -8761,6 +8761,7 @@ L:	jailhouse-dev@googlegroups.com
 S:	Maintained
 F:	arch/x86/kernel/jailhouse.c
 F:	arch/x86/include/asm/jailhouse_para.h
+F:	drivers/virt/jailhouse_dbgcon.c
 
 JC42.4 TEMPERATURE SENSOR DRIVER
 M:	Guenter Roeck <linux@roeck-us.net>
