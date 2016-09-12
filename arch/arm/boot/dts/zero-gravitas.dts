@@ -196,14 +196,14 @@
 	max17135@48 {
 		compatible = "maxim,max17135";
 		reg = <0x48>;
-		gvee_pwrup = <1>;
-		vneg_pwrup = <5>;
-		vpos_pwrup = <10>;
-		gvdd_pwrup = <10>;
+		gvee_pwrup = <0>; /* ms */
+		vneg_pwrup = <10>;
+		vpos_pwrup = <15>;
+		gvdd_pwrup = <15>;
 		gvdd_pwrdn = <1>;
 		vpos_pwrdn = <2>;
-		gvee_pwrdn = <5>;
-		vneg_pwrdn = <10>;
+		vneg_pwrdn = <5>;
+		gvee_pwrdn = <40>;
 		gpio_pmic_pwrgood = <&gpio2 13 0>;
 		gpio_pmic_vcom_ctrl = <&gpio2 3 0>;
 		gpio_pmic_wakeup = <&gpio2 14 0>;
@@ -284,6 +284,7 @@
 		interrupt-parent = <&gpio4>;
 		interrupts = <3 2>;
 		cy,adapter_id = "cyttsp5_i2c_adapter";
+		status = "disabled";
 
 		cy,core {
 			cy,name = "cyttsp5_core";
