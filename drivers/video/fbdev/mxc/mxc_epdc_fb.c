@@ -1500,23 +1500,35 @@ static void adjust_coordinates(u32 xres, u32 yres, u32 rotation,
 			break;
 		case FB_ROTATE_CW:
 			adj_update_region->top = update_region->left;
-			adj_update_region->left = yres -
-				(update_region->top + update_region->height);
+			if (yres < (update_region->top + update_region->height))
+				adj_update_region->left = 0;
+			else
+				adj_update_region->left = yres -
+					(update_region->top + update_region->height);
 			adj_update_region->width = update_region->height;
 			adj_update_region->height = update_region->width;
 			break;
 		case FB_ROTATE_UD:
 			adj_update_region->width = update_region->width;
 			adj_update_region->height = update_region->height;
-			adj_update_region->top = yres -
-				(update_region->top + update_region->height);
-			adj_update_region->left = xres -
-				(update_region->left + update_region->width);
+			if (yres < (update_region->top + update_region->height))
+				adj_update_region->top = 0;
+			else
+				adj_update_region->top = yres -
+					(update_region->top + update_region->height);
+			if (xres < (update_region->left + update_region->width))
+				adj_update_region->left = 0;
+			else
+				adj_update_region->left = xres -
+					(update_region->left + update_region->width);
 			break;
 		case FB_ROTATE_CCW:
 			adj_update_region->left = update_region->top;
-			adj_update_region->top = xres -
-				(update_region->left + update_region->width);
+			if (xres < (update_region->left + update_region->width))
+				adj_update_region->top = 0;
+			else
+				adj_update_region->top = xres -
+					(update_region->left + update_region->width);
 			adj_update_region->width = update_region->height;
 			adj_update_region->height = update_region->width;
 			break;
@@ -1529,23 +1541,35 @@ static void adjust_coordinates(u32 xres, u32 yres, u32 rotation,
 		case FB_ROTATE_CW:
 			temp = update_region->top;
 			update_region->top = update_region->left;
-			update_region->left = yres -
-				(temp + update_region->height);
+			if (yres < (temp + update_region->height))
+				update_region->left = 0;
+			else
+				update_region->left = yres -
+					(temp + update_region->height);
 			temp = update_region->width;
 			update_region->width = update_region->height;
 			update_region->height = temp;
 			break;
 		case FB_ROTATE_UD:
-			update_region->top = yres -
-				(update_region->top + update_region->height);
-			update_region->left = xres -
-				(update_region->left + update_region->width);
+			if (yres < (update_region->top + update_region->height))
+				update_region->top = 0;
+			else
+				update_region->top = yres -
+					(update_region->top + update_region->height);
+			if (xres < (update_region->left + update_region->width))
+				update_region->left = 0;
+			else
+				update_region->left = xres -
+					(update_region->left + update_region->width);
 			break;
 		case FB_ROTATE_CCW:
 			temp = update_region->left;
 			update_region->left = update_region->top;
-			update_region->top = xres -
-				(temp + update_region->width);
+			if (xres < (temp + update_region->width))
+				update_region->top = 0;
+			else
+				update_region->top = xres -
+					(temp + update_region->width);
 			temp = update_region->width;
 			update_region->width = update_region->height;
 			update_region->height = temp;
@@ -2462,6 +2486,8 @@ static void epdc_submit_work_func(struct work_struct *work)
 	u32 update_addr;
 	int *err_dist;
 	int ret;
+	struct mxcfb_rect actual_update_region;
+	int direct_draw = 0;
 
 	/* Protect access to buffer queues and to update HW */
 	mutex_lock(&fb_data->queue_mutex);
@@ -2596,6 +2622,37 @@ static void epdc_submit_work_func(struct work_struct *work)
 		return;
 	}
 
+	/* Backup the actual update region */
+	upd_region = &upd_data_list->update_desc->upd_data.update_region;
+	actual_update_region.left = upd_region->left;
+	actual_update_region.top = upd_region->top;
+	actual_update_region.width = upd_region->width;
+	actual_update_region.height = upd_region->height;
+
+	// align update region to 8x8 boundary for PxP
+	{
+		int start, dim;
+
+		start = upd_region->left;
+		dim = ((upd_region->width + 7)/8)*8;
+		if (start + dim <
+			upd_region->left + upd_region->width) {
+			dim += 8;
+		}
+		upd_region->left = start;
+		upd_region->width = dim;
+
+		start = upd_region->top;
+		dim = ((upd_region->height + 7)/8)*8;
+		if (start + dim <
+			upd_region->top + upd_region->height) {
+			dim += 8;
+		}
+		upd_region->top = start;
+		upd_region->height = dim;
+	}
+
+
 	/*
 	 * If no processing required, skip update processing
 	 * No processing means:
@@ -2625,13 +2682,10 @@ static void epdc_submit_work_func(struct work_struct *work)
 		 * Set update buffer pointer to the start of
 		 * the update region in the frame buffer.
 		 */
-		upd_region = &upd_data_list->update_desc->upd_data.update_region;
-		update_addr = fb_data->info.fix.smem_start +
-			((upd_region->top * fb_data->info.var.xres_virtual) +
-			upd_region->left) * fb_data->info.var.bits_per_pixel/8;
 		upd_data_list->update_desc->epdc_stride =
 					fb_data->info.var.xres_virtual *
 					fb_data->info.var.bits_per_pixel/8;
+		direct_draw = 1;
 	} else {
 		/* Select from PxP output buffers */
 		upd_data_list->phys_addr =
@@ -2663,9 +2717,6 @@ static void epdc_submit_work_func(struct work_struct *work)
 
 		/* Protect access to buffer queues and to update HW */
 		mutex_lock(&fb_data->queue_mutex);
-
-		update_addr = upd_data_list->phys_addr
-				+ upd_data_list->update_desc->epdc_offs;
 	}
 
 	/* Get rotation-adjusted coordinates */
@@ -2735,6 +2786,73 @@ static void epdc_submit_work_func(struct work_struct *work)
 
 		kfree(err_dist);
 	}
+
+	/* Finished all PxP processing, restore the original update region */
+	upd_region = &upd_data_list->update_desc->upd_data.update_region;
+
+	if(direct_draw) {
+		upd_region->left = actual_update_region.left;
+		upd_region->top = actual_update_region.top;
+		upd_region->width = actual_update_region.width;
+		upd_region->height = actual_update_region.height;
+
+		upd_data_list->update_desc->epdc_offs = ((upd_region->top * fb_data->info.var.xres_virtual) +
+			upd_region->left) * fb_data->info.var.bits_per_pixel/8;
+		update_addr = fb_data->info.fix.smem_start + upd_data_list->update_desc->epdc_offs;
+	}
+	else {
+		u32 post_rotation_xcoord, post_rotation_ycoord, width_pxp_blocks;
+
+		width_pxp_blocks = upd_data_list->update_desc->epdc_stride;
+
+		switch (fb_data->epdc_fb_var.rotate) {
+		case FB_ROTATE_UR:
+		default:
+			post_rotation_xcoord = actual_update_region.left - upd_region->left;
+			post_rotation_ycoord = actual_update_region.top - upd_region->top;
+			break;
+		case FB_ROTATE_CW:
+			post_rotation_xcoord = upd_region->height - actual_update_region.height -
+				(actual_update_region.top - upd_region->top);
+			post_rotation_ycoord = (actual_update_region.left - upd_region->left);
+			break;
+		case FB_ROTATE_UD:
+			post_rotation_xcoord = upd_region->width - actual_update_region.width -
+				(actual_update_region.left - upd_region->left);
+			post_rotation_ycoord = upd_region->height - actual_update_region.height -
+				(actual_update_region.top - upd_region->top);
+			break;
+		case FB_ROTATE_CCW:
+			post_rotation_xcoord = (actual_update_region.top - upd_region->top);
+			post_rotation_ycoord = upd_region->width - actual_update_region.width -
+				(actual_update_region.left - upd_region->left);
+			break;
+		}
+
+		if (fb_data->rev < 20) {
+			u32 pxp_output_offs, pxp_output_shift;
+
+			pxp_output_shift = ALIGN(post_rotation_xcoord, 8) - post_rotation_xcoord;
+			pxp_output_offs = (post_rotation_ycoord * upd_data_list->update_desc->epdc_stride) + pxp_output_shift;
+			upd_data_list->update_desc->epdc_offs = ALIGN(pxp_output_offs, 8);
+		} else {
+			upd_data_list->update_desc->epdc_offs =
+				(post_rotation_ycoord * upd_data_list->update_desc->epdc_stride) + post_rotation_xcoord;
+		}
+
+		update_addr = upd_data_list->phys_addr + upd_data_list->update_desc->epdc_offs;
+
+		upd_region->left = actual_update_region.left;
+		upd_region->top = actual_update_region.top;
+		upd_region->width = actual_update_region.width;
+		upd_region->height = actual_update_region.height;
+	}
+
+	adjust_coordinates(fb_data->epdc_fb_var.xres,
+		fb_data->epdc_fb_var.yres, fb_data->epdc_fb_var.rotate,
+		upd_region,
+		&adj_update_region);
+
 
 	/*
 	 * If there are no LUTs available,
