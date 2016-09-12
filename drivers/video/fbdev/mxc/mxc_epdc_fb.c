@@ -3729,7 +3729,7 @@ static int mxc_epdc_fb_pan_display(struct fb_var_screeninfo *var,
 	if (y_bottom > info->var.yres_virtual)
 		return -EINVAL;
 
-	mutex_lock(&fb_data->queue_mutex);
+	mutex_lock(&fb_data->pxp_mutex);
 
 	fb_data->fb_offset = (var->yoffset * var->xres_virtual + var->xoffset)
 		* (var->bits_per_pixel) / 8;
@@ -3742,7 +3742,7 @@ static int mxc_epdc_fb_pan_display(struct fb_var_screeninfo *var,
 	else
 		info->var.vmode &= ~FB_VMODE_YWRAP;
 
-	mutex_unlock(&fb_data->queue_mutex);
+	mutex_unlock(&fb_data->pxp_mutex);
 
 	return 0;
 }
