@@ -322,23 +322,6 @@ static struct fb_videomode e97_v110_mode = {
 	.flag = 0,
 };
 
-static struct fb_videomode es103td1_mode = {
-	.name = "ES103TD1",
-	.refresh =   85,
-	.xres  =  1872,
-	.yres  =  1404,
-	.pixclock  =  162500000,
-	.left_margin  =  32,
-	.right_margin  =  334,
-	.upper_margin  =  4,
-	.lower_margin =   12,
-	.hsync_len  =  44,
-	.vsync_len =   1,
-	.sync  =  0,
-	.vmode  =  FB_VMODE_NONINTERLACED,
-	.flag   = 0
-};
-
 static struct fb_videomode es103cs1_mode = {
 	.name = "ES103CS1",
 	.refresh = 75,
@@ -370,19 +353,6 @@ static struct imx_epdc_fb_mode panel_modes[] = {
 		0,      /* gdoe_offs */
 		376,      /* gdclk_offs */
 		3,      /* num_ce */
-	},
-	{
-		&es103td1_mode,
-		4,
-		10,
-		20,
-		10,
-		20,
-		1048,
-		767,
-		0,
-		92,
-		1
 	},
 	{
 		&e60_v110_mode,
