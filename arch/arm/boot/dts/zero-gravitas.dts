@@ -33,7 +33,7 @@
 			regulator-name = "usb_otg1_vbus";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
-			gpio = <&gpio4 15 0>;
+			/*gpio = <&gpio4 15 0>;*/
 			enable-active-high;
 			vin-supply = <&swbst_reg>;
 		};
@@ -401,7 +401,7 @@
 				MX6SL_PAD_KEY_ROW6__GPIO4_IO05		0x110b0
 
 				/* USB OTG1 voltage control */
-				MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x17000
+				/*MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x17000*/
 				MX6SL_PAD_ECSPI2_SS0__USB_OTG1_PWR	0x17000
 				/* USB OTG1 over current detection */
 				MX6SL_PAD_ECSPI2_MISO__USB_OTG1_OC	0x17000
