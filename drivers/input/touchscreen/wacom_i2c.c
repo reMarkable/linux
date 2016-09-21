@@ -33,6 +33,10 @@ struct wacom_features {
 	int x_max;
 	int y_max;
 	int pressure_max;
+	int distance_max;
+	int distance_physical_max;
+	int tilt_x_max;
+	int tilt_y_max;
 	char fw_version;
 };
 
@@ -83,11 +87,19 @@ static int wacom_query_device(struct i2c_client *client,
 	features->y_max = get_unaligned_le16(&data[5]);
 	features->pressure_max = get_unaligned_le16(&data[11]);
 	features->fw_version = get_unaligned_le16(&data[13]);
+	features->distance_max = data[15];
+	features->distance_physical_max = data[16];
+	features->tilt_x_max = data[17];
+	features->tilt_y_max = data[18];
 
 	dev_dbg(&client->dev,
-		"x_max:%d, y_max:%d, pressure:%d, fw:%d\n",
+		"x_max:%d, y_max:%d, pressure:%d, fw:%d, "
+		"distance: %d, phys distance: %d"
+		"tilt_x_max: %d, tilt_y_max: %d\n",
 		features->x_max, features->y_max,
-		features->pressure_max, features->fw_version);
+		features->pressure_max, features->fw_version,
+		features->distance_max, features->distance_physical_max,
+		features->tilt_x_max, features->tilt_y_max);
 
 	return 0;
 }
@@ -98,7 +110,8 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	struct input_dev *input = wac_i2c->input;
 	u8 *data = wac_i2c->data;
 	unsigned int x, y, pressure;
-	unsigned char tsw, f1, f2, ers;
+	unsigned char tip, f1, f2, eraser, distance;
+	char tilt_x, tilt_y;
 	int error;
 
 	error = i2c_master_recv(wac_i2c->client,
@@ -106,13 +119,18 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	if (error < 0)
 		goto out;
 
-	tsw = data[3] & 0x01;
-	ers = data[3] & 0x04;
+	tip = data[3] & 0x01;
+	eraser = data[3] & 0x04;
 	f1 = data[3] & 0x02;
 	f2 = data[3] & 0x10;
 	x = le16_to_cpup((__le16 *)&data[4]);
 	y = le16_to_cpup((__le16 *)&data[6]);
 	pressure = le16_to_cpup((__le16 *)&data[8]);
+	distance = data[10];
+
+	/* Signed */
+	tilt_x = data[11];
+	tilt_y = data[12];
 
 	if (!wac_i2c->prox)
 		wac_i2c->tool = (data[3] & 0x0c) ?
@@ -120,14 +138,19 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 
 	wac_i2c->prox = data[3] & 0x20;
 
-	input_report_key(input, BTN_TOUCH, tsw || ers);
+	input_report_key(input, BTN_TOUCH, tip || eraser);
 	input_report_key(input, wac_i2c->tool, wac_i2c->prox);
 	input_report_key(input, BTN_STYLUS, f1);
 	input_report_key(input, BTN_STYLUS2, f2);
 	input_report_abs(input, ABS_X, x);
 	input_report_abs(input, ABS_Y, y);
 	input_report_abs(input, ABS_PRESSURE, pressure);
+	input_report_abs(input, ABS_DISTANCE, distance);
+	input_report_abs(input, ABS_TILT_X, tilt_x);
+	input_report_abs(input, ABS_TILT_Y, tilt_y);
 	input_sync(input);
+
+	printk("distance: %d tilt x: %d tilt y: %d\n", distance, tilt_x, tilt_y);
 
 out:
 	return IRQ_HANDLED;
@@ -198,6 +221,10 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_Y, 0, features.y_max, 0, 0);
 	input_set_abs_params(input, ABS_PRESSURE,
 			     0, features.pressure_max, 0, 0);
+
+	input_set_abs_params(input, ABS_DISTANCE, 0, features.distance_max, 0, 0);
+	input_set_abs_params(input, ABS_TILT_X, -features.tilt_x_max, features.tilt_x_max, 0, 0);
+	input_set_abs_params(input, ABS_TILT_Y, -features.tilt_y_max, features.tilt_y_max, 0, 0);
 
 	input_set_drvdata(input, wac_i2c);
 
