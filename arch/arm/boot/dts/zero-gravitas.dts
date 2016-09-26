@@ -658,14 +658,6 @@
 	status = "okay";
 };
 
-&ssi2 {
-	fsl,mode = "i2s-slave";
-	assigned-clocks = <&clks IMX6SL_CLK_SSI2_SEL>,
-			  <&clks IMX6SL_CLK_SSI2>;
-	assigned-clock-rates = <0>, <24000000>;
-	status = "okay";
-};
-
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
