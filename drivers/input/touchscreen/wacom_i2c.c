@@ -150,8 +150,6 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	input_report_abs(input, ABS_TILT_Y, tilt_y);
 	input_sync(input);
 
-	printk("distance: %d tilt x: %d tilt y: %d\n", distance, tilt_x, tilt_y);
-
 out:
 	return IRQ_HANDLED;
 }
