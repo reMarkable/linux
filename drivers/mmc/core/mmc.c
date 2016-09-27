@@ -1082,8 +1082,8 @@ MMC_DEV_ATTR(enhanced_area_size, "%u\n", card->ext_csd.enhanced_area_size);
 MMC_DEV_ATTR(raw_rpmb_size_mult, "%#x\n", card->ext_csd.raw_rpmb_size_mult);
 MMC_DEV_ATTR(rel_sectors, "%#x\n", card->ext_csd.rel_sectors);
 DEVICE_ATTR(boot_info, S_IRUGO, mmc_boot_info_show, NULL);
-DEVICE_ATTR(boot_config, S_IWUGO, NULL, setup_boot_partitions);
-DEVICE_ATTR(boot_bus_config, S_IWUGO, NULL, setup_boot_bus);
+DEVICE_ATTR(boot_config, S_IWUSR | S_IWGRP, NULL, setup_boot_partitions);
+DEVICE_ATTR(boot_bus_config, S_IWUSR | S_IWGRP, NULL, setup_boot_bus);
 
 static ssize_t mmc_fwrev_show(struct device *dev,
 			      struct device_attribute *attr,
