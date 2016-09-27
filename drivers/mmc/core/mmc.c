@@ -754,9 +754,9 @@ static ssize_t mmc_boot_info_show(struct device *dev,
 				err);
 		return err;
 	}
+	kfree(ext_csd);
 
-	mmc_read_ext_csd(card, ext_csd);
-	mmc_free_ext_csd(ext_csd);
+	mmc_read_ext_csd(card);
 
 	partition = (card->ext_csd.part_config >> 3) & 0x7;
 	width =  card->ext_csd.boot_bus_width & 0x3;
@@ -858,15 +858,8 @@ setup_boot_partitions(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
        }
 
-	ext_csd = kmalloc(512, GFP_KERNEL);
-	if (!ext_csd) {
-		pr_err("%s: could not allocate a buffer to " \
-			"receive the ext_csd.\n", mmc_hostname(card->host));
-		return -ENOMEM;
-	}
-
 	mmc_claim_host(card->host);
-	err = mmc_send_ext_csd(card, ext_csd);
+	err = mmc_get_ext_csd(card, &ext_csd);
 	if (err) {
 		pr_err("%s: unable to read EXT_CSD.\n",
 			mmc_hostname(card->host));
@@ -946,7 +939,7 @@ setup_boot_partitions(struct device *dev, struct device_attribute *attr,
 	} while (!(cmd.resp[0] & R1_READY_FOR_DATA));
 
 	/* Now check whether it works */
-	err = mmc_send_ext_csd(card, ext_csd);
+	err = mmc_get_ext_csd(card, &ext_csd);
 	if (err) {
 		pr_err("%s: %d unable to re-read EXT_CSD.\n",
 			mmc_hostname(card->host), err);
@@ -957,7 +950,6 @@ setup_boot_partitions(struct device *dev, struct device_attribute *attr,
 
 err_rtn:
 	mmc_release_host(card->host);
-	kfree(ext_csd);
 	if (err)
 		return err;
 	else
@@ -994,15 +986,8 @@ setup_boot_bus(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 	}
 
-	ext_csd = kmalloc(512, GFP_KERNEL);
-	if (!ext_csd) {
-		pr_err("%s: could not allocate a buffer to " \
-			"receive the ext_csd.\n", mmc_hostname(card->host));
-		return -ENOMEM;
-	}
-
 	mmc_claim_host(card->host);
-	err = mmc_send_ext_csd(card, ext_csd);
+	err = mmc_get_ext_csd(card, &ext_csd);
 	if (err) {
 		pr_err("%s: unable to read EXT_CSD.\n",
 			mmc_hostname(card->host));
@@ -1053,7 +1038,7 @@ setup_boot_bus(struct device *dev, struct device_attribute *attr,
 	} while (!(cmd.resp[0] & R1_READY_FOR_DATA));
 
 	/* Now check whether it works */
-	err = mmc_send_ext_csd(card, ext_csd);
+	err = mmc_get_ext_csd(card, &ext_csd);
 	if (err) {
 		pr_err("%s: %d unable to re-read EXT_CSD.\n",
 			mmc_hostname(card->host), err);
@@ -1071,7 +1056,6 @@ setup_boot_bus(struct device *dev, struct device_attribute *attr,
 
 err_rtn:
 	mmc_release_host(card->host);
-	mmc_free_ext_csd(ext_csd);
 	if (err)
 		return err;
 	else
