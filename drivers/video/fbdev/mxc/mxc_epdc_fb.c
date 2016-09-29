@@ -5088,10 +5088,6 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 
 	pm_runtime_enable(fb_data->dev);
 
-#ifdef KAIFA_EPDC_PMIC_TEST
-	epdc_powerup(fb_data);
-#endif
-
 #ifdef DEFAULT_PANEL_HW_INIT
 	ret = mxc_epdc_fb_init_hw((struct fb_info *)fb_data);
 	if (ret) {
