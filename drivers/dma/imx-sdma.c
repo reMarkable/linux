@@ -302,6 +302,7 @@ struct sdma_engine;
  * @event_id1		for channels that use 2 events
  * @word_size		peripheral access size
  * @buf_tail		ID of the buffer that was processed
+ * @buf_ptail		ID of the previous buffer that was processed
  * @num_bd		max NUM_BD. number of descriptors currently handling
  * @bd_iram		flag indicating the memory location of buffer descriptor
  */
@@ -314,6 +315,7 @@ struct sdma_channel {
 	unsigned int			event_id1;
 	enum dma_slave_buswidth		word_size;
 	unsigned int			buf_tail;
+	unsigned int			buf_ptail;
 	unsigned int			num_bd;
 	unsigned int			period_len;
 	struct sdma_buffer_descriptor	*bd;
@@ -753,6 +755,8 @@ static void sdma_update_channel_loop(struct sdma_channel *sdmac)
 		sdmac->chn_real_count = bd->mode.count;
 		bd->mode.status |= BD_DONE;
 		bd->mode.count = sdmac->period_len;
+		sdmac->buf_ptail = sdmac->buf_tail;
+		sdmac->buf_tail = (sdmac->buf_tail + 1) % sdmac->num_bd;
 
 		/*
 		 * The callback is called from the interrupt context in order
@@ -762,9 +766,6 @@ static void sdma_update_channel_loop(struct sdma_channel *sdmac)
 		 */
 
 		dmaengine_desc_get_callback_invoke(&sdmac->desc, NULL);
-
-		sdmac->buf_tail++;
-		sdmac->buf_tail %= sdmac->num_bd;
 
 		if (sdmac->peripheral_type == IMX_DMATYPE_UART) {
 			/* restore mode.count after counter readed */
@@ -1311,6 +1312,8 @@ static int sdma_transfer_init(struct sdma_channel *sdmac,
 
 	sdmac->status = DMA_IN_PROGRESS;
 	sdmac->buf_tail = 0;
+	sdmac->buf_ptail = 0;
+	sdmac->chn_real_count = 0;
 	sdmac->flags = 0;
 	sdmac->direction = direction;
 	sdmac->flags = 0;
@@ -1548,6 +1551,8 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 	sdmac->status = DMA_IN_PROGRESS;
 
 	sdmac->buf_tail = 0;
+	sdmac->buf_ptail = 0;
+	sdmac->chn_real_count = 0;
 	sdmac->period_len = period_len;
 
 	sdmac->flags |= IMX_DMA_SG_LOOP;
@@ -1671,7 +1676,7 @@ static enum dma_status sdma_tx_status(struct dma_chan *chan,
 	 */
 	if ((sdmac->flags & IMX_DMA_SG_LOOP) &&
 	    sdmac->peripheral_type != IMX_DMATYPE_UART)
-		residue = (sdmac->num_bd - sdmac->buf_tail) *
+		residue = (sdmac->num_bd - sdmac->buf_ptail) *
 			   sdmac->period_len - sdmac->chn_real_count;
 	else
 		residue = sdmac->chn_count - sdmac->chn_real_count;
