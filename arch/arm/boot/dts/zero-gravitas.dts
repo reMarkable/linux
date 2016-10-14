@@ -714,14 +714,26 @@
 };
 
 &usdhc3 {
-	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	/*pinctrl-names = "default", "state_100mhz", "state_200mhz";
 	pinctrl-0 = <&pinctrl_usdhc3>;
 	pinctrl-1 = <&pinctrl_usdhc3_100mhz>;
-	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;
-	non-removable;
+	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;*/
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc3_100mhz>;
+	bus-width = <4>;
 	enable-sdio-wakeup;
 	disable-wp;
 	no-1-8-v;
 	wifi-host;
 	status = "okay";
+
+	brcmf: bcrmf@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+		interrupt-parent = <&gpio4>;
+		interrupts = <2 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "host-wake";
+	};
 };
