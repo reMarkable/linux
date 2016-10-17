@@ -479,6 +479,7 @@ static void enter_lpm_imx6sl(void)
 static void exit_lpm_imx6sl(void)
 {
 	/* Change DDR freq in IRAM. */
+#warning "We need to use the DDR3 clocking function here as well"
 	update_lpddr2_freq(ddr_normal_rate);
 
 	/*
@@ -596,6 +597,7 @@ static void reduce_bus_freq(void)
 static void reduce_bus_freq_handler(struct work_struct *work)
 {
 	printk("Reducing bus frequency\n");
+#warning "The issue might be that it tries to downclock several times"
 #warning "Re-enable down clocking of ram"
 	return;
 
