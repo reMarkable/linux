@@ -46,9 +46,16 @@
 		#reset-cells = <0>;
 	};
 
+	touch_reset: touch_reset {
+		compatible = "gpio-reset";
+		reset-gpios = <&gpio4 0 GPIO_ACTIVE_LOW>;
+		reset-delay-us = <100000>;
+		#reset-cells = <0>;
+	};
+
 	wifi_reset: wifi_reset {
 		compatible = "gpio-reset";
-		reset-gpios = <&gpio4 0 1>;
+		reset-gpios = <&gpio4 5 GPIO_ACTIVE_LOW>;
 		#reset-cells = <0>;
 	};
 
@@ -282,12 +289,12 @@
 		interrupts = <3 2>;
 		cy,adapter_id = "cyttsp5_i2c_adapter";
 		status = "okay";
+		resets = <&touch_reset>;
 
 		cy,core {
 			cy,name = "cyttsp5_core";
 
 			cy,irq_gpio = <&gpio4 3 0>;
-			cy,rst_gpio = <&gpio4 5 0>;
 			cy,hid_desc_register = <1>;
 			/* CY_CORE_FLAG_RESTORE_PARAMETERS */
 			cy,flags = <4>;

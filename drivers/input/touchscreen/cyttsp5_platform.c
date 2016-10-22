@@ -27,6 +27,8 @@
  */
 
 #include "cyttsp5_regs.h"
+#include <linux/reset.h>
+#include <linux/reset-controller.h>
 #include <linux/platform_data/cyttsp5.h>
 
 #ifdef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_PLATFORM_FW_UPGRADE
@@ -167,71 +169,32 @@ struct cyttsp5_loader_platform_data _cyttsp5_loader_platform_data = {
 	.flags = CY_LOADER_FLAG_NONE,
 };
 
-int cyttsp5_xres(struct cyttsp5_core_platform_data *pdata,
-		struct device *dev)
-{
-	int rst_gpio = pdata->rst_gpio;
-	int rc = 0;
-
-	gpio_set_value(rst_gpio, 1);
-	msleep(20);
-	gpio_set_value(rst_gpio, 0);
-	msleep(40);
-	gpio_set_value(rst_gpio, 1);
-	msleep(20);
-	dev_info(dev,
-		"%s: RESET CYTTSP gpio=%d r=%d\n", __func__,
-		pdata->rst_gpio, rc);
-	return rc;
-}
-
 int cyttsp5_init(struct cyttsp5_core_platform_data *pdata,
 		int on, struct device *dev)
 {
-	int rst_gpio = pdata->rst_gpio;
 	int irq_gpio = pdata->irq_gpio;
 	int rc = 0;
 
 	if (on) {
-		rc = gpio_request(rst_gpio, NULL);
+		rc = gpio_request(irq_gpio, NULL);
 		if (rc < 0) {
-			gpio_free(rst_gpio);
-			rc = gpio_request(rst_gpio, NULL);
+			gpio_free(irq_gpio);
+			rc = gpio_request(irq_gpio,
+					  NULL);
 		}
 		if (rc < 0) {
 			dev_err(dev,
-				"%s: Fail request gpio=%d\n", __func__,
-				rst_gpio);
+				"%s: Fail request gpio=%d\n",
+				__func__, irq_gpio);
 		} else {
-			rc = gpio_direction_output(rst_gpio, 1);
-			if (rc < 0) {
-				pr_err("%s: Fail set output gpio=%d\n",
-					__func__, rst_gpio);
-				gpio_free(rst_gpio);
-			} else {
-				rc = gpio_request(irq_gpio, NULL);
-				if (rc < 0) {
-					gpio_free(irq_gpio);
-					rc = gpio_request(irq_gpio,
-						NULL);
-				}
-				if (rc < 0) {
-					dev_err(dev,
-						"%s: Fail request gpio=%d\n",
-						__func__, irq_gpio);
-					gpio_free(rst_gpio);
-				} else {
-					gpio_direction_input(irq_gpio);
-				}
-			}
+			gpio_direction_input(irq_gpio);
 		}
 	} else {
-		gpio_free(rst_gpio);
 		gpio_free(irq_gpio);
 	}
 
-	dev_info(dev, "%s: INIT CYTTSP RST gpio=%d and IRQ gpio=%d r=%d\n",
-		__func__, rst_gpio, irq_gpio, rc);
+	dev_info(dev, "%s: INIT CYTTSP IRQ gpio=%d r=%d\n",
+		__func__, irq_gpio, rc);
 	return rc;
 }
 
@@ -269,11 +232,16 @@ int cyttsp5_detect(struct cyttsp5_core_platform_data *pdata,
 	int retry = 3;
 	int rc;
 	char buf[1];
+	struct reset_control *rstc;
+
+	rstc = reset_control_get(dev, NULL);
 
 	while (retry--) {
 		/* Perform reset, wait for 100 ms and perform read */
 		dev_vdbg(dev, "%s: Performing a reset\n", __func__);
-		pdata->xres(pdata, dev);
+		if (rstc) {
+			reset_control_reset(rstc);
+		}
 		msleep(100);
 		rc = read(dev, buf, 1);
 		if (!rc)
