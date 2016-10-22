@@ -1304,7 +1304,7 @@ static int __init brcmf_sdio_pd_probe(struct platform_device *pdev)
 
 	rstc = reset_control_get(&pdev->dev, NULL);
 	if (rstc) {
-		reset_control_assert(rstc);
+		reset_control_deassert(rstc);
 	}
 
 	if (brcmfmac_sdio_pdata->power_on)
@@ -1321,7 +1321,7 @@ static int brcmf_sdio_pd_remove(struct platform_device *pdev)
 
 	rstc = reset_control_get(&pdev->dev, NULL);
 	if (rstc) {
-		reset_control_deassert(rstc);
+		reset_control_assert(rstc);
 	}
 
 
