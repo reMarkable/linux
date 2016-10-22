@@ -46,6 +46,12 @@
 		#reset-cells = <0>;
 	};
 
+	wifi_reset: wifi_reset {
+		compatible = "gpio-reset";
+		reset-gpios = <&gpio4 0 1>;
+		#reset-cells = <0>;
+	};
+
 	usb_charger: charger {
 		compatible = "gpio-charger";
 		gpios = <&gpio4 1 0>;
@@ -407,7 +413,7 @@
 
 				/* CHIP_WAKE_HOST */
 				MX6SL_PAD_KEY_COL5__GPIO4_IO02  0x80000000
-				/* WL_DIS */
+				/* WiFi power control */
 				MX6SL_PAD_KEY_COL4__GPIO4_IO00  0x80000000
 
 
@@ -716,14 +722,13 @@
 &usdhc3 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	/*pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
 	pinctrl-0 = <&pinctrl_usdhc3>;
 	pinctrl-1 = <&pinctrl_usdhc3_100mhz>;
-	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;*/
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_usdhc3_100mhz>;
+	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;
 	bus-width = <4>;
 	enable-sdio-wakeup;
+	non-removable;
 	disable-wp;
 	no-1-8-v;
 	wifi-host;
@@ -735,5 +740,6 @@
 		interrupt-parent = <&gpio4>;
 		interrupts = <2 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "host-wake";
+		resets = <&wifi_reset>;
 	};
 };
