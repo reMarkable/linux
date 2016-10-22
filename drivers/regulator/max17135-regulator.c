@@ -90,7 +90,7 @@ struct max17135_data {
 	struct regulator_dev **rdev;
 };
 
-static long unsigned int max17135_pass_num = { 2 };
+static int max17135_pass_num = -1;
 static int max17135_vcom = { -1250000 };
 
 struct max17135_vcom_programming_data vcom_data[2] = {
@@ -640,6 +640,9 @@ static int max17135_pmic_dt_parse_pdata(struct platform_device *pdev,
 	CHECK_PROPERTY_ERROR_KFREE(gvee_pwrdn);
 	CHECK_PROPERTY_ERROR_KFREE(vneg_pwrdn);
 
+	if (of_property_read_u32(max17135->dev->of_node, "pass_num", &max17135->pass_num))
+		max17135->pass_num = 2;
+
 	dev_dbg(&pdev->dev, "vneg_pwrup %d, vneg_pwrdn %d, vpos_pwrup %d,"
 		"vpos_pwrdn %d, gvdd_pwrup %d, gvdd_pwrdn %d, gvee_pwrup %d,"
 		"gvee_pwrdn %d\n", max17135->vneg_pwrup, max17135->vneg_pwrdn,
@@ -749,8 +752,12 @@ static int max17135_regulator_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, priv);
 
 	max17135->vcom_setup = false;
-	max17135->pass_num = max17135_pass_num;
 	max17135->vcom_uV = max17135_vcom;
+
+	/* Allow overriding pass_num with module parameters */
+	if (max17135_pass_num > 0) {
+		max17135->pass_num = max17135_pass_num;
+	}
 
 	for (i = 0; i < pdata->num_regulators; i++) {
 		int id = pdata->regulators[i].id;
@@ -835,7 +842,7 @@ static int __init max17135_setup(char *options)
 		if (!*opt)
 			continue;
 		if (!strncmp(opt, "pass=", 5)) {
-			ret = kstrtoul(opt + 5, 0, &max17135_pass_num);
+			ret = kstrtoint(opt + 5, 0, &max17135_pass_num);
 			if (ret < 0)
 				return ret;
 		}

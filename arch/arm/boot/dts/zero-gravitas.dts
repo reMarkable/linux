@@ -200,6 +200,7 @@
 	max17135@48 {
 		compatible = "maxim,max17135";
 		reg = <0x48>;
+		pass_num = <2>;
 		gvee_pwrup = <0>; /* ms */
 		vneg_pwrup = <10>;
 		vpos_pwrup = <15>;
