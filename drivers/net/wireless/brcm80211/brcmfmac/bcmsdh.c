@@ -30,6 +30,8 @@
 #include <linux/platform_device.h>
 #include <linux/platform_data/brcmfmac-sdio.h>
 #include <linux/pm_runtime.h>
+#include <linux/reset.h>
+#include <linux/reset-controller.h>
 #include <linux/suspend.h>
 #include <linux/errno.h>
 #include <linux/module.h>
@@ -1115,6 +1117,7 @@ static int brcmf_ops_sdio_probe(struct sdio_func *func,
 	struct brcmf_sdio_dev *sdiodev;
 	struct brcmf_bus *bus_if;
 
+	printk("brcmf_ops_sdio_probe\n");
 	brcmf_dbg(SDIO, "Enter\n");
 	brcmf_dbg(SDIO, "Class=%x\n", func->class);
 	brcmf_dbg(SDIO, "sdio vendor ID: 0x%04x\n", func->vendor);
@@ -1293,9 +1296,16 @@ static struct sdio_driver brcmf_sdmmc_driver = {
 
 static int __init brcmf_sdio_pd_probe(struct platform_device *pdev)
 {
+	struct reset_control *rstc;
+
 	brcmf_dbg(SDIO, "Enter\n");
 
 	brcmfmac_sdio_pdata = dev_get_platdata(&pdev->dev);
+
+	rstc = reset_control_get(&pdev->dev, NULL);
+	if (rstc) {
+		reset_control_assert(rstc);
+	}
 
 	if (brcmfmac_sdio_pdata->power_on)
 		brcmfmac_sdio_pdata->power_on();
@@ -1305,7 +1315,15 @@ static int __init brcmf_sdio_pd_probe(struct platform_device *pdev)
 
 static int brcmf_sdio_pd_remove(struct platform_device *pdev)
 {
+	struct reset_control *rstc;
+
 	brcmf_dbg(SDIO, "Enter\n");
+
+	rstc = reset_control_get(&pdev->dev, NULL);
+	if (rstc) {
+		reset_control_deassert(rstc);
+	}
+
 
 	if (brcmfmac_sdio_pdata->power_off)
 		brcmfmac_sdio_pdata->power_off();
