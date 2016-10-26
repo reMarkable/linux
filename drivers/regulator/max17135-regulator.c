@@ -295,20 +295,14 @@ static int max17135_vcom_is_enabled(struct regulator_dev *reg)
 
 static int max17135_is_power_good(struct max17135 *max17135)
 {
-	unsigned int reg_val;
-	unsigned int fld_val;
-	unsigned int pwrgood;
+    unsigned int reg_val;
+    unsigned int fld_val;
 
-	max17135_reg_read(REG_MAX17135_FAULT, &reg_val);
-	fld_val = (reg_val & BITFMASK(FAULT_POK)) >> FAULT_POK_LSH;
+    max17135_reg_read(REG_MAX17135_FAULT, &reg_val);
+    fld_val = (reg_val & BITFMASK(FAULT_POK)) >> FAULT_POK_LSH;
 
-	/* Check the POK bit */
-	return fld_val;
-
-	pwrgood = gpio_get_value(max17135->gpio_pmic_pwrgood);
-	printk("pok: %d pwrgood: %d\n", fld_val, pwrgood);
-
-	return pwrgood;
+    /* Check the POK bit */
+    return fld_val && gpio_get_value(max17135->gpio_pmic_pwrgood);
 }
 
 static int max17135_wait_power_good(struct max17135 *max17135)
@@ -321,7 +315,6 @@ static int max17135_wait_power_good(struct max17135 *max17135)
 
 		msleep(1);
 	}
-	printk("MAX17135 Timeout while waiting for PWRGOOD\n");
 
 	return -ETIMEDOUT;
 }
