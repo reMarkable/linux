@@ -567,6 +567,12 @@ static struct cyttsp5_core_platform_data *create_and_get_core_pdata(
 		goto fail_free;
 	pdata->hid_desc_register = value;
 
+	/* Optional fields */
+	/* rst_gpio is optional since a platform may use
+	 * power cycling instead of using the XRES pin
+	 */
+	pdata->rst_gpio = of_get_named_gpio(core_node, "cy,rst_gpio", 0);
+
 	rc = of_property_read_u32(core_node, "cy,level_irq_udelay", &value);
 	if (!rc)
 		pdata->level_irq_udelay = value;
@@ -601,14 +607,15 @@ static struct cyttsp5_core_platform_data *create_and_get_core_pdata(
 				touch_setting_names[i]);
 	}
 
-	pr_debug("%s: irq_gpio:%d\n"
+	pr_debug("%s: irq_gpio:%d rst_gpio:%d\n"
 		"hid_desc_register:%d level_irq_udelay:%d vendor_id:%d product_id:%d\n"
 		"flags:%d easy_wakeup_gesture:%d\n", __func__,
-		pdata->irq_gpio,
+		pdata->irq_gpio, pdata->rst_gpio,
 		pdata->hid_desc_register,
 		pdata->level_irq_udelay, pdata->vendor_id, pdata->product_id,
 		pdata->flags, pdata->easy_wakeup_gesture);
 
+	pdata->xres = cyttsp5_xres;
 	pdata->init = cyttsp5_init;
 	pdata->power = cyttsp5_power;
 	pdata->detect = cyttsp5_detect;

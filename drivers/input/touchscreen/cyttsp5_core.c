@@ -28,8 +28,6 @@
 
 #include "cyttsp5_regs.h"
 #include <linux/kthread.h>
-#include <linux/reset.h>
-#include <linux/reset-controller.h>
 
 #define CY_CORE_STARTUP_RETRY_COUNT		3
 
@@ -2849,15 +2847,11 @@ static int cyttsp5_hw_soft_reset(struct cyttsp5_core_data *cd)
 
 static int cyttsp5_hw_hard_reset(struct cyttsp5_core_data *cd)
 {
-	struct reset_control *rstc;
-
-	rstc = reset_control_get(cd->dev, NULL);
-	if (rstc) {
+	if (cd->cpdata->xres) {
+		cd->cpdata->xres(cd->cpdata, cd->dev);
 		dev_dbg(cd->dev, "%s: execute HARD reset\n", __func__);
-		reset_control_reset(rstc);
 		return 0;
 	}
-
 	dev_err(cd->dev, "%s: FAILED to execute HARD reset\n", __func__);
 	return -ENODEV;
 }
@@ -5245,8 +5239,10 @@ static ssize_t cyttsp5_platform_data_show(struct device *dev,
 		"%s: %d\n"
 		"%s: %d\n"
 		"%s: %d\n"
+		"%s: %d\n"
 		"%s: %d\n",
 		"Interrupt GPIO", pdata->core_pdata->irq_gpio,
+		"Reset GPIO", pdata->core_pdata->rst_gpio,
 		"Level trigger delay (us)", pdata->core_pdata->level_irq_udelay,
 		"HID descriptor register", pdata->core_pdata->hid_desc_register,
 		"Vendor ID", pdata->core_pdata->vendor_id,
