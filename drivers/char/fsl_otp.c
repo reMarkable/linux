@@ -21,6 +21,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
+#include <asm/system_info.h>
 
 #define HW_OCOTP_CTRL			0x00000000
 #define HW_OCOTP_CTRL_SET		0x00000004
@@ -68,6 +69,57 @@
 #define BANK4(a, b, c, d) { \
 	"HW_OCOTP_"#a, "HW_OCOTP_"#b, "HW_OCOTP_"#c, "HW_OCOTP_"#d, \
 }
+
+struct ocotp_regs {
+	u32	ctrl;
+	u32	ctrl_set;
+	u32     ctrl_clr;
+	u32	ctrl_tog;
+	u32	timing;
+	u32     rsvd0[3];
+	u32     data;
+	u32     rsvd1[3];
+	u32     read_ctrl;
+	u32     rsvd2[3];
+	u32	read_fuse_data;
+	u32     rsvd3[3];
+	u32	sw_sticky;
+	u32     rsvd4[3];
+	u32     scs;
+	u32     scs_set;
+	u32     scs_clr;
+	u32     scs_tog;
+	u32     crc_addr;
+	u32     rsvd5[3];
+	u32     crc_value;
+	u32     rsvd6[3];
+	u32     version;
+	u32     rsvd7[0xdb];
+
+	/* fuse banks */
+	struct fuse_bank {
+		u32	fuse_regs[0x20];
+	} bank[0];
+};
+
+struct fuse_bank0_regs {
+	u32	lock;
+	u32	rsvd0[3];
+	u32	uid_low;
+	u32	rsvd1[3];
+	u32	uid_high;
+	u32	rsvd2[3];
+	u32	cfg2;
+	u32	rsvd3[3];
+	u32	cfg3;
+	u32	rsvd4[3];
+	u32	cfg4;
+	u32	rsvd5[3];
+	u32	cfg5;
+	u32	rsvd6[3];
+	u32	cfg6;
+	u32	rsvd7[3];
+};
 
 static const char *imx6q_otp_desc[16][8] = {
 	BANK8(LOCK, CFG0, CFG1, CFG2, CFG3, CFG4, CFG5, CFG6),
@@ -454,6 +506,34 @@ out:
 	return ret ? 0 : count;
 }
 
+static void read_cpu_serial(void)
+{
+	unsigned int phy_index_low, phy_index_high;
+	int ret;
+
+	if (!fsl_otp)
+		return;
+
+	ret = clk_prepare_enable(otp_clk);
+	if (ret)
+		return;
+
+	phy_index_low = fsl_otp_word_physical(fsl_otp, 1);
+	phy_index_high = fsl_otp_word_physical(fsl_otp, 2);
+
+	printk("phy index low: %d, phy index high: %d\n", phy_index_low, phy_index_high);
+
+	fsl_otp->set_otp_timing();
+	ret = otp_wait_busy(0);
+
+	if (ret == 0) {
+		system_serial_low = __raw_readl(otp_base + HW_OCOTP_CUST_N(phy_index_low));
+		system_serial_high = __raw_readl(otp_base + HW_OCOTP_CUST_N(phy_index_high));
+	}
+
+	clk_disable_unprepare(otp_clk);
+}
+
 static const struct of_device_id fsl_otp_dt_ids[] = {
 	{ .compatible = "fsl,imx6q-ocotp", .data = (void *)&imx6q_data, },
 	{ .compatible = "fsl,imx6sl-ocotp", .data = (void *)&imx6sl_data, },
@@ -529,6 +609,8 @@ static int fsl_otp_probe(struct platform_device *pdev)
 		kobject_put(otp_kobj);
 		return ret;
 	}
+
+	read_cpu_serial();
 
 	mutex_init(&otp_mutex);
 
