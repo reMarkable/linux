@@ -15,9 +15,64 @@
 #include <linux/regmap.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
+#include <linux/gpio.h>
+#include <linux/platform_data/brcmfmac-sdio.h>
+#include <linux/delay.h>
 
 #include "common.h"
+#include "hardware.h"
 #include "cpuidle.h"
+
+#define WL_REG_ON 96
+
+static void brcmfmac_power_on(void)
+{
+	int err = 0;
+	uint wl_reg_on = IMX_GPIO_NR(4, 0);
+	printk("Powering on wifi\n");
+	gpio_free(wl_reg_on);
+	err = gpio_request_one(wl_reg_on, GPIOF_OUT_INIT_LOW, "wl_reg_on");
+	if (err) {
+		pr_err("Failed to request GPIO for powering on wifi!\n");
+		return;
+	}
+	gpio_set_value(wl_reg_on, 1);
+}
+
+static void brcmfmac_power_off(void)
+{
+	int err = 0;
+	uint wl_reg_on = IMX_GPIO_NR(4, 0);
+	printk("Powering off wifi\n");
+	gpio_free(wl_reg_on);
+	err = gpio_request_one(wl_reg_on, GPIOF_OUT_INIT_LOW, "wl_reg_on");
+	if (err) {
+		printk("gpio request barf\n");
+		pr_err("Failed to request GPIO for powering off wifi!\n");
+		return;
+	}
+	gpio_set_value(wl_reg_on, 0);
+}
+
+static void brcmfmac_reset(void)
+{
+	brcmfmac_power_off();
+	msleep(5);
+	brcmfmac_power_on();
+}
+
+static struct brcmfmac_sdio_platform_data brcmfmac_sdio_pdata = {
+	.power_on		= brcmfmac_power_on,
+	.power_off		= brcmfmac_power_off,
+	.reset			= brcmfmac_reset,
+};
+
+static struct platform_device brcmfmac_device = {
+	.name			= BRCMFMAC_SDIO_PDATA_NAME,
+	.id			= PLATFORM_DEVID_NONE,
+	.dev.platform_data	= &brcmfmac_sdio_pdata
+};
+
 
 static void __init imx6sl_fec_clk_init(void)
 {
@@ -62,6 +117,8 @@ static void __init imx6sl_init_machine(void)
 	imx6sl_fec_init();
 	imx_anatop_init();
 	imx6sl_pm_init();
+
+	platform_device_register(&brcmfmac_device);
 }
 
 static void __init imx6sl_init_irq(void)
