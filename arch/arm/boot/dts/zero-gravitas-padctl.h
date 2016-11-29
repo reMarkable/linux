@@ -1,6 +1,8 @@
 #ifndef ZERO_GRAVITAS_PADCTL_H
 #define ZERO_GRAVITAS_PADCTL_H
 
+#define PAD_CTL_NONE		0x80000000
+
 #define PAD_CTL_HYS		(1 << 16)
 
 #define PAD_CTL_PUS_100K_DOWN	(0 << 14 | PAD_CTL_PUE)
