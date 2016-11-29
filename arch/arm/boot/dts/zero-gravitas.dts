@@ -37,6 +37,17 @@
 			enable-active-high;
 			vin-supply = <&swbst_reg>;
 		};
+
+		charger_regulator: regulator@1 {
+			compatible = "regulator-fixed";
+			regulator-name = "charger-regulator";
+			regulator-min-microamp = <5000000>;
+			regulator-max-microamp = <5000000>;
+			gpios = <&gpio3 27 GPIO_ACTIVE_LOW>;
+			enable-active-high; /* Don't invert twice */
+			regulator-boot-on;
+			status = "disabled";
+		};
 	};
 
 	wacom_reset: wacom-reset {
@@ -82,9 +93,10 @@
 		#reset-cells = <0>;
 	};
 
-	usb_charger: charger {
+	usb_charger: usb_charger {
 		compatible = "gpio-charger";
 		gpios = <&gpio4 1 0>;
+		status = "disabled";
 	};
 };
 
@@ -114,7 +126,8 @@
 	battery: bq27441@55 {
 		reg = <0x55>;
 		compatible = "ti,bq27441";
-		power-supplies = <&usb_charger>;
+		/*power-supplies = <&usb_charger>;*/
+		/*charger-supply = <&charger_regulator>;*/
 		/*interrupt-parent = <&gpio3>;
 		interrupts = <31 IRQ_TYPE_LEVEL_HIGH>;*/
 		ti,resistor-sense = <10>;
