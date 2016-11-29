@@ -202,6 +202,7 @@
 		vpos_pwrdn = <2>;
 		vneg_pwrdn = <5>;
 		gvee_pwrdn = <40>;
+		/* These are only for passnum 1, we use i2c */
 		gpio_pmic_pwrgood = <&gpio2 13 0>;
 		gpio_pmic_vcom_ctrl = <&gpio2 3 0>;
 		gpio_pmic_wakeup = <&gpio2 14 0>;
@@ -682,7 +683,7 @@
 	srp-disable;
 	hnp-disable;
 	adp-disable;
-	status = "okay";
+	status = "disabled";
 };
 
 &usbphy1 {
@@ -691,6 +692,7 @@
 
 &usbphy2 {
 	tx-d-cal = <0x5>;
+	status = "disabled";
 };
 
 &usdhc1 {
@@ -706,7 +708,7 @@
 	enable-sdio-wakeup;
 	no-1-8-v;
 	/*disable-wp;*/
-	status = "okay";
+	status = "disabled";
 };
 
 &usdhc2 {
