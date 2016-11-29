@@ -444,14 +444,16 @@
 
 				/* USB OTG1 voltage control */
 				/*MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x17000*/
-				MX6SL_PAD_ECSPI2_SS0__USB_OTG1_PWR	0x17000
+				/*MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x000b0*/
+				MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x80000000
+				/*MX6SL_PAD_ECSPI2_SS0__USB_OTG1_PWR	0x17000*/
 				/* USB OTG1 over current detection */
-				MX6SL_PAD_ECSPI2_MISO__USB_OTG1_OC	0x17000
+				MX6SL_PAD_ECSPI2_MISO__USB_OTG1_OC	0x1b0b0
 
 				/* Charger control */
 				MX6SL_PAD_KEY_ROW1__GPIO3_IO27		0x17000
 				/* Charger status */
-				MX6SL_PAD_KEY_ROW4__GPIO4_IO01		0x17000
+				MX6SL_PAD_KEY_ROW4__GPIO4_IO01		PAD_CTL_NONE
 
 				/* USDHC1 card detect */
 				MX6SL_PAD_KEY_ROW7__GPIO4_IO07		0x17059
@@ -718,10 +720,16 @@
 	status = "okay";
 };
 
+/*&usbmisc {
+	vbus-wakeup-supply = <&reg_usb_otg1_vbus>;
+};*/
+
 &usbotg1 {
 	vbus-supply = <&reg_usb_otg1_vbus>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg1>;
+	disable-over-current;
+	/* This kills the speed */
 	imx-usb-charger-detection;
 	srp-disable;
 	hnp-disable;
