@@ -462,10 +462,6 @@
 				MX6SL_PAD_KEY_COL5__GPIO4_IO02  0x80000000
 				/* WiFi power control */
 				MX6SL_PAD_KEY_COL4__GPIO4_IO00  0x80000000
-
-
-				/* 32Khz clock from i.MX6 to WLAN "HDWF-77D" for power saving */
-				MX6SL_PAD_REF_CLK_32K__XTALOSC_REF_CLK_32K 0x1b0b0
 			>;
 		};
 
