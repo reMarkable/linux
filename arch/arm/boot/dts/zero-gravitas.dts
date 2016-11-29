@@ -799,6 +799,6 @@
 		interrupt-parent = <&gpio4>;
 		interrupts = <2 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "host-wake";
-		resets = <&wifi_reset>;
+		/*resets = <&wifi_reset>;*/
 	};
 };
