@@ -389,21 +389,6 @@
 					/* KEY SEARCH */
 					217 1360 630 160 180>;
 			};
-
-			cy,btn {
-				cy,name = "cyttsp5_btn";
-
-				cy,inp_dev_name = "cyttsp5_btn";
-			};
-
-			cy,proximity {
-				cy,name = "cyttsp5_proximity";
-
-				cy,inp_dev_name = "cyttsp5_proximity";
-				cy,abs =
-					/* ABS_DISTANCE, CY_PROXIMITY_MIN_VAL, CY_PROXIMITY_MAX_VAL, 0, 0 */
-					<0x19 0 1 0 0>;
-			};
 		};
 	};
 };
