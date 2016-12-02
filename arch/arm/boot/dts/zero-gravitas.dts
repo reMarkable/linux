@@ -404,15 +404,15 @@
 				MX6SL_PAD_KEY_ROW2__GPIO3_IO29		0x17000
 
 				/* MAX17135 pwrgood */
-				MX6SL_PAD_EPDC_PWRSTAT__GPIO2_IO13	0x80000000
+				MX6SL_PAD_EPDC_PWRSTAT__GPIO2_IO13	PAD_CTL_NONE
 				/* MAX17135 vcom ctrl */
-				MX6SL_PAD_EPDC_VCOM0__GPIO2_IO03	0x80000000
+				MX6SL_PAD_EPDC_VCOM0__GPIO2_IO03	PAD_CTL_NONE
 				/* MAX17135 wakeup */
-				MX6SL_PAD_EPDC_PWRWAKEUP__GPIO2_IO14	0x80000000
+				MX6SL_PAD_EPDC_PWRWAKEUP__GPIO2_IO14	PAD_CTL_NONE
 				/* MAX17135 v3p3 */
-				MX6SL_PAD_EPDC_PWRCTRL0__GPIO2_IO07	0x80000000
+				MX6SL_PAD_EPDC_PWRCTRL0__GPIO2_IO07	PAD_CTL_NONE
 				/* MAX17135 intr */
-				MX6SL_PAD_EPDC_PWRINT__GPIO2_IO12	0x80000000
+				MX6SL_PAD_EPDC_PWRINT__GPIO2_IO12	PAD_CTL_NONE
 
 				/* BQ27441 low power */
 				/*MX6SL_PAD_KEY_ROW3__GPIO3_IO31		0x17000*/
@@ -430,7 +430,7 @@
 				/* USB OTG1 voltage control */
 				/*MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x17000*/
 				/*MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x000b0*/
-				MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x80000000
+				MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	PAD_CTL_NONE
 				/*MX6SL_PAD_ECSPI2_SS0__USB_OTG1_PWR	0x17000*/
 				/* USB OTG1 over current detection */
 				MX6SL_PAD_ECSPI2_MISO__USB_OTG1_OC	0x1b0b0
@@ -444,9 +444,9 @@
 				MX6SL_PAD_KEY_ROW7__GPIO4_IO07		0x17059
 
 				/* CHIP_WAKE_HOST */
-				MX6SL_PAD_KEY_COL5__GPIO4_IO02  0x80000000
+				MX6SL_PAD_KEY_COL5__GPIO4_IO02  PAD_CTL_NONE
 				/* WiFi power control */
-				MX6SL_PAD_KEY_COL4__GPIO4_IO00  0x80000000
+				MX6SL_PAD_KEY_COL4__GPIO4_IO00  PAD_CTL_NONE
 
 				/* 32Khz clock from i.MX6 to WiFi for power saving */
 				MX6SL_PAD_REF_CLK_32K__XTALOSC_REF_CLK_32K 0x1b0b0
@@ -455,31 +455,31 @@
 
                 pinctrl_epdc_0: epdcgrp-0 {
                         fsl,pins = <
-                                MX6SL_PAD_EPDC_D0__EPDC_DATA00  0x80000000
-                                MX6SL_PAD_EPDC_D1__EPDC_DATA01  0x80000000
-                                MX6SL_PAD_EPDC_D2__EPDC_DATA02  0x80000000
-                                MX6SL_PAD_EPDC_D3__EPDC_DATA03  0x80000000
-                                MX6SL_PAD_EPDC_D4__EPDC_DATA04  0x80000000
-                                MX6SL_PAD_EPDC_D5__EPDC_DATA05  0x80000000
-                                MX6SL_PAD_EPDC_D6__EPDC_DATA06  0x80000000
-                                MX6SL_PAD_EPDC_D7__EPDC_DATA07  0x80000000
-                                MX6SL_PAD_EPDC_D8__EPDC_DATA08  0x80000000
-                                MX6SL_PAD_EPDC_D9__EPDC_DATA09  0x80000000
-                                MX6SL_PAD_EPDC_D10__EPDC_DATA10 0x80000000
-                                MX6SL_PAD_EPDC_D11__EPDC_DATA11 0x80000000
-                                MX6SL_PAD_EPDC_D12__EPDC_DATA12 0x80000000
-                                MX6SL_PAD_EPDC_D13__EPDC_DATA13 0x80000000
-                                MX6SL_PAD_EPDC_D14__EPDC_DATA14 0x80000000
-                                MX6SL_PAD_EPDC_D15__EPDC_DATA15 0x80000000
-                                MX6SL_PAD_EPDC_GDCLK__EPDC_GDCLK 0x80000000
-                                MX6SL_PAD_EPDC_GDOE__EPDC_GDOE   0x80000000
-                                MX6SL_PAD_EPDC_GDSP__EPDC_GDSP   0x80000000
-                                MX6SL_PAD_EPDC_SDCE0__EPDC_SDCE0 0x80000000
-                                MX6SL_PAD_EPDC_SDCLK__EPDC_SDCLK_P 0x80000000
-                                MX6SL_PAD_EPDC_SDLE__EPDC_SDLE   0x80000000
-                                MX6SL_PAD_EPDC_SDOE__EPDC_SDOE   0x80000000
-                                MX6SL_PAD_EPDC_BDR0__EPDC_BDR0   0x80000000
-                                MX6SL_PAD_EPDC_BDR1__EPDC_BDR1   0x80000000
+                                MX6SL_PAD_EPDC_D0__EPDC_DATA00  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D1__EPDC_DATA01  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D2__EPDC_DATA02  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D3__EPDC_DATA03  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D4__EPDC_DATA04  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D5__EPDC_DATA05  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D6__EPDC_DATA06  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D7__EPDC_DATA07  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D8__EPDC_DATA08  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D9__EPDC_DATA09  PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D10__EPDC_DATA10 PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D11__EPDC_DATA11 PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D12__EPDC_DATA12 PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D13__EPDC_DATA13 PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D14__EPDC_DATA14 PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_D15__EPDC_DATA15 PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_GDCLK__EPDC_GDCLK PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_GDOE__EPDC_GDOE   PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_GDSP__EPDC_GDSP   PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_SDCE0__EPDC_SDCE0 PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_SDCLK__EPDC_SDCLK_P PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_SDLE__EPDC_SDLE   PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_SDOE__EPDC_SDOE   PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_BDR0__EPDC_BDR0   PAD_CTL_NONE
+                                MX6SL_PAD_EPDC_BDR1__EPDC_BDR1   PAD_CTL_NONE
                         >;
                 };
 
@@ -534,10 +534,10 @@
 
 		pinctrl_keys: keygrp {
 			fsl,pins = <
-				MX6SL_PAD_ECSPI1_MOSI__GPIO4_IO09	0x80000000
-				MX6SL_PAD_KEY_COL0__GPIO3_IO24		0x80000000
-				MX6SL_PAD_KEY_COL1__GPIO3_IO26		0x80000000
-				MX6SL_PAD_KEY_COL2__GPIO3_IO28		0x80000000
+				MX6SL_PAD_ECSPI1_MOSI__GPIO4_IO09	PAD_CTL_NONE
+				MX6SL_PAD_KEY_COL0__GPIO3_IO24		PAD_CTL_NONE
+				MX6SL_PAD_KEY_COL1__GPIO3_IO26		PAD_CTL_NONE
+				MX6SL_PAD_KEY_COL2__GPIO3_IO28		PAD_CTL_NONE
 			>;
 		};
 
