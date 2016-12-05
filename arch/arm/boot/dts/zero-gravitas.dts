@@ -71,7 +71,7 @@
 
 		button_1 {
 			label = "Left";
-			gpios = <&gpio3 25 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio3 24 GPIO_ACTIVE_HIGH>;
 			linux,code = <KEY_LEFT>;
 		};
 
