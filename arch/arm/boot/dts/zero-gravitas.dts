@@ -400,9 +400,6 @@
 	zero-gravitas {
 		pinctrl_hog: hoggrp {
 			fsl,pins = <
-				/* FEC PHY reset */
-				MX6SL_PAD_KEY_ROW2__GPIO3_IO29		0x17000
-
 				/* MAX17135 pwrgood */
 				MX6SL_PAD_EPDC_PWRSTAT__GPIO2_IO13	PAD_CTL_NONE
 				/* MAX17135 vcom ctrl */
@@ -484,33 +481,6 @@
                                 MX6SL_PAD_EPDC_BDR1__EPDC_BDR1   PAD_CTL_NONE
                         >;
                 };
-
-		pinctrl_fec: fecgrp {
-			fsl,pins = <
-				MX6SL_PAD_FEC_MDC__FEC_MDC		0x1b0b0
-				MX6SL_PAD_FEC_MDIO__FEC_MDIO		0x1b0b0
-				MX6SL_PAD_FEC_CRS_DV__FEC_RX_DV		0x1b0b0
-				MX6SL_PAD_FEC_RXD0__FEC_RX_DATA0	0x1b0b0
-				MX6SL_PAD_FEC_RXD1__FEC_RX_DATA1	0x1b0b0
-				MX6SL_PAD_FEC_TX_EN__FEC_TX_EN		0x1b0b0
-				MX6SL_PAD_FEC_TXD0__FEC_TX_DATA0	0x1b0b0
-				MX6SL_PAD_FEC_TXD1__FEC_TX_DATA1	0x1b0b0
-				MX6SL_PAD_FEC_REF_CLK__FEC_REF_OUT	0x4001b0a8
-			>;
-		};
-
-		pinctrl_fec_sleep: fecgrp-sleep {
-			fsl,pins = <
-				MX6SL_PAD_FEC_MDC__GPIO4_IO23      0x3080
-				MX6SL_PAD_FEC_CRS_DV__GPIO4_IO25   0x3080
-				MX6SL_PAD_FEC_RXD0__GPIO4_IO17     0x3080
-				MX6SL_PAD_FEC_RXD1__GPIO4_IO18     0x3080
-				MX6SL_PAD_FEC_TX_EN__GPIO4_IO22    0x3080
-				MX6SL_PAD_FEC_TXD0__GPIO4_IO24     0x3080
-				MX6SL_PAD_FEC_TXD1__GPIO4_IO16     0x3080
-				MX6SL_PAD_FEC_REF_CLK__GPIO4_IO26  0x3080
-			>;
-		};
 
 		pinctrl_i2c1: i2c1grp {
 			fsl,pins = <
