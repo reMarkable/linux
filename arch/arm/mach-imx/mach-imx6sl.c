@@ -1,5 +1,6 @@
 /*
  * Copyright 2013-2015 Freescale Semiconductor, Inc.
+ * Copyright 2016 reMarkable AS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,35 +24,38 @@
 #include "hardware.h"
 #include "cpuidle.h"
 
-#define WL_REG_ON 96
+#define WL_PWR_ON IMX_GPIO_NR(3, 30)
+#define WL_REG_ON IMX_GPIO_NR(4, 0)
+
+static bool init_wifi_gpio(void)
+{
+	int err;
+
+	err = gpio_request_one(WL_PWR_ON, GPIOF_OUT_INIT_LOW, "wl_pwr_on");
+	if (err) {
+		pr_err("Failed to request power GPIO for wifi: %d\n", err);
+		return false;
+	}
+
+	err = gpio_request_one(WL_REG_ON, GPIOF_OUT_INIT_LOW, "wl_reg_on");
+	if (err) {
+		pr_err("Failed to request regulator GPIO for wifi: %d\n", err);
+		return false;
+	}
+
+	return true;
+}
 
 static void brcmfmac_power_on(void)
 {
-	int err = 0;
-	uint wl_reg_on = IMX_GPIO_NR(4, 0);
-	printk("Powering on wifi\n");
-	gpio_free(wl_reg_on);
-	err = gpio_request_one(wl_reg_on, GPIOF_OUT_INIT_LOW, "wl_reg_on");
-	if (err) {
-		pr_err("Failed to request GPIO for powering on wifi!\n");
-		return;
-	}
-	gpio_set_value(wl_reg_on, 1);
+	gpio_set_value(WL_PWR_ON, 1);
+	gpio_set_value(WL_REG_ON, 1);
 }
 
 static void brcmfmac_power_off(void)
 {
-	int err = 0;
-	uint wl_reg_on = IMX_GPIO_NR(4, 0);
-	printk("Powering off wifi\n");
-	gpio_free(wl_reg_on);
-	err = gpio_request_one(wl_reg_on, GPIOF_OUT_INIT_LOW, "wl_reg_on");
-	if (err) {
-		printk("gpio request barf\n");
-		pr_err("Failed to request GPIO for powering off wifi!\n");
-		return;
-	}
-	gpio_set_value(wl_reg_on, 0);
+	gpio_set_value(WL_PWR_ON, 0);
+	gpio_set_value(WL_REG_ON, 0);
 }
 
 static void brcmfmac_reset(void)
@@ -118,7 +122,9 @@ static void __init imx6sl_init_machine(void)
 	imx_anatop_init();
 	imx6sl_pm_init();
 
-	platform_device_register(&brcmfmac_device);
+	if (init_wifi_gpio()) {
+		platform_device_register(&brcmfmac_device);
+	}
 }
 
 static void __init imx6sl_init_irq(void)

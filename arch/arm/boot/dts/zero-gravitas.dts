@@ -444,9 +444,11 @@
 				MX6SL_PAD_KEY_ROW7__GPIO4_IO07		0x17059
 
 				/* CHIP_WAKE_HOST */
-				MX6SL_PAD_KEY_COL5__GPIO4_IO02  PAD_CTL_NONE
-				/* WiFi power control */
-				MX6SL_PAD_KEY_COL4__GPIO4_IO00  PAD_CTL_NONE
+				MX6SL_PAD_KEY_COL5__GPIO4_IO02		PAD_CTL_NONE
+				/* POWER_WIFI: WiFi external power control */
+				MX6SL_PAD_KEY_COL3__GPIO3_IO30		PAD_CTL_NONE
+				/* WL_DIS: WiFi internal power control */
+				MX6SL_PAD_KEY_COL4__GPIO4_IO00		PAD_CTL_NONE
 
 				/* 32Khz clock from i.MX6 to WiFi for power saving */
 				MX6SL_PAD_REF_CLK_32K__XTALOSC_REF_CLK_32K 0x1b0b0
