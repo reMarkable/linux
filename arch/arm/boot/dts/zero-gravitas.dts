@@ -22,6 +22,15 @@
 		reg = <0x80000000 0x20000000>;
 	};
 
+	wifi_pwrseq: wifi_pwrseq {
+	     compatible = "mmc-pwrseq-simple";
+	     reset-gpios = <&gpio3 30 GPIO_ACTIVE_LOW>,
+		     <&gpio4 0 GPIO_ACTIVE_LOW>;
+	     clocks = <&clks IMX6SL_CLK_OSC>;
+	     clock-names = "ext_clock";
+	};
+
+
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -85,12 +94,6 @@
 			gpios = <&gpio3 28 GPIO_ACTIVE_HIGH>;
 			linux,code = <KEY_RIGHT>;
 		};
-	};
-
-	wifi_reset: wifi_reset {
-		compatible = "gpio-reset";
-		reset-gpios = <&gpio4 0 1>;
-		#reset-cells = <0>;
 	};
 
 	usb_charger: usb_charger {
@@ -746,6 +749,7 @@
 	pinctrl-0 = <&pinctrl_usdhc3>;
 	pinctrl-1 = <&pinctrl_usdhc3_100mhz>;
 	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;
+	mmc-pwrseq = <&wifi_pwrseq>;
 	bus-width = <4>;
 	enable-sdio-wakeup;
 	non-removable;
