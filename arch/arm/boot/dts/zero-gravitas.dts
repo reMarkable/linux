@@ -702,6 +702,7 @@
 	status = "disabled";
 };
 
+
 &usbphy1 {
 	tx-d-cal = <0x5>;
 };
@@ -751,6 +752,7 @@
 	disable-wp;
 	no-1-8-v;
 	wifi-host;
+	keep-power-in-suspend;
 	status = "okay";
 
 	brcmf: bcrmf@1 {
