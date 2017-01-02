@@ -1258,7 +1258,7 @@ static void epdc_powerup(struct mxc_epdc_fb_data *fb_data)
 	ret = regulator_enable(fb_data->display_regulator);
 	if (IS_ERR((void *)ret)) {
 		dev_err(fb_data->dev, "Unable to enable DISPLAY regulator."
-			"err = 0x%x\n", ret);
+			"err = %d\n", PTR_ERR(ret));
 		mutex_unlock(&fb_data->power_mutex);
 		return;
 	}
@@ -4921,7 +4921,7 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 	fb_data->v3p3_regulator = devm_regulator_get(&pdev->dev, "V3P3");
 	if (IS_ERR(fb_data->v3p3_regulator)) {
 		dev_err(&pdev->dev, "Unable to get V3P3 regulator."
-			"err = 0x%x\n", (int)fb_data->vcom_regulator);
+			"err = 0x%x\n", (int)fb_data->v3p3_regulator);
 		ret = -ENODEV;
 		goto out_dma_work_buf;
 	}
