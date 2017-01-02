@@ -4312,10 +4312,6 @@ static void mxc_epdc_fb_fw_handler(const struct firmware *fw,
 	struct mxcfb_waveform_data_file *wv_file;
 	int wv_data_offs;
 	int i;
-	struct mxcfb_update_data update;
-	struct mxcfb_update_marker_data upd_marker_data;
-	struct fb_var_screeninfo *screeninfo = &fb_data->epdc_fb_var;
-	u32 xres, yres;
 	struct clk *epdc_parent;
 	unsigned long rounded_parent_rate, epdc_pix_rate,
 			rounded_pix_clk, target_pix_clk;
@@ -4411,38 +4407,6 @@ static void mxc_epdc_fb_fw_handler(const struct firmware *fw,
 
 	fb_data->hw_ready = true;
 	fb_data->hw_initializing = false;
-
-	/* Use unrotated (native) width/height */
-	if ((screeninfo->rotate == FB_ROTATE_CW) ||
-		(screeninfo->rotate == FB_ROTATE_CCW)) {
-		xres = screeninfo->yres;
-		yres = screeninfo->xres;
-	} else {
-		xres = screeninfo->xres;
-		yres = screeninfo->yres;
-	}
-
-	update.update_region.left = 0;
-	update.update_region.width = xres;
-	update.update_region.top = 0;
-	update.update_region.height = yres;
-	update.update_mode = UPDATE_MODE_FULL;
-	update.waveform_mode = WAVEFORM_MODE_AUTO;
-	update.update_marker = INIT_UPDATE_MARKER;
-	update.temp = TEMP_USE_AMBIENT;
-	update.flags = 0;
-
-	upd_marker_data.update_marker = update.update_marker;
-
-	mxc_epdc_fb_send_update(&update, &fb_data->info);
-
-	/* Block on initial update */
-	ret = mxc_epdc_fb_wait_update_complete(&upd_marker_data,
-		&fb_data->info);
-	if (ret < 0)
-		dev_err(fb_data->dev,
-			"Wait for initial update complete failed."
-			" Error = 0x%x", ret);
 }
 
 static int mxc_epdc_fb_init_hw(struct fb_info *info)
