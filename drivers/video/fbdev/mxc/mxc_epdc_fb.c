@@ -60,7 +60,7 @@
  * Enable this define to have a default panel
  * loaded during driver initialization
  */
-#define DEFAULT_PANEL_HW_INIT
+/*#define DEFAULT_PANEL_HW_INIT*/
 
 #define NUM_SCREENS_MIN	2
 
@@ -1598,7 +1598,7 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 	proc_data->hflip = 0;
 	proc_data->vflip = 0;
 	proc_data->rotate = screeninfo->rotate;
-	proc_data->bgcolor = 0;
+	proc_data->bgcolor = 65535;
 	proc_data->overlay_state = 0;
 	proc_data->lut_transform = PXP_LUT_NONE;
 
