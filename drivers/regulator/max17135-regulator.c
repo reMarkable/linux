@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2010-2015 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2016 reMarkable AS. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,9 +91,6 @@ struct max17135_data {
 	struct regulator_dev **rdev;
 };
 
-static int max17135_pass_num = -1;
-static int max17135_vcom = { -1250000 };
-
 struct max17135_vcom_programming_data vcom_data[2] = {
 	{
 		-4325000,
@@ -177,64 +175,45 @@ static inline int vcom_rs_to_uV(int rs, int pass_num)
 		- (vcom_data[pass_num].vcom_step_uV * rs);
 }
 
-static int max17135_vcom_set_voltage(struct regulator_dev *reg,
-					int minuV, int uV, unsigned *selector)
+static int set_vcom_voltage(struct max17135 *max17135, int uV)
 {
-	struct max17135 *max17135 = rdev_get_drvdata(reg);
 	unsigned int reg_val;
-	int vcom_read;
 
 	if ((uV < vcom_data[max17135->pass_num-1].vcom_min_uV)
 		|| (uV > vcom_data[max17135->pass_num-1].vcom_max_uV))
 		return -EINVAL;
 
 	max17135_reg_read(REG_MAX17135_DVR, &reg_val);
+	reg_val &= ~BITFMASK(DVR);
+	reg_val |= BITFVAL(DVR, vcom_uV_to_rs(uV,
+					      max17135->pass_num-1));
 
-	/*
-	 * Only program VCOM if it is not set to the desired value.
-	 * Programming VCOM excessively degrades ability to keep
-	 * DVR register value persistent.
-	 */
-	vcom_read = vcom_rs_to_uV(reg_val, max17135->pass_num-1);
-	if (vcom_read != max17135->vcom_uV) {
-		reg_val &= ~BITFMASK(DVR);
-		reg_val |= BITFVAL(DVR, vcom_uV_to_rs(uV,
-			max17135->pass_num-1));
-		max17135_reg_write(REG_MAX17135_DVR, reg_val);
-
-		reg_val = BITFVAL(CTRL_DVR, true); /* shift to correct bit */
-		return max17135_reg_write(REG_MAX17135_PRGM_CTRL, reg_val);
-	}
-
-	return 0;
+	return max17135_reg_write(REG_MAX17135_DVR, reg_val);
 }
 
-static int max17135_vcom_get_voltage(struct regulator_dev *reg)
+static int max17135_vcom_set_voltage(struct regulator_dev *reg,
+					int minuV, int uV, unsigned *selector)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
+	return set_vcom_voltage(max17135, uV);
+}
+
+static int get_vcom_voltage(struct max17135 *max17135)
+{
 	unsigned int reg_val;
 
 	max17135_reg_read(REG_MAX17135_DVR, &reg_val);
 	return vcom_rs_to_uV(BITFEXT(reg_val, DVR), max17135->pass_num-1);
 }
 
+static int max17135_vcom_get_voltage(struct regulator_dev *reg)
+{
+	return get_vcom_voltage(rdev_get_drvdata(reg));
+}
+
 static int max17135_vcom_enable(struct regulator_dev *reg)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
-
-	printk("MAX17135 powering up VCOM (EPDC_VCOM0)\n");
-	/*
-	 * Check to see if we need to set the VCOM voltage.
-	 * Should only be done one time. And, we can
-	 * only change vcom voltage if we have been enabled.
-	 */
-	if (!max17135->vcom_setup && max17135_is_power_good(max17135)) {
-		max17135_vcom_set_voltage(reg,
-			max17135->vcom_uV,
-			max17135->vcom_uV,
-			NULL);
-		max17135->vcom_setup = true;
-	}
 
 	/* enable VCOM regulator output */
 	if (max17135->pass_num == 1)
@@ -254,8 +233,6 @@ static int max17135_vcom_enable(struct regulator_dev *reg)
 static int max17135_vcom_disable(struct regulator_dev *reg)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
-
-	printk("MAX17135 powering down VCOM (EPDC_VCOM0)\n");
 
 	if (max17135->pass_num == 1)
 		gpio_set_value(max17135->gpio_pmic_vcom_ctrl, 0);
@@ -296,13 +273,16 @@ static int max17135_vcom_is_enabled(struct regulator_dev *reg)
 static int max17135_is_power_good(struct max17135 *max17135)
 {
     unsigned int reg_val;
-    unsigned int fld_val;
 
-    max17135_reg_read(REG_MAX17135_FAULT, &reg_val);
-    fld_val = (reg_val & BITFMASK(FAULT_POK)) >> FAULT_POK_LSH;
+    if (max17135->pass_num == 1) {
+	    return gpio_get_value(max17135->gpio_pmic_pwrgood);
+    } else {
+	    max17135_reg_read(REG_MAX17135_FAULT, &reg_val);
 
-    /* Check the POK bit */
-    return fld_val && gpio_get_value(max17135->gpio_pmic_pwrgood);
+	    /* Check the POK bit */
+	    reg_val = (reg_val & BITFMASK(FAULT_POK)) >> FAULT_POK_LSH;
+	    return reg_val;
+    }
 }
 
 static int max17135_wait_power_good(struct max17135 *max17135)
@@ -319,12 +299,9 @@ static int max17135_wait_power_good(struct max17135 *max17135)
 	return -ETIMEDOUT;
 }
 
-static int max17135_display_enable(struct regulator_dev *reg)
+static int max17135_enable(struct max17135 *max17135)
 {
-	struct max17135 *max17135 = rdev_get_drvdata(reg);
 	int ret;
-
-	printk("MAX17135 powering up DISPLAY (EPDC_PWRWAKEUP)\n");
 
 	/* The Pass 1 parts cannot turn on the PMIC via I2C. */
 	if (max17135->pass_num == 1)
@@ -335,7 +312,11 @@ static int max17135_display_enable(struct regulator_dev *reg)
 		max17135_reg_read(REG_MAX17135_ENABLE, &reg_val);
 		reg_val &= ~BITFMASK(ENABLE);
 		reg_val |= BITFVAL(ENABLE, 1);
-		max17135_reg_write(REG_MAX17135_ENABLE, reg_val);
+		ret = max17135_reg_write(REG_MAX17135_ENABLE, reg_val);
+		if (ret) {
+			printk(KERN_ERR "Failed to write to ENABLE register\n");
+			return ret;
+		}
 	}
 
 	ret = max17135_wait_power_good(max17135);
@@ -348,25 +329,46 @@ static int max17135_display_enable(struct regulator_dev *reg)
 	return ret;
 }
 
-static int max17135_display_disable(struct regulator_dev *reg)
+static int max17135_display_enable(struct regulator_dev *reg)
 {
 	struct max17135 *max17135 = rdev_get_drvdata(reg);
 
-	printk("MAX17135 powering down DISPLAY (EPDC_PWRWAKEUP)\n");
+	return max17135_enable(max17135);
+}
+
+static int max17135_disable(struct max17135 *max17135)
+{
+	int ret;
 
 	if (max17135->pass_num == 1)
 		gpio_set_value(max17135->gpio_pmic_wakeup, 0);
 	else {
 		unsigned int reg_val;
 
-		max17135_reg_read(REG_MAX17135_ENABLE, &reg_val);
+		ret = max17135_reg_read(REG_MAX17135_ENABLE, &reg_val);
+		if (ret) {
+			printk(KERN_ERR "Failed to read DISPLAY via register for disabling\n");
+			return ret;
+		}
+
 		reg_val &= ~BITFMASK(ENABLE);
-		max17135_reg_write(REG_MAX17135_ENABLE, reg_val);
+		ret = max17135_reg_write(REG_MAX17135_ENABLE, reg_val);
+		if (ret) {
+			printk(KERN_ERR "Failed to disable DISPLAY via register\n");
+			return ret;
+		}
 	}
 
 	msleep(max17135->max_wait);
 
 	return 0;
+}
+
+static int max17135_display_disable(struct regulator_dev *reg)
+{
+	struct max17135 *max17135 = rdev_get_drvdata(reg);
+
+	return max17135_disable(max17135);
 }
 
 static int max17135_display_is_enabled(struct regulator_dev *reg)
@@ -713,6 +715,77 @@ static int max17135_pmic_dt_parse_pdata(struct platform_device *pdev,
 }
 #endif	/* !CONFIG_OF */
 
+static ssize_t max17135_vcom_show(struct device *dev, struct device_attribute *attr,
+				  char *buf)
+{
+	struct max17135 *max17135 = dev_get_drvdata(dev->parent);
+	int voltage;
+
+	voltage = get_vcom_voltage(max17135);
+
+	return sprintf(buf, "%d\n", voltage);
+}
+
+static ssize_t max17135_vcom_store(struct device *dev, struct device_attribute *attr,
+				   const char *buf, size_t size)
+{
+	struct max17135 *max17135 = dev_get_drvdata(dev->parent);
+	int vcom_uV, ret;
+	unsigned int reg_val;
+	bool powered_by_us = false;
+
+	if (sscanf(buf, " %d", &vcom_uV) <= 0) {
+		dev_err(dev, "Invalid vcom value given: %s\n", buf);
+		return -EINVAL;
+	}
+
+	/*
+	 * Only program VCOM if it is not set to the desired value.
+	 * Programming VCOM excessively degrades ability to keep
+	 * DVR register value persistent.
+	 */
+	if (vcom_uV == get_vcom_voltage(max17135)) {
+		return size;
+	}
+
+	ret = set_vcom_voltage(max17135, vcom_uV);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set VCOM to value given(%s): %d\n", buf, ret);
+		return -EINVAL;
+	}
+
+	/* Write to non-volatile memory */
+
+	/* First check if we need to power up the PMIC */
+	if (!max17135_is_power_good(max17135)) {
+		powered_by_us = true;
+		max17135_enable(max17135);
+
+		ret = max17135_wait_power_good(max17135);
+		if (ret < 0) {
+			printk(KERN_ERR "Unable to wake PMIC to store VCOM: %d\n", ret);
+			return -EINVAL;
+		}
+	}
+
+	reg_val = BITFVAL(CTRL_DVR, true); /* shift to correct bit */
+	ret = max17135_reg_write(REG_MAX17135_PRGM_CTRL, reg_val);
+
+	if (ret < 0) {
+		printk(KERN_ERR "MAX17135 failed to store VCOM to non-volatile memory: %d\n", ret);
+	}
+
+	/* Power it down again if we powered it up */
+	if (powered_by_us) {
+		max17135_disable(max17135);
+	}
+
+	return size;
+}
+
+static DEVICE_ATTR(vcom, 0600, max17135_vcom_show, max17135_vcom_store);
+
+
 /*
  * Regulator init/probing/exit functions
  */
@@ -744,14 +817,6 @@ static int max17135_regulator_probe(struct platform_device *pdev)
 	priv->num_regulators = pdata->num_regulators;
 	platform_set_drvdata(pdev, priv);
 
-	max17135->vcom_setup = false;
-	max17135->vcom_uV = max17135_vcom;
-
-	/* Allow overriding pass_num with module parameters */
-	if (max17135_pass_num > 0) {
-		max17135->pass_num = max17135_pass_num;
-	}
-
 	for (i = 0; i < pdata->num_regulators; i++) {
 		int id = pdata->regulators[i].id;
 
@@ -777,6 +842,11 @@ static int max17135_regulator_probe(struct platform_device *pdev)
 	 */
 	max17135_setup_timings(max17135);
 
+	/* Create sysfs file for writing VCOM value */
+	if (device_create_file(&pdev->dev, &dev_attr_vcom) < 0) {
+		dev_err(&pdev->dev, "Unable to create sysfs file for vcom\n");
+	}
+
 	return 0;
 err:
 	while (--i >= 0)
@@ -792,6 +862,9 @@ static int max17135_regulator_remove(struct platform_device *pdev)
 
 	for (i = 0; i < priv->num_regulators; i++)
 		regulator_unregister(rdev[i]);
+
+	device_remove_file(&pdev->dev, &dev_attr_vcom);
+
 	return 0;
 }
 
@@ -821,40 +894,6 @@ static void __exit max17135_regulator_exit(void)
 	platform_driver_unregister(&max17135_regulator_driver);
 }
 module_exit(max17135_regulator_exit);
-
-/*
- * Parse user specified options (`max17135:')
- * example:
- *   max17135:pass=2,vcom=-1250000
- */
-static int __init max17135_setup(char *options)
-{
-	int ret;
-	char *opt;
-	while ((opt = strsep(&options, ",")) != NULL) {
-		if (!*opt)
-			continue;
-		if (!strncmp(opt, "pass=", 5)) {
-			ret = kstrtoint(opt + 5, 0, &max17135_pass_num);
-			if (ret < 0)
-				return ret;
-		}
-		if (!strncmp(opt, "vcom=", 5)) {
-			int offs = 5;
-			if (opt[5] == '-')
-				offs = 6;
-			ret = kstrtoul(opt + offs, 0,
-				(long *)&max17135_vcom);
-			if (ret < 0)
-				return ret;
-			max17135_vcom = -max17135_vcom;
-		}
-	}
-
-	return 1;
-}
-
-__setup("max17135:", max17135_setup);
 
 /* Module information */
 MODULE_DESCRIPTION("MAX17135 regulator driver");

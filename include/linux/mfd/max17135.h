@@ -157,10 +157,6 @@ struct max17135 {
 
 	/* MAX17135 part variables */
 	int pass_num;
-	int vcom_uV;
-
-	/* One-time VCOM setup marker */
-	bool vcom_setup;
 
 	/* powerup/powerdown wait time */
 	int max_wait;
