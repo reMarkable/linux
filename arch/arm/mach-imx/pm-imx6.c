@@ -341,12 +341,20 @@ static const u32 imx6dl_mmdc_io_offset[] __initconst = {
 	0x74c,			    /* GPR_ADDS */
 };
 
-static const u32 imx6sl_mmdc_io_offset[] __initconst = {
+static const u32 imx6sl_mmdc_io_lpddr2_offset[] __initconst = {
 	0x30c, 0x310, 0x314, 0x318, /* DQM0 ~ DQM3 */
 	0x5c4, 0x5cc, 0x5d4, 0x5d8, /* GPR_B0DS ~ GPR_B3DS */
 	0x300, 0x31c, 0x338, 0x5ac, /* CAS, RAS, SDCLK_0, GPR_ADDS */
 	0x33c, 0x340, 0x5b0, 0x5c0, /* SODT0, SODT1, MODE_CTL, MODE */
 	0x330, 0x334, 0x320,        /* SDCKE0, SDCKE1, RESET */
+};
+
+static const u32 imx6sl_mmdc_io_offset[] __initconst = {
+	0x30c, 0x310, 0x314, 0x318, /* DQM0 ~ DQM3 */
+	0x344, 0x348, 0x34c, 0x350, /* SDQS0 ~ SDQS3 */
+	0x5c4, 0x5cc, 0x5d4, 0x5d8, /* GPR_B0DS ~ GPR_B3DS */
+	0x300, 0x31c, 0x338, 0x5ac, /* CAS, RAS, SDCLK_0, GPR_ADDS */
+	0x33c, 0x340, 0x5b0, 0x5c0  /* SODT0, SODT1, MODE_CTL, MODE */
 };
 
 static const u32 imx6sx_mmdc_io_lpddr2_offset[] __initconst = {
@@ -485,6 +493,17 @@ static const struct imx6_pm_socdata imx6sl_pm_data __initconst = {
 	.pl310_compat = "arm,pl310-cache",
 	.mmdc_io_num = ARRAY_SIZE(imx6sl_mmdc_io_offset),
 	.mmdc_io_offset = imx6sl_mmdc_io_offset,
+	.mmdc_num = 0,
+	.mmdc_offset = NULL,
+};
+
+static const struct imx6_pm_socdata imx6sl_lpddr2_pm_data __initconst = {
+	.mmdc_compat = "fsl,imx6sl-mmdc",
+	.src_compat = "fsl,imx6sl-src",
+	.iomuxc_compat = "fsl,imx6sl-iomuxc",
+	.gpc_compat = "fsl,imx6sl-gpc",
+	.mmdc_io_num = ARRAY_SIZE(imx6sl_mmdc_io_lpddr2_offset),
+	.mmdc_io_offset = imx6sl_mmdc_io_lpddr2_offset,
 	.mmdc_num = 0,
 	.mmdc_offset = NULL,
 };
@@ -1298,7 +1317,10 @@ void __init imx6sl_pm_init(void)
 		return;
 	}
 
-	imx6_pm_common_init(&imx6sl_pm_data);
+	if (imx_mmdc_get_ddr_type() == IMX_DDR_TYPE_LPDDR2)
+		imx6_pm_common_init(&imx6sl_lpddr2_pm_data);
+	else
+		imx6_pm_common_init(&imx6sl_pm_data);
 }
 
 void __init imx6sx_pm_init(void)
