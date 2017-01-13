@@ -76,23 +76,31 @@
 			label = "Power";
 			gpios = <&gpio4 9 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_POWER>;
+			gpio-key,wakeup;
+			debounce-interval = <100>;
 		};
 
 		button_1 {
 			label = "Left";
 			gpios = <&gpio3 24 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_LEFT>;
+			gpio-key,wakeup;
+			debounce-interval = <100>;
 		};
 
 		button_2 {
 			label = "Home";
 			gpios = <&gpio3 26 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_HOME>;
+			gpio-key,wakeup;
+			debounce-interval = <100>;
 		};
 		button_3 {
 			label = "Right";
 			gpios = <&gpio3 28 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RIGHT>;
+			gpio-key,wakeup;
+			debounce-interval = <100>;
 		};
 	};
 
