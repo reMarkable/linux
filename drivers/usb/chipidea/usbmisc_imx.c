@@ -551,7 +551,10 @@ static int imx6_charger_data_contact_detect(struct imx_usbmisc_data *data)
 	if (i == 100) {
 		dev_err(charger->dev,
 			"VBUS is coming from a dedicated power supply.\n");
+		charger->psy_desc.type = POWER_SUPPLY_TYPE_USB_DCP;
+		charger->max_current = 1500;
 		imx6_disable_charger_detector(data);
+
 		return -ENXIO;
 	}
 
