@@ -255,8 +255,8 @@
 		gvdd_pwrup = <15>;
 		gvdd_pwrdn = <1>;
 		vpos_pwrdn = <2>;
-		vneg_pwrdn = <5>;
-		gvee_pwrdn = <40>;
+		vneg_pwrdn = <6>;
+		gvee_pwrdn = <50>;
 		/* These are only for passnum 1, we use i2c */
 		gpio_pmic_pwrgood = <&gpio2 13 0>;
 		gpio_pmic_vcom_ctrl = <&gpio2 3 0>;
