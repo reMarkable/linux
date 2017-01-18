@@ -48,6 +48,7 @@
 		};
 
 		charger_regulator: regulator@1 {
+			reg = <1>;
 			compatible = "regulator-fixed";
 			regulator-name = "charger-regulator";
 			regulator-min-microamp = <5000000>;
