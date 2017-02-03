@@ -223,7 +223,7 @@ void ci_handle_id_switch(struct ci_hdrc *ci)
 			 * wait vbus lower than OTGSC_BSV before connecting
 			 * to host
 			 */
-			hw_wait_vbus_lower_bsv(ci);
+			ret = hw_wait_vbus_lower_bsv(ci);
 		else if (ci->vbus_active)
 			/*
 			 * If the role switch happens(e.g. during
