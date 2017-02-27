@@ -993,7 +993,7 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 	struct dpa_percpu_priv_s *percpu_priv;
 	struct rtnl_link_stats64 *percpu_stats;
 	int err = 0;
-	const bool nonlinear = skb_is_nonlinear(skb);
+	bool nonlinear;
 	int *countptr, offset = 0;
 
 	priv = netdev_priv(net_dev);
@@ -1022,6 +1022,8 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 			goto skb_to_fd_failed;
 	}
 #endif
+
+	nonlinear = skb_is_nonlinear(skb);
 
 	/* MAX_SKB_FRAGS is larger than our DPA_SGT_MAX_ENTRIES; make sure
 	 * we don't feed FMan with more fragments than it supports.
