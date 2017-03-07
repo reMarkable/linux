@@ -545,8 +545,11 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 	/* probe the PHY as a fixed-link if the link type declared in DPC
 	 * explicitly mandates this
 	 */
-	if (priv->attr.link_type == DPMAC_LINK_TYPE_FIXED)
+
+	phy_node = of_parse_phandle(dpmac_node, "phy-handle", 0);
+	if (!phy_node) {
 		goto probe_fixed_link;
+	}
 
 	if (priv->attr.eth_if < ARRAY_SIZE(dpaa2_mac_iface_mode)) {
 		if_mode = dpaa2_mac_iface_mode[priv->attr.eth_if];
@@ -559,14 +562,6 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 	}
 
 	/* try to connect to the PHY */
-	phy_node = of_parse_phandle(dpmac_node, "phy-handle", 0);
-	if (!phy_node) {
-		if (!phy_node) {
-			dev_err(dev, "dpmac node has no phy-handle property\n");
-			err = -ENODEV;
-			goto err_no_phy;
-		}
-	}
 	netdev->phydev = of_phy_connect(netdev, phy_node,
 					&dpaa2_mac_link_changed, 0, if_mode);
 	if (!netdev->phydev) {
