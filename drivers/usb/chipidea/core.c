@@ -1254,6 +1254,7 @@ static int ci_hdrc_probe(struct platform_device *pdev)
 	dbg_create_files(ci);
 	/* Init workqueue for controller power lost handling */
 	INIT_WORK(&ci->power_lost_work, ci_power_lost_work);
+	mutex_init(&ci->mutex);
 
 	return 0;
 
