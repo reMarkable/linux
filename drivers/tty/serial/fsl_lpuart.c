@@ -269,6 +269,9 @@ static const struct of_device_id lpuart_dt_ids[] = {
 	{
 		.compatible = "fsl,ls1021a-lpuart",
 	},
+	{
+		.compatible = "fsl,imx7ulp-lpuart",
+	},
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, lpuart_dt_ids);
