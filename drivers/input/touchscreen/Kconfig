@@ -1340,3 +1340,5 @@ config TOUCHSCREEN_IQS5XX
 	  module will be called iqs5xx.
 
 endif
+
+source "drivers/input/touchscreen/focaltech_touch/Kconfig"
