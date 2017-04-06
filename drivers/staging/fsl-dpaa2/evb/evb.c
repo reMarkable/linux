@@ -162,7 +162,7 @@ static irqreturn_t _evb_irq0_handler_thread(int irq_num, void *arg)
 	/* Sanity check */
 	if (WARN_ON(!evb_dev || !evb_dev->irqs || !evb_dev->irqs[irq_index]))
 		goto out;
-	if (WARN_ON(evb_dev->irqs[irq_index]->msi_desc->irq != irq_num))
+	if (WARN_ON(evb_dev->irqs[irq_index]->msi_desc->irq != (u32)irq_num))
 		goto out;
 
 	err = dpdmux_get_irq_status(io, 0, token, irq_index, &status);
@@ -890,7 +890,7 @@ static int evb_ethtool_get_sset_count(struct net_device *dev, int sset)
 static void evb_ethtool_get_strings(struct net_device *netdev,
 				    u32 stringset, u8 *data)
 {
-	int i;
+	u32 i;
 
 	switch (stringset) {
 	case ETH_SS_STATS:
@@ -906,7 +906,7 @@ static void evb_ethtool_get_stats(struct net_device *netdev,
 				  u64 *data)
 {
 	struct evb_port_priv	*port_priv = netdev_priv(netdev);
-	int			i;
+	u32			i;
 	int			err;
 
 	for (i = 0; i < ARRAY_SIZE(evb_ethtool_counters); i++) {
