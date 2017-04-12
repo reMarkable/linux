@@ -17,3 +17,5 @@ config FSL_DPAA2_ETHSW
 	help
 	  Driver for Freescale DPAA2 Ethernet Switch. Select
 	  BRIDGE to have support for bridge tools.
+
+source "drivers/staging/fsl-dpaa2/mac/Kconfig"

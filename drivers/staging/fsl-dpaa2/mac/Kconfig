@@ -1,0 +1,23 @@
+config FSL_DPAA2_MAC
+	tristate "DPAA2 MAC / PHY interface"
+	depends on FSL_MC_BUS && FSL_DPAA2
+	select MDIO_BUS_MUX_MMIOREG
+	select FSL_XGMAC_MDIO
+	select FIXED_PHY
+	---help---
+	Prototype driver for DPAA2 MAC / PHY interface object.
+	This driver works as a proxy between phylib including phy drivers and
+	the MC firmware.  It receives updates on link state changes from PHY
+	lib and forwards them to MC and receives interrupt from MC whenever
+	a request is made to change the link state.
+
+
+config FSL_DPAA2_MAC_NETDEVS
+	bool "Expose net interfaces for PHYs"
+	default n
+	depends on FSL_DPAA2_MAC
+	---help---
+	Exposes macX net interfaces which allow direct control over MACs and
+	PHYs.
+	.
+	Leave disabled if unsure.
