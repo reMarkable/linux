@@ -19,3 +19,4 @@ config FSL_DPAA2_ETHSW
 	  BRIDGE to have support for bridge tools.
 
 source "drivers/staging/fsl-dpaa2/mac/Kconfig"
+source "drivers/staging/fsl-dpaa2/evb/Kconfig"
