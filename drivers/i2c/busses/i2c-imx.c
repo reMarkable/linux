@@ -940,6 +940,14 @@ static int i2c_imx_xfer(struct i2c_adapter *adapter,
 		enable_runtime_pm = true;
 	}
 
+	/*
+	 * workround for ERR010027: ensure that the I2C BUS is idle
+	 * before switching to master mode and attempting a Start cycle
+	 */
+	result =  i2c_imx_bus_busy(i2c_imx, 0);
+	if (result)
+		goto out;
+
 	result = pm_runtime_get_sync(i2c_imx->adapter.dev.parent);
 	if (result < 0)
 		goto out;
