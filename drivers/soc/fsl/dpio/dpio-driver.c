@@ -27,6 +27,11 @@ MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Freescale Semiconductor, Inc");
 MODULE_DESCRIPTION("DPIO Driver");
 
+#define PROT_NORMAL_NS		(PTE_TYPE_PAGE | PTE_AF | PTE_PXN | PTE_UXN | PTE_DIRTY | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL))
+
+#define ioremap_cache_ns(addr, size)	__ioremap((addr), (size), __pgprot(PROT_NORMAL_NS))
+
+
 struct dpio_priv {
 	struct dpaa2_io *io;
 };
@@ -200,13 +205,11 @@ static int dpaa2_dpio_probe(struct fsl_mc_device *dpio_dev)
 	if (dpio_dev->obj_desc.region_count < 3) {
 		/* No support for DDR backed portals, use classic mapping */
 		/*
-		 * Set the CENA regs to be the cache inhibited area of the
-		 * portal to avoid coherency issues if a user migrates to
-		 * another core.
+		 * Set the CENA regs to be the cache enabled area of the portal to
+		 * achieve the best performance.
 		 */
-		desc.regs_cena = devm_memremap(dev, dpio_dev->regions[1].start,
-					resource_size(&dpio_dev->regions[1]),
-					MEMREMAP_WC);
+		desc.regs_cena = ioremap_cache_ns(dpio_dev->regions[0].start,
+						resource_size(&dpio_dev->regions[0]));
 	} else {
 		desc.regs_cena = devm_memremap(dev, dpio_dev->regions[2].start,
 					resource_size(&dpio_dev->regions[2]),
@@ -214,7 +217,7 @@ static int dpaa2_dpio_probe(struct fsl_mc_device *dpio_dev)
 	}
 
 	if (IS_ERR(desc.regs_cena)) {
-		dev_err(dev, "devm_memremap failed\n");
+		dev_err(dev, "ioremap_cache_ns failed\n");
 		err = PTR_ERR(desc.regs_cena);
 		goto err_allocate_irqs;
 	}
