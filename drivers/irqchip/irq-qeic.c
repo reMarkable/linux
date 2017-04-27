@@ -594,4 +594,15 @@ static int __init init_qe_ic_sysfs(void)
 	return 0;
 }
 
+static int __init qeic_of_init(struct device_node *node,
+			       struct device_node *parent)
+{
+	if (!node)
+		return;
+	qe_ic_init(node, 0, qe_ic_cascade_low_mpic,
+		   qe_ic_cascade_high_mpic);
+	of_node_put(node);
+}
+
+IRQCHIP_DECLARE(qeic, "fsl,qe-ic", qeic_of_init);
 subsys_initcall(init_qe_ic_sysfs);
