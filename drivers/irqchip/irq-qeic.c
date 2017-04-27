@@ -14,7 +14,11 @@
 #include <linux/of_address.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/irqdomain.h>
+#include <linux/irqchip.h>
 #include <linux/errno.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
 #include <linux/reboot.h>
 #include <linux/slab.h>
 #include <linux/stddef.h>
@@ -22,9 +26,8 @@
 #include <linux/signal.h>
 #include <linux/device.h>
 #include <linux/spinlock.h>
-#include <asm/irq.h>
+#include <linux/irq.h>
 #include <asm/io.h>
-#include <soc/fsl/qe/qe_ic.h>
 
 #define NR_QE_IC_INTS		64
 
@@ -81,6 +84,43 @@
 #define SIGNAL_MASK		3
 #define SIGNAL_HIGH		2
 #define SIGNAL_LOW		0
+
+#define NUM_OF_QE_IC_GROUPS	6
+
+/* Flags when we init the QE IC */
+#define QE_IC_SPREADMODE_GRP_W			0x00000001
+#define QE_IC_SPREADMODE_GRP_X			0x00000002
+#define QE_IC_SPREADMODE_GRP_Y			0x00000004
+#define QE_IC_SPREADMODE_GRP_Z			0x00000008
+#define QE_IC_SPREADMODE_GRP_RISCA		0x00000010
+#define QE_IC_SPREADMODE_GRP_RISCB		0x00000020
+
+#define QE_IC_LOW_SIGNAL			0x00000100
+#define QE_IC_HIGH_SIGNAL			0x00000200
+
+#define QE_IC_GRP_W_PRI0_DEST_SIGNAL_HIGH	0x00001000
+#define QE_IC_GRP_W_PRI1_DEST_SIGNAL_HIGH	0x00002000
+#define QE_IC_GRP_X_PRI0_DEST_SIGNAL_HIGH	0x00004000
+#define QE_IC_GRP_X_PRI1_DEST_SIGNAL_HIGH	0x00008000
+#define QE_IC_GRP_Y_PRI0_DEST_SIGNAL_HIGH	0x00010000
+#define QE_IC_GRP_Y_PRI1_DEST_SIGNAL_HIGH	0x00020000
+#define QE_IC_GRP_Z_PRI0_DEST_SIGNAL_HIGH	0x00040000
+#define QE_IC_GRP_Z_PRI1_DEST_SIGNAL_HIGH	0x00080000
+#define QE_IC_GRP_RISCA_PRI0_DEST_SIGNAL_HIGH	0x00100000
+#define QE_IC_GRP_RISCA_PRI1_DEST_SIGNAL_HIGH	0x00200000
+#define QE_IC_GRP_RISCB_PRI0_DEST_SIGNAL_HIGH	0x00400000
+#define QE_IC_GRP_RISCB_PRI1_DEST_SIGNAL_HIGH	0x00800000
+#define QE_IC_GRP_W_DEST_SIGNAL_SHIFT		(12)
+
+/* QE interrupt sources groups */
+enum qe_ic_grp_id {
+	QE_IC_GRP_W = 0,	/* QE interrupt controller group W */
+	QE_IC_GRP_X,		/* QE interrupt controller group X */
+	QE_IC_GRP_Y,		/* QE interrupt controller group Y */
+	QE_IC_GRP_Z,		/* QE interrupt controller group Z */
+	QE_IC_GRP_RISCA,	/* QE interrupt controller RISC group A */
+	QE_IC_GRP_RISCB		/* QE interrupt controller RISC group B */
+};
 
 struct qe_ic {
 	/* Control registers offset */
@@ -260,15 +300,15 @@ static struct qe_ic_info qe_ic_info[] = {
 		},
 };
 
-static inline u32 qe_ic_read(volatile __be32  __iomem * base, unsigned int reg)
+static inline u32 qe_ic_read(__be32  __iomem *base, unsigned int reg)
 {
-	return in_be32(base + (reg >> 2));
+	return ioread32be(base + (reg >> 2));
 }
 
-static inline void qe_ic_write(volatile __be32  __iomem * base, unsigned int reg,
+static inline void qe_ic_write(__be32  __iomem *base, unsigned int reg,
 			       u32 value)
 {
-	out_be32(base + (reg >> 2), value);
+	iowrite32be(value, base + (reg >> 2));
 }
 
 static inline struct qe_ic *qe_ic_from_irq(unsigned int virq)
@@ -370,8 +410,8 @@ static const struct irq_domain_ops qe_ic_host_ops = {
 	.xlate = irq_domain_xlate_onetwocell,
 };
 
-/* Return an interrupt vector or NO_IRQ if no interrupt is pending. */
-unsigned int qe_ic_get_low_irq(struct qe_ic *qe_ic)
+/* Return an interrupt vector or 0 if no interrupt is pending. */
+static unsigned int qe_ic_get_low_irq(struct qe_ic *qe_ic)
 {
 	int irq;
 
@@ -381,13 +421,13 @@ unsigned int qe_ic_get_low_irq(struct qe_ic *qe_ic)
 	irq = qe_ic_read(qe_ic->regs, QEIC_CIVEC) >> 26;
 
 	if (irq == 0)
-		return NO_IRQ;
+		return 0;
 
 	return irq_linear_revmap(qe_ic->irqhost, irq);
 }
 
-/* Return an interrupt vector or NO_IRQ if no interrupt is pending. */
-unsigned int qe_ic_get_high_irq(struct qe_ic *qe_ic)
+/* Return an interrupt vector or 0 if no interrupt is pending. */
+static unsigned int qe_ic_get_high_irq(struct qe_ic *qe_ic)
 {
 	int irq;
 
@@ -397,9 +437,67 @@ unsigned int qe_ic_get_high_irq(struct qe_ic *qe_ic)
 	irq = qe_ic_read(qe_ic->regs, QEIC_CHIVEC) >> 26;
 
 	if (irq == 0)
-		return NO_IRQ;
+		return 0;
 
 	return irq_linear_revmap(qe_ic->irqhost, irq);
+}
+
+static inline void qe_ic_cascade_low_ipic(struct irq_desc *desc)
+{
+	struct qe_ic *qe_ic = irq_desc_get_handler_data(desc);
+	unsigned int cascade_irq = qe_ic_get_low_irq(qe_ic);
+
+	if (cascade_irq != 0)
+		generic_handle_irq(cascade_irq);
+}
+
+static inline void qe_ic_cascade_high_ipic(struct irq_desc *desc)
+{
+	struct qe_ic *qe_ic = irq_desc_get_handler_data(desc);
+	unsigned int cascade_irq = qe_ic_get_high_irq(qe_ic);
+
+	if (cascade_irq != 0)
+		generic_handle_irq(cascade_irq);
+}
+
+static inline void qe_ic_cascade_low_mpic(struct irq_desc *desc)
+{
+	struct qe_ic *qe_ic = irq_desc_get_handler_data(desc);
+	unsigned int cascade_irq = qe_ic_get_low_irq(qe_ic);
+	struct irq_chip *chip = irq_desc_get_chip(desc);
+
+	if (cascade_irq != 0)
+		generic_handle_irq(cascade_irq);
+
+	chip->irq_eoi(&desc->irq_data);
+}
+
+static inline void qe_ic_cascade_high_mpic(struct irq_desc *desc)
+{
+	struct qe_ic *qe_ic = irq_desc_get_handler_data(desc);
+	unsigned int cascade_irq = qe_ic_get_high_irq(qe_ic);
+	struct irq_chip *chip = irq_desc_get_chip(desc);
+
+	if (cascade_irq != 0)
+		generic_handle_irq(cascade_irq);
+
+	chip->irq_eoi(&desc->irq_data);
+}
+
+static inline void qe_ic_cascade_muxed_mpic(struct irq_desc *desc)
+{
+	struct qe_ic *qe_ic = irq_desc_get_handler_data(desc);
+	unsigned int cascade_irq;
+	struct irq_chip *chip = irq_desc_get_chip(desc);
+
+	cascade_irq = qe_ic_get_high_irq(qe_ic);
+	if (cascade_irq == 0)
+		cascade_irq = qe_ic_get_low_irq(qe_ic);
+
+	if (cascade_irq != 0)
+		generic_handle_irq(cascade_irq);
+
+	chip->irq_eoi(&desc->irq_data);
 }
 
 static int __init qe_ic_init(struct device_node *node, unsigned int flags)
@@ -438,7 +536,7 @@ static int __init qe_ic_init(struct device_node *node, unsigned int flags)
 	qe_ic->virq_high = irq_of_parse_and_map(node, 0);
 	qe_ic->virq_low = irq_of_parse_and_map(node, 1);
 
-	if (qe_ic->virq_low == NO_IRQ) {
+	if (qe_ic->virq_low == 0) {
 		pr_err("Failed to map QE_IC low IRQ\n");
 		ret = -ENOMEM;
 		goto err_domain_remove;
@@ -470,7 +568,7 @@ static int __init qe_ic_init(struct device_node *node, unsigned int flags)
 	irq_set_handler_data(qe_ic->virq_low, qe_ic);
 	irq_set_chained_handler(qe_ic->virq_low, qe_ic_cascade_low_mpic);
 
-	if (qe_ic->virq_high != NO_IRQ &&
+	if (qe_ic->virq_high != 0 &&
 			qe_ic->virq_high != qe_ic->virq_low) {
 		irq_set_handler_data(qe_ic->virq_high, qe_ic);
 		irq_set_chained_handler(qe_ic->virq_high,
@@ -486,100 +584,6 @@ err_free_qe_ic:
 err_put_node:
 	of_node_put(node);
 	return ret;
-}
-
-void qe_ic_set_highest_priority(unsigned int virq, int high)
-{
-	struct qe_ic *qe_ic = qe_ic_from_irq(virq);
-	unsigned int src = virq_to_hw(virq);
-	u32 temp = 0;
-
-	temp = qe_ic_read(qe_ic->regs, QEIC_CICR);
-
-	temp &= ~CICR_HP_MASK;
-	temp |= src << CICR_HP_SHIFT;
-
-	temp &= ~CICR_HPIT_MASK;
-	temp |= (high ? SIGNAL_HIGH : SIGNAL_LOW) << CICR_HPIT_SHIFT;
-
-	qe_ic_write(qe_ic->regs, QEIC_CICR, temp);
-}
-
-/* Set Priority level within its group, from 1 to 8 */
-int qe_ic_set_priority(unsigned int virq, unsigned int priority)
-{
-	struct qe_ic *qe_ic = qe_ic_from_irq(virq);
-	unsigned int src = virq_to_hw(virq);
-	u32 temp;
-
-	if (priority > 8 || priority == 0)
-		return -EINVAL;
-	if (WARN_ONCE(src >= ARRAY_SIZE(qe_ic_info),
-		      "%s: Invalid hw irq number for QEIC\n", __func__))
-		return -EINVAL;
-	if (qe_ic_info[src].pri_reg == 0)
-		return -EINVAL;
-
-	temp = qe_ic_read(qe_ic->regs, qe_ic_info[src].pri_reg);
-
-	if (priority < 4) {
-		temp &= ~(0x7 << (32 - priority * 3));
-		temp |= qe_ic_info[src].pri_code << (32 - priority * 3);
-	} else {
-		temp &= ~(0x7 << (24 - priority * 3));
-		temp |= qe_ic_info[src].pri_code << (24 - priority * 3);
-	}
-
-	qe_ic_write(qe_ic->regs, qe_ic_info[src].pri_reg, temp);
-
-	return 0;
-}
-
-/* Set a QE priority to use high irq, only priority 1~2 can use high irq */
-int qe_ic_set_high_priority(unsigned int virq, unsigned int priority, int high)
-{
-	struct qe_ic *qe_ic = qe_ic_from_irq(virq);
-	unsigned int src = virq_to_hw(virq);
-	u32 temp, control_reg = QEIC_CICNR, shift = 0;
-
-	if (priority > 2 || priority == 0)
-		return -EINVAL;
-	if (WARN_ONCE(src >= ARRAY_SIZE(qe_ic_info),
-		      "%s: Invalid hw irq number for QEIC\n", __func__))
-		return -EINVAL;
-
-	switch (qe_ic_info[src].pri_reg) {
-	case QEIC_CIPZCC:
-		shift = CICNR_ZCC1T_SHIFT;
-		break;
-	case QEIC_CIPWCC:
-		shift = CICNR_WCC1T_SHIFT;
-		break;
-	case QEIC_CIPYCC:
-		shift = CICNR_YCC1T_SHIFT;
-		break;
-	case QEIC_CIPXCC:
-		shift = CICNR_XCC1T_SHIFT;
-		break;
-	case QEIC_CIPRTA:
-		shift = CRICR_RTA1T_SHIFT;
-		control_reg = QEIC_CRICR;
-		break;
-	case QEIC_CIPRTB:
-		shift = CRICR_RTB1T_SHIFT;
-		control_reg = QEIC_CRICR;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	shift += (2 - priority) * 2;
-	temp = qe_ic_read(qe_ic->regs, control_reg);
-	temp &= ~(SIGNAL_MASK << shift);
-	temp |= (high ? SIGNAL_HIGH : SIGNAL_LOW) << shift;
-	qe_ic_write(qe_ic->regs, control_reg, temp);
-
-	return 0;
 }
 
 static int __init init_qe_ic(struct device_node *node,
