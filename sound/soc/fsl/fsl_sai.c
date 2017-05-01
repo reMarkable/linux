@@ -1046,6 +1046,8 @@ static int fsl_sai_probe(struct platform_device *pdev)
 				   MCLK_DIR(index));
 	}
 
+	sai->dma_params_rx.filter_data = "rx";
+	sai->dma_params_tx.filter_data = "tx";
 	sai->dma_params_rx.addr = res->start + FSL_SAI_RDR0;
 	sai->dma_params_tx.addr = res->start + FSL_SAI_TDR0;
 	sai->dma_params_rx.maxburst = FSL_SAI_MAXBURST_RX;
@@ -1061,7 +1063,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 		return ret;
 
 	if (sai->soc->imx)
-		return imx_pcm_dma_init(pdev, IMX_SAI_DMABUF_SIZE);
+		return imx_pcm_platform_register(&pdev->dev);
 	else
 		return devm_snd_dmaengine_pcm_register(&pdev->dev, NULL, 0);
 }
