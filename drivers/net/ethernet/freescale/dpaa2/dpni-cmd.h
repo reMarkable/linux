@@ -315,6 +315,14 @@ struct dpni_rsp_get_link_state {
 	__le64 options;
 };
 
+struct dpni_cmd_set_tx_shaping {
+	/* cmd word 0 */
+	__le16 max_burst_size;
+	__le16 pad[3];
+	/* cmd word 1 */
+	__le32 rate_limit;
+};
+
 struct dpni_cmd_set_max_frame_length {
 	__le16 max_frame_length;
 };
