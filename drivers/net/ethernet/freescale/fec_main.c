@@ -3767,13 +3767,17 @@ failed_clk:
 
 static int fec_runtime_suspend(struct device *dev)
 {
+#ifdef CONFIG_IMX_BUSFREQ
 	release_bus_freq(BUS_FREQ_HIGH);
+#endif
 	return 0;
 }
 
 static int fec_runtime_resume(struct device *dev)
 {
+#ifdef CONFIG_IMX_BUSFREQ
 	request_bus_freq(BUS_FREQ_HIGH);
+#endif
 	return 0;
 }
 

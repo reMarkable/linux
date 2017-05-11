@@ -152,7 +152,9 @@ void imx6sl_set_wait_clk(bool enter)
 	static unsigned long saved_arm_div;
 	u32 val;
 	int arm_div_for_wait = imx6sl_get_arm_divider_for_wait();
+#ifdef CONFIG_IMX_BUSFREQ
 	int mode = get_bus_freq_mode();
+#endif
 
 	if (enter) {
 		/*
@@ -161,22 +163,30 @@ void imx6sl_set_wait_clk(bool enter)
 		 * from the 24MHz OSC, as there is no way to get
 		 * 28.8MHz, when ARM is sourced from PLl1.
 		 */
+#ifdef CONFIG_IMX_BUSFREQ
 		if (mode == BUS_FREQ_LOW) {
 			val = readl_relaxed(ccm_base + CCSR);
 			val |= BM_CCSR_PLL1_SW_CLK_SEL;
 			writel_relaxed(val, ccm_base + CCSR);
 		} else {
+#endif
 			saved_arm_div = readl_relaxed(ccm_base + CACRR);
 			writel_relaxed(arm_div_for_wait, ccm_base + CACRR);
+#ifdef CONFIG_IMX_BUSFREQ
 		}
+#endif
 	} else {
+#ifdef CONFIG_IMX_BUSFREQ
 		if (mode == BUS_FREQ_LOW) {
 			val = readl_relaxed(ccm_base + CCSR);
 			val &= ~BM_CCSR_PLL1_SW_CLK_SEL;
 			writel_relaxed(val, ccm_base + CCSR);
 		} else {
+#endif
 			writel_relaxed(saved_arm_div, ccm_base + CACRR);
+#ifdef CONFIG_IMX_BUSFREQ
 		}
+#endif
 	}
 	while (__raw_readl(ccm_base + CDHIPR) & BM_CDHIPR_ARM_PODF_BUSY)
 		;

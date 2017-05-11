@@ -685,6 +685,14 @@ config SOC_LS1021A
 	help
 	  This enables support for Freescale LS1021A processor.
 
+config IMX_BUSFREQ
+	bool "Freescale imx6 busfreq support"
+	select PM
+	depends on SOC_IMX6
+
+	help
+	  This enables support for IMX6 ddr frequency scaling.
+
 endif
 
 source "arch/arm/mach-imx/devices/Kconfig"

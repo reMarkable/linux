@@ -86,8 +86,10 @@ static int imx6q_set_target(struct cpufreq_policy *policy, unsigned int index)
 	 * CPU freq is increasing, so need to ensure
 	 * that bus frequency is increased too.
 	 */
+#ifdef CONFIG_IMX_BUSFREQ
 	if (old_freq <= FREQ_396_MHZ && new_freq > FREQ_396_MHZ)
 		request_bus_freq(BUS_FREQ_HIGH);
+#endif
 
 	/* scaling up?  scale voltage before frequency */
 	if (new_freq > old_freq) {
@@ -197,8 +199,10 @@ static int imx6q_set_target(struct cpufreq_policy *policy, unsigned int index)
 	 * If CPU is dropped to the lowest level, release the need
 	 * for a high bus frequency.
 	 */
+#ifdef CONFIG_IMX_BUSFREQ
 	if (old_freq > FREQ_396_MHZ && new_freq <= FREQ_396_MHZ)
 		release_bus_freq(BUS_FREQ_HIGH);
+#endif
 
 	mutex_unlock(&set_cpufreq_lock);
 	return 0;
@@ -216,8 +220,10 @@ static int imx6q_cpufreq_init(struct cpufreq_policy *policy)
 		dev_err(cpu_dev, "imx6 cpufreq init failed!\n");
 		return ret;
 	}
+#ifdef CONFIG_IMX_BUSFREQ
 	if (policy->cur > FREQ_396_MHZ)
 		request_bus_freq(BUS_FREQ_HIGH);
+#endif
 	return 0;
 }
 

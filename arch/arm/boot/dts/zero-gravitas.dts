@@ -760,3 +760,8 @@
 		/*resets = <&wifi_reset>;*/
 	};
 };
+
+
+&busfreq {
+	status = "disabled";
+};
