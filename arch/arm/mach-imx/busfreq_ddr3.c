@@ -201,32 +201,29 @@ unsigned long ddr3_dll_mx6dl[][2] = {
 };
 
 unsigned long ddr3_dll_mx6sl[][2] = {
-	{0x0c, 0x0},
-	{0x10, 0x0},
-	{0x30, 0x0},
-	{0x1C, 0x04008032},
-	{0x1C, 0x0400803a},
+	{0x0c, 0x3F435313},
+	{0x10, 0xB68E8B63},
+	{0x30, 0x01FF00DB},
+	{0x1C, 0x02008032},
+	{0x1C, 0x00008033},
 	{0x1C, 0x00048031},
-	{0x1C, 0x00048039},
 	{0x1C, 0x05208030},
-	{0x1C, 0x05208038},
 	{0x1C, 0x04008040},
-	{0x1C, 0x04008048},
-	{0x818, 0x0},
+	{0x818, 0x00022227},
 };
 
 unsigned long iomux_offsets_mx6sl[][2] = {
-	{0x344, 0x0},
-	{0x348, 0x0},
-	{0x34c, 0x0},
-	{0x350, 0x0},
+	{0x344, 0x00000030},
+	{0x348, 0x00000030},
+	{0x34c, 0x00000030},
+	{0x350, 0x00000030},
 };
 
 unsigned long ddr3_calibration_mx6sl[][2] = {
-	{0x83c, 0x0},
-	{0x840, 0x0},
-	{0x848, 0x0},
-	{0x850, 0x0},
+	{0x83c, 0x420C0204},
+	{0x840, 0x01700168},
+	{0x848, 0x3E3E4446},
+	{0x850, 0x38343830},
 };
 
 unsigned long iomux_offsets_mx6dl[][2] = {
@@ -412,7 +409,7 @@ int update_ddr_freq_imx6_up(int ddr_rate)
 	if (ddr_rate == curr_ddr_rate)
 		return 0;
 
-	printk(KERN_DEBUG "\nBus freq set to %d start...\n", ddr_rate);
+	printk(KERN_WARNING "\nBus freq set to %d start...\n", ddr_rate);
 
 	if ((mode == BUS_FREQ_LOW) || (mode == BUS_FREQ_AUDIO))
 		dll_off = true;
@@ -550,6 +547,8 @@ int init_mmdc_ddr3_settings_imx6_up(struct platform_device *busfreq_pdev)
 	}
 	iomux_base = of_iomap(node, 0);
 	WARN(!iomux_base, "unable to map iomux registers\n");
+
+	printk(KERN_WARNING "\nInitializing ddr3 stuff...\n");
 
 	if (cpu_is_imx6sl())
 		ddr_settings_size = ARRAY_SIZE(ddr3_dll_mx6sl) +
