@@ -420,7 +420,7 @@ static int max17135_tmst_get_temperature(struct regulator_dev *reg)
 	for (retry = 0; retry < 50; retry++) {
 		/* max 500ms after VIN> VIN_UVLO and VDD>VDD_UVLO */
 		if (max17135_reg_read(REG_MAX17135_EXT_TEMP, &reg_val) ==
-				PMIC_SUCCESS) {
+				0) {
 			reg_val >>= 8;
 			if (reg_val&0x80) {
 				reg_val = ((~reg_val)&0xFF)+1;
@@ -484,6 +484,10 @@ static struct regulator_ops max17135_v3p3_ops = {
 	.enable = max17135_v3p3_enable,
 	.disable = max17135_v3p3_disable,
 	.is_enabled = max17135_v3p3_is_enabled,
+};
+
+static struct regulator_ops max17135_tmst_ops = {
+       .get_voltage = max17135_tmst_get_temperature,
 };
 
 
