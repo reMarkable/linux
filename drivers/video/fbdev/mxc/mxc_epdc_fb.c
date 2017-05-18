@@ -1646,6 +1646,8 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 	 */
 	if (!fb_data->hw_ready) {
 		struct fb_videomode mode;
+		struct fb_videomode cur_mode;
+		bool found_match = false;
 		u32 xres_temp;
 
 		fb_var_to_videomode(&mode, screeninfo);
@@ -1659,19 +1661,26 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 			mode.yres = xres_temp;
 		}
 
+		if(fb_data->cur_mode->vmode) {
+			cur_mode = *(fb_data->cur_mode->vmode);
+			cur_mode.pixclock = 1000000000/(fb_data->cur_mode->vmode->pixclock/1000);
+		}
+
 		/*
 		* If requested video mode does not match current video
 		* mode, search for a matching panel.
 		*/
 		if (fb_data->cur_mode &&
-			!fb_mode_is_equal(fb_data->cur_mode->vmode,
-			&mode)) {
-			bool found_match = false;
+		    fb_mode_is_equal(&cur_mode, &mode)) {
+			found_match = true;
+		}
+		else {
 
 			/* Match videomode against epdc modes */
 			for (i = 0; i < fb_data->pdata->num_modes; i++) {
-				if (!fb_mode_is_equal(epdc_modes[i].vmode,
-					&mode))
+				cur_mode = *(epdc_modes[i].vmode);
+				cur_mode.pixclock = 1000000000/(fb_data->cur_mode->vmode->pixclock/1000);
+				if (!fb_mode_is_equal(&cur_mode, &mode))
 					continue;
 				fb_data->cur_mode = &epdc_modes[i];
 				found_match = true;
@@ -1680,8 +1689,7 @@ static int mxc_epdc_fb_set_par(struct fb_info *info)
 
 			if (!found_match) {
 				dev_err(fb_data->dev,
-					"Failed to match requested "
-					"video mode\n");
+					"Failed to match requested video mode\n");
 				return EINVAL;
 			}
 		}
@@ -4637,7 +4645,9 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 	/* Additional screens allow for panning  and buffer flipping */
 	var_info->yres_virtual = yres_virt * fb_data->num_screens;
 
-	var_info->pixclock = vmode->pixclock;
+	/* Should be (1000000000000LL/vmode->pixclock) but the kernel 
+	 * does not have long long division library! */
+	var_info->pixclock = 1000000000/(vmode->pixclock/1000);
 	var_info->left_margin = vmode->left_margin;
 	var_info->right_margin = vmode->right_margin;
 	var_info->upper_margin = vmode->upper_margin;
