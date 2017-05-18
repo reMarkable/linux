@@ -5156,12 +5156,19 @@ static int mxc_epdc_fb_suspend(struct device *dev)
 	struct mxc_epdc_fb_data *data = dev_get_drvdata(dev);
 	int ret;
 
+	int pwrdown_delay = data->pwrdown_delay;
+
+	if (data->pwrdown_delay != FB_POWERDOWN_DISABLE)
+		cancel_delayed_work_sync(&data->epdc_done_work);
+
 	data->pwrdown_delay = FB_POWERDOWN_DISABLE;
 	ret = mxc_epdc_fb_blank(FB_BLANK_POWERDOWN, &data->info);
 	if (ret)
 		goto out;
 
 out:
+	data->pwrdown_delay = pwrdown_delay;
+
 	return ret;
 }
 
