@@ -122,6 +122,7 @@
         pinctrl-0 = <&pinctrl_epdc_0>;
         VCOM-supply = <&VCOM_reg>;
         DISPLAY-supply = <&DISPLAY_reg>;
+	TMST-supply = <&TMST_reg>;
         status = "okay";
 };
 
@@ -305,6 +306,14 @@
 			VPOS_reg: VPOS {
 				/* 15v */
 				regulator-name = "VPOS";
+			};
+
+			TMST_reg: TMST {
+				regulator-name = "TMST";
+				/* 2's-compliment, -127 */
+				regulator-min-microvolt = <0xffffff81>;
+				/* 2's-compliment, +127 */
+				regulator-max-microvolt = <0x0000007f>;
 			};
 		};
 	};
