@@ -2412,7 +2412,7 @@ static int epdc_submit_merge(struct update_desc_list *upd_desc_list,
 	/* Merged update should take on the earliest order */
 	upd_desc_list->update_order =
 		(upd_desc_list->update_order > update_to_merge->update_order) ?
-		upd_desc_list->update_order : update_to_merge->update_order;
+		update_to_merge->update_order : update_desc_list->update_order;
 
 	return MERGE_OK;
 }
