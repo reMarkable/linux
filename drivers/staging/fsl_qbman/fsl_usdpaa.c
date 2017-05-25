@@ -371,6 +371,16 @@ static int usdpaa_open(struct inode *inode, struct file *filp)
 
 #define DQRR_MAXFILL 15
 
+
+/* Invalidate a portal */
+void dbci_portal(void *addr)
+{
+	int i;
+
+	for (i = 0; i < 0x4000; i += 64)
+		dcbi(addr + i);
+}
+
 /* Reset a QMan portal to its default state */
 static int init_qm_portal(struct qm_portal_config *config,
 			  struct qm_portal *portal)
@@ -383,6 +393,13 @@ static int init_qm_portal(struct qm_portal_config *config,
 
 	/* Make sure interrupts are inhibited */
 	qm_out(IIR, 1);
+
+	/*
+	 * Invalidate the entire CE portal are to ensure no stale
+	 * cachelines are present.  This should be done on all
+	 * cores as the portal is mapped as M=0 (non-coherent).
+	 */
+	on_each_cpu(dbci_portal, portal->addr.addr_ce, 1);
 
 	/* Initialize the DQRR.  This will stop any dequeue
 	   commands that are in progress */
@@ -434,6 +451,13 @@ static int init_bm_portal(struct bm_portal_config *config,
 {
 	portal->addr.addr_ce = config->addr_virt[DPA_PORTAL_CE];
 	portal->addr.addr_ci = config->addr_virt[DPA_PORTAL_CI];
+
+	/*
+	 * Invalidate the entire CE portal are to ensure no stale
+	 * cachelines are present.  This should be done on all
+	 * cores as the portal is mapped as M=0 (non-coherent).
+	 */
+	on_each_cpu(dbci_portal, portal->addr.addr_ce, 1);
 
 	if (bm_rcr_init(portal, bm_rcr_pvb, bm_rcr_cce)) {
 		pr_err("Bman RCR initialisation failed\n");
