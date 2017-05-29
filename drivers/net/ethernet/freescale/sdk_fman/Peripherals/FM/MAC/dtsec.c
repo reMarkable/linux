@@ -386,6 +386,7 @@ static void FreeInitResources(t_Dtsec *p_Dtsec)
 static t_Error GracefulStop(t_Dtsec *p_Dtsec, e_CommMode mode)
 {
     struct dtsec_regs *p_MemMap;
+    int pollTimeout = 0;
 
     ASSERT_COND(p_Dtsec);
 
@@ -408,16 +409,32 @@ static t_Error GracefulStop(t_Dtsec *p_Dtsec, e_CommMode mode)
     }
 
     if (mode & e_COMM_MODE_TX)
-#if defined(FM_GTS_ERRATA_DTSEC_A004) || defined(FM_GTS_AFTER_MAC_ABORTED_FRAME_ERRATA_DTSEC_A0012)
-    if (p_Dtsec->fmMacControllerDriver.fmRevInfo.majorRev == 2)
-        DBG(INFO, ("GTS not supported due to DTSEC_A004 errata."));
-#else  /* not defined(FM_GTS_ERRATA_DTSEC_A004) ||... */
-#ifdef FM_GTS_UNDERRUN_ERRATA_DTSEC_A0014
-        DBG(INFO, ("GTS not supported due to DTSEC_A0014 errata."));
-#else  /* FM_GTS_UNDERRUN_ERRATA_DTSEC_A0014 */
+    {
+#if defined(FM_GTS_ERRATA_DTSEC_A004)
+        if (p_Dtsec->fmMacControllerDriver.fmRevInfo.majorRev == 2)
+            DBG(INFO, ("GTS not supported due to DTSEC_A004 errata."));
+#else  /* not defined(FM_GTS_ERRATA_DTSEC_A004) */
+
         fman_dtsec_stop_tx(p_MemMap);
-#endif /* FM_GTS_UNDERRUN_ERRATA_DTSEC_A0014 */
-#endif /* defined(FM_GTS_ERRATA_DTSEC_A004) ||...  */
+
+#if defined(FM_GTS_UNDERRUN_ERRATA_DTSEC_A0014) || defined(FM_GTS_AFTER_MAC_ABORTED_FRAME_ERRATA_DTSEC_A0012)
+        XX_UDelay(10);
+#endif /* FM_GTS_UNDERRUN_ERRATA_DTSEC_A0014 || FM_GTS_AFTER_MAC_ABORTED_FRAME_ERRATA_DTSEC_A0012 */
+#endif /* defined(FM_GTS_ERRATA_DTSEC_A004) */
+    }
+
+    /* Poll GRSC/GTSC bits in IEVENT register until both are set */
+#if defined(FM_GRS_ERRATA_DTSEC_A002) || defined(FM_GTS_ERRATA_DTSEC_A004) || defined(FM_GTS_AFTER_MAC_ABORTED_FRAME_ERRATA_DTSEC_A0012) || defined(FM_GTS_UNDERRUN_ERRATA_DTSEC_A0014) || defined(FM_GTS_AFTER_DROPPED_FRAME_ERRATA_DTSEC_A004839)
+    XX_UDelay(10);
+#else
+    while (fman_dtsec_get_event(p_MemMap, DTSEC_IMASK_GRSCEN | DTSEC_IMASK_GTSCEN) != (DTSEC_IMASK_GRSCEN | DTSEC_IMASK_GTSCEN))
+    {
+        if (pollTimeout == 100)
+            break;
+        XX_UDelay(1);
+        pollTimeout++;
+    }
+#endif
 
     return E_OK;
 }
@@ -632,7 +649,12 @@ static t_Error DtsecSetTxPauseFrames(t_Handle h_Dtsec,
                       " value should be greater than 320."));
 #endif /* FM_BAD_TX_TS_IN_B_2_B_ERRATA_DTSEC_A003 */
 
+    GracefulStop(p_Dtsec, e_COMM_MODE_RX_AND_TX);
+
     fman_dtsec_set_tx_pause_frames(p_Dtsec->p_MemMap, pauseTime);
+
+    GracefulRestart(p_Dtsec, e_COMM_MODE_RX_AND_TX);
+
     return E_OK;
 }
 
@@ -653,7 +675,11 @@ static t_Error DtsecRxIgnoreMacPause(t_Handle h_Dtsec, bool en)
     SANITY_CHECK_RETURN_ERROR(p_Dtsec, E_INVALID_STATE);
     SANITY_CHECK_RETURN_ERROR(!p_Dtsec->p_DtsecDriverParam, E_INVALID_STATE);
 
+    GracefulStop(p_Dtsec, e_COMM_MODE_RX_AND_TX);
+
     fman_dtsec_handle_rx_pause(p_Dtsec->p_MemMap, accept_pause);
+
+    GracefulRestart(p_Dtsec, e_COMM_MODE_RX_AND_TX);
 
     return E_OK;
 }
@@ -787,7 +813,12 @@ static t_Error DtsecModifyMacAddress (t_Handle h_Dtsec, t_EnetAddr *p_EnetAddr)
     /* Initialize MAC Station Address registers (1 & 2)    */
     /* Station address have to be swapped (big endian to little endian */
     p_Dtsec->addr = ENET_ADDR_TO_UINT64(*p_EnetAddr);
+
+    GracefulStop(p_Dtsec, e_COMM_MODE_RX_AND_TX);
+
     fman_dtsec_set_mac_address(p_Dtsec->p_MemMap, (uint8_t *)(*p_EnetAddr));
+
+    GracefulRestart(p_Dtsec, e_COMM_MODE_RX_AND_TX);
 
     return E_OK;
 }
@@ -1076,7 +1107,11 @@ static t_Error DtsecSetWakeOnLan(t_Handle h_Dtsec, bool en)
     SANITY_CHECK_RETURN_ERROR(p_Dtsec, E_INVALID_STATE);
     SANITY_CHECK_RETURN_ERROR(!p_Dtsec->p_DtsecDriverParam, E_INVALID_STATE);
 
+    GracefulStop(p_Dtsec, e_COMM_MODE_RX_AND_TX);
+
     fman_dtsec_set_wol(p_Dtsec->p_MemMap, en);
+
+    GracefulRestart(p_Dtsec, e_COMM_MODE_RX_AND_TX);
 
     return E_OK;
 }
@@ -1098,10 +1133,14 @@ static t_Error DtsecAdjustLink(t_Handle h_Dtsec, e_EnetSpeed speed, bool fullDup
     enet_speed = (enum enet_speed) ENET_SPEED_FROM_MODE(p_Dtsec->enetMode);
     p_Dtsec->halfDuplex = !fullDuplex;
 
+    GracefulStop(p_Dtsec, e_COMM_MODE_RX_AND_TX);
+
     err = fman_dtsec_adjust_link(p_Dtsec->p_MemMap, enet_interface, enet_speed, fullDuplex);
 
     if (err == -EINVAL)
         RETURN_ERROR(MAJOR, E_CONFLICT, ("Ethernet interface does not support Half Duplex mode"));
+
+    GracefulRestart(p_Dtsec, e_COMM_MODE_RX_AND_TX);
 
     return (t_Error)err;
 }
