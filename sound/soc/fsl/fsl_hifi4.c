@@ -65,7 +65,7 @@ long load_dpu_with_library(struct fsl_hifi4 *hifi4_priv)
 	srambuf = kmalloc(filesize, GFP_KERNEL);
 	vfs_llseek(fpInfile, 0, SEEK_SET);
 
-	kernel_read(fpInfile, 0, srambuf, filesize);
+	kernel_read(fpInfile, srambuf, filesize, NULL);
 	filp_close(fpInfile, NULL);
 
 	ret_val = xtlib_split_pi_library_size(
