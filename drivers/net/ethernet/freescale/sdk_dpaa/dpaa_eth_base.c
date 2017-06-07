@@ -165,64 +165,6 @@ _return_of_node_put:
 }
 EXPORT_SYMBOL(dpa_bp_probe);
 
-int dpa_bp_shared_port_seed(struct dpa_bp *bp)
-{
-	void __iomem **ptr;
-
-	/* In MAC-less and Shared-MAC scenarios the physical
-	 * address of the buffer pool in device tree is set
-	 * to 0 to specify that another entity (USDPAA) will
-	 * allocate and seed the buffers
-	 */
-	if (!bp->paddr)
-		return 0;
-
-	/* allocate memory region for buffers */
-	devm_request_mem_region(bp->dev, bp->paddr,
-			bp->size * bp->config_count, KBUILD_MODNAME);
-	/* managed ioremap unmapping */
-	ptr = devres_alloc(devm_ioremap_release, sizeof(*ptr), GFP_KERNEL);
-	if (!ptr)
-		return -EIO;
-#ifndef CONFIG_PPC
-	bp->vaddr = ioremap_cache_ns(bp->paddr, bp->size * bp->config_count);
-#else
-	bp->vaddr = ioremap_prot(bp->paddr, bp->size * bp->config_count, 0);
-#endif
-	if (bp->vaddr == NULL) {
-		pr_err("Could not map memory for pool %d\n", bp->bpid);
-		devres_free(ptr);
-		return -EIO;
-	}
-	*ptr = bp->vaddr;
-	devres_add(bp->dev, ptr);
-
-	/* seed pool with buffers from that memory region */
-	if (bp->seed_pool) {
-		int count = bp->target_count;
-		dma_addr_t addr = bp->paddr;
-
-		while (count) {
-			struct bm_buffer bufs[8];
-			uint8_t num_bufs = 0;
-
-			do {
-				BUG_ON(addr > 0xffffffffffffull);
-				bufs[num_bufs].bpid = bp->bpid;
-				bm_buffer_set64(&bufs[num_bufs++], addr);
-				addr += bp->size;
-
-			} while (--count && (num_bufs < 8));
-
-			while (bman_release(bp->pool, bufs, num_bufs, 0))
-				cpu_relax();
-		}
-	}
-
-	return 0;
-}
-EXPORT_SYMBOL(dpa_bp_shared_port_seed);
-
 int dpa_bp_create(struct net_device *net_dev, struct dpa_bp *dpa_bp,
 		size_t count)
 {
