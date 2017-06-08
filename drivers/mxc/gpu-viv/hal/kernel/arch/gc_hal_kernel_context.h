@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -58,9 +58,6 @@
 
 #include "gc_hal_kernel_buffer.h"
 
-/* Exprimental optimization. */
-#define REMOVE_DUPLICATED_COPY_FROM_USER 1
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -82,9 +79,7 @@ typedef struct _gcsCONTEXT * gcsCONTEXT_PTR;
 typedef struct _gcsCONTEXT
 {
     /* For debugging: the number of context buffer in the order of creation. */
-#if gcmIS_DEBUG(gcdDEBUG_CODE)
     gctUINT                     num;
-#endif
 
     /* Pointer to gckEVENT object. */
     gckEVENT                    eventObj;
@@ -147,7 +142,6 @@ struct _gckCONTEXT
     /* Command buffer alignment. */
     gctUINT32                   alignment;
     gctUINT32                   reservedHead;
-    gctUINT32                   reservedTail;
 
     /* Context buffer metrics. */
     gctSIZE_T                   maxState;
@@ -161,25 +155,11 @@ struct _gckCONTEXT
     gctUINT32                   entryOffsetXDFrom2D;
     gctUINT32                   entryOffsetXDFrom3D;
 
-    /* Dirty flags. */
-    gctBOOL                     dirty;
-    gctBOOL                     dirty2D;
-    gctBOOL                     dirty3D;
-    gcsCONTEXT_PTR              dirtyBuffer;
-
     /* State mapping. */
     gcsSTATE_MAP_PTR            map;
 
     /* List of context buffers. */
     gcsCONTEXT_PTR              buffer;
-
-    /* A copy of the user record array. */
-    gctUINT                     recordArraySize;
-#if REMOVE_DUPLICATED_COPY_FROM_USER
-    gcsRECORD_ARRAY_MAP_PTR     recordArrayMap;
-#else
-    gcsSTATE_DELTA_RECORD_PTR   recordArray;
-#endif
 
     /* Requested pipe select for context. */
     gcePIPE_SELECT              entryPipe;
@@ -201,42 +181,14 @@ struct _gckCONTEXT
 #if VIVANTE_PROFILER_CONTEXT
     gcsPROFILER_COUNTERS        latestProfiler;
     gcsPROFILER_COUNTERS        histroyProfiler;
-
-#if USE_SW_RESET
-    /* RA */
-    gctUINT32                   prevRaValidPixelCount;
-    gctUINT32                   prevRaTotalQuadCount;
-    gctUINT32                   prevRaValidQuadCountAfterEarlyZ;
-    gctUINT32                   prevRaTotalPrimitiveCount;
-    gctUINT32                   prevRaPipeCacheMissCounter;
-    gctUINT32                   prevRaPrefetchCacheMissCounter;
-
-    /* PE */
-    gctUINT32                   prevPePixelCountKilledByColorPipe;
-    gctUINT32                   prevPePixelCountKilledByDepthPipe;
-    gctUINT32                   prevPePixelCountDrawnByColorPipe;
-    gctUINT32                   prevPePixelCountDrawnByDepthPipe;
-
-    /* PA */
-    gctUINT32                   prevPaInputVtxCounter;
-    gctUINT32                   prevPaInputPrimCounter;
-    gctUINT32                   prevPaOutputPrimCounter;
-    gctUINT32                   prevPaDepthClippedCounter;
-    gctUINT32                   prevPaTrivialRejectedCounter;
-    gctUINT32                   prevPaCulledCounter;
-
-    /* SH */
-    gctUINT32                   prevVSInstCount;
-    gctUINT32                   prevVSBranchInstCount;
-    gctUINT32                   prevVSTexInstCount;
-    gctUINT32                   prevVSVertexCount;
-    gctUINT32                   prevPSInstCount;
-    gctUINT32                   prevPSBranchInstCount;
-    gctUINT32                   prevPSTexInstCount;
-    gctUINT32                   prevPSPixelCount;
+    gcsPROFILER_COUNTERS        preProfiler;
 #endif
-
-#endif
+    gcsPROFILER_NEW_COUNTERS_PART1    latestNewProfiler_part1;
+    gcsPROFILER_NEW_COUNTERS_PART1    histroyNewProfiler_part1;
+    gcsPROFILER_NEW_COUNTERS_PART1    preNewProfiler_part1;
+    gcsPROFILER_NEW_COUNTERS_PART2    latestNewProfiler_part2;
+    gcsPROFILER_NEW_COUNTERS_PART2    histroyNewProfiler_part2;
+    gcsPROFILER_NEW_COUNTERS_PART2    preNewProfiler_part2;
 };
 
 #ifdef __cplusplus

@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -62,6 +62,12 @@ _DefaultAlloctorInit(
     OUT gckALLOCATOR * Allocator
     );
 
+extern gceSTATUS
+_UserMemoryAlloctorInit(
+    IN gckOS Os,
+    OUT gckALLOCATOR * Allocator
+    );
+
 #if LINUX_CMA_FSL
 extern gceSTATUS
 _CMAFSLAlloctorInit(
@@ -78,6 +84,14 @@ _DmabufAlloctorInit(
     );
 #endif
 
+#ifndef NO_DMA_COHERENT
+extern gceSTATUS
+_DmaAlloctorInit(
+    IN gckOS Os,
+    OUT gckALLOCATOR * Allocator
+    );
+#endif
+
 gcsALLOCATOR_DESC allocatorArray[] =
 {
 #if LINUX_CMA_FSL
@@ -86,9 +100,16 @@ gcsALLOCATOR_DESC allocatorArray[] =
     /* Default allocator. */
     gcmkDEFINE_ALLOCATOR_DESC("default", _DefaultAlloctorInit),
 
+    /* User memory importer. */
+    gcmkDEFINE_ALLOCATOR_DESC("user", _UserMemoryAlloctorInit),
+
 #ifdef CONFIG_DMA_SHARED_BUFFER
     /* Dmabuf allocator. */
     gcmkDEFINE_ALLOCATOR_DESC("dmabuf", _DmabufAlloctorInit),
+#endif
+
+#ifndef NO_DMA_COHERENT
+    gcmkDEFINE_ALLOCATOR_DESC("dma", _DmaAlloctorInit),
 #endif
 };
 

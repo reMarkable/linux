@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -291,8 +291,6 @@ gckKERNEL_MapVideoMemoryEx(
     )
 {
     gckGALDEVICE device   = gcvNULL;
-    PLINUX_MDL mdl        = gcvNULL;
-    PLINUX_MDL_MAP mdlMap = gcvNULL;
     gcePOOL pool          = gcvPOOL_UNKNOWN;
     gctUINT32 offset      = 0;
     gctUINT32 base        = 0;
@@ -347,13 +345,14 @@ gckKERNEL_MapVideoMemoryEx(
         }
         else
         {
-            gctINT processID;
-            gckOS_GetProcessID(&processID);
+            PLINUX_MDL mdl;
+            PLINUX_MDL_MAP mdlMap;
 
             mdl = (PLINUX_MDL) device->contiguousPhysical;
 
-            mdlMap = FindMdlMap(mdl, processID);
-            gcmkASSERT(mdlMap);
+            mutex_lock(&mdl->mapsMutex);
+            mdlMap = FindMdlMap(mdl, _GetProcessID());
+            mutex_unlock(&mdl->mapsMutex);
 
             logical = (gctPOINTER) mdlMap->vmaAddr;
         }
@@ -467,9 +466,6 @@ gckKERNEL_MapVideoMemory(
 gceSTATUS
 gckKERNEL_Notify(
     IN gckKERNEL Kernel,
-#if gcdMULTI_GPU
-    IN gctUINT CoreId,
-#endif
     IN gceNOTIFY Notification,
     IN gctBOOL Data
     )
@@ -491,9 +487,6 @@ gckKERNEL_Notify(
         status = gckINTERRUPT_Notify(Kernel->interrupt, Data);
 #else
         status = gckHARDWARE_Interrupt(Kernel->hardware,
-#if gcdMULTI_GPU
-                                       CoreId,
-#endif
                                        Data);
 #endif
         break;

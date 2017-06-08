@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -69,11 +69,16 @@ typedef enum kernel_packet_command {
     KERNEL_ALLOCATE_SECRUE_MEMORY,        /*! Security memory management. */
     KERNEL_FREE_SECURE_MEMORY,
     KERNEL_EXECUTE,                       /* Execute a command buffer. */
+    KERNEL_DUMP_MMU_EXCEPTION,
+    KERNEL_HANDLE_MMU_EXCEPTION,
+    KERNEL_READ_MMU_EXCEPTION,
 } kernel_packet_command_t;
 
 struct kernel_start_command {
     kernel_packet_command_t command;      /*! The command (always needs to be the first entry in a structure). */
     gctUINT8       gpu;                    /*! Which GPU. */
+    gctUINT32      address;
+    gctUINT32      bytes;
 };
 
 /*!
@@ -132,6 +137,7 @@ struct kernel_map_memory {
     kernel_packet_command_t command;
     kernel_map_scatter_gather_t *scatter;
     gctUINT32       *physicals;
+    gctPHYS_ADDR_T  physical;   /*! Contiguous physical address range. */
     gctUINT32       pageCount;
     gctUINT32       gpuAddress;
 };
@@ -139,6 +145,17 @@ struct kernel_map_memory {
 struct kernel_unmap_memory {
     gctUINT32       gpuAddress;
     gctUINT32       pageCount;
+};
+
+struct kernel_read_mmu_exception {
+    gctUINT32       mmuStatus;
+    gctUINT32       mmuException;
+};
+
+struct kernel_handle_mmu_exception {
+    gctUINT32       mmuStatus;
+    gctPHYS_ADDR_T  physical;
+    gctUINT32       gpuAddress;
 };
 
 typedef struct _gcsTA_INTERFACE {
@@ -150,6 +167,8 @@ typedef struct _gcsTA_INTERFACE {
         struct kernel_execute                  Execute;
         struct kernel_map_memory               MapMemory;
         struct kernel_unmap_memory             UnmapMemory;
+        struct kernel_read_mmu_exception       ReadMMUException;
+        struct kernel_handle_mmu_exception     HandleMMUException;
     } u;
     gceSTATUS result;
 } gcsTA_INTERFACE;

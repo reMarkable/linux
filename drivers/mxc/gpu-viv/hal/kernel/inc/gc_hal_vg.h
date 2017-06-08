@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -211,8 +211,8 @@ typedef gctTHREADFUNCRESULT (gctTHREADFUNCTYPE * gctTHREADFUNC) (
     (gctUINT32) \
         ( \
         (__gcmGETSIZE(reg##_##field) == 32) \
-                ?  ~0 \
-                : (~(~0 << __gcmGETSIZE(reg##_##field))) \
+                ?  ~0U \
+                : (~(~0U << __gcmGETSIZE(reg##_##field))) \
         ) \
 )
 
@@ -378,17 +378,6 @@ gckVGKERNEL_Destroy(
     IN gckVGKERNEL Kernel
     );
 
-/* Allocate linear video memory. */
-gceSTATUS
-gckVGKERNEL_AllocateLinearMemory(
-    IN gckKERNEL Kernel,
-    IN OUT gcePOOL * Pool,
-    IN gctSIZE_T Bytes,
-    IN gctUINT32 Alignment,
-    IN gceSURF_TYPE Type,
-    OUT gcuVIDMEM_NODE_PTR * Node
-    );
-
 /* Unmap memory. */
 gceSTATUS
 gckKERNEL_UnmapMemory(
@@ -475,6 +464,8 @@ gckVGHARDWARE_QueryChipIdentity(
     IN gckVGHARDWARE Hardware,
     OUT gceCHIPMODEL* ChipModel,
     OUT gctUINT32* ChipRevision,
+    OUT gctUINT32* ProductID,
+    OUT gctUINT32* EcoID,
     OUT gctUINT32* ChipFeatures,
     OUT gctUINT32* ChipMinorFeatures,
     OUT gctUINT32* ChipMinorFeatures1

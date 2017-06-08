@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -65,14 +65,16 @@
 static const TEEC_UUID gpu3d_uuid = GPU3D_UUID;
 TEEC_Context teecContext;
 
-typedef struct _gcsSecurityChannel {
+typedef struct _gcsSecurityChannel
+{
     gckOS               os;
     TEEC_Session        session;
     int *               virtual;
     TEEC_SharedMemory   inputBuffer;
     gctUINT32           bytes;
     gctPOINTER          mutex;
-} gcsSecurityChannel;
+}
+gcsSecurityChannel;
 
 TEEC_SharedMemory *
 gpu3d_allocate_secure_mem(
@@ -113,6 +115,7 @@ gpu3d_allocate_secure_mem(
     status = gckOS_PhysicalToPhysicalAddress(
                 Os,
                 handle,
+                0,
                 &phyAddr);
 
     if (gcmIS_ERROR(status))
@@ -182,34 +185,34 @@ static TEEC_Result gpu3d_session_callback(
         return TEEC_ERROR_BAD_PARAMETERS;
     }
 
-    switch(commandID)
+    switch (commandID)
     {
-        case gcvTA_CALLBACK_ALLOC_SECURE_MEM:
+    case gcvTA_CALLBACK_ALLOC_SECURE_MEM:
         {
-            uint32_t size = operation->params[0].value.a;
-            TEEC_SharedMemory *shm = NULL;
+        uint32_t size = operation->params[0].value.a;
+        TEEC_SharedMemory *shm = NULL;
 
-            shm = gpu3d_allocate_secure_mem(channel->os, size);
-            if (shm == NULL)
-            {
-                return TEEC_ERROR_OUT_OF_MEMORY;
-            }
-
-            /* use the value to save the pointer in client side */
-            operation->params[0].value.a = (uint32_t)shm;
-            operation->params[0].value.b = (uint32_t)shm->phyAddr;
-
-            break;
-        }
-        case gcvTA_CALLBACK_FREE_SECURE_MEM:
+        shm = gpu3d_allocate_secure_mem(channel->os, size);
+        if (shm == NULL)
         {
-            TEEC_SharedMemory *shm = (TEEC_SharedMemory *)operation->params[0].value.a;
-
-            gpu3d_release_secure_mem(channel->os, shm);
-            break;
+            return TEEC_ERROR_OUT_OF_MEMORY;
         }
-        default:
-            break;
+
+        /* use the value to save the pointer in client side */
+        operation->params[0].value.a = (uint32_t)shm;
+        operation->params[0].value.b = (uint32_t)shm->phyAddr;
+
+        break;
+        }
+    case gcvTA_CALLBACK_FREE_SECURE_MEM:
+        {
+        TEEC_SharedMemory *shm = (TEEC_SharedMemory *)operation->params[0].value.a;
+
+        gpu3d_release_secure_mem(channel->os, shm);
+        break;
+        }
+    default:
+        break;
     }
 
     return TEEC_SUCCESS;
@@ -234,7 +237,8 @@ gckOS_OpenSecurityChannel(
     {
         result = TEEC_InitializeContext(NULL, &teecContext);
 
-        if (result != TEEC_SUCCESS) {
+        if (result != TEEC_SUCCESS)
+        {
             gcmkONERROR(gcvSTATUS_CHIP_NOT_READY);
         }
 
@@ -319,7 +323,6 @@ gckOS_CloseSecurityChannel(
     IN gctUINT32 Channel
     )
 {
-    /* TODO . */
     return gcvSTATUS_OK;
 }
 

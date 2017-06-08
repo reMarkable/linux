@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -71,6 +71,9 @@ struct _gckVGHARDWARE
     /* Chip characteristics. */
     gceCHIPMODEL                chipModel;
     gctUINT32                   chipRevision;
+    gctUINT32                   productID;
+    gctUINT32                   ecoID;
+    gctUINT32                   customerID;
     gctUINT32                   chipFeatures;
     gctUINT32                   chipMinorFeatures;
     gctUINT32                   chipMinorFeatures2;
@@ -80,6 +83,7 @@ struct _gckVGHARDWARE
     gctBOOL                     fe20;
     gctBOOL                     vg20;
     gctBOOL                     vg21;
+    gctBOOL                     fc;
 
     /* Event mask. */
     gctUINT32                   eventMask;
@@ -102,6 +106,8 @@ struct _gckVGHARDWARE
 #endif
 
     gctBOOL                     powerManagement;
+
+    gctPOINTER                  featureDatabase;
 };
 
 #endif /* __gc_hal_kernel_hardware_h_ */

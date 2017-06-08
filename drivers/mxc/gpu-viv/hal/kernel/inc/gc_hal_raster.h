@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -213,41 +213,6 @@ gcoSURF_EnableAlphaBlend(
 gceSTATUS
 gcoSURF_DisableAlphaBlend(
     IN gcoSURF Surface
-    );
-
-/* Copy a rectangular area with format conversion. */
-gceSTATUS
-gcoSURF_CopyPixels(
-    IN gcoSURF Source,
-    IN gcoSURF Target,
-    IN gctINT SourceX,
-    IN gctINT SourceY,
-    IN gctINT TargetX,
-    IN gctINT TargetY,
-    IN gctINT Width,
-    IN gctINT Height
-    );
-
-/* Read surface pixel. */
-gceSTATUS
-gcoSURF_ReadPixel(
-    IN gcoSURF Surface,
-    IN gctPOINTER Memory,
-    IN gctINT X,
-    IN gctINT Y,
-    IN gceSURF_FORMAT Format,
-    OUT gctPOINTER PixelValue
-    );
-
-/* Write surface pixel. */
-gceSTATUS
-gcoSURF_WritePixel(
-    IN gcoSURF Surface,
-    IN gctPOINTER Memory,
-    IN gctINT X,
-    IN gctINT Y,
-    IN gceSURF_FORMAT Format,
-    IN gctPOINTER PixelValue
     );
 
 gceSTATUS

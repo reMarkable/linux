@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -59,18 +59,9 @@
 
 typedef struct _gcsMODULE_PARAMETERS
 {
-#if gcdMULTI_GPU || gcdMULTI_GPU_AFFINITY
-    gctINT  irqLine3D0;
-    gctUINT registerMemBase3D0;
-    gctUINT registerMemSize3D0;
-    gctINT  irqLine3D1;
-    gctUINT registerMemBase3D1;
-    gctUINT registerMemSize3D1;
-#else
     gctINT  irqLine;
     gctUINT registerMemBase;
     gctUINT registerMemSize;
-#endif
     gctINT  irqLine2D;
     gctUINT registerMemBase2D;
     gctUINT registerMemSize2D;
@@ -95,6 +86,10 @@ typedef struct _gcsMODULE_PARAMETERS
     gctUINT gpu3DMinClock;
     gctBOOL registerMemMapped;
     gctPOINTER registerMemAddress;
+    gctINT  irqs[gcvCORE_COUNT];
+    gctUINT registerBases[gcvCORE_COUNT];
+    gctUINT registerSizes[gcvCORE_COUNT];
+    gctUINT chipIDs[gcvCORE_COUNT];
 }
 gcsMODULE_PARAMETERS;
 
@@ -111,6 +106,28 @@ typedef struct _gcsPLATFORM_OPERATIONS
     */
     gctBOOL
     (*needAddDevice)(
+        IN gckPLATFORM Platform
+        );
+
+    /*******************************************************************************
+    **
+    **  registerDevice
+    **
+    **  Determine whether platform device need to be registered
+    */
+    gceSTATUS
+    (*registerDevice)(
+        IN gckPLATFORM Platform
+        );
+
+    /*******************************************************************************
+    **
+    **  runRegisterDevice
+    **
+    **  Unregister platform device
+    */
+    gceSTATUS
+    (*unRegisterDevice)(
         IN gckPLATFORM Platform
         );
 
@@ -257,6 +274,20 @@ typedef struct _gcsPLATFORM_OPERATIONS
 
     /*******************************************************************************
     **
+    **  getGPUPhysical
+    **
+    **  Convert GPU physical address to CPU physical address if they are
+    **  different.
+    */
+    gceSTATUS
+    (*getCPUPhysical)(
+        IN gckPLATFORM Platform,
+        IN gctUINT32 GPUPhysical,
+        OUT gctPHYS_ADDR_T * CPUPhysical
+        );
+
+    /*******************************************************************************
+    **
     **  adjustProt
     **
     **  Override Prot flag when mapping paged memory to userspace.
@@ -309,6 +340,19 @@ typedef struct _gcsPLATFORM_OPERATIONS
         IN gctCONST_STRING * Name
         );
 
+    /*******************************************************************************
+    **
+    ** getPolicyID
+    **
+    ** Get policyID for a specified surface type.
+    */
+    gceSTATUS
+    (*getPolicyID)(
+        IN gckPLATFORM Platform,
+        IN gceSURF_TYPE Type,
+        OUT gctUINT32_PTR PolicyID,
+        OUT gctUINT32_PTR AXIConfig
+        );
 }
 gcsPLATFORM_OPERATIONS;
 

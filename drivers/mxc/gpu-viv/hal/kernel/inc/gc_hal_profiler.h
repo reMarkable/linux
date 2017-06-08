@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2016 Vivante Corporation
+*    Copyright (c) 2014 - 2017 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2016 Vivante Corporation
+*    Copyright (C) 2014 - 2017 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -55,10 +55,6 @@
 
 #ifndef __gc_hal_profiler_h_
 #define __gc_hal_profiler_h_
-
-#if VIVANTE_PROFILER_NEW
-#include "gc_hal_engine.h"
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -132,12 +128,21 @@ extern "C" {
 #define VS_TEXLDINSTCOUNT     (VS_BRANCHINSTCOUNT    + 1)
 #define VS_RENDEREDVERTCOUNT  (VS_TEXLDINSTCOUNT     + 1)
 #define VS_SOURCE             (VS_RENDEREDVERTCOUNT  + 1)
+#define VS_NONIDLESTARVECOUNT (VS_SOURCE             + 1)
+#define VS_STARVELCOUNT       (VS_NONIDLESTARVECOUNT + 1)
+#define VS_STALLCOUNT         (VS_STARVELCOUNT       + 1)
+#define VS_PROCESSCOUNT       (VS_STALLCOUNT         + 1)
 
 #define PS_INSTCOUNT          1
 #define PS_BRANCHINSTCOUNT    (PS_INSTCOUNT          + 1)
 #define PS_TEXLDINSTCOUNT     (PS_BRANCHINSTCOUNT    + 1)
 #define PS_RENDEREDPIXCOUNT   (PS_TEXLDINSTCOUNT     + 1)
 #define PS_SOURCE             (PS_RENDEREDPIXCOUNT   + 1)
+#define PS_NONIDLESTARVECOUNT (PS_SOURCE             + 1)
+#define PS_STARVELCOUNT       (PS_NONIDLESTARVECOUNT + 1)
+#define PS_STALLCOUNT         (PS_STARVELCOUNT       + 1)
+#define PS_PROCESSCOUNT       (PS_STALLCOUNT         + 1)
+#define PS_SHADERCYCLECOUNT   (PS_PROCESSCOUNT       + 1)
 
 #define PA_INVERTCOUNT        1
 #define PA_INPRIMCOUNT        (PA_INVERTCOUNT      + 1)
@@ -145,9 +150,21 @@ extern "C" {
 #define PA_DEPTHCLIPCOUNT     (PA_OUTPRIMCOUNT     + 1)
 #define PA_TRIVIALREJCOUNT    (PA_DEPTHCLIPCOUNT   + 1)
 #define PA_CULLCOUNT          (PA_TRIVIALREJCOUNT  + 1)
+#define PA_NONIDLESTARVECOUNT (PA_CULLCOUNT        + 1)
+#define PA_STARVELCOUNT       (PA_NONIDLESTARVECOUNT + 1)
+#define PA_STALLCOUNT         (PA_STARVELCOUNT     + 1)
+#define PA_PROCESSCOUNT       (PA_STALLCOUNT       + 1)
 
-#define SE_TRIANGLECOUNT      1
-#define SE_LINECOUNT          (SE_TRIANGLECOUNT    + 1)
+#define SE_TRIANGLECOUNT        1
+#define SE_LINECOUNT            (SE_TRIANGLECOUNT        + 1)
+#define SE_STARVECOUNT          (SE_LINECOUNT            + 1)
+#define SE_STALLCOUNT           (SE_STARVECOUNT          + 1)
+#define SE_RECEIVETRIANGLECOUNT (SE_STALLCOUNT           + 1)
+#define SE_SENDTRIANGLECOUNT    (SE_RECEIVETRIANGLECOUNT + 1)
+#define SE_RECEIVELINESCOUNT    (SE_SENDTRIANGLECOUNT    + 1)
+#define SE_SENDLINESCOUNT       (SE_RECEIVELINESCOUNT    + 1)
+#define SE_NONIDLESTARVECOUNT   (SE_SENDLINESCOUNT       + 1)
+#define SE_PROCESSCOUNT         (SE_NONIDLESTARVECOUNT   + 1)
 
 #define RA_VALIDPIXCOUNT      1
 #define RA_TOTALQUADCOUNT     (RA_VALIDPIXCOUNT      + 1)
@@ -156,6 +173,10 @@ extern "C" {
 #define RA_PIPECACHEMISSCOUNT (RA_TOTALPRIMCOUNT     + 1)
 #define RA_PREFCACHEMISSCOUNT (RA_PIPECACHEMISSCOUNT + 1)
 #define RA_EEZCULLCOUNT       (RA_PREFCACHEMISSCOUNT + 1)
+#define RA_NONIDLESTARVECOUNT (RA_EEZCULLCOUNT       + 1)
+#define RA_STARVELCOUNT       (RA_NONIDLESTARVECOUNT + 1)
+#define RA_STALLCOUNT         (RA_STARVELCOUNT       + 1)
+#define RA_PROCESSCOUNT       (RA_STALLCOUNT         + 1)
 
 #define TX_TOTBILINEARREQ     1
 #define TX_TOTTRILINEARREQ    (TX_TOTBILINEARREQ      + 1)
@@ -166,6 +187,10 @@ extern "C" {
 #define TX_CACHEMISSCOUNT     (TX_MEMREADIN8BCOUNT    + 1)
 #define TX_CACHEHITTEXELCOUNT (TX_CACHEMISSCOUNT      + 1)
 #define TX_CACHEMISSTEXELCOUNT (TX_CACHEHITTEXELCOUNT + 1)
+#define TX_NONIDLESTARVECOUNT  (TX_CACHEMISSTEXELCOUNT+ 1)
+#define TX_STARVELCOUNT        (TX_NONIDLESTARVECOUNT + 1)
+#define TX_STALLCOUNT          (TX_STARVELCOUNT       + 1)
+#define TX_PROCESSCOUNT        (TX_STALLCOUNT         + 1)
 
 #define PE_KILLEDBYCOLOR      1
 #define PE_KILLEDBYDEPTH      (PE_KILLEDBYCOLOR    + 1)
@@ -175,10 +200,19 @@ extern "C" {
 #define MC_READREQ8BPIPE      1
 #define MC_READREQ8BIP        (MC_READREQ8BPIPE    + 1)
 #define MC_WRITEREQ8BPIPE     (MC_READREQ8BIP      + 1)
+#define MC_AXIMINLATENCY      (MC_WRITEREQ8BPIPE   + 1)
+#define MC_AXIMAXLATENCY      (MC_AXIMINLATENCY    + 1)
+#define MC_AXITOTALLATENCY    (MC_AXIMAXLATENCY    + 1)
+#define MC_AXISAMPLECOUNT     (MC_AXITOTALLATENCY  + 1)
 
 #define AXI_READREQSTALLED    1
 #define AXI_WRITEREQSTALLED   (AXI_READREQSTALLED  + 1)
 #define AXI_WRITEDATASTALLED  (AXI_WRITEREQSTALLED + 1)
+
+#define FE_DRAWCOUNT    1
+#define FE_OUTVERTEXCOUNT     (FE_DRAWCOUNT  + 1)
+#define FE_STALLCOUNT         (FE_OUTVERTEXCOUNT + 1)
+#define FE_STARVECOUNT        (FE_STALLCOUNT + 1)
 
 #define PVS_INSTRCOUNT        1
 #define PVS_ALUINSTRCOUNT     (PVS_INSTRCOUNT      + 1)
@@ -228,6 +262,20 @@ extern "C" {
 #define VPG_ES11_DRAW   0x200000
 #define VPG_ES30_DRAW   0x210000
 #define VPG_VG11_TIME   0x220000
+#define VPG_FE          0x230000
+#define VPG_MULTI_GPU   0x240000
+#define VPNG_FE         0x250000
+#define VPNG_VS         0x260000
+#define VPNG_PS         0x270000
+#define VPNG_PA         0x280000
+#define VPNG_SETUP      0x290000
+#define VPNG_RA         0x2a0000
+#define VPNG_TX         0x2b0000
+#define VPNG_PE         0x2c0000
+#define VPNG_MCC        0x2d0000
+#define VPNG_MCZ        0x2e0000
+#define VPNG_HI         0x2f0000
+#define VPNG_L2         0x300000
 #define VPG_END         0xff0000
 
 /* Info. */
@@ -297,12 +345,20 @@ extern "C" {
 #define VPC_VSBRANCHINSTCOUNT           (VPG_VS + VS_BRANCHINSTCOUNT)
 #define VPC_VSTEXLDINSTCOUNT            (VPG_VS + VS_TEXLDINSTCOUNT)
 #define VPC_VSRENDEREDVERTCOUNT         (VPG_VS + VS_RENDEREDVERTCOUNT)
+#define VPC_VSNONIDLESTARVECOUNT        (VPG_VS + VS_NONIDLESTARVECOUNT)
+#define VPC_VSSTARVELCOUNT              (VPG_VS + VS_STARVELCOUNT)
+#define VPC_VSSTALLCOUNT                (VPG_VS + VS_STALLCOUNT)
+#define VPC_VSPROCESSCOUNT              (VPG_VS + VS_PROCESSCOUNT)
 /* HW: PS Count. */
 #define VPC_PSINSTCOUNT                 (VPG_PS + PS_INSTCOUNT)
 #define VPC_PSBRANCHINSTCOUNT           (VPG_PS + PS_BRANCHINSTCOUNT)
 #define VPC_PSTEXLDINSTCOUNT            (VPG_PS + PS_TEXLDINSTCOUNT)
 #define VPC_PSRENDEREDPIXCOUNT          (VPG_PS + PS_RENDEREDPIXCOUNT)
-
+#define VPC_PSNONIDLESTARVECOUNT        (VPG_PS + PS_NONIDLESTARVECOUNT)
+#define VPC_PSSTARVELCOUNT              (VPG_PS + PS_STARVELCOUNT)
+#define VPC_PSSTALLCOUNT                (VPG_PS + PS_STALLCOUNT)
+#define VPC_PSPROCESSCOUNT              (VPG_PS + PS_PROCESSCOUNT)
+#define VPC_PSSHADERCYCLECOUNT          (VPG_PS + PS_SHADERCYCLECOUNT)
 
 /* HW: PA Counters. */
 #define VPC_PAINVERTCOUNT               (VPG_PA + PA_INVERTCOUNT)
@@ -311,10 +367,22 @@ extern "C" {
 #define VPC_PADEPTHCLIPCOUNT            (VPG_PA + PA_DEPTHCLIPCOUNT)
 #define VPC_PATRIVIALREJCOUNT           (VPG_PA + PA_TRIVIALREJCOUNT)
 #define VPC_PACULLCOUNT                 (VPG_PA + PA_CULLCOUNT)
+#define VPC_PANONIDLESTARVECOUNT        (VPG_PA + PA_NONIDLESTARVECOUNT)
+#define VPC_PASTARVELCOUNT              (VPG_PA + PA_STARVELCOUNT)
+#define VPC_PASTALLCOUNT                (VPG_PA + PA_STALLCOUNT)
+#define VPC_PAPROCESSCOUNT              (VPG_PA + PA_PROCESSCOUNT)
 
 /* HW: Setup Counters. */
 #define VPC_SETRIANGLECOUNT             (VPG_SETUP + SE_TRIANGLECOUNT)
 #define VPC_SELINECOUNT                 (VPG_SETUP + SE_LINECOUNT)
+#define VPC_SESTARVECOUNT               (VPG_SETUP + SE_STARVECOUNT)
+#define VPC_SESTALLCOUNT                (VPG_SETUP + SE_STALLCOUNT)
+#define VPC_SERECEIVETRIANGLECOUNT      (VPG_SETUP + SE_RECEIVETRIANGLECOUNT)
+#define VPC_SESENDTRIANGLECOUNT         (VPG_SETUP + SE_SENDTRIANGLECOUNT)
+#define VPC_SERECEIVELINESCOUNT         (VPG_SETUP + SE_RECEIVELINESCOUNT)
+#define VPC_SESENDLINESCOUNT            (VPG_SETUP + SE_SENDLINESCOUNT)
+#define VPC_SENONIDLESTARVECOUNT        (VPG_SETUP + SE_NONIDLESTARVECOUNT)
+#define VPC_SEPROCESSCOUNT              (VPG_SETUP + SE_PROCESSCOUNT)
 
 /* HW: RA Counters. */
 #define VPC_RAVALIDPIXCOUNT             (VPG_RA + RA_VALIDPIXCOUNT)
@@ -324,6 +392,10 @@ extern "C" {
 #define VPC_RAPIPECACHEMISSCOUNT        (VPG_RA + RA_PIPECACHEMISSCOUNT)
 #define VPC_RAPREFCACHEMISSCOUNT        (VPG_RA + RA_PREFCACHEMISSCOUNT)
 #define VPC_RAEEZCULLCOUNT              (VPG_RA + RA_EEZCULLCOUNT)
+#define VPC_RANONIDLESTARVECOUNT        (VPG_RA + RA_NONIDLESTARVECOUNT)
+#define VPC_RASTARVELCOUNT              (VPG_RA + RA_STARVELCOUNT)
+#define VPC_RASTALLCOUNT                (VPG_RA + RA_STALLCOUNT)
+#define VPC_RAPROCESSCOUNT              (VPG_RA + RA_PROCESSCOUNT)
 
 /* HW: TEX Counters. */
 #define VPC_TXTOTBILINEARREQ            (VPG_TX + TX_TOTBILINEARREQ)
@@ -335,6 +407,10 @@ extern "C" {
 #define VPC_TXCACHEMISSCOUNT            (VPG_TX + TX_CACHEMISSCOUNT)
 #define VPC_TXCACHEHITTEXELCOUNT        (VPG_TX + TX_CACHEHITTEXELCOUNT)
 #define VPC_TXCACHEMISSTEXELCOUNT       (VPG_TX + TX_CACHEMISSTEXELCOUNT)
+#define VPC_TXNONIDLESTARVECOUNT        (VPG_TX + TX_NONIDLESTARVECOUNT)
+#define VPC_TXSTARVELCOUNT              (VPG_TX + TX_STARVELCOUNT)
+#define VPC_TXSTALLCOUNT                (VPG_TX + TX_STALLCOUNT)
+#define VPC_TXPROCESSCOUNT              (VPG_TX + TX_PROCESSCOUNT)
 
 /* HW: PE Counters. */
 #define VPC_PEKILLEDBYCOLOR             (VPG_PE + PE_KILLEDBYCOLOR)
@@ -346,11 +422,200 @@ extern "C" {
 #define VPC_MCREADREQ8BPIPE             (VPG_MC + MC_READREQ8BPIPE)
 #define VPC_MCREADREQ8BIP               (VPG_MC + MC_READREQ8BIP)
 #define VPC_MCWRITEREQ8BPIPE            (VPG_MC + MC_WRITEREQ8BPIPE)
+#define VPC_MCAXIMINLATENCY             (VPG_MC + MC_AXIMINLATENCY)
+#define VPC_MCAXIMAXLATENCY             (VPG_MC + MC_AXIMAXLATENCY)
+#define VPC_MCAXITOTALLATENCY           (VPG_MC + MC_AXITOTALLATENCY)
+#define VPC_MCAXISAMPLECOUNT            (VPG_MC + MC_AXISAMPLECOUNT)
 
 /* HW: AXI Counters. */
 #define VPC_AXIREADREQSTALLED           (VPG_AXI + AXI_READREQSTALLED)
 #define VPC_AXIWRITEREQSTALLED          (VPG_AXI + AXI_WRITEREQSTALLED)
 #define VPC_AXIWRITEDATASTALLED         (VPG_AXI + AXI_WRITEDATASTALLED)
+
+/* HW: FE Counters. */
+#define VPC_FEDRAWCOUNT                 (VPG_FE + FE_DRAWCOUNT)
+#define VPC_FEOUTVERTEXCOUNT            (VPG_FE + FE_OUTVERTEXCOUNT)
+#define VPC_FESTALLCOUNT                (VPG_FE + FE_STALLCOUNT)
+#define VPC_FESTARVECOUNT               (VPG_FE + FE_STARVECOUNT)
+
+/* HW: Shader Counters. */
+#define VPNC_VSINSTCOUNT                 (VPNG_VS + 1)
+#define VPNC_VSBRANCHINSTCOUNT           (VPNG_VS + 2)
+#define VPNC_VSTEXLDINSTCOUNT            (VPNG_VS + 3)
+#define VPNC_VSRENDEREDVERTCOUNT         (VPNG_VS + 4)
+#define VPNC_VSNONIDLESTARVECOUNT        (VPNG_VS + 5)
+#define VPNC_VSSTARVELCOUNT              (VPNG_VS + 6)
+#define VPNC_VSSTALLCOUNT                (VPNG_VS + 7)
+#define VPNC_VSPROCESSCOUNT              (VPNG_VS + 8)
+#define VPNC_VSSHADERCYCLECOUNT          (VPNG_VS + 9)
+/* HW: PS Count. */
+#define VPNC_PSINSTCOUNT                 (VPNG_PS + 1)
+#define VPNC_PSBRANCHINSTCOUNT           (VPNG_PS + 2)
+#define VPNC_PSTEXLDINSTCOUNT            (VPNG_PS + 3)
+#define VPNC_PSRENDEREDPIXCOUNT          (VPNG_PS + 4)
+#define VPNC_PSNONIDLESTARVECOUNT        (VPNG_PS + 5)
+#define VPNC_PSSTARVELCOUNT              (VPNG_PS + 6)
+#define VPNC_PSSTALLCOUNT                (VPNG_PS + 7)
+#define VPNC_PSPROCESSCOUNT              (VPNG_PS + 8)
+#define VPNC_PSSHADERCYCLECOUNT          (VPNG_PS + 9)
+
+/* HW: PA Counters. */
+#define VPNC_PAINVERTCOUNT               (VPNG_PA + 1)
+#define VPNC_PAINPRIMCOUNT               (VPNG_PA + 2)
+#define VPNC_PAOUTPRIMCOUNT              (VPNG_PA + 3)
+#define VPNC_PADEPTHCLIPCOUNT            (VPNG_PA + 4)
+#define VPNC_PATRIVIALREJCOUNT           (VPNG_PA + 5)
+#define VPNC_PACULLPRIMCOUNT             (VPNG_PA + 6)
+#define VPNC_PADROPPRIMCOUNT             (VPNG_PA + 7)
+#define VPNC_PAFRCLIPPRIMCOUNT           (VPNG_PA + 8)
+#define VPNC_PAFRCLIPDROPPRIMCOUNT       (VPNG_PA + 9)
+#define VPNC_PANONIDLESTARVECOUNT        (VPNG_PA + 10)
+#define VPNC_PASTARVELCOUNT              (VPNG_PA + 11)
+#define VPNC_PASTALLCOUNT                (VPNG_PA + 12)
+#define VPNC_PAPROCESSCOUNT              (VPNG_PA + 13)
+
+/* HW: Setup Counters. */
+#define VPNC_SECULLTRIANGLECOUNT         (VPNG_SETUP + 1)
+#define VPNC_SECULLLINECOUNT             (VPNG_SETUP + 2)
+#define VPNC_SECLIPTRIANGLECOUNT         (VPNG_SETUP + 3)
+#define VPNC_SECLIPLINECOUNT             (VPNG_SETUP + 4)
+#define VPNC_SESTARVECOUNT               (VPNG_SETUP + 5)
+#define VPNC_SESTALLCOUNT                (VPNG_SETUP + 6)
+#define VPNC_SERECEIVETRIANGLECOUNT      (VPNG_SETUP + 7)
+#define VPNC_SESENDTRIANGLECOUNT         (VPNG_SETUP + 8)
+#define VPNC_SERECEIVELINESCOUNT         (VPNG_SETUP + 9)
+#define VPNC_SESENDLINESCOUNT            (VPNG_SETUP + 10)
+#define VPNC_SENONIDLESTARVECOUNT        (VPNG_SETUP + 11)
+#define VPNC_SETRIVIALREJLINECOUNT       (VPNG_SETUP + 12)
+#define VPNC_SEPROCESSCOUNT              (VPNG_SETUP + 13)
+
+/* HW: RA Counters. */
+#define VPNC_RAVALIDPIXCOUNT             (VPNG_RA + 1)
+#define VPNC_RATOTALQUADCOUNT            (VPNG_RA + 2)
+#define VPNC_RAVALIDQUADCOUNTEZ          (VPNG_RA + 3)
+#define VPNC_RAINPUTPRIMCOUNT            (VPNG_RA + 4)
+#define VPNC_RAPIPECACHEMISSCOUNT        (VPNG_RA + 5)
+#define VPNC_RAPREFCACHEMISSCOUNT        (VPNG_RA + 6)
+#define VPNC_RAPIPEHZCACHEMISSCOUNT      (VPNG_RA + 7)
+#define VPNC_RAPREFHZCACHEMISSCOUNT      (VPNG_RA + 8)
+#define VPNC_RAOUTPUTQUADCOUNT           (VPNG_RA + 9)
+#define VPNC_RAOUTPUTPIXELCOUNT          (VPNG_RA + 10)
+#define VPNC_RAEEZCULLCOUNT              (VPNG_RA + 11)
+#define VPNC_RANONIDLESTARVECOUNT        (VPNG_RA + 12)
+#define VPNC_RASTARVELCOUNT              (VPNG_RA + 13)
+#define VPNC_RASTALLCOUNT                (VPNG_RA + 14)
+#define VPNC_RAPROCESSCOUNT              (VPNG_RA + 15)
+
+/* HW: TEX Counters. */
+#define VPNC_TXTOTBILINEARREQ            (VPNG_TX + 1)
+#define VPNC_TXTOTTRILINEARREQ           (VPNG_TX + 2)
+#define VPNC_TXTOTDISCARDTEXREQ          (VPNG_TX + 3)
+#define VPNC_TXTOTTEXREQ                 (VPNG_TX + 4)
+#define VPNC_TXMC0MISSCOUNT              (VPNG_TX + 5)
+#define VPNC_TXMC0REQCOUNT               (VPNG_TX + 6)
+#define VPNC_TXMC1MISSCOUNT              (VPNG_TX + 7)
+#define VPNC_TXMC1REQCOUNT               (VPNG_TX + 8)
+#define VPNC_TXNONIDLESTARVECOUNT        (VPNG_TX + 9)
+#define VPNC_TXSTARVELCOUNT              (VPNG_TX + 10)
+#define VPNC_TXSTALLCOUNT                (VPNG_TX + 11)
+#define VPNC_TXPROCESSCOUNT              (VPNG_TX + 12)
+
+/* HW: PE Counters. */
+#define VPNC_PE0KILLEDBYCOLOR             (VPNG_PE + 1)
+#define VPNC_PE0KILLEDBYDEPTH             (VPNG_PE + 2)
+#define VPNC_PE0DRAWNBYCOLOR              (VPNG_PE + 3)
+#define VPNC_PE0DRAWNBYDEPTH              (VPNG_PE + 4)
+#define VPNC_PE1KILLEDBYCOLOR             (VPNG_PE + 5)
+#define VPNC_PE1KILLEDBYDEPTH             (VPNG_PE + 6)
+#define VPNC_PE1DRAWNBYCOLOR              (VPNG_PE + 7)
+#define VPNC_PE1DRAWNBYDEPTH              (VPNG_PE + 8)
+
+/* HW: MCC Counters. */
+#define VPNC_MCCREADREQ8BCOLORPIPE        (VPNG_MCC + 1)
+#define VPNC_MCCREADREQ8BSOCOLORPIPE      (VPNG_MCC + 2)
+#define VPNC_MCCWRITEREQ8BCOLORPIPE       (VPNG_MCC + 3)
+#define VPNC_MCCREADREQSOCOLORPIPE        (VPNG_MCC + 4)
+#define VPNC_MCCWRITEREQCOLORPIPE         (VPNG_MCC + 5)
+#define VPNC_MCCREADREQ8BDEPTHPIPE        (VPNG_MCC + 6)
+#define VPNC_MCCREADREQ8BSFDEPTHPIPE      (VPNG_MCC + 7)
+#define VPNC_MCCWRITEREQ8BDEPTHPIPE       (VPNG_MCC + 8)
+#define VPNC_MCCREADREQSFDEPTHPIPE        (VPNG_MCC + 9)
+#define VPNC_MCCWRITEREQDEPTHPIPE         (VPNG_MCC + 10)
+#define VPNC_MCCREADREQ8BOTHERPIPE        (VPNG_MCC + 11)
+#define VPNC_MCCWRITEREQ8BOTHERPIPE       (VPNG_MCC + 12)
+#define VPNC_MCCREADREQOTHERPIPE          (VPNG_MCC + 13)
+#define VPNC_MCCWRITEREQOTHERPIPE         (VPNG_MCC + 14)
+#define VPNC_MCCAXIMINLATENCY             (VPNG_MCC + 15)
+#define VPNC_MCCAXIMAXLATENCY             (VPNG_MCC + 16)
+#define VPNC_MCCAXITOTALLATENCY           (VPNG_MCC + 17)
+#define VPNC_MCCAXISAMPLECOUNT            (VPNG_MCC + 18)
+
+/* HW: MCZ Counters. */
+#define VPNC_MCZREADREQ8BCOLORPIPE        (VPNG_MCZ + 1)
+#define VPNC_MCZREADREQ8BSOCOLORPIPE      (VPNG_MCZ + 2)
+#define VPNC_MCZWRITEREQ8BCOLORPIPE       (VPNG_MCZ + 3)
+#define VPNC_MCZREADREQSOCOLORPIPE        (VPNG_MCZ + 4)
+#define VPNC_MCZWRITEREQCOLORPIPE         (VPNG_MCZ + 5)
+#define VPNC_MCZREADREQ8BDEPTHPIPE        (VPNG_MCZ + 6)
+#define VPNC_MCZREADREQ8BSFDEPTHPIPE      (VPNG_MCZ + 7)
+#define VPNC_MCZWRITEREQ8BDEPTHPIPE       (VPNG_MCZ + 8)
+#define VPNC_MCZREADREQSFDEPTHPIPE        (VPNG_MCZ + 9)
+#define VPNC_MCZWRITEREQDEPTHPIPE         (VPNG_MCZ + 10)
+#define VPNC_MCZREADREQ8BOTHERPIPE        (VPNG_MCZ + 11)
+#define VPNC_MCZWRITEREQ8BOTHERPIPE       (VPNG_MCZ + 12)
+#define VPNC_MCZREADREQOTHERPIPE          (VPNG_MCZ + 13)
+#define VPNC_MCZWRITEREQOTHERPIPE         (VPNG_MCZ + 14)
+#define VPNC_MCZAXIMINLATENCY             (VPNG_MCZ + 15)
+#define VPNC_MCZAXIMAXLATENCY             (VPNG_MCZ + 16)
+#define VPNC_MCZAXITOTALLATENCY           (VPNG_MCZ + 17)
+#define VPNC_MCZAXISAMPLECOUNT            (VPNG_MCZ + 18)
+
+/* HW: HI Counters. */
+#define VPNC_HI0READ8BYTE                (VPNG_HI + 1)
+#define VPNC_HI0WRITE8BYTE               (VPNG_HI + 2)
+#define VPNC_HI0READREQ                  (VPNG_HI + 3)
+#define VPNC_HI0WRITEREQ                 (VPNG_HI + 4)
+#define VPNC_HI0AXIREADREQSTALL          (VPNG_HI + 5)
+#define VPNC_HI0AXIWRITEREQSTALL         (VPNG_HI + 6)
+#define VPNC_HI0AXIWRITEDATASTALL        (VPNG_HI + 7)
+#define VPNC_HI1READ8BYTE                (VPNG_HI + 8)
+#define VPNC_HI1WRITE8BYTE               (VPNG_HI + 9)
+#define VPNC_HI1READREQ                  (VPNG_HI + 10)
+#define VPNC_HI1WRITEREQ                 (VPNG_HI + 11)
+#define VPNC_HI1AXIREADREQSTALL          (VPNG_HI + 12)
+#define VPNC_HI1AXIWRITEREQSTALL         (VPNG_HI + 13)
+#define VPNC_HI1AXIWRITEDATASTALL        (VPNG_HI + 14)
+#define VPNC_HITOTALCYCLES               (VPNG_HI + 15)
+#define VPNC_HIIDLECYCLES                (VPNG_HI + 16)
+#define VPNC_HIREAD8BYTE                 (VPNG_HI + 17)
+#define VPNC_HIWRITE8BYTE                (VPNG_HI + 18)
+
+/* HW: L2 Counters. */
+#define VPNC_L2AXI0READREQCOUNT          (VPNG_L2 + 1)
+#define VPNC_L2AXI1READREQCOUNT          (VPNG_L2 + 2)
+#define VPNC_L2AXI0WRITEREQCOUNT         (VPNG_L2 + 3)
+#define VPNC_L2AXI1WRITEREQCOUNT         (VPNG_L2 + 4)
+#define VPNC_L2READTRANSREQBYAXI0        (VPNG_L2 + 5)
+#define VPNC_L2READTRANSREQBYAXI1        (VPNG_L2 + 6)
+#define VPNC_L2WRITETRANSREQBYAXI0       (VPNG_L2 + 7)
+#define VPNC_L2WRITETRANSREQBYAXI1       (VPNG_L2 + 8)
+#define VPNC_L2AXI0MINLATENCY            (VPNG_L2 + 9)
+#define VPNC_L2AXI0MAXLATENCY            (VPNG_L2 + 10)
+#define VPNC_L2AXI0TOTLATENCY            (VPNG_L2 + 11)
+#define VPNC_L2AXI0TOTREQCOUNT           (VPNG_L2 + 12)
+#define VPNC_L2AXI1MINLATENCY            (VPNG_L2 + 13)
+#define VPNC_L2AXI1MAXLATENCY            (VPNG_L2 + 14)
+#define VPNC_L2AXI1TOTLATENCY            (VPNG_L2 + 15)
+#define VPNC_L2AXI1TOTREQCOUNT           (VPNG_L2 + 16)
+
+/* HW: FE Counters. */
+#define VPNC_FEDRAWCOUNT                 (VPNG_FE + 1)
+#define VPNC_FEOUTVERTEXCOUNT            (VPNG_FE + 2)
+#define VPNC_FECACHEMISSCOUNT            (VPNG_FE + 3)
+#define VPNC_FECACHELKCOUNT              (VPNG_FE + 4)
+#define VPNC_FESTALLCOUNT                (VPNG_FE + 5)
+#define VPNC_FESTARVECOUNT               (VPNG_FE + 6)
+#define VPNC_FEPROCESSCOUNT              (VPNG_FE + 7)
 
 /* PROGRAM: Shader program counters. */
 #define VPC_PVSINSTRCOUNT           (VPG_PVS + PVS_INSTRCOUNT)
@@ -373,10 +638,298 @@ extern "C" {
 
 #define VPC_ES30_DRAW_NO            (VPG_ES30_DRAW + 1)
 #define VPC_ES11_DRAW_NO            (VPG_ES11_DRAW + 1)
+#define VPC_ES30_GPU_NO             (VPG_MULTI_GPU + 1)
+#endif
+
+#if VIVANTE_PROFILER_ALL_COUNTER
+#define   MODULE_FRONT_END_COUNTER_NUM                    30
+#define   MODULE_SHADER_COUNTER_NUM                       30
+#define   MODULE_PRIMITIVE_ASSEMBLY_COUNTER_NUM           30
+#define   MODULE_SETUP_COUNTER_NUM                        30
+#define   MODULE_RASTERIZER_COUNTER_NUM                   30
+#define   MODULE_TEXTURE_COUNTER_NUM                      30
+#define   MODULE_PIXEL_ENGINE_COUNTER_NUM                 30
+#define   MODULE_MEMORY_CONTROLLER_COUNTER_NUM            30
+#define   MODULE_HOST_INTERFACE_COUNTER_NUM               30
+#endif
+
+#if VIVANTE_PROFILER_PROBE
+#define   MODULE_FRONT_END_COUNTER_NUM                    0x5
+#define   MODULE_VERTEX_SHADER_COUNTER_NUM                0x9
+#define   MODULE_PRIMITIVE_ASSEMBLY_COUNTER_NUM           0xC
+#define   MODULE_SETUP_COUNTER_NUM                        0xD
+#define   MODULE_RASTERIZER_COUNTER_NUM                   0xE
+#define   MODULE_PIXEL_SHADER_COUNTER_NUM                 0x9
+#define   MODULE_TEXTURE_COUNTER_NUM                      0x8
+#define   MODULE_PIXEL_ENGINE_COUNTER_NUM                 0x8
+#define   MODULE_MEMORY_CONTROLLER_COLOR_COUNTER_NUM      0xC
+#define   MODULE_MEMORY_CONTROLLER_DEPTH_COUNTER_NUM      0xC
+#define   MODULE_HOST_INTERFACE0_COUNTER_NUM              0x9
+#define   MODULE_HOST_INTERFACE1_COUNTER_NUM              0x7
+#define   MODULE_GPUL2_CACHE_COUNTER_NUM                  0xE
+
+typedef enum _gceCOUNTER
+{
+    gcvCOUNTER_FRONT_END,
+    gcvCOUNTER_VERTEX_SHADER,
+    gcvCOUNTER_PRIMITIVE_ASSEMBLY,
+    gcvCOUNTER_SETUP,
+    gcvCOUNTER_RASTERIZER,
+    gcvCOUNTER_PIXEL_SHADER,
+    gcvCOUNTER_TEXTURE,
+    gcvCOUNTER_PIXEL_ENGINE,
+    gcvCOUNTER_MEMORY_CONTROLLER_COLOR,
+    gcvCOUNTER_MEMORY_CONTROLLER_DEPTH,
+    gcvCOUNTER_HOST_INTERFACE0,
+    gcvCOUNTER_HOST_INTERFACE1,
+    gcvCOUNTER_GPUL2_CACHE,
+    gcvCOUNTER_COUNT
+}
+gceCOUNTER;
 #endif
 
 
+#define   MODULE_FRONT_END_COUNTER_NUM                    0x5
+#define   MODULE_VERTEX_SHADER_COUNTER_NUM                0x9
+#define   MODULE_PRIMITIVE_ASSEMBLY_COUNTER_NUM           0xC
+#define   MODULE_SETUP_COUNTER_NUM                        0xD
+#define   MODULE_RASTERIZER_COUNTER_NUM                   0xE
+#define   MODULE_PIXEL_SHADER_COUNTER_NUM                 0x9
+#define   MODULE_TEXTURE_COUNTER_NUM                      0x8
+#define   MODULE_PIXEL_ENGINE_COUNTER_NUM                 0x8
+#define   MODULE_MEMORY_CONTROLLER_COLOR_COUNTER_NUM      0xC
+#define   MODULE_MEMORY_CONTROLLER_DEPTH_COUNTER_NUM      0xC
+#define   MODULE_HOST_INTERFACE0_COUNTER_NUM              0x9
+#define   MODULE_HOST_INTERFACE1_COUNTER_NUM              0x7
+#define   MODULE_GPUL2_CACHE_COUNTER_NUM                  0xE
+#define   TOTAL_PROBE_NUMBER (MODULE_FRONT_END_COUNTER_NUM + MODULE_VERTEX_SHADER_COUNTER_NUM + MODULE_PRIMITIVE_ASSEMBLY_COUNTER_NUM \
+                              + MODULE_SETUP_COUNTER_NUM + MODULE_RASTERIZER_COUNTER_NUM + MODULE_PIXEL_SHADER_COUNTER_NUM \
+                              + MODULE_TEXTURE_COUNTER_NUM + MODULE_PIXEL_ENGINE_COUNTER_NUM + MODULE_MEMORY_CONTROLLER_COLOR_COUNTER_NUM \
+                              + MODULE_MEMORY_CONTROLLER_DEPTH_COUNTER_NUM + MODULE_HOST_INTERFACE0_COUNTER_NUM + MODULE_HOST_INTERFACE1_COUNTER_NUM \
+                              + MODULE_GPUL2_CACHE_COUNTER_NUM)
+
+
+typedef enum _gceCOUNTER
+{
+    gcvCOUNTER_FRONT_END,
+    gcvCOUNTER_VERTEX_SHADER,
+    gcvCOUNTER_PRIMITIVE_ASSEMBLY,
+    gcvCOUNTER_SETUP,
+    gcvCOUNTER_RASTERIZER,
+    gcvCOUNTER_PIXEL_SHADER,
+    gcvCOUNTER_TEXTURE,
+    gcvCOUNTER_PIXEL_ENGINE,
+    gcvCOUNTER_MEMORY_CONTROLLER_COLOR,
+    gcvCOUNTER_MEMORY_CONTROLLER_DEPTH,
+    gcvCOUNTER_HOST_INTERFACE0,
+    gcvCOUNTER_HOST_INTERFACE1,
+    gcvCOUNTER_GPUL2_CACHE,
+    gcvCOUNTER_COUNT
+}
+gceCOUNTER;
+
+
 /* HW profile information. */
+typedef struct _gcsPROFILER_NEW_COUNTERS_PART1
+{
+    gctUINT32       gpuTotalRead64BytesPerFrame;
+    gctUINT32       gpuTotalWrite64BytesPerFrame;
+
+    /* FE */
+    gctUINT32       fe_draw_count;
+    gctUINT32       fe_out_vertex_count;
+    gctUINT32       fe_cache_miss_count;
+    gctUINT32       fe_cache_lk_count;
+    gctUINT32       fe_stall_count;
+    gctUINT32       fe_starve_count;
+    gctUINT32       fe_process_count;
+
+    /* PE */
+    gctUINT32       pe0_pixel_count_killed_by_color_pipe;
+    gctUINT32       pe0_pixel_count_killed_by_depth_pipe;
+    gctUINT32       pe0_pixel_count_drawn_by_color_pipe;
+    gctUINT32       pe0_pixel_count_drawn_by_depth_pipe;
+    gctUINT32       pe1_pixel_count_killed_by_color_pipe;
+    gctUINT32       pe1_pixel_count_killed_by_depth_pipe;
+    gctUINT32       pe1_pixel_count_drawn_by_color_pipe;
+    gctUINT32       pe1_pixel_count_drawn_by_depth_pipe;
+
+    /* SH */
+    gctUINT32       shader_cycle_count;
+    gctUINT32       vs_shader_cycle_count;
+    gctUINT32       ps_shader_cycle_count;
+    gctUINT32       ps_inst_counter;
+    gctUINT32       ps_rendered_pixel_counter;
+    gctUINT32       vs_inst_counter;
+    gctUINT32       vs_rendered_vertice_counter;
+    gctUINT32       vs_branch_inst_counter;
+    gctUINT32       vs_texld_inst_counter;
+    gctUINT32       ps_branch_inst_counter;
+    gctUINT32       ps_texld_inst_counter;
+    gctUINT32       vs_non_idle_starve_count;
+    gctUINT32       vs_starve_count;
+    gctUINT32       vs_stall_count;
+    gctUINT32       vs_process_count;
+    gctUINT32       ps_non_idle_starve_count;
+    gctUINT32       ps_starve_count;
+    gctUINT32       ps_stall_count;
+    gctUINT32       ps_process_count;
+
+    /* PA */
+    gctUINT32       pa_input_vtx_counter;
+    gctUINT32       pa_input_prim_counter;
+    gctUINT32       pa_output_prim_counter;
+    gctUINT32       pa_depth_clipped_counter;
+    gctUINT32       pa_trivial_rejected_counter;
+    gctUINT32       pa_culled_prim_counter;
+    gctUINT32       pa_droped_prim_counter;
+    gctUINT32       pa_frustum_clipped_prim_counter;
+    gctUINT32       pa_frustum_clipdroped_prim_counter;
+    gctUINT32       pa_non_idle_starve_count;
+    gctUINT32       pa_starve_count;
+    gctUINT32       pa_stall_count;
+    gctUINT32       pa_process_count;
+
+    /* SE */
+    gctUINT32       se_culled_triangle_count;
+    gctUINT32       se_culled_lines_count;
+    gctUINT32       se_clipped_triangle_count;
+    gctUINT32       se_clipped_line_count;
+    gctUINT32       se_starve_count;
+    gctUINT32       se_stall_count;
+    gctUINT32       se_receive_triangle_count;
+    gctUINT32       se_send_triangle_count;
+    gctUINT32       se_receive_lines_count;
+    gctUINT32       se_send_lines_count;
+    gctUINT32       se_process_count;
+    gctUINT32       se_trivial_rejected_line_count;
+    gctUINT32       se_non_idle_starve_count;
+
+    /* RA */
+    gctUINT32       ra_input_prim_count;
+    gctUINT32       ra_total_quad_count;
+    gctUINT32       ra_valid_quad_count_after_early_z;
+    gctUINT32       ra_valid_pixel_count_to_render;
+    gctUINT32       ra_output_valid_quad_count;
+    gctUINT32       ra_output_valid_pixel_count;
+    gctUINT32       ra_pipe_cache_miss_counter;
+    gctUINT32       ra_pipe_hz_cache_miss_counter;
+    gctUINT32       ra_prefetch_cache_miss_counter;
+    gctUINT32       ra_prefetch_hz_cache_miss_counter;
+    gctUINT32       ra_eez_culled_counter;
+    gctUINT32       ra_non_idle_starve_count;
+    gctUINT32       ra_starve_count;
+    gctUINT32       ra_stall_count;
+    gctUINT32       ra_process_count;
+
+    /* TX */
+    gctUINT32       tx_total_bilinear_requests;
+    gctUINT32       tx_total_trilinear_requests;
+    gctUINT32       tx_total_discarded_texture_requests;
+    gctUINT32       tx_total_texture_requests;
+    gctUINT32       tx_mc0_miss_count;
+    gctUINT32       tx_mc0_request_byte_count;
+    gctUINT32       tx_mc1_miss_count;
+    gctUINT32       tx_mc1_request_byte_count;
+    gctUINT32       tx_non_idle_starve_count;
+    gctUINT32       tx_starve_count;
+    gctUINT32       tx_stall_count;
+    gctUINT32       tx_process_count;
+}
+gcsPROFILER_NEW_COUNTERS_PART1;
+
+typedef struct _gcsPROFILER_NEW_COUNTERS_PART2
+{
+    /* MCC */
+    gctUINT32       mcc_total_read_req_8B_from_colorpipe;
+    gctUINT32       mcc_total_read_req_8B_sentout_from_colorpipe;
+    gctUINT32       mcc_total_write_req_8B_from_colorpipe;
+    gctUINT32       mcc_total_read_req_sentout_from_colorpipe;
+    gctUINT32       mcc_total_write_req_from_colorpipe;
+    gctUINT32       mcc_total_read_req_8B_from_depthpipe;
+    gctUINT32       mcc_total_read_req_8B_sentout_from_depthpipe;
+    gctUINT32       mcc_total_write_req_8B_from_depthpipe;
+    gctUINT32       mcc_total_read_req_sentout_from_depthpipe;
+    gctUINT32       mcc_total_write_req_from_depthpipe;
+    gctUINT32       mcc_total_read_req_8B_from_others;
+    gctUINT32       mcc_total_write_req_8B_from_others;
+    gctUINT32       mcc_total_read_req_from_others;
+    gctUINT32       mcc_total_write_req_from_others;
+    gctUINT32       mcc_axi_total_latency;
+    gctUINT32       mcc_axi_sample_count;
+    gctUINT32       mcc_axi_max_latency;
+    gctUINT32       mcc_axi_min_latency;
+
+    /* MCZ */
+    gctUINT32       mcz_total_read_req_8B_from_colorpipe;
+    gctUINT32       mcz_total_read_req_8B_sentout_from_colorpipe;
+    gctUINT32       mcz_total_write_req_8B_from_colorpipe;
+    gctUINT32       mcz_total_read_req_sentout_from_colorpipe;
+    gctUINT32       mcz_total_write_req_from_colorpipe;
+    gctUINT32       mcz_total_read_req_8B_from_depthpipe;
+    gctUINT32       mcz_total_read_req_8B_sentout_from_depthpipe;
+    gctUINT32       mcz_total_write_req_8B_from_depthpipe;
+    gctUINT32       mcz_total_read_req_sentout_from_depthpipe;
+    gctUINT32       mcz_total_write_req_from_depthpipe;
+    gctUINT32       mcz_total_read_req_8B_from_others;
+    gctUINT32       mcz_total_write_req_8B_from_others;
+    gctUINT32       mcz_total_read_req_from_others;
+    gctUINT32       mcz_total_write_req_from_others;
+    gctUINT32       mcz_axi_total_latency;
+    gctUINT32       mcz_axi_sample_count;
+    gctUINT32       mcz_axi_max_latency;
+    gctUINT32       mcz_axi_min_latency;
+
+    /* HI */
+    gctUINT32       hi0_total_read_8B_count;
+    gctUINT32       hi0_total_write_8B_count;
+    gctUINT32       hi0_total_read_request_count;
+    gctUINT32       hi0_total_write_request_count;
+    gctUINT32       hi0_axi_cycles_read_request_stalled;
+    gctUINT32       hi0_axi_cycles_write_request_stalled;
+    gctUINT32       hi0_axi_cycles_write_data_stalled;
+    gctUINT32       hi1_total_read_8B_count;
+    gctUINT32       hi1_total_write_8B_count;
+    gctUINT32       hi1_total_read_request_count;
+    gctUINT32       hi1_total_write_request_count;
+    gctUINT32       hi1_axi_cycles_read_request_stalled;
+    gctUINT32       hi1_axi_cycles_write_request_stalled;
+    gctUINT32       hi1_axi_cycles_write_data_stalled;
+    gctUINT32       hi_total_cycle_count;
+    gctUINT32       hi_total_idle_cycle_count;
+    gctUINT32       hi_total_read_8B_count;
+    gctUINT32       hi_total_write_8B_count;
+
+    /* L2 */
+    gctUINT32       l2_total_axi0_read_request_count;
+    gctUINT32       l2_total_axi1_read_request_count;
+    gctUINT32       l2_total_axi0_write_request_count;
+    gctUINT32       l2_total_axi1_write_request_count;
+    gctUINT32       l2_total_read_transactions_request_by_axi0;
+    gctUINT32       l2_total_read_transactions_request_by_axi1;
+    gctUINT32       l2_total_write_transactions_request_by_axi0;
+    gctUINT32       l2_total_write_transactions_request_by_axi1;
+    gctUINT32       l2_axi0_minmax_latency;
+    gctUINT32       l2_axi0_min_latency;
+    gctUINT32       l2_axi0_max_latency;
+    gctUINT32       l2_axi0_total_latency;
+    gctUINT32       l2_axi0_total_request_count;
+    gctUINT32       l2_axi1_minmax_latency;
+    gctUINT32       l2_axi1_min_latency;
+    gctUINT32       l2_axi1_max_latency;
+    gctUINT32       l2_axi1_total_latency;
+    gctUINT32       l2_axi1_total_request_count;
+}
+gcsPROFILER_NEW_COUNTERS_PART2;
+
+typedef struct _gcsPROFILER_NEW_COUNTERS
+{
+    gctUINT32       drawID;
+    gcsPROFILER_NEW_COUNTERS_PART1 counters_part1;
+    gcsPROFILER_NEW_COUNTERS_PART2 counters_part2;
+}
+gcsPROFILER_NEW_COUNTERS;
+
 typedef struct _gcsPROFILER_COUNTERS
 {
     /* HW static counters. */
@@ -410,6 +963,15 @@ typedef struct _gcsPROFILER_COUNTERS
     gctUINT32       vtx_texld_inst_counter;
     gctUINT32       pxl_branch_inst_counter;
     gctUINT32       pxl_texld_inst_counter;
+    gctUINT32       vs_non_idle_starve_count;
+    gctUINT32       vs_starve_count;
+    gctUINT32       vs_stall_count;
+    gctUINT32       vs_process_count;
+    gctUINT32       ps_non_idle_starve_count;
+    gctUINT32       ps_starve_count;
+    gctUINT32       ps_stall_count;
+    gctUINT32       ps_process_count;
+    gctUINT32       shader_cycle_count;
 
     /* PA */
     gctUINT32       pa_input_vtx_counter;
@@ -418,10 +980,22 @@ typedef struct _gcsPROFILER_COUNTERS
     gctUINT32       pa_depth_clipped_counter;
     gctUINT32       pa_trivial_rejected_counter;
     gctUINT32       pa_culled_counter;
+    gctUINT32       pa_non_idle_starve_count;
+    gctUINT32       pa_starve_count;
+    gctUINT32       pa_stall_count;
+    gctUINT32       pa_process_count;
 
     /* SE */
     gctUINT32       se_culled_triangle_count;
     gctUINT32       se_culled_lines_count;
+    gctUINT32       se_starve_count;
+    gctUINT32       se_stall_count;
+    gctUINT32       se_receive_triangle_count;
+    gctUINT32       se_send_triangle_count;
+    gctUINT32       se_receive_lines_count;
+    gctUINT32       se_send_lines_count;
+    gctUINT32       se_process_count;
+    gctUINT32       se_non_idle_starve_count;
 
     /* RA */
     gctUINT32       ra_valid_pixel_count;
@@ -431,6 +1005,10 @@ typedef struct _gcsPROFILER_COUNTERS
     gctUINT32       ra_pipe_cache_miss_counter;
     gctUINT32       ra_prefetch_cache_miss_counter;
     gctUINT32       ra_eez_culled_counter;
+    gctUINT32       ra_non_idle_starve_count;
+    gctUINT32       ra_starve_count;
+    gctUINT32       ra_stall_count;
+    gctUINT32       ra_process_count;
 
     /* TX */
     gctUINT32       tx_total_bilinear_requests;
@@ -442,22 +1020,115 @@ typedef struct _gcsPROFILER_COUNTERS
     gctUINT32       tx_cache_miss_count;
     gctUINT32       tx_cache_hit_texel_count;
     gctUINT32       tx_cache_miss_texel_count;
+    gctUINT32       tx_non_idle_starve_count;
+    gctUINT32       tx_starve_count;
+    gctUINT32       tx_stall_count;
+    gctUINT32       tx_process_count;
 
     /* MC */
     gctUINT32       mc_total_read_req_8B_from_pipeline;
     gctUINT32       mc_total_read_req_8B_from_IP;
     gctUINT32       mc_total_write_req_8B_from_pipeline;
+    gctUINT32       mc_axi_total_latency;
+    gctUINT32       mc_axi_sample_count;
+    gctUINT32       mc_axi_max_latency;
+    gctUINT32       mc_axi_min_latency;
 
     /* HI */
     gctUINT32       hi_axi_cycles_read_request_stalled;
     gctUINT32       hi_axi_cycles_write_request_stalled;
     gctUINT32       hi_axi_cycles_write_data_stalled;
+
+    /* FE */
+    gctUINT32       fe_draw_count;
+    gctUINT32       fe_out_vertex_count;
+    gctUINT32       fe_stall_count;
+    gctUINT32       fe_starve_count;
+
+#if VIVANTE_PROFILER_ALL_COUNTER
+    gctUINT32       feCounters[MODULE_FRONT_END_COUNTER_NUM];
+    gctUINT32       paCounters[MODULE_PRIMITIVE_ASSEMBLY_COUNTER_NUM];
+    gctUINT32       shCounters[MODULE_SHADER_COUNTER_NUM];
+    gctUINT32       seCounters[MODULE_SETUP_COUNTER_NUM];
+    gctUINT32       raCounters[MODULE_RASTERIZER_COUNTER_NUM];
+    gctUINT32       txCounters[MODULE_TEXTURE_COUNTER_NUM];
+    gctUINT32       peCounters[MODULE_PIXEL_ENGINE_COUNTER_NUM];
+    gctUINT32       mcCounters[MODULE_MEMORY_CONTROLLER_COUNTER_NUM];
+    gctUINT32       hiCounters[MODULE_HOST_INTERFACE_COUNTER_NUM];
+
+#endif
 }
 gcsPROFILER_COUNTERS;
 
-#if VIVANTE_PROFILER_NEW
-#define NumOfDrawBuf 64
-#endif
+#define NumOfDrawBuf 1024
+
+typedef enum _gceCOUNTER_OPTYPE
+{
+    gcvCOUNTER_OP_DRAW = 0,
+    gcvCOUNTER_OP_BLT = 1,
+    gcvCOUNTER_OP_COMPUTE = 2,
+    gcvCOUNTER_OP_RS = 3,
+    gcvCOUNTER_OP_NONE = 4
+}
+gceCOUNTER_OPTYPE;
+
+typedef struct _gcsPROBEBUFFER
+{
+    gctHANDLE       newCounterBuf[NumOfDrawBuf];
+    gctUINT32       curBufId;
+    gceCOUNTER_OPTYPE  opType[NumOfDrawBuf];
+}
+gcsPROBEBUFFER;
+
+typedef struct _gcsCounterBuffer
+{
+    gcsPROFILER_NEW_COUNTERS    counters;
+    gctHANDLE                   couterBufobj;
+    gctUINT32                   probeAddress;
+    gceCOUNTER_OPTYPE           opType;
+}
+gcsCounterBuffer;
+
+typedef struct _gcoPROFILER *        gcoPROFILER;
+
+struct _gcoPROFILER
+{
+    gctBOOL                     enable;
+    gctBOOL                     isSyncMode;
+
+    gctFILE                     file;
+    gctCHAR*                    fileName;
+
+    gcsCounterBuffer            counterBuf[NumOfDrawBuf];
+    gctINT32                    curBufId;
+
+    gctBOOL                     perDrawMode;
+    gctBOOL                     needDump;
+    gctBOOL                     counterEnable;
+};
+
+typedef enum _gceProbeStatus
+{
+    gcvPROBE_Disabled = 0,
+    gcvPROBE_Paused = 1,
+    gcvPROBE_Enabled = 2,
+}
+gceProbeStatus;
+
+typedef enum _gceProbeCmd
+{
+    gcvPROBECMD_BEGIN = 0,
+    gcvPROBECMD_PAUSE = 1,
+    gcvPROBECMD_RESUME = 2,
+    gcvPROBECMD_END = 3,
+}
+gceProbeCmd;
+
+typedef struct _gcsPROBESTATES
+{
+    gceProbeStatus              status;
+    gctUINT32                   probeAddress;
+}gcsPROBESTATES;
 
 /* HAL profile information. */
 typedef struct _gcsPROFILER
@@ -467,6 +1138,8 @@ typedef struct _gcsPROFILER
     gctBOOL         enableHW;
     gctBOOL         enableSH;
     gctBOOL         isSyncMode;
+    gctBOOL         isCLMode;
+    gctBOOL         enablePrint;
     gctBOOL         disableOutputCounter;
 
     gctBOOL         useSocket;
@@ -511,18 +1184,9 @@ typedef struct _gcsPROFILER
     gctUINT32       redundantStateChangeCalls;
 #endif
 
-    gctUINT32       prevVSInstCount;
-    gctUINT32       prevVSBranchInstCount;
-    gctUINT32       prevVSTexInstCount;
-    gctUINT32       prevVSVertexCount;
-    gctUINT32       prevPSInstCount;
-    gctUINT32       prevPSBranchInstCount;
-    gctUINT32       prevPSTexInstCount;
-    gctUINT32       prevPSPixelCount;
-
-#if VIVANTE_PROFILER_NEW
-    gcoBUFOBJ       newCounterBuf[NumOfDrawBuf];
-    gctUINT32       curBufId;
+#if VIVANTE_PROFILER_PROBE
+    gcsPROBEBUFFER  probeBuffer;
+    gctFILE         probeFile;
 #endif
 
 }
@@ -550,10 +1214,74 @@ struct _gcsSHADER_PROFILER
     gctUINT32       shaderOutputRegCount;
 };
 
+/* Construct a Profiler object per context. */
+gceSTATUS
+gcoPROFILER_NEW_Construct(
+    OUT gcoPROFILER * Profiler
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_Destroy(
+    IN gcoPROFILER Profiler
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_Enable(
+    IN gcoPROFILER Profiler
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_Disable(
+    void
+);
+
+gceSTATUS
+gcoPROFILER_NEW_Begin(
+    IN gcoPROFILER Profiler,
+    IN gceCOUNTER_OPTYPE operationType
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_End(
+    IN gcoPROFILER Profiler,
+    IN gctUINT32 DrawID
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_EndFrame(
+    IN gcoPROFILER Profiler
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_RecordCounters(
+    IN gctPOINTER Logical,
+    OUT gcsPROFILER_NEW_COUNTERS * Counters
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_WriteCounters(
+    IN gcoPROFILER Profiler,
+    IN gcsPROFILER_NEW_COUNTERS Counters,
+    IN gctBOOL IsFrameEnd
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_Write(
+    IN gcoPROFILER Profiler,
+    IN gctSIZE_T ByteCount,
+    IN gctCONST_POINTER Data
+    );
+
+gceSTATUS
+gcoPROFILER_NEW_Flush(
+    IN gcoPROFILER Profiler
+    );
+
 /* Initialize the gcsProfiler. */
 gceSTATUS
 gcoPROFILER_Initialize(
     IN gcoHAL Hal,
+    IN gco3D Engine,
     IN gctBOOL Enable
     );
 
@@ -583,9 +1311,15 @@ gcoPROFILER_EndFrame(
     IN gcoHAL Hal
     );
 
+gceSTATUS
+gcoPROFILER_Begin(
+    IN gcoHAL Hal,
+    IN gceCOUNTER_OPTYPE operationType
+    );
+
 /* Call to signal end of draw. */
 gceSTATUS
-gcoPROFILER_EndDraw(
+gcoPROFILER_End(
     IN gcoHAL Hal,
     IN gctBOOL FirstDraw
     );
