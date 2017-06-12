@@ -9,7 +9,7 @@
 
 #include <linux/cpumask.h>
 #include <linux/kthread.h>
-#include <soc/fsl/qman.h>
+#include <linux/fsl_qman.h>
 
 #include "regs.h"
 #include "qi.h"
@@ -107,23 +107,21 @@ static void *caam_iova_to_virt(struct iommu_domain *domain,
 int caam_qi_enqueue(struct device *qidev, struct caam_drv_req *req)
 {
 	struct qm_fd fd;
-	dma_addr_t addr;
 	int ret;
 	int num_retries = 0;
 
-	qm_fd_clear_fd(&fd);
-	qm_fd_set_compound(&fd, qm_sg_entry_get_len(&req->fd_sgt[1]));
-
-	addr = dma_map_single(qidev, req->fd_sgt, sizeof(req->fd_sgt),
+	fd.cmd = 0;
+	fd.format = qm_fd_compound;
+	fd.cong_weight = caam32_to_cpu(req->fd_sgt[1].length);
+	fd.addr = dma_map_single(qidev, req->fd_sgt, sizeof(req->fd_sgt),
 			      DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(qidev, addr)) {
+	if (dma_mapping_error(qidev, fd.addr)) {
 		dev_err(qidev, "DMA mapping error for QI enqueue request\n");
 		return -EIO;
 	}
-	qm_fd_addr_set64(&fd, addr);
 
 	do {
-		ret = qman_enqueue(req->drv_ctx->req_fq, &fd);
+		ret = qman_enqueue(req->drv_ctx->req_fq, &fd, 0);
 		if (likely(!ret))
 			return 0;
 
@@ -139,7 +137,7 @@ int caam_qi_enqueue(struct device *qidev, struct caam_drv_req *req)
 EXPORT_SYMBOL(caam_qi_enqueue);
 
 static void caam_fq_ern_cb(struct qman_portal *qm, struct qman_fq *fq,
-			   const union qm_mr_entry *msg)
+			   const struct qm_mr_entry *msg)
 {
 	const struct qm_fd *fd;
 	struct caam_drv_req *drv_req;
@@ -148,7 +146,7 @@ static void caam_fq_ern_cb(struct qman_portal *qm, struct qman_fq *fq,
 
 	fd = &msg->ern.fd;
 
-	if (qm_fd_get_format(fd) != qm_fd_compound) {
+	if (fd->format != qm_fd_compound) {
 		dev_err(qidev, "Non-compound FD from CAAM\n");
 		return;
 	}
@@ -186,20 +184,22 @@ static struct qman_fq *create_caam_req_fq(struct device *qidev,
 	req_fq->cb.fqs = NULL;
 
 	ret = qman_create_fq(0, QMAN_FQ_FLAG_DYNAMIC_FQID |
-				QMAN_FQ_FLAG_TO_DCPORTAL, req_fq);
+				QMAN_FQ_FLAG_TO_DCPORTAL | QMAN_FQ_FLAG_LOCKED,
+			     req_fq);
 	if (ret) {
 		dev_err(qidev, "Failed to create session req FQ\n");
 		goto create_req_fq_fail;
 	}
 
-	memset(&opts, 0, sizeof(opts));
-	opts.we_mask = cpu_to_be16(QM_INITFQ_WE_FQCTRL | QM_INITFQ_WE_DESTWQ |
-				   QM_INITFQ_WE_CONTEXTB |
-				   QM_INITFQ_WE_CONTEXTA | QM_INITFQ_WE_CGID);
-	opts.fqd.fq_ctrl = cpu_to_be16(QM_FQCTRL_CPCSTASH | QM_FQCTRL_CGE);
-	qm_fqd_set_destwq(&opts.fqd, qm_channel_caam, 2);
-	opts.fqd.context_b = cpu_to_be32(qman_fq_fqid(rsp_fq));
-	qm_fqd_context_a_set64(&opts.fqd, hwdesc);
+	opts.we_mask = QM_INITFQ_WE_FQCTRL | QM_INITFQ_WE_DESTWQ |
+		       QM_INITFQ_WE_CONTEXTB | QM_INITFQ_WE_CONTEXTA |
+		       QM_INITFQ_WE_CGID;
+	opts.fqd.fq_ctrl = QM_FQCTRL_CPCSTASH | QM_FQCTRL_CGE;
+	opts.fqd.dest.channel = qm_channel_caam;
+	opts.fqd.dest.wq = 2;
+	opts.fqd.context_b = qman_fq_fqid(rsp_fq);
+	opts.fqd.context_a.hi = upper_32_bits(hwdesc);
+	opts.fqd.context_a.lo = lower_32_bits(hwdesc);
 	opts.fqd.cgid = qipriv.cgr.cgrid;
 
 	ret = qman_init_fq(req_fq, fq_sched_flag, &opts);
@@ -213,7 +213,7 @@ static struct qman_fq *create_caam_req_fq(struct device *qidev,
 	return req_fq;
 
 init_req_fq_fail:
-	qman_destroy_fq(req_fq);
+	qman_destroy_fq(req_fq, 0);
 create_req_fq_fail:
 	kfree(req_fq);
 	return ERR_PTR(ret);
@@ -281,7 +281,7 @@ empty_fq:
 	if (ret)
 		dev_err(qidev, "OOS of FQID: %u failed\n", fq->fqid);
 
-	qman_destroy_fq(fq);
+	qman_destroy_fq(fq, 0);
 	kfree(fq);
 
 	return ret;
@@ -298,7 +298,7 @@ static int empty_caam_fq(struct qman_fq *fq)
 		if (ret)
 			return ret;
 
-		if (!qm_mcr_np_get(&np, frm_cnt))
+		if (!np.frm_cnt)
 			break;
 
 		msleep(20);
@@ -565,30 +565,28 @@ static enum qman_cb_dqrr_result caam_rsp_fq_dqrr_cb(struct qman_portal *p,
 	const struct qm_fd *fd;
 	struct device *qidev = &(raw_cpu_ptr(&pcpu_qipriv)->net_dev.dev);
 	struct caam_drv_private *priv = dev_get_drvdata(qidev);
-	u32 status;
 
 	if (caam_qi_napi_schedule(p, caam_napi))
 		return qman_cb_dqrr_stop;
 
 	fd = &dqrr->fd;
-	status = be32_to_cpu(fd->status);
-	if (unlikely(status)) {
-		u32 ssrc = status & JRSTA_SSRC_MASK;
-		u8 err_id = status & JRSTA_CCBERR_ERRID_MASK;
+	if (unlikely(fd->status)) {
+		u32 ssrc = fd->status & JRSTA_SSRC_MASK;
+		u8 err_id = fd->status & JRSTA_CCBERR_ERRID_MASK;
 
 		if (ssrc != JRSTA_SSRC_CCB_ERROR ||
 		    err_id != JRSTA_CCBERR_ERRID_ICVCHK)
 			dev_err_ratelimited(qidev,
 					    "Error: %#x in CAAM response FD\n",
-					    status);
+					    fd->status);
 	}
 
-	if (unlikely(qm_fd_get_format(fd) != qm_fd_compound)) {
+	if (unlikely(fd->format != qm_fd_compound)) {
 		dev_err(qidev, "Non-compound FD from CAAM\n");
 		return qman_cb_dqrr_consume;
 	}
 
-	drv_req = caam_iova_to_virt(priv->domain, qm_fd_addr_get64(fd));
+	drv_req = caam_iova_to_virt(priv->domain, fd->addr);
 	if (unlikely(!drv_req)) {
 		dev_err(qidev,
 			"Can't find original request for caam response\n");
@@ -598,7 +596,7 @@ static enum qman_cb_dqrr_result caam_rsp_fq_dqrr_cb(struct qman_portal *p,
 	dma_unmap_single(drv_req->drv_ctx->qidev, qm_fd_addr(fd),
 			 sizeof(drv_req->fd_sgt), DMA_BIDIRECTIONAL);
 
-	drv_req->cbk(drv_req, status);
+	drv_req->cbk(drv_req, fd->status);
 	return qman_cb_dqrr_consume;
 }
 
@@ -622,17 +620,18 @@ static int alloc_rsp_fq_cpu(struct device *qidev, unsigned int cpu)
 		return -ENODEV;
 	}
 
-	memset(&opts, 0, sizeof(opts));
-	opts.we_mask = cpu_to_be16(QM_INITFQ_WE_FQCTRL | QM_INITFQ_WE_DESTWQ |
-				   QM_INITFQ_WE_CONTEXTB |
-				   QM_INITFQ_WE_CONTEXTA | QM_INITFQ_WE_CGID);
-	opts.fqd.fq_ctrl = cpu_to_be16(QM_FQCTRL_CTXASTASHING |
-				       QM_FQCTRL_CPCSTASH | QM_FQCTRL_CGE);
-	qm_fqd_set_destwq(&opts.fqd, qman_affine_channel(cpu), 3);
+	opts.we_mask = QM_INITFQ_WE_FQCTRL | QM_INITFQ_WE_DESTWQ |
+		QM_INITFQ_WE_CONTEXTB | QM_INITFQ_WE_CONTEXTA |
+		QM_INITFQ_WE_CGID;
+	opts.fqd.fq_ctrl = QM_FQCTRL_CTXASTASHING | QM_FQCTRL_CPCSTASH |
+			   QM_FQCTRL_CGE;
+	opts.fqd.dest.channel = qman_affine_channel(cpu);
+	opts.fqd.dest.wq = 3;
 	opts.fqd.cgid = qipriv.cgr.cgrid;
 	opts.fqd.context_a.stashing.exclusive =	QM_STASHING_EXCL_CTX |
 						QM_STASHING_EXCL_DATA;
-	qm_fqd_set_stashing(&opts.fqd, 0, 1, 1);
+	opts.fqd.context_a.stashing.data_cl = 1;
+	opts.fqd.context_a.stashing.context_cl = 1;
 
 	ret = qman_init_fq(fq, QMAN_INITFQ_FLAG_SCHED, &opts);
 	if (ret) {
@@ -662,8 +661,7 @@ static int init_cgr(struct device *qidev)
 
 	qipriv.cgr.cb = cgr_cb;
 	memset(&opts, 0, sizeof(opts));
-	opts.we_mask = cpu_to_be16(QM_CGR_WE_CSCN_EN | QM_CGR_WE_CS_THRES |
-				   QM_CGR_WE_MODE);
+	opts.we_mask = QM_CGR_WE_CSCN_EN | QM_CGR_WE_CS_THRES | QM_CGR_WE_MODE;
 	opts.cgr.cscn_en = QM_CGR_EN;
 	opts.cgr.mode = QMAN_CGR_MODE_FRAME;
 	qm_cgr_cs_thres_set64(&opts.cgr.cs_thres, val, 1);

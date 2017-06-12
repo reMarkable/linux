@@ -9,7 +9,7 @@
 #ifndef __QI_H__
 #define __QI_H__
 
-#include <soc/fsl/qman.h>
+#include <linux/fsl_qman.h>
 #include "compat.h"
 #include "desc.h"
 #include "desc_constr.h"
