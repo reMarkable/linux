@@ -33,6 +33,7 @@
 #define __DPAA_ETH_CEETM_H
 
 #include <net/pkt_sched.h>
+#include <net/pkt_cls.h>
 #include <net/netlink.h>
 #include <lnxwrp_fm.h>
 
