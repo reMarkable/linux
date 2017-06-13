@@ -1759,7 +1759,8 @@ static int ceetm_cls_dump_stats(struct Qdisc *sch, unsigned long arg,
 		}
 	}
 
-	if (gnet_stats_copy_basic(d, NULL, &tmp_bstats) < 0)
+	if (gnet_stats_copy_basic(qdisc_root_sleeping_running(sch),
+				  d, NULL, &tmp_bstats) < 0)
 		return -1;
 
 	if (cq && qman_ceetm_cq_get_dequeue_statistics(cq, 0,
