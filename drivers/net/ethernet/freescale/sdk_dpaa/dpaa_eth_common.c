@@ -575,7 +575,7 @@ dpa_mac_probe(struct platform_device *_of_dev)
 	}
 
 #ifdef CONFIG_FSL_DPAA_1588
-	phandle_prop = of_get_property(mac_node, "ptimer-handle", &lenp);
+	phandle_prop = of_get_property(mac_node, "ptp-timer", &lenp);
 	if (phandle_prop && ((mac_dev->phy_if != PHY_INTERFACE_MODE_SGMII) ||
 			((mac_dev->phy_if == PHY_INTERFACE_MODE_SGMII) &&
 			 (mac_dev->speed == SPEED_1000)))) {
@@ -595,7 +595,7 @@ dpa_mac_probe(struct platform_device *_of_dev)
 	if ((mac_dev->phy_if != PHY_INTERFACE_MODE_SGMII) ||
 	    ((mac_dev->phy_if == PHY_INTERFACE_MODE_SGMII) &&
 			 (mac_dev->speed == SPEED_1000))) {
-		ptp_priv.node = of_parse_phandle(mac_node, "ptimer-handle", 0);
+		ptp_priv.node = of_parse_phandle(mac_node, "ptp-timer", 0);
 		if (ptp_priv.node) {
 			ptp_priv.of_dev = of_find_device_by_node(ptp_priv.node);
 			if (unlikely(ptp_priv.of_dev == NULL)) {
