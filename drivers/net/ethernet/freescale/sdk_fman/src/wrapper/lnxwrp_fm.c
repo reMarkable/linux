@@ -684,9 +684,9 @@ static t_LnxWrpFmDev * ReadFmDevTreeNode (struct platform_device *of_dev)
 
     /* Get the RTC base address and size */
     memset(ids, 0, sizeof(ids));
-    if (WARN_ON(strlen("rtc") >= sizeof(ids[0].name)))
+    if (WARN_ON(strlen("ptp-timer") >= sizeof(ids[0].name)))
         return NULL;
-    strcpy(ids[0].name, "rtc");
+    strcpy(ids[0].name, "ptp-timer");
     if (WARN_ON(strlen("fsl,fman-rtc") >= sizeof(ids[0].compatible)))
         return NULL;
     strcpy(ids[0].compatible, "fsl,fman-rtc");
