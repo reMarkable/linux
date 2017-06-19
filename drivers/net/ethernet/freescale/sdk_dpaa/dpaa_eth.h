@@ -669,6 +669,7 @@ static inline void _dpa_assign_wq(struct dpa_fq *fq)
 struct ptp_priv_s {
 	struct device_node *node;
 	struct platform_device *of_dev;
+	struct ptp_clock *clock;
 	struct mac_device *mac_dev;
 };
 extern struct ptp_priv_s ptp_priv;
