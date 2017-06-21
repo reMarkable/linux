@@ -27,7 +27,7 @@
 #define WACOM_CMD_QUERY3	0x02
 #define WACOM_CMD_THROW0	0x05
 #define WACOM_CMD_THROW1	0x00
-#define WACOM_QUERY_SIZE	19
+#define WACOM_QUERY_SIZE	22
 
 struct wacom_features {
 	int x_max;
@@ -89,8 +89,8 @@ static int wacom_query_device(struct i2c_client *client,
 	features->fw_version = get_unaligned_le16(&data[13]);
 	features->distance_max = data[15];
 	features->distance_physical_max = data[16];
-	features->tilt_x_max = data[17];
-	features->tilt_y_max = data[18];
+	features->tilt_x_max = get_unaligned_le16(&data[17]);
+	features->tilt_y_max = get_unaligned_le16(&data[19]);
 
 	dev_dbg(&client->dev,
 		"x_max:%d, y_max:%d, pressure:%d, fw:%d, "
@@ -111,7 +111,7 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	u8 *data = wac_i2c->data;
 	unsigned int x, y, pressure;
 	unsigned char tip, f1, f2, eraser, distance;
-	char tilt_x, tilt_y;
+	short tilt_x, tilt_y;
 	int error;
 
 	error = i2c_master_recv(wac_i2c->client,
@@ -129,8 +129,8 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	distance = data[10];
 
 	/* Signed */
-	tilt_x = data[11];
-	tilt_y = data[12];
+	tilt_x = le16_to_cpup((__le16 *)&data[11]);
+	tilt_y = le16_to_cpup((__le16 *)&data[13]);
 
 	if (!wac_i2c->prox)
 		wac_i2c->tool = (data[3] & 0x0c) ?
