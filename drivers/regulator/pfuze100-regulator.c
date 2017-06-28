@@ -82,6 +82,7 @@ struct pfuze_chip {
 	struct pfuze_regulator regulator_descs[PFUZE100_MAX_REGULATOR];
 	struct regulator_dev *regulators[PFUZE100_MAX_REGULATOR];
 	struct pfuze_regulator *pfuze_regulators;
+	struct regulator_dev *swbst_reg;
 };
 
 static const int pfuze100_swbst[] = {
@@ -522,6 +523,65 @@ static int pfuze_identify(struct pfuze_chip *pfuze_chip)
 	return 0;
 }
 
+static ssize_t swbst_state_show(struct device *dev,
+                                   struct device_attribute *attr, char *buf)
+{
+	int state;
+	struct regulator_dev *swbst_reg;
+	ssize_t ret;
+	struct pfuze_chip *pfuze_chip = i2c_get_clientdata(to_i2c_client(dev));
+
+	swbst_reg = pfuze_chip->swbst_reg;
+	if (!swbst_reg)
+		return -EINVAL;
+
+	state = regulator_is_enabled_regmap(swbst_reg);
+
+        if (state > 0)
+                ret = sprintf(buf, "enabled\n");
+        else if (state == 0)
+                ret = sprintf(buf, "disabled\n");
+        else
+                ret = sprintf(buf, "unknown\n");
+
+	return ret;
+}
+
+static ssize_t swbst_state_set(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t len)
+{
+	bool enable;
+	ssize_t ret;
+	struct regulator_dev *swbst_reg;
+	struct pfuze_chip *pfuze_chip = i2c_get_clientdata(to_i2c_client(dev));
+
+	swbst_reg = pfuze_chip->swbst_reg;
+	if (!swbst_reg)
+		return -EINVAL;
+
+	if (sysfs_streq(buf, "enabled\n") || sysfs_streq(buf, "1"))
+		enable = true;
+	else if (sysfs_streq(buf, "disabled\n") || sysfs_streq(buf, "0"))
+		enable = false;
+	else
+		return -EINVAL;
+
+	if ((enable && regulator_is_enabled_regmap(swbst_reg)) ||
+	    (!enable && !regulator_is_enabled_regmap(swbst_reg))) {
+		return -EBUSY;
+	}
+
+	ret = enable ? regulator_enable_regmap(swbst_reg) : regulator_disable_regmap(swbst_reg);
+
+	if (ret)
+		return ret;
+
+	return len;
+}
+
+static DEVICE_ATTR(swbst_state, 0644, swbst_state_show, swbst_state_set);
+
 static const struct regmap_config pfuze_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
@@ -645,6 +705,7 @@ static int pfuze100_regulator_probe(struct i2c_client *client,
 		config.of_node = match_of_node(i);
 		config.ena_gpio = -EINVAL;
 
+
 		pfuze_chip->regulators[i] =
 			devm_regulator_register(&client->dev, desc, &config);
 		if (IS_ERR(pfuze_chip->regulators[i])) {
@@ -652,11 +713,22 @@ static int pfuze100_regulator_probe(struct i2c_client *client,
 				pfuze_chip->pfuze_regulators[i].desc.name);
 			return PTR_ERR(pfuze_chip->regulators[i]);
 		}
+
+		if (desc->id == PFUZE100_SWBST) {
+			pfuze_chip->swbst_reg = pfuze_chip->regulators[i];
+		}
+	}
+	if (!pfuze_chip->swbst_reg) {
+		dev_warn(&client->dev, "Didn't find SWBST\n");
 	}
 
 
 	if (of_get_property(client->dev.of_node, "fsl,lpsr-mode", NULL))
 		pfuze_chip->need_restore = true;
+
+	if (device_create_file(&client->dev, &dev_attr_swbst_state) < 0) {
+		dev_err(&client->dev, "Unable to create sysfs file for swbst control\n");
+	}
 
 	return 0;
 }
@@ -732,7 +804,6 @@ static int pfuze_resume(struct device *dev)
 err_ret:
 	return index;
 }
-
 static const struct dev_pm_ops pfuze_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(pfuze_suspend, pfuze_resume)
 };
