@@ -11,6 +11,7 @@
 #define _FSL_ASRC_H
 
 #include <uapi/linux/mxc_asrc.h>
+#include <linux/miscdevice.h>
 
 #define IN	0
 #define OUT	1
@@ -358,6 +359,7 @@ struct fsl_asrc {
 	spinlock_t lock;
 
 	struct fsl_asrc_pair *pair[ASRC_PAIR_MAX_NUM];
+	struct miscdevice asrc_miscdev;
 	unsigned int channel_bits;
 	unsigned int channel_avail;
 	unsigned int pair_streams;
@@ -366,6 +368,7 @@ struct fsl_asrc {
 	int asrc_width;
 
 	u32 regcache_cfg;
+	char name[20];
 };
 
 #define DRV_NAME "fsl-asrc-dai"
