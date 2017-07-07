@@ -161,6 +161,7 @@ static int imx7d_enter_low_power_idle(struct cpuidle_device *dev,
 			 * any additional IPIs.
 			 */
 			if (imx7d_gic_sgis_pending()) {
+				atomic_dec(&master_lpi);
 				index = -1;
 				goto skip_lpi_flow;
 			}
