@@ -252,8 +252,9 @@
 		pass_num = <2>;
 		gvee_pwrup = <0>; /* ms */
 		vneg_pwrup = <3>;
-		vpos_pwrup = <10>;
-		gvdd_pwrup = <10>;
+		vpos_pwrup = <6>;
+		gvdd_pwrup = <3>;
+
 		gvdd_pwrdn = <1>;
 		vpos_pwrdn = <2>;
 		vneg_pwrdn = <6>;
