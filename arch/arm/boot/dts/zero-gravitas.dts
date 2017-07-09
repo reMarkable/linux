@@ -103,6 +103,13 @@
 			gpio-key,wakeup;
 			debounce-interval = <100>;
 		};
+		button_4 {
+			label = "LowPower";
+			gpios = <&gpio3 31 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WAKEUP>;
+			gpio-key,wakeup;
+			debounce-interval = <100>;
+		};
 	};
 
 	usb_charger: usb_charger {
@@ -434,7 +441,7 @@
 				MX6SL_PAD_EPDC_PWRINT__GPIO2_IO12	PAD_CTL_NONE
 
 				/* BQ27441 low power */
-				/*MX6SL_PAD_KEY_ROW3__GPIO3_IO31		0x17000*/
+				MX6SL_PAD_KEY_ROW3__GPIO3_IO31		0x17000
 
 				/* Wacom interrupt */
 				MX6SL_PAD_EPDC_PWRCTRL3__GPIO2_IO10	0x17000
