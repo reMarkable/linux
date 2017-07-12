@@ -16,6 +16,7 @@
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
 #include <linux/regmap.h>
+#include <linux/pm_runtime.h>
 
 #include <sound/asoundef.h>
 #include <sound/dmaengine_pcm.h>
@@ -1443,6 +1444,32 @@ static int fsl_spdif_probe(struct platform_device *pdev)
 	return ret;
 }
 
+#ifdef CONFIG_PM
+static int fsl_spdif_runtime_resume(struct device *dev)
+{
+	struct fsl_spdif_priv *spdif_priv = dev_get_drvdata(dev);
+
+	regcache_cache_only(spdif_priv->regmap, false);
+	regcache_mark_dirty(spdif_priv->regmap);
+
+	regmap_update_bits(spdif_priv->regmap, REG_SPDIF_SRPC,
+			SRPC_CLKSRC_SEL_MASK | SRPC_GAINSEL_MASK,
+			spdif_priv->regcache_srpc);
+
+	return regcache_sync(spdif_priv->regmap);
+}
+
+static int fsl_spdif_runtime_suspend(struct device *dev)
+{
+	struct fsl_spdif_priv *spdif_priv = dev_get_drvdata(dev);
+
+	regmap_read(spdif_priv->regmap, REG_SPDIF_SRPC,
+			&spdif_priv->regcache_srpc);
+	regcache_cache_only(spdif_priv->regmap, true);
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_PM_SLEEP
 static int fsl_spdif_suspend(struct device *dev)
 {
@@ -1470,6 +1497,8 @@ static int fsl_spdif_resume(struct device *dev)
 
 static const struct dev_pm_ops fsl_spdif_pm = {
 	SET_SYSTEM_SLEEP_PM_OPS(fsl_spdif_suspend, fsl_spdif_resume)
+	SET_RUNTIME_PM_OPS(fsl_spdif_runtime_suspend, fsl_spdif_runtime_resume,
+			   NULL)
 };
 
 static struct platform_driver fsl_spdif_driver = {
