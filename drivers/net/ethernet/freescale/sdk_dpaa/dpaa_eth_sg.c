@@ -1016,6 +1016,7 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 #endif /* CONFIG_FSL_DPAA_TS */
 
 #ifndef CONFIG_PPC
+resplit_4k:
 	if (unlikely(dpaa_errata_a010022)) {
 		skb = split_skb_at_4k_boundaries(skb);
 		if (!skb)
@@ -1062,6 +1063,10 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 			struct sk_buff *nskb = skb_copy(skb, GFP_ATOMIC);
 			kfree_skb(skb);
 			skb = nskb;
+#ifndef CONFIG_PPC
+			if (unlikely(dpaa_errata_a010022))
+				goto resplit_4k;
+#endif
 			/* skb_copy() has now linearized the skbuff. */
 		} else if (unlikely(nonlinear)) {
 			/* We are here because the egress skb contains
