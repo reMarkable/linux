@@ -573,7 +573,7 @@ static ssize_t swbst_state_set(struct device *dev,
 		return -EBUSY;
 	}
 
-	ret = enable ? regulator_enable_regmap(swbst_reg) : regulator_enable_regmap(swbst_reg);
+	ret = enable ? regulator_enable_regmap(swbst_reg) : regulator_disable_regmap(swbst_reg);
 
 	if (ret)
 		return ret;
