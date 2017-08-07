@@ -125,12 +125,13 @@
 };
 
 &epdc {
-        pinctrl-names = "default";
-        pinctrl-0 = <&pinctrl_epdc_0>;
-        VCOM-supply = <&VCOM_reg>;
-        DISPLAY-supply = <&DISPLAY_reg>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_epdc_0>;
+	VCOM-supply = <&VCOM_reg>;
+	V3P3-supply = <&V3P3_reg>;
+	DISPLAY-supply = <&DISPLAY_reg>;
 	TMST-supply = <&TMST_reg>;
-        status = "okay";
+	status = "okay";
 };
 
 &gpc {
@@ -322,6 +323,10 @@
 				regulator-min-microvolt = <0xffffff81>;
 				/* 2's-compliment, +127 */
 				regulator-max-microvolt = <0x0000007f>;
+			};
+
+			V3P3_reg: V3P3 {
+				regulator-name = "V3P3";
 			};
 		};
 	};
