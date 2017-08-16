@@ -1,0 +1,22 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/*
+ * Copyright (C) 2015-2016 Freescale Semiconductor, Inc.
+ * Copyright (C) 2017 NXP
+ */
+
+#ifndef __DT_BINDINGS_CLOCK_S32V234_H
+#define __DT_BINDINGS_CLOCK_S32V234_H
+
+#define	S32V234_CLK_DUMMY			0
+#define	S32V234_CLK_FXOSC			1
+#define	S32V234_CLK_FIRC			2
+/* PERIPH PLL */
+#define	S32V234_CLK_PERIPHPLL_SRC_SEL		3
+#define	S32V234_CLK_PERIPHPLL_VCO		4
+#define	S32V234_CLK_PERIPHPLL_PHI0		5
+#define	S32V234_CLK_PERIPHPLL_PHI0_DIV3		6
+#define	S32V234_CLK_PERIPHPLL_PHI0_DIV5		7
+#define	S32V234_CLK_PERIPHPLL_PHI1		8
+
+#define	S32V234_CLK_END				9
+#endif /* __DT_BINDINGS_CLOCK_S32V234_H */
