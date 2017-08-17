@@ -86,7 +86,7 @@
 			gpios = <&gpio3 24 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_LEFT>;
 			gpio-key,wakeup;
-			debounce-interval = <100>;
+			debounce-interval = <10>;
 		};
 
 		button_2 {
@@ -101,7 +101,7 @@
 			gpios = <&gpio3 28 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RIGHT>;
 			gpio-key,wakeup;
-			debounce-interval = <100>;
+			debounce-interval = <10>;
 		};
 		button_4 {
 			label = "LowPower";
