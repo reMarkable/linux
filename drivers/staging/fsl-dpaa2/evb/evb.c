@@ -53,9 +53,9 @@ static const char evb_drv_version[] = "0.1";
 #define DPDMUX_MAX_IRQ_NUM			2
 
 /* MAX FRAME LENGTH (currently 10k) */
-#define EVB_MAX_FRAME_LENGTH			(10 * 1024)
-/* MIN FRAME LENGTH (64 bytes + 4 bytes CRC) */
-#define EVB_MIN_FRAME_LENGTH			68
+#define EVB_MAX_FRAME_LENGTH		(10 * 1024)
+#define EVB_MAX_MTU			(EVB_MAX_FRAME_LENGTH - VLAN_ETH_HLEN)
+#define EVB_MIN_MTU			68
 
 struct evb_port_priv {
 	struct net_device	*netdev;
@@ -457,16 +457,10 @@ static int evb_change_mtu(struct net_device *netdev,
 	if (port_priv->port_index > 0)
 		return -EPERM;
 
-	if (mtu < EVB_MIN_FRAME_LENGTH || mtu > EVB_MAX_FRAME_LENGTH) {
-		netdev_err(netdev, "Invalid MTU %d. Valid range is: %d..%d\n",
-			   mtu, EVB_MIN_FRAME_LENGTH, EVB_MAX_FRAME_LENGTH);
-		return -EINVAL;
-	}
-
 	err = dpdmux_set_max_frame_length(evb_priv->mc_io,
 					  0,
 					  evb_priv->mux_handle,
-					  (uint16_t)mtu);
+					  (uint16_t)(mtu + VLAN_ETH_HLEN));
 
 	if (unlikely(err)) {
 		netdev_err(netdev, "dpdmux_ul_set_max_frame_length err %d\n",
@@ -1291,6 +1285,10 @@ static int evb_probe(struct fsl_mc_device *evb_dev)
 
 			list_add(&port_priv->list, &priv->port_list);
 		} else {
+			/* Set MTU limits only on uplink */
+			port_netdev->min_mtu = EVB_MIN_MTU;
+			port_netdev->max_mtu = EVB_MAX_MTU;
+
 			err = register_netdev(netdev);
 
 			if (err < 0) {
