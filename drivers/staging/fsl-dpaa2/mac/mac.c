@@ -152,16 +152,18 @@ done:
 	return 0;
 }
 
-static int dpaa2_mac_get_settings(struct net_device *netdev,
-				  struct ethtool_cmd *cmd)
+static int dpaa2_mac_get_link_ksettings(struct net_device *netdev,
+					struct ethtool_link_ksettings *ks)
 {
-	return phy_ethtool_gset(netdev->phydev, cmd);
+	phy_ethtool_ksettings_get(netdev->phydev, ks);
+
+	return 0;
 }
 
-static int dpaa2_mac_set_settings(struct net_device *netdev,
-				  struct ethtool_cmd *cmd)
+static int dpaa2_mac_set_link_ksettings(struct net_device *netdev,
+					const struct ethtool_link_ksettings *ks)
 {
-	return phy_ethtool_sset(netdev->phydev, cmd);
+	return phy_ethtool_ksettings_set(netdev->phydev, ks);
 }
 
 static void dpaa2_mac_get_stats(struct net_device *netdev,
@@ -319,8 +321,8 @@ static const struct net_device_ops dpaa2_mac_ndo_ops = {
 };
 
 static const struct ethtool_ops dpaa2_mac_ethtool_ops = {
-	.get_settings		= &dpaa2_mac_get_settings,
-	.set_settings		= &dpaa2_mac_set_settings,
+	.get_link_ksettings	= &dpaa2_mac_get_link_ksettings,
+	.set_link_ksettings	= &dpaa2_mac_set_link_ksettings,
 	.get_strings		= &dpaa2_mac_get_strings,
 	.get_ethtool_stats	= &dpaa2_mac_get_ethtool_stats,
 	.get_sset_count		= &dpaa2_mac_get_sset_count,
