@@ -47,7 +47,6 @@
 #include <linux/phy_fixed.h>
 
 #include "../../fsl-mc/include/mc.h"
-#include "../../fsl-mc/include/mc-sys.h"
 
 #include "dpmac.h"
 #include "dpmac-cmd.h"

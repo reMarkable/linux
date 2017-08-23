@@ -29,8 +29,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include "../../fsl-mc/include/mc-sys.h"
-#include "../../fsl-mc/include/mc-cmd.h"
+#include "../../fsl-mc/include/mc.h"
 #include "dpmac.h"
 #include "dpmac-cmd.h"
 
