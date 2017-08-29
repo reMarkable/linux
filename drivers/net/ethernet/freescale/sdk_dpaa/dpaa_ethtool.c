@@ -84,8 +84,8 @@ static char dpa_stats_global[][ETH_GSTRING_LEN] = {
 #define DPA_STATS_PERCPU_LEN ARRAY_SIZE(dpa_stats_percpu)
 #define DPA_STATS_GLOBAL_LEN ARRAY_SIZE(dpa_stats_global)
 
-static int __cold dpa_get_settings(struct net_device *net_dev,
-		struct ethtool_cmd *et_cmd)
+static int __cold dpa_get_ksettings(struct net_device *net_dev,
+		struct ethtool_link_ksettings *cmd)
 {
 	int			 _errno;
 	struct dpa_priv_s	*priv;
@@ -101,15 +101,13 @@ static int __cold dpa_get_settings(struct net_device *net_dev,
 		return 0;
 	}
 
-	_errno = phy_ethtool_gset(priv->mac_dev->phy_dev, et_cmd);
-	if (unlikely(_errno < 0))
-		netdev_err(net_dev, "phy_ethtool_gset() = %d\n", _errno);
+	phy_ethtool_ksettings_get(priv->mac_dev->phy_dev, cmd);
 
 	return _errno;
 }
 
-static int __cold dpa_set_settings(struct net_device *net_dev,
-		struct ethtool_cmd *et_cmd)
+static int __cold dpa_set_ksettings(struct net_device *net_dev,
+		struct ethtool_link_ksettings *cmd)
 {
 	int			 _errno;
 	struct dpa_priv_s	*priv;
@@ -125,9 +123,9 @@ static int __cold dpa_set_settings(struct net_device *net_dev,
 		return -ENODEV;
 	}
 
-	_errno = phy_ethtool_sset(priv->mac_dev->phy_dev, et_cmd);
+	_errno = phy_ethtool_ksettings_set(priv->mac_dev->phy_dev, cmd);
 	if (unlikely(_errno < 0))
-		netdev_err(net_dev, "phy_ethtool_sset() = %d\n", _errno);
+		netdev_err(net_dev, "phy_ethtool_ksettings_set() = %d\n", _errno);
 
 	return _errno;
 }
@@ -522,8 +520,8 @@ static void dpa_get_strings(struct net_device *net_dev, u32 stringset, u8 *data)
 }
 
 const struct ethtool_ops dpa_ethtool_ops = {
-	.get_settings = dpa_get_settings,
-	.set_settings = dpa_set_settings,
+	.get_link_ksettings = dpa_get_ksettings,
+	.set_link_ksettings = dpa_set_ksettings,
 	.get_drvinfo = dpa_get_drvinfo,
 	.get_msglevel = dpa_get_msglevel,
 	.set_msglevel = dpa_set_msglevel,
