@@ -107,7 +107,7 @@ static int __cold dpa_get_ksettings(struct net_device *net_dev,
 }
 
 static int __cold dpa_set_ksettings(struct net_device *net_dev,
-		struct ethtool_link_ksettings *cmd)
+		const struct ethtool_link_ksettings *cmd)
 {
 	int			 _errno;
 	struct dpa_priv_s	*priv;
