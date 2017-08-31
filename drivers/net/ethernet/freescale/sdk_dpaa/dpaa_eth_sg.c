@@ -100,8 +100,12 @@ static int _dpa_bp_add_8_bufs(const struct dpa_bp *dpa_bp)
 		 * an entire cacheline for performance reasons.
 		 */
 #ifndef CONFIG_PPC
-		if (unlikely(dpaa_errata_a010022))
-			new_buf = page_address(alloc_page(GFP_ATOMIC));
+		if (unlikely(dpaa_errata_a010022)) {
+			struct page *new_page = alloc_page(GFP_ATOMIC);
+			if (unlikely(!new_page))
+				goto netdev_alloc_failed;
+			new_buf = page_address(new_page);
+		}
 		else
 #endif
 		new_buf = netdev_alloc_frag(SMP_CACHE_BYTES + DPA_BP_RAW_SIZE);
