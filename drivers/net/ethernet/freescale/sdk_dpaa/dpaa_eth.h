@@ -680,15 +680,17 @@ static inline void _dpa_bp_free_pf(void *addr)
 	put_page(virt_to_head_page(addr));
 }
 
-/* TODO: LS1043A SoC has a HW issue regarding FMan DMA transactions; The issue
- * manifests itself at high traffic rates when frames exceed 4K memory
- * boundaries; For the moment, we use a SW workaround to avoid frames larger
- * than 4K or that exceed 4K alignments.
+/* LS1043A SoC has a HW issue regarding FMan DMA transactions; The issue
+ * manifests itself at high traffic rates when frames cross 4K memory
+ * boundaries or when they are not aligned to 16 bytes; For the moment, we
+ * use a SW workaround to avoid frames larger than 4K or that exceed 4K
+ * alignments and to realign the frames to 16 bytes.
  */
 
 #ifndef CONFIG_PPC
 extern bool dpaa_errata_a010022; /* SoC affected by A010022 errata */
 
+#define NONREC_MARK	0x01
 #define HAS_DMA_ISSUE(start, size) \
 	(((u64)(start) + (size)) > (((u64)(start) + 0x1000) & ~0xFFF))
 #define BOUNDARY_4K(start, size) (((u64)(start) + (u64)(size)) & ~0xFFF)
