@@ -742,13 +742,18 @@ int __hot skb_to_contig_fd(struct dpa_priv_s *priv,
 EXPORT_SYMBOL(skb_to_contig_fd);
 
 #ifndef CONFIG_PPC
-/* Verify the conditions that trigger the A010022 errata: 4K memory address
- * crossings.
+/* Verify the conditions that trigger the A010022 errata: data unaligned to
+ * 16 bytes and 4K memory address crossings.
  */
-bool a010022_check_skb(struct sk_buff *skb)
+static bool a010022_check_skb(struct sk_buff *skb, struct dpa_priv_s *priv)
 {
 	int nr_frags, i = 0;
 	skb_frag_t *frag;
+
+	/* Check if the headroom is aligned */
+	if (((u16)skb->data - priv->tx_headroom) %
+	    priv->buf_layout[TX].data_align != 0)
+		return true;
 
 	/* Check if the headroom crosses a boundary */
 	if (HAS_DMA_ISSUE(skb->head, skb_headroom(skb)))
@@ -767,7 +772,7 @@ bool a010022_check_skb(struct sk_buff *skb)
 	while (i < nr_frags) {
 		frag = &skb_shinfo(skb)->frags[i];
 
-		/* Check if the paged fragment crosses a boundary from its
+		/* Check if a paged fragment crosses a boundary from its
 		 * offset to its end.
 		 */
 		if (HAS_DMA_ISSUE(frag->page_offset, frag->size))
@@ -783,13 +788,17 @@ bool a010022_check_skb(struct sk_buff *skb)
  * page. Build a new skb around the new buffer and release the old one.
  * A performance drop should be expected.
  */
-struct sk_buff *a010022_realign_skb(struct sk_buff *skb)
+static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
+					   struct dpa_priv_s *priv)
 {
-	int headroom = skb_headroom(skb);
+	int trans_offset = skb_transport_offset(skb);
+	int net_offset = skb_network_offset(skb);
 	struct sk_buff *nskb = NULL;
+	int nsize, headroom;
 	struct page *npage;
 	void *npage_addr;
-	int nsize;
+
+	headroom = priv->tx_headroom;
 
 	npage = alloc_page(GFP_ATOMIC);
 	if (unlikely(!npage)) {
@@ -821,6 +830,13 @@ struct sk_buff *a010022_realign_skb(struct sk_buff *skb)
 		goto err;
 	}
 	copy_skb_header(nskb, skb);
+
+	/* We move the headroom when we align it so we have to reset the
+	 * network and transport header offsets relative to the new data
+	 * pointer. The checksum offload relies on these offsets.
+	 */
+	skb_set_network_header(nskb, net_offset);
+	skb_set_transport_header(nskb, trans_offset);
 
 	dev_kfree_skb(skb);
 	return nskb;
@@ -1024,8 +1040,8 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 #endif /* CONFIG_FSL_DPAA_TS */
 
 #ifndef CONFIG_PPC
-	if (unlikely(dpaa_errata_a010022) && a010022_check_skb(skb)) {
-		skb = a010022_realign_skb(skb);
+	if (unlikely(dpaa_errata_a010022) && a010022_check_skb(skb, priv)) {
+		skb = a010022_realign_skb(skb, priv);
 		if (!skb)
 			goto skb_to_fd_failed;
 	}
@@ -1072,8 +1088,8 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 			skb = nskb;
 #ifndef CONFIG_PPC
 			if (unlikely(dpaa_errata_a010022) &&
-			    a010022_check_skb(skb)) {
-				skb = realign_skb(skb);
+			    a010022_check_skb(skb, priv)) {
+				skb = a010022_realign_skb(skb, priv);
 				if (!skb)
 					goto skb_to_fd_failed;
 			}
