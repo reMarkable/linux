@@ -1024,7 +1024,6 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 #endif /* CONFIG_FSL_DPAA_TS */
 
 #ifndef CONFIG_PPC
-realign_4k:
 	if (unlikely(dpaa_errata_a010022) && a010022_check_skb(skb)) {
 		skb = a010022_realign_skb(skb);
 		if (!skb)
@@ -1073,8 +1072,11 @@ realign_4k:
 			skb = nskb;
 #ifndef CONFIG_PPC
 			if (unlikely(dpaa_errata_a010022) &&
-			    a010022_check_skb(skb))
-				goto realign_4k;
+			    a010022_check_skb(skb)) {
+				skb = realign_skb(skb);
+				if (!skb)
+					goto skb_to_fd_failed;
+			}
 #endif
 			/* skb_copy() has now linearized the skbuff. */
 		} else if (unlikely(nonlinear)) {
