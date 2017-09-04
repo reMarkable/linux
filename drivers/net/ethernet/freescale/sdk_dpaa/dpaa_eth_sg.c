@@ -757,7 +757,7 @@ static bool a010022_check_skb(struct sk_buff *skb, struct dpa_priv_s *priv)
 	skb_frag_t *frag;
 
 	/* Check if the headroom is aligned */
-	if (((u16)skb->data - priv->tx_headroom) %
+	if (((uintptr_t)skb->data - priv->tx_headroom) %
 	    priv->buf_layout[TX].data_align != 0)
 		return true;
 
