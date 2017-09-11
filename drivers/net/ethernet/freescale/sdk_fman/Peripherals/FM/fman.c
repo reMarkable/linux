@@ -31,6 +31,8 @@
  */
 
 
+#include "std_ext.h"
+#include "error_ext.h"
 #include <linux/math64.h>
 #include "fsl_fman.h"
 #include "dpaa_integration_ext.h"

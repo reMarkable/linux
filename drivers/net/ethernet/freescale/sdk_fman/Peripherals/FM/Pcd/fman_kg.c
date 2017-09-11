@@ -30,6 +30,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "std_ext.h"
+#include "error_ext.h"
 #include "fsl_fman_kg.h"
 
 /****************************************/

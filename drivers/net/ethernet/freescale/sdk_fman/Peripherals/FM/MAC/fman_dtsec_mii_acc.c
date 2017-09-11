@@ -31,6 +31,8 @@
  */
 
 
+#include "std_ext.h"
+#include "error_ext.h"
 #include "common/general.h"
 #include "fsl_fman_dtsec_mii_acc.h"
 

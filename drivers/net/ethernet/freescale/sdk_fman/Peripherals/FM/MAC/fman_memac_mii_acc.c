@@ -31,6 +31,8 @@
  */
 
 
+#include "std_ext.h"
+#include "error_ext.h"
 #include "fsl_fman_memac_mii_acc.h"
 
 static void write_phy_reg_10g(struct memac_mii_access_mem_map *mii_regs,
