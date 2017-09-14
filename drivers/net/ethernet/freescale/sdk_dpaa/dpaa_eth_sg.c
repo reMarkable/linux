@@ -42,6 +42,7 @@
 #include <linux/skbuff.h>
 #include <linux/highmem.h>
 #include <linux/fsl_bman.h>
+#include <net/sock.h>
 
 #include "dpaa_eth.h"
 #include "dpaa_eth_common.h"
@@ -808,7 +809,11 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 	struct page *npage;
 	void *npage_addr;
 
-	headroom = priv->tx_headroom;
+	/* Guarantee the minimum required headroom */
+	if (skb_headroom(skb) >= priv->tx_headroom)
+		headroom = skb_headroom(skb);
+	else
+		headroom = priv->tx_headroom;
 
 	npage = alloc_page(GFP_ATOMIC);
 	if (unlikely(!npage)) {
@@ -832,8 +837,11 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 	if (unlikely(!nskb))
 		goto err;
 
-	/* Code borrowed and adapted from skb_copy() */
-	skb_reserve(nskb, headroom);
+	/* Reserve only the needed headroom in order to guarantee the data's
+	 * alignment.
+	 * Code borrowed and adapted from skb_copy().
+	 */
+	skb_reserve(nskb, priv->tx_headroom);
 	skb_put(nskb, skb->len);
 	if (skb_copy_bits(skb, 0, nskb->data, skb->len)) {
 		WARN_ONCE(1, "skb parsing failure\n");
@@ -841,6 +849,16 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 	}
 	copy_skb_header(nskb, skb);
 
+#ifdef CONFIG_FSL_DPAA_TS
+	/* Copy relevant timestamp info from the old skb to the new */
+	if (priv->ts_tx_en) {
+		skb_shinfo(nskb)->tx_flags = skb_shinfo(skb)->tx_flags;
+		skb_shinfo(nskb)->hwtstamps = skb_shinfo(skb)->hwtstamps;
+		skb_shinfo(nskb)->tskey = skb_shinfo(skb)->tskey;
+		if (skb->sk)
+			skb_set_owner_w(nskb, skb->sk);
+	}
+#endif
 	/* We move the headroom when we align it so we have to reset the
 	 * network and transport header offsets relative to the new data
 	 * pointer. The checksum offload relies on these offsets.
@@ -1041,6 +1059,16 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 
 	clear_fd(&fd);
 
+#ifndef CONFIG_PPC
+	if (unlikely(dpaa_errata_a010022) && a010022_check_skb(skb, priv)) {
+		skb = a010022_realign_skb(skb, priv);
+		if (!skb)
+			goto skb_to_fd_failed;
+	}
+#endif
+
+	nonlinear = skb_is_nonlinear(skb);
+
 #ifdef CONFIG_FSL_DPAA_1588
 	if (priv->tsu && priv->tsu->valid && priv->tsu->hwts_tx_en_ioctl)
 		fd.cmd |= FM_FD_CMD_UPD;
@@ -1051,16 +1079,6 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 		fd.cmd |= FM_FD_CMD_UPD;
 	skb_shinfo(skb)->tx_flags |= SKBTX_IN_PROGRESS;
 #endif /* CONFIG_FSL_DPAA_TS */
-
-#ifndef CONFIG_PPC
-	if (unlikely(dpaa_errata_a010022) && a010022_check_skb(skb, priv)) {
-		skb = a010022_realign_skb(skb, priv);
-		if (!skb)
-			goto skb_to_fd_failed;
-	}
-#endif
-
-	nonlinear = skb_is_nonlinear(skb);
 
 	/* MAX_SKB_FRAGS is larger than our DPA_SGT_MAX_ENTRIES; make sure
 	 * we don't feed FMan with more fragments than it supports.
