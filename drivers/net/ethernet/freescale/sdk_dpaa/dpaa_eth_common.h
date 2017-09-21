@@ -143,7 +143,6 @@ void __cold dpa_timeout(struct net_device *net_dev);
 void __cold
 dpa_get_stats64(struct net_device *net_dev,
 		struct rtnl_link_stats64 *stats);
-int dpa_change_mtu(struct net_device *net_dev, int new_mtu);
 int dpa_ndo_init(struct net_device *net_dev);
 int dpa_set_features(struct net_device *dev, netdev_features_t features);
 netdev_features_t dpa_fix_features(struct net_device *dev,

@@ -681,7 +681,6 @@ static const struct net_device_ops dpa_private_ops = {
 #ifdef CONFIG_FSL_DPAA_ETH_USE_NDO_SELECT_QUEUE
 	.ndo_select_queue = dpa_select_queue,
 #endif
-	.ndo_change_mtu = dpa_change_mtu,
 	.ndo_set_rx_mode = dpa_set_rx_mode,
 	.ndo_init = dpa_ndo_init,
 	.ndo_set_features = dpa_set_features,
@@ -757,6 +756,19 @@ static int dpa_private_netdev_init(struct net_device *net_dev)
 
 	net_dev->mem_start = priv->mac_dev->res->start;
 	net_dev->mem_end = priv->mac_dev->res->end;
+
+	/* Configure the maximum MTU according to the FMan's MAXFRM */
+	net_dev->min_mtu = ETH_MIN_MTU;
+	net_dev->max_mtu = dpa_get_max_mtu();
+
+#ifndef CONFIG_PPC
+	/* Due to the A010022 FMan errata, we can not use contig frames larger
+	 * than 4K, nor S/G frames. We need to prevent the user from setting a
+	 * large MTU.
+	 */
+	if (unlikely(dpaa_errata_a010022))
+		net_dev->max_mtu = DPA_BP_RAW_SIZE;
+#endif
 
 	net_dev->hw_features |= (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM |
 		NETIF_F_LLTX);

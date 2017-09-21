@@ -261,31 +261,6 @@ dpa_get_stats64(struct net_device *net_dev,
 }
 EXPORT_SYMBOL(dpa_get_stats64);
 
-int dpa_change_mtu(struct net_device *net_dev, int new_mtu)
-{
-	int max_mtu = dpa_get_max_mtu();
-
-#ifndef CONFIG_PPC
-	/* Due to the A010022 FMan errata, we can not use contig frames larger
-	 * than 4K, nor S/G frames. We need to prevent the user from setting a
-	 * large MTU.
-	 */
-	if (unlikely(dpaa_errata_a010022))
-		max_mtu = DPA_BP_RAW_SIZE;
-#endif
-
-	/* Make sure we don't exceed the Ethernet controller's MAXFRM */
-	if (new_mtu < 68 || new_mtu > max_mtu) {
-		netdev_err(net_dev, "Invalid L3 mtu %d (must be between %d and %d).\n",
-				new_mtu, 68, max_mtu);
-		return -EINVAL;
-	}
-	net_dev->mtu = new_mtu;
-
-	return 0;
-}
-EXPORT_SYMBOL(dpa_change_mtu);
-
 /* .ndo_init callback */
 int dpa_ndo_init(struct net_device *net_dev)
 {
