@@ -638,7 +638,6 @@ static int dpaa2_mac_remove(struct fsl_mc_device *mc_dev)
 	free_netdev(priv->netdev);
 
 	dev_set_drvdata(dev, NULL);
-	kfree(priv);
 
 	return 0;
 }
