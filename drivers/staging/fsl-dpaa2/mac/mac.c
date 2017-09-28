@@ -623,6 +623,15 @@ static int dpaa2_mac_remove(struct fsl_mc_device *mc_dev)
 {
 	struct device		*dev = &mc_dev->dev;
 	struct dpaa2_mac_priv	*priv = dev_get_drvdata(dev);
+	struct net_device	*netdev = priv->netdev;
+
+	dpaa2_mac_stop(netdev);
+
+	if (phy_is_pseudo_fixed_link(netdev->phydev))
+		fixed_phy_unregister(netdev->phydev);
+	else
+		phy_disconnect(netdev->phydev);
+	netdev->phydev = NULL;
 
 #ifdef CONFIG_FSL_DPAA2_MAC_NETDEVS
 	unregister_netdev(priv->netdev);
