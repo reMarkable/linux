@@ -193,6 +193,7 @@ struct fsl_hifi4 {
 	struct imx_sc_ipc		*hifi_ipcHandle;
 	unsigned int			hifi_mu_id;
 	int				hifi_mu_init;
+	atomic_long_t			refcnt;
 	unsigned long			paddr;
 	unsigned long			dram0;
 	unsigned long			dram1;
@@ -303,6 +304,7 @@ static void hifi4_load_firmware(const struct firmware *fw, void *context);
 u32 icm_intr_send(struct fsl_hifi4 *hifi4_priv, u32 msg);
 u32 icm_intr_extended_send(struct fsl_hifi4 *hifi4_priv, u32 msg,
 					struct hifi4_ext_msg *ext_msg);
+int send_dpu_ext_msg_addr(struct fsl_hifi4 *hifi4_priv);
 long icm_ack_wait(struct fsl_hifi4 *hifi4_priv, u32 msg);
 
 unsigned int xtlib_split_pi_library_size(
