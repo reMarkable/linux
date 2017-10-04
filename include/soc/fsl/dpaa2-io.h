@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause) */
 /*
  * Copyright 2014-2016 Freescale Semiconductor Inc.
- * Copyright NXP
+ * Copyright 2017 NXP
  *
  */
 #ifndef __FSL_DPAA2_IO_H
@@ -120,6 +120,18 @@ struct dpaa2_io_store *dpaa2_io_store_create(unsigned int max_frames,
 					     struct device *dev);
 void dpaa2_io_store_destroy(struct dpaa2_io_store *s);
 struct dpaa2_dq *dpaa2_io_store_next(struct dpaa2_io_store *s, int *is_last);
+
+/* Order Restoration Support */
+int dpaa2_io_service_enqueue_orp_fq(struct dpaa2_io *d, u32 fqid,
+				    const struct dpaa2_fd *fd, u16 orpid,
+				    u16 seqnum, int last);
+
+int dpaa2_io_service_enqueue_orp_qd(struct dpaa2_io *d, u32 qdid, u8 prio,
+				    u16 qdbin, const struct dpaa2_fd *fd,
+				    u16 orpid, u16 seqnum, int last);
+
+int dpaa2_io_service_orp_seqnum_drop(struct dpaa2_io *d, u16 orpid,
+				     u16 seqnum);
 
 int dpaa2_io_query_fq_count(struct dpaa2_io *d, u32 fqid,
 			    u32 *fcnt, u32 *bcnt);

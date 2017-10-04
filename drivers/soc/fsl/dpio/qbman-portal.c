@@ -413,6 +413,43 @@ void qbman_eq_desc_set_no_orp(struct qbman_eq_desc *d, int respond_success)
 		d->verb |= enqueue_rejects_to_fq;
 }
 
+/**
+ * qbman_eq_desc_set_orp() - Set order-restoration in the enqueue descriptor
+ * @d: the enqueue descriptor.
+ * @response_success: 1 = enqueue with response always; 0 = enqueue with
+ * rejections returned on a FQ.
+ * @oprid: the order point record id.
+ * @seqnum: the order restoration sequence number.
+ * @incomplete: indicates whether this is the last fragments using the same
+ * sequence number.
+ */
+void qbman_eq_desc_set_orp(struct qbman_eq_desc *d, int respond_success,
+			   u16 oprid, u16 seqnum, int incomplete)
+{
+	d->verb |= (1 << QB_ENQUEUE_CMD_ORP_ENABLE_SHIFT);
+	if (respond_success)
+		d->verb |= enqueue_response_always;
+	else
+		d->verb |= enqueue_rejects_to_fq;
+	d->orpid = cpu_to_le16(oprid);
+	d->seqnum = cpu_to_le16((!!incomplete << 14) | seqnum);
+}
+
+/**
+ * qbman_eq_desc_set_orp_hole() - fill a hole in the order-restoration sequence
+ * without any enqueue
+ * @d: the enqueue descriptor.
+ * @oprid: the order point record id.
+ * @seqnum: the order restoration sequence number.
+ */
+void qbman_eq_desc_set_orp_hole(struct qbman_eq_desc *d, u16 oprid,
+				u16 seqnum)
+{
+	d->verb |= (1 << QB_ENQUEUE_CMD_ORP_ENABLE_SHIFT) | enqueue_empty;
+	d->orpid = cpu_to_le16(oprid);
+	d->seqnum = cpu_to_le16(seqnum);
+}
+
 /*
  * Exactly one of the following descriptor "targets" should be set. (Calling any
  * one of these will replace the effect of any prior call to one of these.)
