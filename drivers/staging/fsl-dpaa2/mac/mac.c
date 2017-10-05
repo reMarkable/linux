@@ -118,15 +118,6 @@ static void dpaa2_mac_link_changed(struct net_device *netdev)
 		dev_err(&priv->mc_dev->dev, "dpmac_set_link_state: %d\n", err);
 }
 
-#ifdef CONFIG_FSL_DPAA2_MAC_NETDEVS
-static netdev_tx_t dpaa2_mac_drop_frame(struct sk_buff *skb,
-					struct net_device *dev)
-{
-	/* we don't support I/O for now, drop the frame */
-	dev_kfree_skb_any(skb);
-	return NETDEV_TX_OK;
-}
-
 static int dpaa2_mac_open(struct net_device *netdev)
 {
 	/* start PHY state machine */
@@ -149,6 +140,15 @@ static int dpaa2_mac_stop(struct net_device *netdev)
 
 done:
 	return 0;
+}
+
+#ifdef CONFIG_FSL_DPAA2_MAC_NETDEVS
+static netdev_tx_t dpaa2_mac_drop_frame(struct sk_buff *skb,
+					struct net_device *dev)
+{
+	/* we don't support I/O for now, drop the frame */
+	dev_kfree_skb_any(skb);
+	return NETDEV_TX_OK;
 }
 
 static int dpaa2_mac_get_link_ksettings(struct net_device *netdev,
@@ -313,9 +313,9 @@ static int dpaa2_mac_get_sset_count(struct net_device *dev, int sset)
 }
 
 static const struct net_device_ops dpaa2_mac_ndo_ops = {
-	.ndo_start_xmit		= &dpaa2_mac_drop_frame,
 	.ndo_open		= &dpaa2_mac_open,
 	.ndo_stop		= &dpaa2_mac_stop,
+	.ndo_start_xmit		= &dpaa2_mac_drop_frame,
 	.ndo_get_stats64	= &dpaa2_mac_get_stats,
 };
 
@@ -545,10 +545,9 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 	}
 #endif /* CONFIG_FSL_DPAA2_MAC_NETDEVS */
 
-	/* probe the PHY as a fixed-link if the link type declared in DPC
-	 * explicitly mandates this
+	/* probe the PHY as a fixed-link if there's a phy-handle defined
+	 * in the device tree
 	 */
-
 	phy_node = of_parse_phandle(dpmac_node, "phy-handle", 0);
 	if (!phy_node) {
 		goto probe_fixed_link;
@@ -599,12 +598,8 @@ probe_fixed_link:
 		dev_info(dev, "Registered fixed PHY.\n");
 	}
 
-	/* start PHY state machine */
-#ifdef CONFIG_FSL_DPAA2_MAC_NETDEVS
 	dpaa2_mac_open(netdev);
-#else /* CONFIG_FSL_DPAA2_MAC_NETDEVS */
-	phy_start(netdev->phydev);
-#endif /* CONFIG_FSL_DPAA2_MAC_NETDEVS */
+
 	return 0;
 
 err_defer:
