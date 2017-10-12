@@ -4608,6 +4608,47 @@ t_Error LnxwrpFmPortIOCTL(t_LnxWrpFmPortDev *p_LnxWrpFmPortDev, unsigned int cmd
             break;
         }
 
+        case FM_PORT_IOC_GET_MAC_FRAME_SIZE_COUNTERS:
+        {
+            t_LnxWrpFmDev *p_LnxWrpFmDev =
+                    (t_LnxWrpFmDev *)p_LnxWrpFmPortDev->h_LnxWrpFmDev;
+            ioc_fm_port_mac_frame_size_counters_t param;
+            t_FmMacFrameSizeCounters frameSizeCounters;
+            int mac_id = p_LnxWrpFmPortDev->id;
+
+            if (!p_LnxWrpFmDev)
+                RETURN_ERROR(MINOR, E_NOT_AVAILABLE, ("Port not initialized or other error!"));
+
+            if (&p_LnxWrpFmDev->txPorts[mac_id] != p_LnxWrpFmPortDev &&
+                &p_LnxWrpFmDev->rxPorts[mac_id] != p_LnxWrpFmPortDev)
+                mac_id += FM_MAX_NUM_OF_1G_MACS; /* 10G port */
+
+            if (!p_LnxWrpFmDev->macs[mac_id].h_Dev)
+                RETURN_ERROR(MINOR, E_NOT_AVAILABLE, ("Port not initialized or other error!"));
+
+            if (copy_from_user(&param, (ioc_fm_port_mac_frame_size_counters_t *)arg,
+                        sizeof(ioc_fm_port_mac_frame_size_counters_t)))
+                RETURN_ERROR(MINOR, E_WRITE_FAILED, NO_MSG);
+
+            if (FM_MAC_GetFrameSizeCounters(p_LnxWrpFmDev->macs[mac_id].h_Dev,
+                        &frameSizeCounters, param.type))
+                RETURN_ERROR(MINOR, E_WRITE_FAILED, NO_MSG);
+
+            param.count_pkts_64 = frameSizeCounters.count_pkts_64;
+            param.count_pkts_65_to_127 = frameSizeCounters.count_pkts_65_to_127;
+            param.count_pkts_128_to_255 = frameSizeCounters.count_pkts_128_to_255;
+            param.count_pkts_256_to_511 = frameSizeCounters.count_pkts_256_to_511;
+            param.count_pkts_512_to_1023 = frameSizeCounters.count_pkts_512_to_1023;
+            param.count_pkts_1024_to_1518 = frameSizeCounters.count_pkts_1024_to_1518;
+            param.count_pkts_1519_to_1522 = frameSizeCounters.count_pkts_1519_to_1522;
+
+            if (copy_to_user((ioc_fm_port_mac_frame_size_counters_t *)arg, &param,
+                        sizeof(ioc_fm_port_mac_frame_size_counters_t)))
+                RETURN_ERROR(MINOR, E_WRITE_FAILED, NO_MSG);
+
+            break;
+        }
+
         case FM_PORT_IOC_GET_BMI_COUNTERS:
         {
             t_LnxWrpFmDev *p_LnxWrpFmDev =

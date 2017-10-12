@@ -939,6 +939,31 @@ typedef struct ioc_fm_port_vsp_alloc_params_t {
 
 #define FM_PORT_IOC_GET_BMI_COUNTERS _IOR(FM_IOC_TYPE_BASE, FM_PORT_IOC_NUM(42), ioc_fm_port_bmi_stats_t)
 
+typedef struct ioc_fm_port_mac_frame_size_counters_t {
+
+        e_CommMode type;
+        uint64_t  count_pkts_64;            /**< 64 byte frame counter */
+        uint64_t  count_pkts_65_to_127;     /**< 65 to 127 byte frame counter */
+        uint64_t  count_pkts_128_to_255;    /**< 128 to 255 byte frame counter */
+        uint64_t  count_pkts_256_to_511;    /**< 256 to 511 byte frame counter */
+        uint64_t  count_pkts_512_to_1023;   /**< 512 to 1023 byte frame counter */
+        uint64_t  count_pkts_1024_to_1518;  /**< 1024 to 1518 byte frame counter */
+        uint64_t  count_pkts_1519_to_1522;  /**< 1519 to 1522 byte good frame count */
+} ioc_fm_port_mac_frame_size_counters_t;
+
+/**************************************************************************//**
+ @Function      FM_MAC_GetFrameSizeCounters
+
+ @Description   get MAC statistics counters for different frame size
+
+ @Param[out]    ioc_fm_port_mac_frame_size_counters_t    A structure holding the counters
+
+ @Return        E_OK on success; Error code otherwise.
+
+ @Cautions      Allowed only following FM_Init().
+*//***************************************************************************/
+#define FM_PORT_IOC_GET_MAC_FRAME_SIZE_COUNTERS        _IOR(FM_IOC_TYPE_BASE, FM_PORT_IOC_NUM(43), ioc_fm_port_mac_frame_size_counters_t)
+
 
 /** @} */ /* end of lnx_ioctl_FM_PORT_pcd_runtime_control_grp group */
 /** @} */ /* end of lnx_ioctl_FM_PORT_runtime_control_grp group */

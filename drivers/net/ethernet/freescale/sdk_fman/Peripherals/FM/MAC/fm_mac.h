@@ -106,6 +106,7 @@ typedef struct {
 
     t_Error (*f_FM_MAC_ResetCounters) (t_Handle h_FmMac);
     t_Error (*f_FM_MAC_GetStatistics) (t_Handle h_FmMac, t_FmMacStatistics *p_Statistics);
+    t_Error (*f_FM_MAC_GetFrameSizeCounters) (t_Handle h_FmMac, t_FmMacFrameSizeCounters *p_FrameSizeCounters, e_CommMode type);
 
     t_Error (*f_FM_MAC_ModifyMacAddr) (t_Handle h_FmMac, t_EnetAddr *p_EnetAddr);
     t_Error (*f_FM_MAC_AddHashMacAddr) (t_Handle h_FmMac, t_EnetAddr *p_EnetAddr);

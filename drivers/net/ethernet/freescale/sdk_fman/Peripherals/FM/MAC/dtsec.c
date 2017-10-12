@@ -1389,6 +1389,7 @@ static void InitFmMacControllerDriver(t_FmMacControllerDriver *p_FmMacController
 
     p_FmMacControllerDriver->f_FM_MAC_ResetCounters             = DtsecResetCounters;
     p_FmMacControllerDriver->f_FM_MAC_GetStatistics             = DtsecGetStatistics;
+    p_FmMacControllerDriver->f_FM_MAC_GetFrameSizeCounters		= NULL;
 
     p_FmMacControllerDriver->f_FM_MAC_ModifyMacAddr             = DtsecModifyMacAddress;
     p_FmMacControllerDriver->f_FM_MAC_AddHashMacAddr            = DtsecAddHashMacAddress;

@@ -438,6 +438,47 @@ static t_Error TgecGetStatistics(t_Handle h_Tgec, t_FmMacStatistics *p_Statistic
 
 /* ......................................................................... */
 
+static t_Error TgecGetFrameSizeCounters(t_Handle h_Tgec, t_FmMacFrameSizeCounters *p_FrameSizeCounters, e_CommMode type)
+{
+    t_Tgec              *p_Tgec = (t_Tgec *)h_Tgec;
+    struct tgec_regs    *p_TgecMemMap;
+
+    SANITY_CHECK_RETURN_ERROR(p_Tgec, E_NULL_POINTER);
+    SANITY_CHECK_RETURN_ERROR(!p_Tgec->p_TgecDriverParam, E_INVALID_STATE);
+    SANITY_CHECK_RETURN_ERROR(p_FrameSizeCounters, E_NULL_POINTER);
+
+    p_TgecMemMap = p_Tgec->p_MemMap;
+
+    switch (type)
+    {
+    case e_COMM_MODE_NONE:
+    	break;
+
+    case e_COMM_MODE_RX:
+        p_FrameSizeCounters->count_pkts_64             = fman_tgec_get_counter(p_TgecMemMap, E_TGEC_COUNTER_R64);
+        p_FrameSizeCounters->count_pkts_65_to_127      = fman_tgec_get_counter(p_TgecMemMap, E_TGEC_COUNTER_R127);
+        p_FrameSizeCounters->count_pkts_128_to_255     = fman_tgec_get_counter(p_TgecMemMap, E_TGEC_COUNTER_R255);
+        p_FrameSizeCounters->count_pkts_256_to_511     = fman_tgec_get_counter(p_TgecMemMap, E_TGEC_COUNTER_R511);
+        p_FrameSizeCounters->count_pkts_512_to_1023    = fman_tgec_get_counter(p_TgecMemMap, E_TGEC_COUNTER_R1023);
+        p_FrameSizeCounters->count_pkts_1024_to_1518   = fman_tgec_get_counter(p_TgecMemMap, E_TGEC_COUNTER_R1518);
+        p_FrameSizeCounters->count_pkts_1519_to_1522   = fman_tgec_get_counter(p_TgecMemMap, E_TGEC_COUNTER_R1519X);
+    	break;
+
+    case e_COMM_MODE_TX:
+    	//Tx counters not supported
+    	break;
+
+    case e_COMM_MODE_RX_AND_TX:
+    	//Tx counters not supported
+    	break;
+    }
+
+    return E_OK;
+}
+
+
+/* ......................................................................... */
+
 static t_Error TgecEnable1588TimeStamp(t_Handle h_Tgec)
 {
     t_Tgec      *p_Tgec = (t_Tgec *)h_Tgec;
@@ -905,6 +946,7 @@ static void InitFmMacControllerDriver(t_FmMacControllerDriver *p_FmMacController
 
     p_FmMacControllerDriver->f_FM_MAC_ResetCounters             = TgecResetCounters;
     p_FmMacControllerDriver->f_FM_MAC_GetStatistics             = TgecGetStatistics;
+    p_FmMacControllerDriver->f_FM_MAC_GetFrameSizeCounters      = TgecGetFrameSizeCounters;
 
     p_FmMacControllerDriver->f_FM_MAC_ModifyMacAddr             = TgecModifyMacAddress;
     p_FmMacControllerDriver->f_FM_MAC_AddHashMacAddr            = TgecAddHashMacAddress;

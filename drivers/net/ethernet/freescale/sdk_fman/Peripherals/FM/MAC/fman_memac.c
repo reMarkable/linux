@@ -360,23 +360,44 @@ uint64_t fman_memac_get_counter(struct memac_regs *regs,
     case E_MEMAC_COUNTER_R64:
         ret_val = GET_MEMAC_CNTR_64(r64);
         break;
+    case E_MEMAC_COUNTER_T64:
+        ret_val = GET_MEMAC_CNTR_64(t64);
+        break;
     case E_MEMAC_COUNTER_R127:
         ret_val = GET_MEMAC_CNTR_64(r127);
+        break;
+    case E_MEMAC_COUNTER_T127:
+        ret_val = GET_MEMAC_CNTR_64(t127);
         break;
     case E_MEMAC_COUNTER_R255:
         ret_val = GET_MEMAC_CNTR_64(r255);
         break;
+    case E_MEMAC_COUNTER_T255:
+        ret_val = GET_MEMAC_CNTR_64(t255);
+        break;
     case E_MEMAC_COUNTER_R511:
         ret_val = GET_MEMAC_CNTR_64(r511);
+        break;
+    case E_MEMAC_COUNTER_T511:
+        ret_val = GET_MEMAC_CNTR_64(t511);
         break;
     case E_MEMAC_COUNTER_R1023:
         ret_val = GET_MEMAC_CNTR_64(r1023);
         break;
+    case E_MEMAC_COUNTER_T1023:
+        ret_val = GET_MEMAC_CNTR_64(t1023);
+        break;
     case E_MEMAC_COUNTER_R1518:
         ret_val = GET_MEMAC_CNTR_64(r1518);
         break;
+    case E_MEMAC_COUNTER_T1518:
+        ret_val = GET_MEMAC_CNTR_64(t1518);
+        break;
     case E_MEMAC_COUNTER_R1519X:
         ret_val = GET_MEMAC_CNTR_64(r1519x);
+        break;
+    case E_MEMAC_COUNTER_T1519X:
+        ret_val = GET_MEMAC_CNTR_64(t1519x);
         break;
     case E_MEMAC_COUNTER_RFRG:
         ret_val = GET_MEMAC_CNTR_64(rfrg);

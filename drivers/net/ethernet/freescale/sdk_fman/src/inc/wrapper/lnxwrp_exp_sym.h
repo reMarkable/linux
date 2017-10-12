@@ -123,6 +123,8 @@ EXPORT_SYMBOL(FM_PCD_SetAdvancedOffloadSupport);
 /* FMAN MAC exported routines */
 EXPORT_SYMBOL(FM_MAC_GetStatistics);
 
+EXPORT_SYMBOL(FM_MAC_GetFrameSizeCounters);
+
 EXPORT_SYMBOL(FM_GetSpecialOperationCoding);
 
 #endif /* __LNXWRP_EXP_SYM_H */

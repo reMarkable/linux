@@ -461,6 +461,22 @@ t_Error FM_MAC_GetStatistics (t_Handle h_FmMac, t_FmMacStatistics *p_Statistics)
 
 /* ......................................................................... */
 
+t_Error FM_MAC_GetFrameSizeCounters(t_Handle h_FmMac, t_FmMacFrameSizeCounters *p_FrameSizeCounters, e_CommMode type)
+{
+    t_FmMacControllerDriver *p_FmMacControllerDriver = (t_FmMacControllerDriver *)h_FmMac;
+
+    SANITY_CHECK_RETURN_ERROR(p_FmMacControllerDriver, E_INVALID_HANDLE);
+
+    memset(p_FrameSizeCounters, 0, sizeof(t_FmMacFrameSizeCounters));
+
+    if (p_FmMacControllerDriver->f_FM_MAC_GetFrameSizeCounters)
+        return p_FmMacControllerDriver->f_FM_MAC_GetFrameSizeCounters(h_FmMac, p_FrameSizeCounters, type);
+
+    RETURN_ERROR(MINOR, E_NOT_SUPPORTED, NO_MSG);
+}
+
+/* ......................................................................... */
+
 t_Error FM_MAC_ModifyMacAddr (t_Handle h_FmMac, t_EnetAddr *p_EnetAddr)
 {
     t_FmMacControllerDriver *p_FmMacControllerDriver = (t_FmMacControllerDriver *)h_FmMac;

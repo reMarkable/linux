@@ -197,6 +197,19 @@ typedef struct t_FmMacStatistics {
                                                - Other */
 } t_FmMacStatistics;
 
+/**************************************************************************//**
+ @Description   FM MAC Frame Size Counters
+*//***************************************************************************/
+typedef struct t_FmMacFrameSizeCounters {
+
+        uint64_t  count_pkts_64;            /**< 64 byte frame counter */
+        uint64_t  count_pkts_65_to_127;     /**< 65 to 127 byte frame counter */
+        uint64_t  count_pkts_128_to_255;    /**< 128 to 255 byte frame counter */
+        uint64_t  count_pkts_256_to_511;    /**< 256 to 511 byte frame counter */
+        uint64_t  count_pkts_512_to_1023;   /**< 512 to 1023 byte frame counter */
+        uint64_t  count_pkts_1024_to_1518;  /**< 1024 to 1518 byte frame counter */
+        uint64_t  count_pkts_1519_to_1522;  /**< 1519 to 1522 byte good frame count */
+} t_FmMacFrameSizeCounters;
 
 /**************************************************************************//**
  @Group         FM_mac_init_grp FM MAC Initialization Unit
@@ -652,6 +665,21 @@ t_Error FM_MAC_SetStatistics(t_Handle h_FmMac, e_FmMacStatisticsLevel statistics
  @Cautions      Allowed only following FM_Init().
 *//***************************************************************************/
 t_Error FM_MAC_GetStatistics(t_Handle h_FmMac, t_FmMacStatistics *p_Statistics);
+
+/**************************************************************************//**
+ @Function      FM_MAC_GetFrameSizeCounters
+
+ @Description   get MAC statistics counters for different frame size
+
+ @Param[in]     h_FmMac       -  A handle to a FM MAC Module.
+ @Param[in]     p_FrameSizeCounters  -  Structure with counters
+ @Param[in]     type  				-  Type of counters to be read
+
+ @Return        E_OK on success; Error code otherwise.
+
+ @Cautions      Allowed only following FM_Init().
+*//***************************************************************************/
+t_Error FM_MAC_GetFrameSizeCounters(t_Handle h_FmMac, t_FmMacFrameSizeCounters *p_FrameSizeCounters, e_CommMode type);
 
 /**************************************************************************//**
  @Function      FM_MAC_ModifyMacAddr
