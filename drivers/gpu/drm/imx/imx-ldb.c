@@ -1174,6 +1174,8 @@ static void imx_ldb_unbind(struct device *dev, struct device *master,
 		kfree(channel->edid);
 		i2c_put_adapter(channel->ddc);
 	}
+
+	dev_set_drvdata(dev, NULL);
 }
 
 static const struct component_ops imx_ldb_ops = {
@@ -1192,12 +1194,52 @@ static int imx_ldb_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int imx_ldb_suspend(struct device *dev)
+{
+	struct imx_ldb *imx_ldb = dev_get_drvdata(dev);
+	int i;
+
+	if (imx_ldb == NULL)
+		return 0;
+
+	if (imx_ldb->visible_phy)
+		for (i = 0; i < 2; i++)
+			phy_exit(imx_ldb->channel[i].phy);
+
+	return 0;
+}
+
+static int imx_ldb_resume(struct device *dev)
+{
+	struct imx_ldb *imx_ldb = dev_get_drvdata(dev);
+	int i;
+
+	if (imx_ldb == NULL)
+		return 0;
+
+	if (imx_ldb->visible_phy)
+		for (i = 0; i < 2; i++)
+			phy_init(imx_ldb->channel[i].phy);
+
+	if (imx_ldb->use_mixel_combo_phy)
+		imx_ldb_init_sc_misc(imx_ldb->id);
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops imx_ldb_pm_ops = {
+	SET_LATE_SYSTEM_SLEEP_PM_OPS(imx_ldb_suspend, imx_ldb_resume)
+};
+
 static struct platform_driver imx_ldb_driver = {
 	.probe		= imx_ldb_probe,
 	.remove		= imx_ldb_remove,
 	.driver		= {
 		.of_match_table = imx_ldb_dt_ids,
 		.name	= DRIVER_NAME,
+		.pm	= &imx_ldb_pm_ops,
 	},
 };
 
