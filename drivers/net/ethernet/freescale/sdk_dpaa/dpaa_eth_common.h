@@ -163,7 +163,7 @@ void dpa_set_rx_mode(struct net_device *net_dev);
 void dpa_set_buffers_layout(struct mac_device *mac_dev,
 		struct dpa_buffer_layout_s *layout);
 int __attribute__((nonnull))
-dpa_bp_alloc(struct dpa_bp *dpa_bp);
+dpa_bp_alloc(struct dpa_bp *dpa_bp, struct device *dev);
 void __cold __attribute__((nonnull))
 dpa_bp_free(struct dpa_priv_s *priv);
 struct dpa_bp *dpa_bpid2pool(int bpid);

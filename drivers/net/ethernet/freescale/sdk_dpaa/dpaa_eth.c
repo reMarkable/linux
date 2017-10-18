@@ -875,7 +875,7 @@ static int dpa_priv_bp_create(struct net_device *net_dev, struct dpa_bp *dpa_bp,
 
 	for (i = 0; i < count; i++) {
 		int err;
-		err = dpa_bp_alloc(&dpa_bp[i]);
+		err = dpa_bp_alloc(&dpa_bp[i], net_dev->dev.parent);
 		if (err < 0) {
 			dpa_bp_free(priv);
 			priv->dpa_bp = NULL;

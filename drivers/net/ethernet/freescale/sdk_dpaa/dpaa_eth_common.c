@@ -686,11 +686,10 @@ void dpa_set_buffers_layout(struct mac_device *mac_dev,
 EXPORT_SYMBOL(dpa_set_buffers_layout);
 
 int __attribute__((nonnull))
-dpa_bp_alloc(struct dpa_bp *dpa_bp)
+dpa_bp_alloc(struct dpa_bp *dpa_bp, struct device *dev)
 {
 	int err;
 	struct bman_pool_params	 bp_params;
-	struct platform_device *pdev;
 
 	if (dpa_bp->size == 0 || dpa_bp->config_count == 0) {
 		pr_err("Buffer pool is not properly initialized! Missing size or initial number of buffers");
@@ -723,44 +722,25 @@ dpa_bp_alloc(struct dpa_bp *dpa_bp)
 
 	dpa_bp->bpid = (uint8_t)bman_get_params(dpa_bp->pool)->bpid;
 
-	pdev = platform_device_register_simple("dpaa_eth_bpool",
-			dpa_bp->bpid, NULL, 0);
-	if (IS_ERR(pdev)) {
-		pr_err("platform_device_register_simple() failed\n");
-		err = PTR_ERR(pdev);
-		goto pdev_register_failed;
-	}
-	{
-		struct dma_map_ops *ops = get_dma_ops(&pdev->dev);
-		ops->dma_supported = NULL;
-	}
-	err = dma_coerce_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(40));
+	err = dma_coerce_mask_and_coherent(dev, DMA_BIT_MASK(40));
 	if (err) {
 		pr_err("dma_coerce_mask_and_coherent() failed\n");
-		goto pdev_mask_failed;
+		goto bman_free_pool;
 	}
-#ifdef CONFIG_FMAN_ARM
-	/* force coherency */
-	pdev->dev.archdata.dma_coherent = true;
-	arch_setup_dma_ops(&pdev->dev, 0, 0, NULL, true);
-#endif
 
-	dpa_bp->dev = &pdev->dev;
+	dpa_bp->dev = dev;
 
 	if (dpa_bp->seed_cb) {
 		err = dpa_bp->seed_cb(dpa_bp);
 		if (err)
-			goto pool_seed_failed;
+			goto bman_free_pool;
 	}
 
 	dpa_bpid2pool_map(dpa_bp->bpid, dpa_bp);
 
 	return 0;
 
-pool_seed_failed:
-pdev_mask_failed:
-	platform_device_unregister(pdev);
-pdev_register_failed:
+bman_free_pool:
 	bman_free_pool(dpa_bp->pool);
 
 	return err;
@@ -822,9 +802,6 @@ _dpa_bp_free(struct dpa_bp *dpa_bp)
 
 	dpa_bp_array[bp->bpid] = NULL;
 	bman_free_pool(bp->pool);
-
-	if (bp->dev)
-		platform_device_unregister(to_platform_device(bp->dev));
 }
 
 void __cold __attribute__((nonnull))
