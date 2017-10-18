@@ -616,13 +616,6 @@ void __hot _dpa_rx(struct net_device *net_dev,
 	(*count_ptr)--;
 	skb->protocol = eth_type_trans(skb, net_dev);
 
-	/* IP Reassembled frames are allowed to be larger than MTU */
-	if (unlikely(dpa_check_rx_mtu(skb, net_dev->mtu) &&
-		!(fd_status & FM_FD_IPR))) {
-		percpu_stats->rx_dropped++;
-		goto drop_bad_frame;
-	}
-
 	skb_len = skb->len;
 
 #ifdef CONFIG_FSL_DPAA_DBG_LOOP
@@ -653,10 +646,6 @@ void __hot _dpa_rx(struct net_device *net_dev,
 	percpu_stats->rx_bytes += skb_len;
 
 packet_dropped:
-	return;
-
-drop_bad_frame:
-	dev_kfree_skb(skb);
 	return;
 
 _release_frame:

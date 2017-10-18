@@ -514,17 +514,6 @@ dpa_fd_offset(const struct qm_fd *fd)
 	return fd->offset;
 }
 
-/* Verifies if the skb length is below the interface MTU */
-static inline int dpa_check_rx_mtu(struct sk_buff *skb, int mtu)
-{
-	if (unlikely(skb->len > mtu))
-		if ((skb->protocol != htons(ETH_P_8021Q))
-				|| (skb->len > mtu + 4))
-			return -1;
-
-	return 0;
-}
-
 static inline uint16_t dpa_get_headroom(struct dpa_buffer_layout_s *bl)
 {
 	uint16_t headroom;
