@@ -133,10 +133,10 @@ static int __cold free_macdev(struct mac_device *mac_dev)
 
 static const struct of_device_id mac_match[] = {
 	[DTSEC] = {
-		.compatible	= "fsl,fman-1g-mac"
+		.compatible	= "fsl,fman-dtsec"
 	},
 	[XGMAC] = {
-		.compatible	= "fsl,fman-10g-mac"
+		.compatible	= "fsl,fman-xgec"
 	},
 	[MEMAC] = {
 		.compatible	= "fsl,fman-memac"
