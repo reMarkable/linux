@@ -17,4 +17,8 @@ config IMX_SCU_SOC
 	  Controller Unit SoC info module, it will provide the SoC info
 	  like SoC family, ID and revision etc.
 
+config IMX8M_BUSFREQ
+	bool "i.MX8M busfreq"
+	depends on ARCH_MXC && ARM64
+
 endmenu
