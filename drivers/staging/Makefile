@@ -54,3 +54,4 @@ obj-$(CONFIG_USB_WUSB)		+= wusbcore/
 obj-$(CONFIG_EXFAT_FS)		+= exfat/
 obj-$(CONFIG_QLGE)		+= qlge/
 obj-$(CONFIG_FSL_SDK_DPA)      += fsl_qbman/
+obj-$(CONFIG_FSL_PPFE)		+= fsl_ppfe/
