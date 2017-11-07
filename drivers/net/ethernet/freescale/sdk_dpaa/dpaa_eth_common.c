@@ -444,13 +444,17 @@ int dpa_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 #ifdef CONFIG_FSL_DPAA_1588
 	struct dpa_priv_s *priv = netdev_priv(dev);
 #endif
-	int ret = 0;
+	int ret = -EINVAL;
 
-	/* at least one timestamping feature must be enabled */
-#ifdef CONFIG_FSL_DPAA_TS
 	if (!netif_running(dev))
-#endif
 		return -EINVAL;
+
+	if (cmd == SIOCGMIIREG) {
+		if (!dev->phydev)
+			ret = -EINVAL;
+		else
+			ret = phy_mii_ioctl(dev->phydev, rq, cmd);
+	}
 
 #ifdef CONFIG_FSL_DPAA_TS
 	if (cmd == SIOCSHWTSTAMP)
