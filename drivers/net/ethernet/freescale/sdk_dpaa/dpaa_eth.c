@@ -761,15 +761,6 @@ static int dpa_private_netdev_init(struct net_device *net_dev)
 	net_dev->min_mtu = ETH_MIN_MTU;
 	net_dev->max_mtu = dpa_get_max_mtu();
 
-#ifndef CONFIG_PPC
-	/* Due to the A010022 FMan errata, we can not use contig frames larger
-	 * than 4K, nor S/G frames. We need to prevent the user from setting a
-	 * large MTU.
-	 */
-	if (unlikely(dpaa_errata_a010022))
-		net_dev->max_mtu = DPA_BP_RAW_SIZE;
-#endif
-
 	net_dev->hw_features |= (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM |
 		NETIF_F_LLTX);
 
@@ -786,6 +777,18 @@ static int dpa_private_netdev_init(struct net_device *net_dev)
 
 	/* Advertise NETIF_F_HW_ACCEL_MQ to avoid Tx timeout warnings */
 	net_dev->features |= NETIF_F_HW_ACCEL_MQ;
+
+#ifndef CONFIG_PPC
+	/* Due to the A010022 FMan errata, we can not use contig frames larger
+	 * than 4K, nor S/G frames. We need to prevent the user from setting a
+	 * large MTU. We also stop advertising S/G and GSO support.
+	 */
+	if (unlikely(dpaa_errata_a010022)) {
+		net_dev->max_mtu = DPA_BP_RAW_SIZE;
+		net_dev->hw_features &= ~NETIF_F_SG;
+		net_dev->features &= ~NETIF_F_GSO;
+	}
+#endif
 
 	return dpa_netdev_init(net_dev, mac_addr, tx_timeout);
 }
