@@ -569,10 +569,12 @@ struct dpni_tx_shaping_cfg {
 	u16	max_burst_size;
 };
 
-int dpni_set_tx_shaping(struct fsl_mc_io			*mc_io,
-			u32					cmd_flags,
-			u16					token,
-			const struct dpni_tx_shaping_cfg	*tx_shaper);
+int dpni_set_tx_shaping(struct fsl_mc_io *mc_io,
+			u32 cmd_flags,
+			u16 token,
+			const struct dpni_tx_shaping_cfg *tx_cr_shaper,
+			const struct dpni_tx_shaping_cfg *tx_er_shaper,
+			int coupled);
 
 int dpni_set_max_frame_length(struct fsl_mc_io	*mc_io,
 			      u32		cmd_flags,

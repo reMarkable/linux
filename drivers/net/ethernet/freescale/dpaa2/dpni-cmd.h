@@ -11,9 +11,11 @@
 #define DPNI_VER_MAJOR				7
 #define DPNI_VER_MINOR				0
 #define DPNI_CMD_BASE_VERSION			1
+#define DPNI_CMD_2ND_VERSION			2
 #define DPNI_CMD_ID_OFFSET			4
 
 #define DPNI_CMD(id)	(((id) << DPNI_CMD_ID_OFFSET) | DPNI_CMD_BASE_VERSION)
+#define DPNI_CMD_V2(id)	(((id) << DPNI_CMD_ID_OFFSET) | DPNI_CMD_2ND_VERSION)
 
 #define DPNI_CMDID_OPEN					DPNI_CMD(0x801)
 #define DPNI_CMDID_CLOSE				DPNI_CMD(0x800)
@@ -45,7 +47,7 @@
 #define DPNI_CMDID_SET_MAX_FRAME_LENGTH			DPNI_CMD(0x216)
 #define DPNI_CMDID_GET_MAX_FRAME_LENGTH			DPNI_CMD(0x217)
 #define DPNI_CMDID_SET_LINK_CFG				DPNI_CMD(0x21A)
-#define DPNI_CMDID_SET_TX_SHAPING			DPNI_CMD(0x21B)
+#define DPNI_CMDID_SET_TX_SHAPING			DPNI_CMD_V2(0x21B)
 
 #define DPNI_CMDID_SET_MCAST_PROMISC			DPNI_CMD(0x220)
 #define DPNI_CMDID_GET_MCAST_PROMISC			DPNI_CMD(0x221)
@@ -316,12 +318,20 @@ struct dpni_rsp_get_link_state {
 	__le64 options;
 };
 
+#define DPNI_COUPLED_SHIFT	0
+#define DPNI_COUPLED_SIZE	1
+
 struct dpni_cmd_set_tx_shaping {
 	/* cmd word 0 */
-	__le16 max_burst_size;
-	__le16 pad[3];
+	__le16 tx_cr_max_burst_size;
+	__le16 tx_er_max_burst_size;
+	__le32 pad;
 	/* cmd word 1 */
-	__le32 rate_limit;
+	__le32 tx_cr_rate_limit;
+	__le32 tx_er_rate_limit;
+	/* cmd word 2 */
+	/* from LSB: coupled:1 */
+	u8 coupled;
 };
 
 struct dpni_cmd_set_max_frame_length {
