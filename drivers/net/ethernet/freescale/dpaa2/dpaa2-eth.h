@@ -453,6 +453,8 @@ struct dpaa2_eth_priv {
 	struct dpaa2_debugfs dbg;
 #endif
 	struct dpni_tx_shaping_cfg shaping_cfg;
+
+	bool ceetm_en;
 };
 
 #define DPAA2_RXH_SUPPORTED	(RXH_L2DA | RXH_VLAN | RXH_L3_PROTO \
@@ -571,6 +573,11 @@ unsigned int dpaa2_eth_needed_headroom(struct dpaa2_eth_priv *priv,
 static inline unsigned int dpaa2_eth_rx_head_room(struct dpaa2_eth_priv *priv)
 {
 	return priv->tx_data_offset - DPAA2_ETH_RX_HWA_SIZE;
+}
+
+static inline int dpaa2_eth_ch_count(struct dpaa2_eth_priv *priv)
+{
+	return 1;
 }
 
 int dpaa2_eth_set_hash(struct net_device *net_dev, u64 flags);

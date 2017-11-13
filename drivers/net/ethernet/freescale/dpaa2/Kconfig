@@ -25,6 +25,13 @@ config FSL_DPAA2_ETH_USE_ERR_QUEUE
 	  in hardware).
 	  This may impact performance, recommended for debugging
 	  purposes only.
+
+config FSL_DPAA2_ETH_CEETM
+	depends on NET_SCHED
+	bool "DPAA2 Ethernet CEETM QoS"
+	default n
+	help
+	  Enable QoS offloading support through the CEETM hardware block.
 endif
 
 config FSL_DPAA2_PTP_CLOCK
