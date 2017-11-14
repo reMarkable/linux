@@ -54,6 +54,10 @@
 #include <linux/phy_fixed.h>
 #include <soc/fsl/bman.h>
 #include <soc/fsl/qman.h>
+#if !defined(CONFIG_PPC) && defined(CONFIG_SOC_BUS)
+#include <linux/sys_soc.h>      /* soc_device_match */
+#endif
+
 #include "fman.h"
 #include "fman_port.h"
 #include "mac.h"
@@ -72,6 +76,10 @@ MODULE_PARM_DESC(debug, "Module/Driver verbosity level (0=none,...,16=all)");
 static u16 tx_timeout = 1000;
 module_param(tx_timeout, ushort, 0444);
 MODULE_PARM_DESC(tx_timeout, "The Tx timeout in ms");
+
+#ifndef CONFIG_PPC
+bool dpaa_errata_a010022;
+#endif
 
 #define FM_FD_STAT_RX_ERRORS						\
 	(FM_FD_ERR_DMA | FM_FD_ERR_PHYSICAL	| \
@@ -1495,7 +1503,19 @@ static int dpaa_bp_add_8_bufs(const struct dpaa_bp *dpaa_bp)
 	u8 i;
 
 	for (i = 0; i < 8; i++) {
+#ifndef CONFIG_PPC
+		if (dpaa_errata_a010022) {
+			struct page *page = alloc_page(GFP_KERNEL);
+
+			if (unlikely(!page))
+				goto release_previous_buffs;
+			new_buf = page_address(page);
+		} else {
+			new_buf = netdev_alloc_frag(dpaa_bp->raw_size);
+		}
+#else
 		new_buf = netdev_alloc_frag(dpaa_bp->raw_size);
+#endif
 		if (unlikely(!new_buf)) {
 			dev_err(dev, "netdev_alloc_frag() failed, size %zu\n",
 				dpaa_bp->raw_size);
@@ -1654,9 +1674,13 @@ static struct sk_buff *dpaa_cleanup_tx_fd(const struct dpaa_priv *priv,
 			dma_unmap_page(dev, qm_sg_addr(&sgt[i]),
 				       qm_sg_entry_get_len(&sgt[i]), dma_dir);
 		}
-
-		/* Free the page frag that we allocated on Tx */
-		skb_free_frag(phys_to_virt(addr));
+#ifndef CONFIG_PPC
+		if (dpaa_errata_a010022)
+			put_page(virt_to_page(sgt));
+		else
+#endif
+			/* Free the page frag that we allocated on Tx */
+			skb_free_frag(phys_to_virt(addr));
 	} else {
 		dma_unmap_single(dev, addr,
 				 skb_tail_pointer(skb) - (u8 *)skbh, dma_dir);
@@ -1917,14 +1941,26 @@ static int skb_to_sg_fd(struct dpaa_priv *priv,
 	size_t frag_len;
 	void *sgt_buf;
 
-	/* get a page frag to store the SGTable */
-	sz = SKB_DATA_ALIGN(priv->tx_headroom + DPAA_SGT_SIZE);
-	sgt_buf = netdev_alloc_frag(sz);
-	if (unlikely(!sgt_buf)) {
-		netdev_err(net_dev, "netdev_alloc_frag() failed for size %d\n",
-			   sz);
-		return -ENOMEM;
+#ifndef CONFIG_PPC
+	if (unlikely(dpaa_errata_a010022)) {
+		struct page *page = alloc_page(GFP_ATOMIC);
+		if (unlikely(!page))
+			return -ENOMEM;
+		sgt_buf = page_address(page);
+	} else {
+#endif
+		/* get a page frag to store the SGTable */
+		sz = SKB_DATA_ALIGN(priv->tx_headroom + DPAA_SGT_SIZE);
+		sgt_buf = netdev_alloc_frag(sz);
+		if (unlikely(!sgt_buf)) {
+			netdev_err(net_dev,
+				   "netdev_alloc_frag() failed for size %d\n",
+				   sz);
+			return -ENOMEM;
+		}
+#ifndef CONFIG_PPC
 	}
+#endif
 
 	/* Enable L3/L4 hardware checksum computation.
 	 *
@@ -2044,6 +2080,122 @@ static inline int dpaa_xmit(struct dpaa_priv *priv,
 	return 0;
 }
 
+#ifndef CONFIG_PPC
+/* On LS1043A SoC there is a known erratum ERR010022 that results in split DMA
+ * transfers in the FMan under certain conditions. This, combined with a fixed
+ * size FIFO of ongoing DMA transfers that may overflow when a split occurs,
+ * results in the FMan stalling DMA transfers under high traffic. To avoid the
+ * problem, one needs to prevent the DMA transfer splits to occur by preparing
+ * the buffers
+ */
+
+#define DPAA_A010022_HEADROOM	256
+#define CROSS_4K_BOUND(start, size) \
+	(((start) + (size)) > (((start) + 0x1000) & ~0xFFF))
+
+static bool dpaa_errata_a010022_has_dma_issue(struct sk_buff *skb,
+					      struct dpaa_priv *priv)
+{
+	int nr_frags, i = 0;
+	 skb_frag_t *frag;
+
+	/* Transfers that do not start at 16B aligned addresses will be split;
+	 * Transfers that cross a 4K page boundary will also be split
+	 */
+
+	/* Check if the frame data is aligned to 16 bytes */
+	if ((uintptr_t)skb->data % DPAA_FD_DATA_ALIGNMENT)
+		return true;
+
+	/* Check if the headroom crosses a boundary */
+	if (CROSS_4K_BOUND((uintptr_t)skb->head, skb_headroom(skb)))
+		return true;
+
+	/* Check if the non-paged data crosses a boundary */
+	if (CROSS_4K_BOUND((uintptr_t)skb->data, skb_headlen(skb)))
+		return true;
+
+	nr_frags = skb_shinfo(skb)->nr_frags;
+
+	while (i < nr_frags) {
+		frag = &skb_shinfo(skb)->frags[i];
+
+		/* Check if a paged fragment crosses a boundary from its
+		 * offset to its end.
+		 */
+		if (CROSS_4K_BOUND((uintptr_t)frag->page_offset, frag->size))
+			return true;
+
+		i++;
+	}
+
+	return false;
+}
+
+static struct sk_buff *dpaa_errata_a010022_prevent(struct sk_buff *skb,
+						   struct dpaa_priv *priv)
+{
+	int trans_offset = skb_transport_offset(skb);
+	int net_offset = skb_network_offset(skb);
+	int nsize, npage_order, headroom;
+	struct sk_buff *nskb = NULL;
+	struct page *npage;
+	void *npage_addr;
+
+	if (!dpaa_errata_a010022_has_dma_issue(skb, priv))
+		return skb;
+
+	/* For the new skb we only need the old one's data (both non-paged and
+	 * paged). We can skip the old tailroom.
+	 *
+	 * The headroom also needs to fit our private info (64 bytes) but we
+	 * reserve 256 bytes instead in order to guarantee that the data is
+	 * aligned to 256.
+	 */
+	headroom = DPAA_A010022_HEADROOM;
+	nsize = headroom + skb->len +
+		SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
+
+	/* Reserve enough memory to accommodate Jumbo frames */
+	npage_order = (nsize - 1) / PAGE_SIZE;
+	npage = alloc_pages(GFP_ATOMIC | __GFP_COMP, npage_order);
+	if (unlikely(!npage)) {
+		WARN_ONCE(1, "Memory allocation failure\n");
+		return NULL;
+	}
+	npage_addr = page_address(npage);
+
+	nskb = build_skb(npage_addr, nsize);
+	if (unlikely(!nskb))
+		goto err;
+
+	/* Code borrowed and adapted from skb_copy() */
+	skb_reserve(nskb, headroom);
+	skb_put(nskb, skb->len);
+	if (skb_copy_bits(skb, 0, nskb->data, skb->len)) {
+		WARN_ONCE(1, "skb parsing failure\n");
+		goto err;
+	}
+	copy_skb_header(nskb, skb);
+
+	/* We move the headroom when we align it so we have to reset the
+	 * network and transport header offsets relative to the new data
+	 * pointer. The checksum offload relies on these offsets.
+	 */
+	skb_set_network_header(nskb, net_offset);
+	skb_set_transport_header(nskb, trans_offset);
+
+	dev_kfree_skb(skb);
+	return nskb;
+
+err:
+	if (nskb)
+		dev_kfree_skb(nskb);
+	put_page(npage);
+	return NULL;
+}
+#endif
+
 static netdev_tx_t
 dpaa_start_xmit(struct sk_buff *skb, struct net_device *net_dev)
 {
@@ -2089,6 +2241,15 @@ dpaa_start_xmit(struct sk_buff *skb, struct net_device *net_dev)
 
 		nonlinear = skb_is_nonlinear(skb);
 	}
+
+#ifndef CONFIG_PPC
+	if (unlikely(dpaa_errata_a010022)) {
+		skb = dpaa_errata_a010022_prevent(skb, priv);
+		if (!skb)
+			goto enomem;
+		nonlinear = skb_is_nonlinear(skb);
+	}
+#endif
 
 	if (nonlinear) {
 		/* Just create a S/G fd based on the skb */
@@ -2981,6 +3142,23 @@ static int dpaa_remove(struct platform_device *pdev)
 	return err;
 }
 
+#ifndef CONFIG_PPC
+static bool __init soc_has_errata_a010022(void)
+{
+#ifdef CONFIG_SOC_BUS
+	const struct soc_device_attribute soc_msi_matches[] = {
+		{ .family = "QorIQ LS1043A",
+		  .data = NULL },
+		{ },
+	};
+
+	if (!soc_device_match(soc_msi_matches))
+		return false;
+#endif
+	return true; /* cannot identify SoC or errata applies */
+}
+#endif
+
 static const struct platform_device_id dpaa_devtype[] = {
 	{
 		.name = "dpaa-ethernet",
@@ -3005,6 +3183,10 @@ static int __init dpaa_load(void)
 
 	pr_debug("FSL DPAA Ethernet driver\n");
 
+#ifndef CONFIG_PPC
+	/* Detect if the current SoC requires the DMA transfer alignment workaround */
+	dpaa_errata_a010022 = soc_has_errata_a010022();
+#endif
 	/* initialize dpaa_eth mirror values */
 	dpaa_rx_extra_headroom = fman_get_rx_extra_headroom();
 	dpaa_max_frm = fman_get_max_frm();
