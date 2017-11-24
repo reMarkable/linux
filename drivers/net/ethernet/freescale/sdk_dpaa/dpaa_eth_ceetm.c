@@ -185,9 +185,9 @@ static int ceetm_config_ccg(struct qm_ceetm_ccg **ccg,
 
 	/* Set the congestion state thresholds according to the link speed */
 	if (dpa_priv->mac_dev->if_support & SUPPORTED_10000baseT_Full)
-		cs_th = CONFIG_FSL_DPAA_CS_THRESHOLD_10G;
+		cs_th = CONFIG_FSL_DPAA_CEETM_CCS_THRESHOLD_10G;
 	else
-		cs_th = CONFIG_FSL_DPAA_CS_THRESHOLD_1G;
+		cs_th = CONFIG_FSL_DPAA_CEETM_CCS_THRESHOLD_1G;
 
 	qm_cgr_cs_thres_set64(&ccg_params.cs_thres_in, cs_th, 1);
 	qm_cgr_cs_thres_set64(&ccg_params.cs_thres_out,
