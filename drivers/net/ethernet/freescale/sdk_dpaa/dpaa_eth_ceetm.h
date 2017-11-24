@@ -105,6 +105,7 @@ struct ceetm_fq {
 	struct qman_fq fq;
 	struct net_device *net_dev;
 	struct ceetm_class *ceetm_cls;
+	int congested; /* Congestion status */
 };
 
 struct root_q {

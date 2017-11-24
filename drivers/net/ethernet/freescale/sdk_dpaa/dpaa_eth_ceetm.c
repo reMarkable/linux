@@ -125,16 +125,16 @@ static void ceetm_cscn(struct qm_ceetm_ccg *ccg, void *cb_ctx, int congested)
 		break;
 	}
 
+	ceetm_fq->congested = congested;
+
 	if (congested) {
 		dpa_priv->cgr_data.congestion_start_jiffies = jiffies;
-		netif_tx_stop_all_queues(dpa_priv->net_dev);
 		dpa_priv->cgr_data.cgr_congested_count++;
 		if (cstats)
 			cstats->congested_count++;
 	} else {
 		dpa_priv->cgr_data.congested_jiffies +=
 			(jiffies - dpa_priv->cgr_data.congestion_start_jiffies);
-		netif_tx_wake_all_queues(dpa_priv->net_dev);
 	}
 }
 
@@ -148,6 +148,7 @@ static int ceetm_alloc_fq(struct ceetm_fq **fq, struct net_device *dev,
 
 	(*fq)->net_dev = dev;
 	(*fq)->ceetm_cls = cls;
+	(*fq)->congested = 0;
 	return 0;
 }
 
@@ -1913,7 +1914,8 @@ int __hot ceetm_tx(struct sk_buff *skb, struct net_device *net_dev)
 	struct Qdisc *sch = net_dev->qdisc;
 	struct ceetm_class *cl;
 	struct dpa_priv_s *priv_dpa;
-	struct qman_fq *egress_fq, *conf_fq;
+	struct ceetm_fq *ceetm_fq;
+	struct qman_fq *conf_fq;
 	struct ceetm_qdisc *priv = qdisc_priv(sch);
 	struct ceetm_qdisc_stats *qstats = this_cpu_ptr(priv->root.qstats);
 	struct ceetm_class_stats *cstats;
@@ -1945,11 +1947,11 @@ int __hot ceetm_tx(struct sk_buff *skb, struct net_device *net_dev)
 	 */
 	switch (cl->type) {
 	case CEETM_PRIO:
-		egress_fq = &cl->prio.fq->fq;
+		ceetm_fq = cl->prio.fq;
 		cstats = this_cpu_ptr(cl->prio.cstats);
 		break;
 	case CEETM_WBFS:
-		egress_fq = &cl->wbfs.fq->fq;
+		ceetm_fq = cl->wbfs.fq;
 		cstats = this_cpu_ptr(cl->wbfs.cstats);
 		break;
 	default:
@@ -1957,8 +1959,16 @@ int __hot ceetm_tx(struct sk_buff *skb, struct net_device *net_dev)
 		goto drop;
 	}
 
+	/* If the FQ is congested, avoid enqueuing the frame and dropping it
+	 * when it returns on the ERN path. Drop it here directly instead.
+	 */
+	if (unlikely(ceetm_fq->congested)) {
+		qstats->drops++;
+		goto drop;
+	}
+
 	bstats_update(&cstats->bstats, skb);
-	return dpa_tx_extended(skb, net_dev, egress_fq, conf_fq);
+	return dpa_tx_extended(skb, net_dev, &ceetm_fq->fq, conf_fq);
 
 drop:
 	dev_kfree_skb_any(skb);
