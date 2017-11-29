@@ -494,8 +494,8 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 	err = fsl_mc_portal_allocate(mc_dev, FSL_MC_IO_ATOMIC_CONTEXT_PORTAL,
 				     &mc_dev->mc_io);
 	if (err || !mc_dev->mc_io) {
-		dev_err(dev, "fsl_mc_portal_allocate error: %d\n", err);
-		err = -ENODEV;
+		dev_dbg(dev, "fsl_mc_portal_allocate error: %d\n", err);
+		err = -EPROBE_DEFER;
 		goto err_free_netdev;
 	}
 
