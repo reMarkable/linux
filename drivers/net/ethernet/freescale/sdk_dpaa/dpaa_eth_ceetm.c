@@ -86,6 +86,7 @@ static void ceetm_ern(struct qman_portal *portal, struct qman_fq *fq,
 	/* Increment DPA counters */
 	dpa_percpu_priv->stats.tx_dropped++;
 	dpa_percpu_priv->stats.tx_fifo_errors++;
+	count_ern(dpa_percpu_priv, msg);
 
 	/* Increment CEETM counters */
 	cls = ceetm_fq->ceetm_cls;
