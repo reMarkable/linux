@@ -570,6 +570,7 @@ static int usbmisc_imx7d_power_lost_check(struct imx_usbmisc_data *data)
 /***************************************************************************/
 /*                         imx usb charger detecton                        */
 /***************************************************************************/
+#ifdef CONFIG_POWER_SUPPLY
 static void usb_charger_is_present(struct usb_charger *charger, bool present)
 {
 	if (present)
@@ -723,7 +724,9 @@ static int usbmisc_imx6sx_power_lost_check(struct imx_usbmisc_data *data)
 	else
 		return 0;
 }
+#endif
 
+#ifdef CONFIG_POWER_SUPPLY
 static void imx7_disable_charger_detector(struct imx_usbmisc_data *data)
 {
 	struct imx_usbmisc *usbmisc = dev_get_drvdata(data->dev);
@@ -880,6 +883,7 @@ int imx7d_charger_secondary_detection(struct imx_usbmisc_data *data)
 
 	return 0;
 }
+#endif
 
 static int usbmisc_term_select_override(struct imx_usbmisc_data *data,
 						bool enable, int val)
@@ -928,8 +932,10 @@ static const struct usbmisc_ops imx53_usbmisc_ops = {
 static const struct usbmisc_ops imx6q_usbmisc_ops = {
 	.set_wakeup = usbmisc_imx6q_set_wakeup,
 	.init = usbmisc_imx6q_init,
+#ifdef CONFIG_POWER_SUPPLY
 	.charger_primary_detection = imx6_charger_primary_detection,
 	.charger_secondary_detection = imx6_charger_secondary_detection,
+#endif
 	.hsic_set_connect = usbmisc_imx6_hsic_set_connect,
 	.hsic_set_clk   = usbmisc_imx6_hsic_set_clk,
 };
@@ -941,9 +947,11 @@ static const struct usbmisc_ops vf610_usbmisc_ops = {
 static const struct usbmisc_ops imx6sx_usbmisc_ops = {
 	.set_wakeup = usbmisc_imx6q_set_wakeup,
 	.init = usbmisc_imx6sx_init,
+#ifdef CONFIG_POWER_SUPPLY
 	.charger_primary_detection = imx6_charger_primary_detection,
 	.charger_secondary_detection = imx6_charger_secondary_detection,
 	.power_lost_check = usbmisc_imx6sx_power_lost_check,
+#endif
 	.hsic_set_connect = usbmisc_imx6_hsic_set_connect,
 	.hsic_set_clk = usbmisc_imx6_hsic_set_clk,
 };
@@ -951,9 +959,11 @@ static const struct usbmisc_ops imx6sx_usbmisc_ops = {
 static const struct usbmisc_ops imx7d_usbmisc_ops = {
 	.init = usbmisc_imx7d_init,
 	.set_wakeup = usbmisc_imx7d_set_wakeup,
+#ifdef CONFIG_POWER_SUPPLY
 	.power_lost_check = usbmisc_imx7d_power_lost_check,
 	.charger_primary_detection = imx7d_charger_primary_detection,
 	.charger_secondary_detection = imx7d_charger_secondary_detection,
+#endif
 	.term_select_override = usbmisc_term_select_override,
 };
 
@@ -1005,6 +1015,7 @@ int imx_usbmisc_set_wakeup(struct imx_usbmisc_data *data, bool enabled)
 }
 EXPORT_SYMBOL_GPL(imx_usbmisc_set_wakeup);
 
+#ifdef CONFIG_POWER_SUPPLY
 int imx_usbmisc_charger_detection(struct imx_usbmisc_data *data, bool connect)
 {
 	struct imx_usbmisc *usbmisc;
@@ -1056,6 +1067,7 @@ int imx_usbmisc_charger_secondary_detection(struct imx_usbmisc_data *data)
 	return usbmisc->ops->charger_secondary_detection(data);
 }
 EXPORT_SYMBOL_GPL(imx_usbmisc_charger_secondary_detection);
+#endif
 
 int imx_usbmisc_power_lost_check(struct imx_usbmisc_data *data)
 {
