@@ -1906,7 +1906,7 @@ tracing_generic_entry_update(struct trace_entry *entry, unsigned long flags,
 #endif
 		((pc & NMI_MASK    ) ? TRACE_FLAG_NMI     : 0) |
 		((pc & HARDIRQ_MASK) ? TRACE_FLAG_HARDIRQ : 0) |
-		((pc & SOFTIRQ_MASK) ? TRACE_FLAG_SOFTIRQ : 0) |
+		((pc & SOFTIRQ_OFFSET) ? TRACE_FLAG_SOFTIRQ : 0) |
 		(tif_need_resched() ? TRACE_FLAG_NEED_RESCHED : 0) |
 		(test_preempt_need_resched() ? TRACE_FLAG_PREEMPT_RESCHED : 0);
 }
@@ -2369,11 +2369,17 @@ static char *get_trace_buf(void)
 	if (!buffer || buffer->nesting >= 4)
 		return NULL;
 
-	return &buffer->buffer[buffer->nesting++][0];
+	buffer->nesting++;
+
+	/* Interrupts must see nesting incremented before we use the buffer */
+	barrier();
+	return &buffer->buffer[buffer->nesting][0];
 }
 
 static void put_trace_buf(void)
 {
+	/* Don't let the decrement of nesting leak before this */
+	barrier();
 	this_cpu_dec(trace_percpu_buffer->nesting);
 }
 
@@ -3563,11 +3569,17 @@ static int tracing_open(struct inode *inode, struct file *file)
 	/* If this file was open for write, then erase contents */
 	if ((file->f_mode & FMODE_WRITE) && (file->f_flags & O_TRUNC)) {
 		int cpu = tracing_get_cpu(inode);
+		struct trace_buffer *trace_buf = &tr->trace_buffer;
+
+#ifdef CONFIG_TRACER_MAX_TRACE
+		if (tr->current_trace->print_max)
+			trace_buf = &tr->max_buffer;
+#endif
 
 		if (cpu == RING_BUFFER_ALL_CPUS)
-			tracing_reset_online_cpus(&tr->trace_buffer);
+			tracing_reset_online_cpus(trace_buf);
 		else
-			tracing_reset(&tr->trace_buffer, cpu);
+			tracing_reset(trace_buf, cpu);
 	}
 
 	if (file->f_mode & FMODE_READ) {
@@ -5122,7 +5134,7 @@ static int tracing_wait_pipe(struct file *filp)
 		 *
 		 * iter->pos will be 0 if we haven't read anything.
 		 */
-		if (!tracing_is_on() && iter->pos)
+		if (!tracer_tracing_is_on(iter->tr) && iter->pos)
 			break;
 
 		mutex_unlock(&iter->mutex);
@@ -5658,7 +5670,7 @@ static int tracing_set_clock(struct trace_array *tr, const char *clockstr)
 	tracing_reset_online_cpus(&tr->trace_buffer);
 
 #ifdef CONFIG_TRACER_MAX_TRACE
-	if (tr->flags & TRACE_ARRAY_FL_GLOBAL && tr->max_buffer.buffer)
+	if (tr->max_buffer.buffer)
 		ring_buffer_set_clock(tr->max_buffer.buffer, trace_clocks[i].func);
 	tracing_reset_online_cpus(&tr->max_buffer);
 #endif
@@ -6481,11 +6493,13 @@ ftrace_trace_snapshot_callback(struct ftrace_hash *hash,
 		return ret;
 
  out_reg:
+	ret = alloc_snapshot(&global_trace);
+	if (ret < 0)
+		goto out;
+
 	ret = register_ftrace_function_probe(glob, ops, count);
 
-	if (ret >= 0)
-		alloc_snapshot(&global_trace);
-
+ out:
 	return ret < 0 ? ret : 0;
 }
 
@@ -7150,6 +7164,7 @@ static int instance_rmdir(const char *name)
 
 	tracing_set_nop(tr);
 	event_trace_del_tracer(tr);
+	ftrace_clear_pids(tr);
 	ftrace_destroy_function_files(tr);
 	tracefs_remove_recursive(tr->dir);
 	free_trace_buffers(tr);
@@ -7159,6 +7174,7 @@ static int instance_rmdir(const char *name)
 	}
 	kfree(tr->topts);
 
+	free_cpumask_var(tr->tracing_cpumask);
 	kfree(tr->name);
 	kfree(tr);
 
@@ -7241,7 +7257,7 @@ init_tracer_tracefs(struct trace_array *tr, struct dentry *d_tracer)
 	ftrace_init_tracefs(tr, d_tracer);
 }
 
-static struct vfsmount *trace_automount(void *ingore)
+static struct vfsmount *trace_automount(struct dentry *mntpt, void *ingore)
 {
 	struct vfsmount *mnt;
 	struct file_system_type *type;
@@ -7254,7 +7270,7 @@ static struct vfsmount *trace_automount(void *ingore)
 	type = get_fs_type("tracefs");
 	if (!type)
 		return NULL;
-	mnt = vfs_kern_mount(type, 0, "tracefs", NULL);
+	mnt = vfs_submount(mntpt, type, "tracefs", NULL);
 	put_filesystem(type);
 	if (IS_ERR(mnt))
 		return NULL;
@@ -7763,4 +7779,4 @@ __init static int clear_boot_tracer(void)
 }
 
 fs_initcall(tracer_init_tracefs);
-late_initcall(clear_boot_tracer);
+late_initcall_sync(clear_boot_tracer);

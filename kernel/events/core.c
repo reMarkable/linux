@@ -2272,7 +2272,7 @@ static int  __perf_install_in_context(void *info)
 	struct perf_event_context *ctx = event->ctx;
 	struct perf_cpu_context *cpuctx = __get_cpu_context(ctx);
 	struct perf_event_context *task_ctx = cpuctx->task_ctx;
-	bool activate = true;
+	bool reprogram = true;
 	int ret = 0;
 
 	raw_spin_lock(&cpuctx->ctx.lock);
@@ -2280,27 +2280,26 @@ static int  __perf_install_in_context(void *info)
 		raw_spin_lock(&ctx->lock);
 		task_ctx = ctx;
 
-		/* If we're on the wrong CPU, try again */
-		if (task_cpu(ctx->task) != smp_processor_id()) {
+		reprogram = (ctx->task == current);
+
+		/*
+		 * If the task is running, it must be running on this CPU,
+		 * otherwise we cannot reprogram things.
+		 *
+		 * If its not running, we don't care, ctx->lock will
+		 * serialize against it becoming runnable.
+		 */
+		if (task_curr(ctx->task) && !reprogram) {
 			ret = -ESRCH;
 			goto unlock;
 		}
 
-		/*
-		 * If we're on the right CPU, see if the task we target is
-		 * current, if not we don't have to activate the ctx, a future
-		 * context switch will do that for us.
-		 */
-		if (ctx->task != current)
-			activate = false;
-		else
-			WARN_ON_ONCE(cpuctx->task_ctx && cpuctx->task_ctx != ctx);
-
+		WARN_ON_ONCE(reprogram && cpuctx->task_ctx && cpuctx->task_ctx != ctx);
 	} else if (task_ctx) {
 		raw_spin_lock(&task_ctx->lock);
 	}
 
-	if (activate) {
+	if (reprogram) {
 		ctx_sched_out(ctx, cpuctx, EVENT_TIME);
 		add_event_to_ctx(event, ctx);
 		ctx_resched(cpuctx, task_ctx);
@@ -2351,13 +2350,36 @@ perf_install_in_context(struct perf_event_context *ctx,
 	/*
 	 * Installing events is tricky because we cannot rely on ctx->is_active
 	 * to be set in case this is the nr_events 0 -> 1 transition.
+	 *
+	 * Instead we use task_curr(), which tells us if the task is running.
+	 * However, since we use task_curr() outside of rq::lock, we can race
+	 * against the actual state. This means the result can be wrong.
+	 *
+	 * If we get a false positive, we retry, this is harmless.
+	 *
+	 * If we get a false negative, things are complicated. If we are after
+	 * perf_event_context_sched_in() ctx::lock will serialize us, and the
+	 * value must be correct. If we're before, it doesn't matter since
+	 * perf_event_context_sched_in() will program the counter.
+	 *
+	 * However, this hinges on the remote context switch having observed
+	 * our task->perf_event_ctxp[] store, such that it will in fact take
+	 * ctx::lock in perf_event_context_sched_in().
+	 *
+	 * We do this by task_function_call(), if the IPI fails to hit the task
+	 * we know any future context switch of task must see the
+	 * perf_event_ctpx[] store.
 	 */
-again:
+
 	/*
-	 * Cannot use task_function_call() because we need to run on the task's
-	 * CPU regardless of whether its current or not.
+	 * This smp_mb() orders the task->perf_event_ctxp[] store with the
+	 * task_cpu() load, such that if the IPI then does not find the task
+	 * running, a future context switch of that task must observe the
+	 * store.
 	 */
-	if (!cpu_function_call(task_cpu(task), __perf_install_in_context, event))
+	smp_mb();
+again:
+	if (!task_function_call(task, __perf_install_in_context, event))
 		return;
 
 	raw_spin_lock_irq(&ctx->lock);
@@ -2371,12 +2393,16 @@ again:
 		raw_spin_unlock_irq(&ctx->lock);
 		return;
 	}
-	raw_spin_unlock_irq(&ctx->lock);
 	/*
-	 * Since !ctx->is_active doesn't mean anything, we must IPI
-	 * unconditionally.
+	 * If the task is not running, ctx->lock will avoid it becoming so,
+	 * thus we can safely install the event.
 	 */
-	goto again;
+	if (task_curr(task)) {
+		raw_spin_unlock_irq(&ctx->lock);
+		goto again;
+	}
+	add_event_to_ctx(event, ctx);
+	raw_spin_unlock_irq(&ctx->lock);
 }
 
 /*
@@ -7845,6 +7871,7 @@ static int perf_event_set_bpf_prog(struct perf_event *event, u32 prog_fd)
 		}
 	}
 	event->tp_event->prog = prog;
+	event->tp_event->bpf_prog_owner = event;
 
 	return 0;
 }
@@ -7859,7 +7886,7 @@ static void perf_event_free_bpf_prog(struct perf_event *event)
 		return;
 
 	prog = event->tp_event->prog;
-	if (prog) {
+	if (prog && event->tp_event->bpf_prog_owner == event) {
 		event->tp_event->prog = NULL;
 		bpf_prog_put(prog);
 	}
@@ -9760,28 +9787,27 @@ SYSCALL_DEFINE5(perf_event_open,
 			goto err_context;
 
 		/*
-		 * Do not allow to attach to a group in a different
-		 * task or CPU context:
+		 * Make sure we're both events for the same CPU;
+		 * grouping events for different CPUs is broken; since
+		 * you can never concurrently schedule them anyhow.
 		 */
-		if (move_group) {
-			/*
-			 * Make sure we're both on the same task, or both
-			 * per-cpu events.
-			 */
-			if (group_leader->ctx->task != ctx->task)
-				goto err_context;
+		if (group_leader->cpu != event->cpu)
+			goto err_context;
 
-			/*
-			 * Make sure we're both events for the same CPU;
-			 * grouping events for different CPUs is broken; since
-			 * you can never concurrently schedule them anyhow.
-			 */
-			if (group_leader->cpu != event->cpu)
-				goto err_context;
-		} else {
-			if (group_leader->ctx != ctx)
-				goto err_context;
-		}
+		/*
+		 * Make sure we're both on the same task, or both
+		 * per-CPU events.
+		 */
+		if (group_leader->ctx->task != ctx->task)
+			goto err_context;
+
+		/*
+		 * Do not allow to attach to a group in a different task
+		 * or CPU context. If we're moving SW events, we'll fix
+		 * this up later, so allow that.
+		 */
+		if (!move_group && group_leader->ctx != ctx)
+			goto err_context;
 
 		/*
 		 * Only a group leader can be exclusive or pinned
@@ -10333,6 +10359,17 @@ void perf_event_free_task(struct task_struct *task)
 			continue;
 
 		mutex_lock(&ctx->mutex);
+		raw_spin_lock_irq(&ctx->lock);
+		/*
+		 * Destroy the task <-> ctx relation and mark the context dead.
+		 *
+		 * This is important because even though the task hasn't been
+		 * exposed yet the context has been (through child_list).
+		 */
+		RCU_INIT_POINTER(task->perf_event_ctxp[ctxn], NULL);
+		WRITE_ONCE(ctx->task, TASK_TOMBSTONE);
+		put_task_struct(task); /* cannot be last */
+		raw_spin_unlock_irq(&ctx->lock);
 again:
 		list_for_each_entry_safe(event, tmp, &ctx->pinned_groups,
 				group_entry)
@@ -10586,7 +10623,7 @@ static int perf_event_init_context(struct task_struct *child, int ctxn)
 		ret = inherit_task_group(event, parent, parent_ctx,
 					 child, ctxn, &inherited_all);
 		if (ret)
-			break;
+			goto out_unlock;
 	}
 
 	/*
@@ -10602,7 +10639,7 @@ static int perf_event_init_context(struct task_struct *child, int ctxn)
 		ret = inherit_task_group(event, parent, parent_ctx,
 					 child, ctxn, &inherited_all);
 		if (ret)
-			break;
+			goto out_unlock;
 	}
 
 	raw_spin_lock_irqsave(&parent_ctx->lock, flags);
@@ -10630,6 +10667,7 @@ static int perf_event_init_context(struct task_struct *child, int ctxn)
 	}
 
 	raw_spin_unlock_irqrestore(&parent_ctx->lock, flags);
+out_unlock:
 	mutex_unlock(&parent_ctx->mutex);
 
 	perf_unpin_context(parent_ctx);

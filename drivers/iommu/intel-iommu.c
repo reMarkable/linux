@@ -915,7 +915,7 @@ static struct intel_iommu *device_to_iommu(struct device *dev, u8 *bus, u8 *devf
 				 * which we used for the IOMMU lookup. Strictly speaking
 				 * we could do this for all PCI devices; we only need to
 				 * get the BDF# from the scope table for ACPI matches. */
-				if (pdev->is_virtfn)
+				if (pdev && pdev->is_virtfn)
 					goto got_pdev;
 
 				*bus = drhd->devices[i].bus;
@@ -1144,7 +1144,7 @@ static void dma_pte_free_level(struct dmar_domain *domain, int level,
 		if (!dma_pte_present(pte) || dma_pte_superpage(pte))
 			goto next;
 
-		level_pfn = pfn & level_mask(level - 1);
+		level_pfn = pfn & level_mask(level);
 		level_pte = phys_to_virt(dma_pte_addr(pte));
 
 		if (level > 2)
@@ -2049,11 +2049,14 @@ static int domain_context_mapping_one(struct dmar_domain *domain,
 	if (context_copied(context)) {
 		u16 did_old = context_domain_id(context);
 
-		if (did_old >= 0 && did_old < cap_ndoms(iommu->cap))
+		if (did_old >= 0 && did_old < cap_ndoms(iommu->cap)) {
 			iommu->flush.flush_context(iommu, did_old,
 						   (((u16)bus) << 8) | devfn,
 						   DMA_CCMD_MASK_NOBIT,
 						   DMA_CCMD_DEVICE_INVL);
+			iommu->flush.flush_iotlb(iommu, did_old, 0, 0,
+						 DMA_TLB_DSI_FLUSH);
+		}
 	}
 
 	pgd = domain->pgd;
@@ -3325,13 +3328,14 @@ static int __init init_dmars(void)
 	iommu_identity_mapping |= IDENTMAP_GFX;
 #endif
 
+	check_tylersburg_isoch();
+
 	if (iommu_identity_mapping) {
 		ret = si_domain_init(hw_pass_through);
 		if (ret)
 			goto free_iommu;
 	}
 
-	check_tylersburg_isoch();
 
 	/*
 	 * If we copied translations from a previous kernel in the kdump

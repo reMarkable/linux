@@ -915,6 +915,7 @@ static void udp6_hwcsum_outgoing(struct sock *sk, struct sk_buff *skb,
 		 */
 		offset = skb_transport_offset(skb);
 		skb->csum = skb_checksum(skb, offset, skb->len - offset, 0);
+		csum = skb->csum;
 
 		skb->ip_summed = CHECKSUM_NONE;
 
@@ -1037,6 +1038,7 @@ int udpv6_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)
 	ipc6.hlimit = -1;
 	ipc6.tclass = -1;
 	ipc6.dontfrag = -1;
+	sockc.tsflags = sk->sk_tsflags;
 
 	/* destination address check */
 	if (sin6) {
@@ -1048,6 +1050,10 @@ int udpv6_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)
 			if (addr_len < SIN6_LEN_RFC2133)
 				return -EINVAL;
 			daddr = &sin6->sin6_addr;
+			if (ipv6_addr_any(daddr) &&
+			    ipv6_addr_v4mapped(&np->saddr))
+				ipv6_addr_set_v4mapped(htonl(INADDR_LOOPBACK),
+						       daddr);
 			break;
 		case AF_INET:
 			goto do_udp_sendmsg;
@@ -1156,7 +1162,6 @@ do_udp_sendmsg:
 		fl6.flowi6_oif = np->sticky_pktinfo.ipi6_ifindex;
 
 	fl6.flowi6_mark = sk->sk_mark;
-	sockc.tsflags = sk->sk_tsflags;
 
 	if (msg->msg_controllen) {
 		opt = &opt_space;

@@ -28,6 +28,8 @@
 #include <linux/of_gpio.h>
 
 #include "atmel_usba_udc.h"
+#define USBA_VBUS_IRQFLAGS (IRQF_ONESHOT \
+			   | IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING)
 
 #ifdef CONFIG_USB_GADGET_DEBUG_FS
 #include <linux/debugfs.h>
@@ -1978,7 +1980,8 @@ static struct usba_ep * atmel_udc_of_init(struct platform_device *pdev,
 			dev_err(&pdev->dev, "of_probe: name error(%d)\n", ret);
 			goto err;
 		}
-		ep->ep.name = kasprintf(GFP_KERNEL, "ep%d", ep->index);
+		sprintf(ep->name, "ep%d", ep->index);
+		ep->ep.name = ep->name;
 
 		ep->ep_regs = udc->regs + USBA_EPT_BASE(i);
 		ep->dma_regs = udc->regs + USBA_DMA_BASE(i);
@@ -2171,7 +2174,7 @@ static int usba_udc_probe(struct platform_device *pdev)
 					IRQ_NOAUTOEN);
 			ret = devm_request_threaded_irq(&pdev->dev,
 					gpio_to_irq(udc->vbus_pin), NULL,
-					usba_vbus_irq_thread, IRQF_ONESHOT,
+					usba_vbus_irq_thread, USBA_VBUS_IRQFLAGS,
 					"atmel_usba_udc", udc);
 			if (ret) {
 				udc->vbus_pin = -ENODEV;

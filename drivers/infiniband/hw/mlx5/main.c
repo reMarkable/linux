@@ -325,6 +325,27 @@ __be16 mlx5_get_roce_udp_sport(struct mlx5_ib_dev *dev, u8 port_num,
 	return cpu_to_be16(MLX5_CAP_ROCE(dev->mdev, r_roce_min_src_udp_port));
 }
 
+int mlx5_get_roce_gid_type(struct mlx5_ib_dev *dev, u8 port_num,
+			   int index, enum ib_gid_type *gid_type)
+{
+	struct ib_gid_attr attr;
+	union ib_gid gid;
+	int ret;
+
+	ret = ib_get_cached_gid(&dev->ib_dev, port_num, index, &gid, &attr);
+	if (ret)
+		return ret;
+
+	if (!attr.ndev)
+		return -ENODEV;
+
+	dev_put(attr.ndev);
+
+	*gid_type = attr.gid_type;
+
+	return 0;
+}
+
 static int mlx5_use_mad_ifc(struct mlx5_ib_dev *dev)
 {
 	if (MLX5_CAP_GEN(dev->mdev, port_type) == MLX5_CAP_PORT_TYPE_IB)
@@ -1105,13 +1126,13 @@ static struct ib_ucontext *mlx5_ib_alloc_ucontext(struct ib_device *ibdev,
 	 * pretend we don't support reading the HCA's core clock. This is also
 	 * forced by mmap function.
 	 */
-	if (PAGE_SIZE <= 4096 &&
-	    field_avail(typeof(resp), hca_core_clock_offset, udata->outlen)) {
-		resp.comp_mask |=
-			MLX5_IB_ALLOC_UCONTEXT_RESP_MASK_CORE_CLOCK_OFFSET;
-		resp.hca_core_clock_offset =
-			offsetof(struct mlx5_init_seg, internal_timer_h) %
-			PAGE_SIZE;
+	if (field_avail(typeof(resp), hca_core_clock_offset, udata->outlen)) {
+		if (PAGE_SIZE <= 4096) {
+			resp.comp_mask |=
+				MLX5_IB_ALLOC_UCONTEXT_RESP_MASK_CORE_CLOCK_OFFSET;
+			resp.hca_core_clock_offset =
+				offsetof(struct mlx5_init_seg, internal_timer_h) % PAGE_SIZE;
+		}
 		resp.response_length += sizeof(resp.hca_core_clock_offset) +
 					sizeof(resp.reserved2);
 	}
@@ -3141,9 +3162,11 @@ static void *mlx5_ib_add(struct mlx5_core_dev *mdev)
 	if (err)
 		goto err_rsrc;
 
-	err = mlx5_ib_alloc_q_counters(dev);
-	if (err)
-		goto err_odp;
+	if (MLX5_CAP_GEN(dev->mdev, max_qp_cnt)) {
+		err = mlx5_ib_alloc_q_counters(dev);
+		if (err)
+			goto err_odp;
+	}
 
 	err = ib_register_device(&dev->ib_dev, NULL);
 	if (err)
@@ -3171,7 +3194,8 @@ err_dev:
 	ib_unregister_device(&dev->ib_dev);
 
 err_q_cnt:
-	mlx5_ib_dealloc_q_counters(dev);
+	if (MLX5_CAP_GEN(dev->mdev, max_qp_cnt))
+		mlx5_ib_dealloc_q_counters(dev);
 
 err_odp:
 	mlx5_ib_odp_remove_one(dev);
@@ -3201,7 +3225,8 @@ static void mlx5_ib_remove(struct mlx5_core_dev *mdev, void *context)
 
 	mlx5_remove_roce_notifier(dev);
 	ib_unregister_device(&dev->ib_dev);
-	mlx5_ib_dealloc_q_counters(dev);
+	if (MLX5_CAP_GEN(dev->mdev, max_qp_cnt))
+		mlx5_ib_dealloc_q_counters(dev);
 	destroy_umrc_res(dev);
 	mlx5_ib_odp_remove_one(dev);
 	destroy_dev_resources(&dev->devr);

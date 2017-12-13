@@ -445,6 +445,7 @@ vti6_xmit(struct sk_buff *skb, struct net_device *dev, struct flowi *fl)
 	struct dst_entry *dst = skb_dst(skb);
 	struct net_device *tdev;
 	struct xfrm_state *x;
+	int pkt_len = skb->len;
 	int err = -1;
 	int mtu;
 
@@ -498,7 +499,7 @@ vti6_xmit(struct sk_buff *skb, struct net_device *dev, struct flowi *fl)
 		struct pcpu_sw_netstats *tstats = this_cpu_ptr(dev->tstats);
 
 		u64_stats_update_begin(&tstats->syncp);
-		tstats->tx_bytes += skb->len;
+		tstats->tx_bytes += pkt_len;
 		tstats->tx_packets++;
 		u64_stats_update_end(&tstats->syncp);
 	} else {
@@ -691,6 +692,10 @@ vti6_parm_to_user(struct ip6_tnl_parm2 *u, const struct __ip6_tnl_parm *p)
 	u->link = p->link;
 	u->i_key = p->i_key;
 	u->o_key = p->o_key;
+	if (u->i_key)
+		u->i_flags |= GRE_KEY;
+	if (u->o_key)
+		u->o_flags |= GRE_KEY;
 	u->proto = p->proto;
 
 	memcpy(u->name, p->name, sizeof(u->name));

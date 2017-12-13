@@ -1225,7 +1225,7 @@ struct intel_gen6_power_mgmt {
 	unsigned boosts;
 
 	/* manual wa residency calculations */
-	struct intel_rps_ei up_ei, down_ei;
+	struct intel_rps_ei ei;
 
 	/*
 	 * Protects RPS/RC6 register access and PCU communication.
@@ -1750,8 +1750,6 @@ struct drm_i915_private {
 	struct kmem_cache *requests;
 
 	const struct intel_device_info info;
-
-	int relative_constants_mode;
 
 	void __iomem *regs;
 
@@ -3586,7 +3584,7 @@ static inline bool intel_gmbus_is_forced_bit(struct i2c_adapter *adapter)
 extern void intel_i2c_reset(struct drm_device *dev);
 
 /* intel_bios.c */
-int intel_bios_init(struct drm_i915_private *dev_priv);
+void intel_bios_init(struct drm_i915_private *dev_priv);
 bool intel_bios_is_valid_vbt(const void *buf, size_t size);
 bool intel_bios_is_tv_present(struct drm_i915_private *dev_priv);
 bool intel_bios_is_lvds_present(struct drm_i915_private *dev_priv, u8 *i2c_pin);

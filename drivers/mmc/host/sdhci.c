@@ -1372,7 +1372,9 @@ void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 			return;
 		}
 		timeout--;
-		mdelay(1);
+		spin_unlock_irq(&host->lock);
+		usleep_range(900, 1100);
+		spin_lock_irq(&host->lock);
 	}
 
 	clk |= SDHCI_CLOCK_CARD_EN;
@@ -1822,6 +1824,9 @@ static void sdhci_enable_sdio_irq(struct mmc_host *mmc, int enable)
 	struct sdhci_host *host = mmc_priv(mmc);
 	unsigned long flags;
 
+	if (enable)
+		pm_runtime_get_noresume(host->mmc->parent);
+
 	spin_lock_irqsave(&host->lock, flags);
 	if (enable)
 		host->flags |= SDHCI_SDIO_IRQ_ENABLED;
@@ -1830,6 +1835,9 @@ static void sdhci_enable_sdio_irq(struct mmc_host *mmc, int enable)
 
 	sdhci_enable_sdio_irq_nolock(host, enable);
 	spin_unlock_irqrestore(&host->lock, flags);
+
+	if (!enable)
+		pm_runtime_put_noidle(host->mmc->parent);
 }
 
 static int sdhci_start_signal_voltage_switch(struct mmc_host *mmc,

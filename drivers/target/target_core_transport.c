@@ -465,7 +465,7 @@ static void target_complete_nacl(struct kref *kref)
 	}
 
 	mutex_lock(&se_tpg->acl_node_mutex);
-	list_del(&nacl->acl_list);
+	list_del_init(&nacl->acl_list);
 	mutex_unlock(&se_tpg->acl_node_mutex);
 
 	core_tpg_wait_for_nacl_pr_ref(nacl);
@@ -537,7 +537,7 @@ void transport_free_session(struct se_session *se_sess)
 			spin_unlock_irqrestore(&se_nacl->nacl_sess_lock, flags);
 
 			if (se_nacl->dynamic_stop)
-				list_del(&se_nacl->acl_list);
+				list_del_init(&se_nacl->acl_list);
 		}
 		mutex_unlock(&se_tpg->acl_node_mutex);
 
@@ -673,9 +673,10 @@ static void transport_lun_remove_cmd(struct se_cmd *cmd)
 		percpu_ref_put(&lun->lun_ref);
 }
 
-void transport_cmd_finish_abort(struct se_cmd *cmd, int remove)
+int transport_cmd_finish_abort(struct se_cmd *cmd, int remove)
 {
 	bool ack_kref = (cmd->se_cmd_flags & SCF_ACK_KREF);
+	int ret = 0;
 
 	if (cmd->se_cmd_flags & SCF_SE_LUN_CMD)
 		transport_lun_remove_cmd(cmd);
@@ -687,9 +688,11 @@ void transport_cmd_finish_abort(struct se_cmd *cmd, int remove)
 		cmd->se_tfo->aborted_task(cmd);
 
 	if (transport_cmd_check_stop_to_fabric(cmd))
-		return;
+		return 1;
 	if (remove && ack_kref)
-		transport_put_cmd(cmd);
+		ret = transport_put_cmd(cmd);
+
+	return ret;
 }
 
 static void target_complete_failure_work(struct work_struct *work)
@@ -750,6 +753,15 @@ void target_complete_cmd(struct se_cmd *cmd, u8 scsi_status)
 	if (cmd->transport_state & CMD_T_ABORTED ||
 	    cmd->transport_state & CMD_T_STOP) {
 		spin_unlock_irqrestore(&cmd->t_state_lock, flags);
+		/*
+		 * If COMPARE_AND_WRITE was stopped by __transport_wait_for_tasks(),
+		 * release se_device->caw_sem obtained by sbc_compare_and_write()
+		 * since target_complete_ok_work() or target_complete_failure_work()
+		 * won't be called to invoke the normal CAW completion callbacks.
+		 */
+		if (cmd->se_cmd_flags & SCF_COMPARE_AND_WRITE) {
+			up(&dev->caw_sem);
+		}
 		complete_all(&cmd->t_transport_stop_comp);
 		return;
 	} else if (!success) {
@@ -1182,15 +1194,28 @@ target_cmd_size_check(struct se_cmd *cmd, unsigned int size)
 	if (cmd->unknown_data_length) {
 		cmd->data_length = size;
 	} else if (size != cmd->data_length) {
-		pr_warn("TARGET_CORE[%s]: Expected Transfer Length:"
+		pr_warn_ratelimited("TARGET_CORE[%s]: Expected Transfer Length:"
 			" %u does not match SCSI CDB Length: %u for SAM Opcode:"
 			" 0x%02x\n", cmd->se_tfo->get_fabric_name(),
 				cmd->data_length, size, cmd->t_task_cdb[0]);
 
-		if (cmd->data_direction == DMA_TO_DEVICE &&
-		    cmd->se_cmd_flags & SCF_SCSI_DATA_CDB) {
-			pr_err("Rejecting underflow/overflow WRITE data\n");
-			return TCM_INVALID_CDB_FIELD;
+		if (cmd->data_direction == DMA_TO_DEVICE) {
+			if (cmd->se_cmd_flags & SCF_SCSI_DATA_CDB) {
+				pr_err_ratelimited("Rejecting underflow/overflow"
+						   " for WRITE data CDB\n");
+				return TCM_INVALID_CDB_FIELD;
+			}
+			/*
+			 * Some fabric drivers like iscsi-target still expect to
+			 * always reject overflow writes.  Reject this case until
+			 * full fabric driver level support for overflow writes
+			 * is introduced tree-wide.
+			 */
+			if (size > cmd->data_length) {
+				pr_err_ratelimited("Rejecting overflow for"
+						   " WRITE control CDB\n");
+				return TCM_INVALID_CDB_FIELD;
+			}
 		}
 		/*
 		 * Reject READ_* or WRITE_* with overflow/underflow for
@@ -1951,6 +1976,8 @@ static void target_restart_delayed_cmds(struct se_device *dev)
 		list_del(&cmd->se_delayed_node);
 		spin_unlock(&dev->delayed_cmd_lock);
 
+		cmd->transport_state |= CMD_T_SENT;
+
 		__target_execute_cmd(cmd, true);
 
 		if (cmd->sam_task_attr == TCM_ORDERED_TAG)
@@ -1988,6 +2015,8 @@ static void transport_complete_task_attr(struct se_cmd *cmd)
 		pr_debug("Incremented dev_cur_ordered_id: %u for ORDERED\n",
 			 dev->dev_cur_ordered_id);
 	}
+	cmd->se_cmd_flags &= ~SCF_TASK_ATTR_SET;
+
 restart:
 	target_restart_delayed_cmds(dev);
 }
@@ -2702,10 +2731,39 @@ void target_wait_for_sess_cmds(struct se_session *se_sess)
 }
 EXPORT_SYMBOL(target_wait_for_sess_cmds);
 
+static void target_lun_confirm(struct percpu_ref *ref)
+{
+	struct se_lun *lun = container_of(ref, struct se_lun, lun_ref);
+
+	complete(&lun->lun_ref_comp);
+}
+
 void transport_clear_lun_ref(struct se_lun *lun)
 {
-	percpu_ref_kill(&lun->lun_ref);
+	/*
+	 * Mark the percpu-ref as DEAD, switch to atomic_t mode, drop
+	 * the initial reference and schedule confirm kill to be
+	 * executed after one full RCU grace period has completed.
+	 */
+	percpu_ref_kill_and_confirm(&lun->lun_ref, target_lun_confirm);
+	/*
+	 * The first completion waits for percpu_ref_switch_to_atomic_rcu()
+	 * to call target_lun_confirm after lun->lun_ref has been marked
+	 * as __PERCPU_REF_DEAD on all CPUs, and switches to atomic_t
+	 * mode so that percpu_ref_tryget_live() lookup of lun->lun_ref
+	 * fails for all new incoming I/O.
+	 */
 	wait_for_completion(&lun->lun_ref_comp);
+	/*
+	 * The second completion waits for percpu_ref_put_many() to
+	 * invoke ->release() after lun->lun_ref has switched to
+	 * atomic_t mode, and lun->lun_ref.count has reached zero.
+	 *
+	 * At this point all target-core lun->lun_ref references have
+	 * been dropped via transport_lun_remove_cmd(), and it's safe
+	 * to proceed with the remaining LUN shutdown.
+	 */
+	wait_for_completion(&lun->lun_shutdown_comp);
 }
 
 static bool

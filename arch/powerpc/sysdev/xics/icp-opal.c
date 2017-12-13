@@ -91,6 +91,16 @@ static unsigned int icp_opal_get_irq(void)
 
 static void icp_opal_set_cpu_priority(unsigned char cppr)
 {
+	/*
+	 * Here be dragons. The caller has asked to allow only IPI's and not
+	 * external interrupts. But OPAL XIVE doesn't support that. So instead
+	 * of allowing no interrupts allow all. That's still not right, but
+	 * currently the only caller who does this is xics_migrate_irqs_away()
+	 * and it works in that case.
+	 */
+	if (cppr >= DEFAULT_PRIORITY)
+		cppr = LOWEST_PRIORITY;
+
 	xics_set_base_cppr(cppr);
 	opal_int_set_cppr(cppr);
 	iosync();
@@ -120,14 +130,16 @@ static void icp_opal_cause_ipi(int cpu, unsigned long data)
 {
 	int hw_cpu = get_hard_smp_processor_id(cpu);
 
+	kvmppc_set_host_ipi(cpu, 1);
 	opal_int_set_mfrr(hw_cpu, IPI_PRIORITY);
 }
 
 static irqreturn_t icp_opal_ipi_action(int irq, void *dev_id)
 {
-	int hw_cpu = hard_smp_processor_id();
+	int cpu = smp_processor_id();
 
-	opal_int_set_mfrr(hw_cpu, 0xff);
+	kvmppc_set_host_ipi(cpu, 0);
+	opal_int_set_mfrr(get_hard_smp_processor_id(cpu), 0xff);
 
 	return smp_ipi_demux();
 }

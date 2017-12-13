@@ -1509,7 +1509,7 @@ struct xhci_bus_state {
 
 static inline unsigned int hcd_index(struct usb_hcd *hcd)
 {
-	if (hcd->speed == HCD_USB3)
+	if (hcd->speed >= HCD_USB3)
 		return 0;
 	else
 		return 1;
@@ -1657,6 +1657,12 @@ struct xhci_hcd {
 #define XHCI_SSIC_PORT_UNUSED	(1 << 22)
 #define XHCI_NO_64BIT_SUPPORT	(1 << 23)
 #define XHCI_MISSING_CAS	(1 << 24)
+/* For controller with a broken Port Disable implementation */
+#define XHCI_BROKEN_PORT_PED	(1 << 25)
+#define XHCI_LIMIT_ENDPOINT_INTERVAL_7	(1 << 26)
+/* Reserved. It was XHCI_U2_DISABLE_WAKE */
+#define XHCI_ASMEDIA_MODIFY_FLOWCONTROL	(1 << 28)
+
 	unsigned int		num_active_eps;
 	unsigned int		limit_active_eps;
 	/* There are two roothubs to keep track of bus suspend info for */

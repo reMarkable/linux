@@ -587,7 +587,7 @@ static int dio_set_defer_completion(struct dio *dio)
 /*
  * Call into the fs to map some more disk blocks.  We record the current number
  * of available blocks at sdio->blocks_available.  These are in units of the
- * fs blocksize, (1 << inode->i_blkbits).
+ * fs blocksize, i_blocksize(inode).
  *
  * The fs is allowed to map lots of blocks at once.  If it wants to do that,
  * it uses the passed inode-relative block number as the file offset, as usual.
@@ -835,7 +835,8 @@ out:
 	 */
 	if (sdio->boundary) {
 		ret = dio_send_cur_page(dio, sdio, map_bh);
-		dio_bio_submit(dio, sdio);
+		if (sdio->bio)
+			dio_bio_submit(dio, sdio);
 		put_page(sdio->cur_page);
 		sdio->cur_page = NULL;
 	}

@@ -21,6 +21,7 @@
 #include <linux/swap.h>
 #include <linux/swapops.h>
 #include <linux/mmu_notifier.h>
+#include "internal.h"
 
 #include <asm/tlb.h>
 
@@ -227,15 +228,14 @@ static long madvise_willneed(struct vm_area_struct *vma,
 {
 	struct file *file = vma->vm_file;
 
+	*prev = vma;
 #ifdef CONFIG_SWAP
 	if (!file) {
-		*prev = vma;
 		force_swapin_readahead(vma, start, end);
 		return 0;
 	}
 
 	if (shmem_mapping(file->f_mapping)) {
-		*prev = vma;
 		force_shm_swapin_readahead(vma, start, end,
 					file->f_mapping);
 		return 0;
@@ -250,7 +250,6 @@ static long madvise_willneed(struct vm_area_struct *vma,
 		return 0;
 	}
 
-	*prev = vma;
 	start = ((start - vma->vm_start) >> PAGE_SHIFT) + vma->vm_pgoff;
 	if (end > vma->vm_end)
 		end = vma->vm_end;
@@ -282,6 +281,7 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
 		return 0;
 
 	orig_pte = pte = pte_offset_map_lock(mm, pmd, addr, &ptl);
+	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
 		ptent = *pte;
@@ -329,8 +329,8 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
 				pte_offset_map_lock(mm, pmd, addr, &ptl);
 				goto out;
 			}
-			put_page(page);
 			unlock_page(page);
+			put_page(page);
 			pte = pte_offset_map_lock(mm, pmd, addr, &ptl);
 			pte--;
 			addr -= PAGE_SIZE;
@@ -531,6 +531,8 @@ static long madvise_remove(struct vm_area_struct *vma,
 static int madvise_hwpoison(int bhv, unsigned long start, unsigned long end)
 {
 	struct page *p;
+	struct zone *zone;
+
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
 	for (; start < end; start += PAGE_SIZE <<
@@ -559,6 +561,11 @@ static int madvise_hwpoison(int bhv, unsigned long start, unsigned long end)
 		if (ret)
 			return ret;
 	}
+
+	/* Ensure that all poisoned pages are removed from per-cpu lists */
+	for_each_populated_zone(zone)
+		drain_all_pages(zone);
+
 	return 0;
 }
 #endif
