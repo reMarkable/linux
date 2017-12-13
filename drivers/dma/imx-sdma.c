@@ -315,9 +315,6 @@ struct sdma_desc {
  * @event_id0		aka dma request line
  * @event_id1		for channels that use 2 events
  * @word_size		peripheral access size
- * @buf_tail		ID of the buffer that was processed
- * @buf_ptail		ID of the previous buffer that was processed
- * @num_bd		max NUM_BD. number of descriptors currently handling
  * @bd_iram		flag indicating the memory location of buffer descriptor
  */
 struct sdma_channel {

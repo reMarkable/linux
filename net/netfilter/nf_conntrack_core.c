@@ -85,29 +85,36 @@ static __read_mostly DEFINE_SPINLOCK(nf_conntrack_locks_all_lock);
 static __read_mostly bool nf_conntrack_locks_all;
 
 /* every gc cycle scans at most 1/GC_MAX_BUCKETS_DIV part of table */
-#define GC_MAX_BUCKETS_DIV	64u
-/* upper bound of scan intervals */
-#define GC_INTERVAL_MAX		(2 * HZ)
-/* maximum conntracks to evict per gc run */
-#define GC_MAX_EVICTS		256u
+#define GC_MAX_BUCKETS_DIV	128u
+/* upper bound of full table scan */
+#define GC_MAX_SCAN_JIFFIES	(16u * HZ)
+/* desired ratio of entries found to be expired */
+#define GC_EVICT_RATIO	50u
 
 static struct conntrack_gc_work conntrack_gc_work;
 
 void nf_conntrack_lock(spinlock_t *lock) __acquires(lock)
 {
+	/* 1) Acquire the lock */
 	spin_lock(lock);
-	while (unlikely(nf_conntrack_locks_all)) {
-		spin_unlock(lock);
 
-		/*
-		 * Order the 'nf_conntrack_locks_all' load vs. the
-		 * spin_unlock_wait() loads below, to ensure
-		 * that 'nf_conntrack_locks_all_lock' is indeed held:
-		 */
-		smp_rmb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
-		spin_unlock_wait(&nf_conntrack_locks_all_lock);
-		spin_lock(lock);
-	}
+	/* 2) read nf_conntrack_locks_all, with ACQUIRE semantics
+	 * It pairs with the smp_store_release() in nf_conntrack_all_unlock()
+	 */
+	if (likely(smp_load_acquire(&nf_conntrack_locks_all) == false))
+		return;
+
+	/* fast path failed, unlock */
+	spin_unlock(lock);
+
+	/* Slow path 1) get global lock */
+	spin_lock(&nf_conntrack_locks_all_lock);
+
+	/* Slow path 2) get the lock we want */
+	spin_lock(lock);
+
+	/* Slow path 3) release the global lock */
+	spin_unlock(&nf_conntrack_locks_all_lock);
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_lock);
 
@@ -148,28 +155,27 @@ static void nf_conntrack_all_lock(void)
 	int i;
 
 	spin_lock(&nf_conntrack_locks_all_lock);
+
 	nf_conntrack_locks_all = true;
 
-	/*
-	 * Order the above store of 'nf_conntrack_locks_all' against
-	 * the spin_unlock_wait() loads below, such that if
-	 * nf_conntrack_lock() observes 'nf_conntrack_locks_all'
-	 * we must observe nf_conntrack_locks[] held:
-	 */
-	smp_mb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
-
 	for (i = 0; i < CONNTRACK_LOCKS; i++) {
-		spin_unlock_wait(&nf_conntrack_locks[i]);
+		spin_lock(&nf_conntrack_locks[i]);
+
+		/* This spin_unlock provides the "release" to ensure that
+		 * nf_conntrack_locks_all==true is visible to everyone that
+		 * acquired spin_lock(&nf_conntrack_locks[]).
+		 */
+		spin_unlock(&nf_conntrack_locks[i]);
 	}
 }
 
 static void nf_conntrack_all_unlock(void)
 {
-	/*
-	 * All prior stores must be complete before we clear
+	/* All prior stores must be complete before we clear
 	 * 'nf_conntrack_locks_all'. Otherwise nf_conntrack_lock()
 	 * might observe the false value but not the entire
-	 * critical section:
+	 * critical section.
+	 * It pairs with the smp_load_acquire() in nf_conntrack_lock()
 	 */
 	smp_store_release(&nf_conntrack_locks_all, false);
 	spin_unlock(&nf_conntrack_locks_all_lock);
@@ -683,7 +689,7 @@ static int nf_ct_resolve_clash(struct net *net, struct sk_buff *skb,
 
 	l4proto = __nf_ct_l4proto_find(nf_ct_l3num(ct), nf_ct_protonum(ct));
 	if (l4proto->allow_clash &&
-	    !nfct_nat(ct) &&
+	    ((ct->status & IPS_NAT_DONE_MASK) == 0) &&
 	    !nf_ct_is_dying(ct) &&
 	    atomic_inc_not_zero(&ct->ct_general.use)) {
 		nf_ct_acct_merge(ct, ctinfo, (struct nf_conn *)skb->nfct);
@@ -938,6 +944,7 @@ static noinline int early_drop(struct net *net, unsigned int _hash)
 
 static void gc_worker(struct work_struct *work)
 {
+	unsigned int min_interval = max(HZ / GC_MAX_BUCKETS_DIV, 1u);
 	unsigned int i, goal, buckets = 0, expired_count = 0;
 	struct conntrack_gc_work *gc_work;
 	unsigned int ratio, scanned = 0;
@@ -979,8 +986,7 @@ static void gc_worker(struct work_struct *work)
 		 */
 		rcu_read_unlock();
 		cond_resched_rcu_qs();
-	} while (++buckets < goal &&
-		 expired_count < GC_MAX_EVICTS);
+	} while (++buckets < goal);
 
 	if (gc_work->exiting)
 		return;
@@ -997,27 +1003,25 @@ static void gc_worker(struct work_struct *work)
 	 * 1. Minimize time until we notice a stale entry
 	 * 2. Maximize scan intervals to not waste cycles
 	 *
-	 * Normally, expired_count will be 0, this increases the next_run time
-	 * to priorize 2) above.
+	 * Normally, expire ratio will be close to 0.
 	 *
-	 * As soon as a timed-out entry is found, move towards 1) and increase
-	 * the scan frequency.
-	 * In case we have lots of evictions next scan is done immediately.
+	 * As soon as a sizeable fraction of the entries have expired
+	 * increase scan frequency.
 	 */
 	ratio = scanned ? expired_count * 100 / scanned : 0;
-	if (ratio >= 90 || expired_count == GC_MAX_EVICTS) {
-		gc_work->next_gc_run = 0;
-		next_run = 0;
-	} else if (expired_count) {
-		gc_work->next_gc_run /= 2U;
-		next_run = msecs_to_jiffies(1);
+	if (ratio > GC_EVICT_RATIO) {
+		gc_work->next_gc_run = min_interval;
 	} else {
-		if (gc_work->next_gc_run < GC_INTERVAL_MAX)
-			gc_work->next_gc_run += msecs_to_jiffies(1);
+		unsigned int max = GC_MAX_SCAN_JIFFIES / GC_MAX_BUCKETS_DIV;
 
-		next_run = gc_work->next_gc_run;
+		BUILD_BUG_ON((GC_MAX_SCAN_JIFFIES / GC_MAX_BUCKETS_DIV) == 0);
+
+		gc_work->next_gc_run += min_interval;
+		if (gc_work->next_gc_run > max)
+			gc_work->next_gc_run = max;
 	}
 
+	next_run = gc_work->next_gc_run;
 	gc_work->last_bucket = i;
 	queue_delayed_work(system_long_wq, &gc_work->dwork, next_run);
 }
@@ -1025,7 +1029,7 @@ static void gc_worker(struct work_struct *work)
 static void conntrack_gc_work_init(struct conntrack_gc_work *gc_work)
 {
 	INIT_DELAYED_WORK(&gc_work->dwork, gc_worker);
-	gc_work->next_gc_run = GC_INTERVAL_MAX;
+	gc_work->next_gc_run = HZ;
 	gc_work->exiting = false;
 }
 
@@ -1918,7 +1922,7 @@ int nf_conntrack_init_start(void)
 	nf_ct_untracked_status_or(IPS_CONFIRMED | IPS_UNTRACKED);
 
 	conntrack_gc_work_init(&conntrack_gc_work);
-	queue_delayed_work(system_long_wq, &conntrack_gc_work.dwork, GC_INTERVAL_MAX);
+	queue_delayed_work(system_long_wq, &conntrack_gc_work.dwork, HZ);
 
 	return 0;
 

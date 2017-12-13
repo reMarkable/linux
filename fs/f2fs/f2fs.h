@@ -431,6 +431,7 @@ struct f2fs_inode_info {
 	atomic_t dirty_pages;		/* # of dirty pages */
 	f2fs_hash_t chash;		/* hash value of given file name */
 	unsigned int clevel;		/* maximum level of given file name */
+	struct task_struct *task;	/* lookup and create consistency */
 	nid_t i_xattr_nid;		/* node id that contains xattrs */
 	unsigned long long xattr_ver;	/* cp version of xattr modification */
 	loff_t	last_disk_size;		/* lastly written file size */
@@ -833,6 +834,9 @@ struct f2fs_sb_info {
 	struct f2fs_gc_kthread	*gc_thread;	/* GC thread */
 	unsigned int cur_victim_sec;		/* current victim section num */
 
+	/* threshold for converting bg victims for fg */
+	u64 fggc_threshold;
+
 	/* maximum # of trials to find a victim segment for SSR and GC */
 	unsigned int max_victim_search;
 
@@ -944,6 +948,7 @@ static inline u32 f2fs_crc32(struct f2fs_sb_info *sbi, const void *address,
 {
 	SHASH_DESC_ON_STACK(shash, sbi->s_chksum_driver);
 	u32 *ctx = (u32 *)shash_desc_ctx(shash);
+	u32 retval;
 	int err;
 
 	shash->tfm = sbi->s_chksum_driver;
@@ -953,7 +958,9 @@ static inline u32 f2fs_crc32(struct f2fs_sb_info *sbi, const void *address,
 	err = crypto_shash_update(shash, address, length);
 	BUG_ON(err);
 
-	return *ctx;
+	retval = *ctx;
+	barrier_data(ctx);
+	return retval;
 }
 
 static inline bool f2fs_crc_valid(struct f2fs_sb_info *sbi, __u32 blk_crc,
@@ -2012,7 +2019,8 @@ int sanity_check_ckpt(struct f2fs_sb_info *sbi);
 /*
  * hash.c
  */
-f2fs_hash_t f2fs_dentry_hash(const struct qstr *);
+f2fs_hash_t f2fs_dentry_hash(const struct qstr *name_info,
+				struct fscrypt_name *fname);
 
 /*
  * node.c

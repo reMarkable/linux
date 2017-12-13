@@ -2944,7 +2944,7 @@ int qeth_send_ipa_cmd(struct qeth_card *card, struct qeth_cmd_buffer *iob,
 }
 EXPORT_SYMBOL_GPL(qeth_send_ipa_cmd);
 
-int qeth_send_startlan(struct qeth_card *card)
+static int qeth_send_startlan(struct qeth_card *card)
 {
 	int rc;
 	struct qeth_cmd_buffer *iob;
@@ -2957,7 +2957,6 @@ int qeth_send_startlan(struct qeth_card *card)
 	rc = qeth_send_ipa_cmd(card, iob, NULL, NULL);
 	return rc;
 }
-EXPORT_SYMBOL_GPL(qeth_send_startlan);
 
 static int qeth_default_setadapterparms_cb(struct qeth_card *card,
 		struct qeth_reply *reply, unsigned long data)
@@ -5091,6 +5090,20 @@ retriable:
 		goto out;
 	}
 
+	rc = qeth_send_startlan(card);
+	if (rc) {
+		QETH_DBF_TEXT_(SETUP, 2, "6err%d", rc);
+		if (rc == IPA_RC_LAN_OFFLINE) {
+			dev_warn(&card->gdev->dev,
+				"The LAN is offline\n");
+			card->lan_online = 0;
+		} else {
+			rc = -ENODEV;
+			goto out;
+		}
+	} else
+		card->lan_online = 1;
+
 	card->options.ipa4.supported_funcs = 0;
 	card->options.ipa6.supported_funcs = 0;
 	card->options.adp.supported_funcs = 0;
@@ -5102,14 +5115,14 @@ retriable:
 	if (qeth_is_supported(card, IPA_SETADAPTERPARMS)) {
 		rc = qeth_query_setadapterparms(card);
 		if (rc < 0) {
-			QETH_DBF_TEXT_(SETUP, 2, "6err%d", rc);
+			QETH_DBF_TEXT_(SETUP, 2, "7err%d", rc);
 			goto out;
 		}
 	}
 	if (qeth_adp_supported(card, IPA_SETADP_SET_DIAG_ASSIST)) {
 		rc = qeth_query_setdiagass(card);
 		if (rc < 0) {
-			QETH_DBF_TEXT_(SETUP, 2, "7err%d", rc);
+			QETH_DBF_TEXT_(SETUP, 2, "8err%d", rc);
 			goto out;
 		}
 	}
@@ -5462,10 +5475,12 @@ void qeth_core_free_discipline(struct qeth_card *card)
 	card->discipline = NULL;
 }
 
-static const struct device_type qeth_generic_devtype = {
+const struct device_type qeth_generic_devtype = {
 	.name = "qeth_generic",
 	.groups = qeth_generic_attr_groups,
 };
+EXPORT_SYMBOL_GPL(qeth_generic_devtype);
+
 static const struct device_type qeth_osn_devtype = {
 	.name = "qeth_osn",
 	.groups = qeth_osn_attr_groups,
@@ -5591,23 +5606,22 @@ static int qeth_core_probe_device(struct ccwgroup_device *gdev)
 		goto err_card;
 	}
 
-	if (card->info.type == QETH_CARD_TYPE_OSN)
-		gdev->dev.type = &qeth_osn_devtype;
-	else
-		gdev->dev.type = &qeth_generic_devtype;
-
 	switch (card->info.type) {
 	case QETH_CARD_TYPE_OSN:
 	case QETH_CARD_TYPE_OSM:
 		rc = qeth_core_load_discipline(card, QETH_DISCIPLINE_LAYER2);
 		if (rc)
 			goto err_card;
+
+		gdev->dev.type = (card->info.type != QETH_CARD_TYPE_OSN)
+					? card->discipline->devtype
+					: &qeth_osn_devtype;
 		rc = card->discipline->setup(card->gdev);
 		if (rc)
 			goto err_disc;
-	case QETH_CARD_TYPE_OSD:
-	case QETH_CARD_TYPE_OSX:
+		break;
 	default:
+		gdev->dev.type = &qeth_generic_devtype;
 		break;
 	}
 
@@ -5663,8 +5677,10 @@ static int qeth_core_set_online(struct ccwgroup_device *gdev)
 		if (rc)
 			goto err;
 		rc = card->discipline->setup(card->gdev);
-		if (rc)
+		if (rc) {
+			qeth_core_free_discipline(card);
 			goto err;
+		}
 	}
 	rc = card->discipline->set_online(gdev);
 err:

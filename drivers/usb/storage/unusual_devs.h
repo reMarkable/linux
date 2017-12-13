@@ -1459,6 +1459,13 @@ UNUSUAL_DEV( 0x0bc2, 0x3010, 0x0000, 0x0000,
 		USB_SC_DEVICE, USB_PR_DEVICE, NULL,
 		US_FL_SANE_SENSE ),
 
+/* Reported by Kris Lindgren <kris.lindgren@gmail.com> */
+UNUSUAL_DEV( 0x0bc2, 0x3332, 0x0000, 0x9999,
+		"Seagate",
+		"External",
+		USB_SC_DEVICE, USB_PR_DEVICE, NULL,
+		US_FL_NO_WP_DETECT ),
+
 UNUSUAL_DEV(  0x0d49, 0x7310, 0x0000, 0x9999,
 		"Maxtor",
 		"USB to SATA",
@@ -2068,6 +2075,20 @@ UNUSUAL_DEV(  0x132b, 0x000b, 0x0001, 0x0001,
 UNUSUAL_DEV(  0x1370, 0x6828, 0x0110, 0x0110,
 		"SWISSBIT",
 		"Black Silver",
+		USB_SC_DEVICE, USB_PR_DEVICE, NULL,
+		US_FL_IGNORE_RESIDUE ),
+
+/*
+ * Reported by Tobias Jakobi <tjakobi@math.uni-bielefeld.de>
+ * The INIC-3619 bridge is used in the StarTech SLSODDU33B
+ * SATA-USB enclosure for slimline optical drives.
+ *
+ * The quirk enables MakeMKV to properly exchange keys with
+ * an installed BD drive.
+ */
+UNUSUAL_DEV(  0x13fd, 0x3609, 0x0209, 0x0209,
+		"Initio Corporation",
+		"INIC-3619",
 		USB_SC_DEVICE, USB_PR_DEVICE, NULL,
 		US_FL_IGNORE_RESIDUE ),
 

@@ -277,7 +277,8 @@ static int register_vlan_device(struct net_device *real_dev, u16 vlan_id)
 	return 0;
 
 out_free_newdev:
-	free_netdev(new_dev);
+	if (new_dev->reg_state == NETREG_UNINITIALIZED)
+		free_netdev(new_dev);
 	return err;
 }
 
@@ -375,6 +376,9 @@ static int vlan_device_event(struct notifier_block *unused, unsigned long event,
 			dev->name);
 		vlan_vid_add(dev, htons(ETH_P_8021Q), 0);
 	}
+	if (event == NETDEV_DOWN &&
+	    (dev->features & NETIF_F_HW_VLAN_CTAG_FILTER))
+		vlan_vid_del(dev, htons(ETH_P_8021Q), 0);
 
 	vlan_info = rtnl_dereference(dev->vlan_info);
 	if (!vlan_info)
@@ -421,9 +425,6 @@ static int vlan_device_event(struct notifier_block *unused, unsigned long event,
 	case NETDEV_DOWN: {
 		struct net_device *tmp;
 		LIST_HEAD(close_list);
-
-		if (dev->features & NETIF_F_HW_VLAN_CTAG_FILTER)
-			vlan_vid_del(dev, htons(ETH_P_8021Q), 0);
 
 		/* Put all VLANs for this dev in the down state too.  */
 		vlan_group_for_each_dev(grp, i, vlandev) {

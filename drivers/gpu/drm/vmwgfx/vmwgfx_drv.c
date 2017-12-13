@@ -199,9 +199,14 @@ static const struct drm_ioctl_desc vmw_ioctls[] = {
 	VMW_IOCTL_DEF(VMW_PRESENT_READBACK,
 		      vmw_present_readback_ioctl,
 		      DRM_MASTER | DRM_AUTH),
+	/*
+	 * The permissions of the below ioctl are overridden in
+	 * vmw_generic_ioctl(). We require either
+	 * DRM_MASTER or capable(CAP_SYS_ADMIN).
+	 */
 	VMW_IOCTL_DEF(VMW_UPDATE_LAYOUT,
 		      vmw_kms_update_layout_ioctl,
-		      DRM_MASTER | DRM_CONTROL_ALLOW),
+		      DRM_RENDER_ALLOW),
 	VMW_IOCTL_DEF(VMW_CREATE_SHADER,
 		      vmw_shader_define_ioctl,
 		      DRM_AUTH | DRM_RENDER_ALLOW),
@@ -716,7 +721,7 @@ static int vmw_driver_load(struct drm_device *dev, unsigned long chipset)
 		 * allocation taken by fbdev
 		 */
 		if (!(dev_priv->capabilities & SVGA_CAP_3D))
-			mem_size *= 2;
+			mem_size *= 3;
 
 		dev_priv->max_mob_pages = mem_size * 1024 / PAGE_SIZE;
 		dev_priv->prim_bb_mem =
@@ -1125,6 +1130,10 @@ static long vmw_generic_ioctl(struct file *filp, unsigned int cmd,
 
 			return (long) vmw_execbuf_ioctl(dev, arg, file_priv,
 							_IOC_SIZE(cmd));
+		} else if (nr == DRM_COMMAND_BASE + DRM_VMW_UPDATE_LAYOUT) {
+			if (!drm_is_current_master(file_priv) &&
+			    !capable(CAP_SYS_ADMIN))
+				return -EACCES;
 		}
 
 		if (unlikely(ioctl->cmd != cmd))
