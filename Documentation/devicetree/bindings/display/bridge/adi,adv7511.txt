@@ -80,6 +80,8 @@ Optional properties:
 - reg-names : Names of maps with programmable addresses.
 	It can contain any map needing a non-default address.
 	Possible maps names are : "main", "edid", "cec", "packet"
+- adi,dsi-channel: Only for ADV7533 and ADV7535. DSI channel number to be used
+  when communicating with the DSI peripheral. It should be one of 0, 1, 2 or 3.
 
 Required nodes:
 
