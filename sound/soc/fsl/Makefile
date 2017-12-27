@@ -72,6 +72,7 @@ snd-soc-imx-audmix-objs := imx-audmix.o
 snd-soc-imx-mqs-objs := imx-mqs.o
 snd-soc-imx-pdm-objs := imx-pdm.o
 snd-soc-imx-ak4458-objs := imx-ak4458.o
+snd-soc-imx-ak5558-objs := imx-ak5558.o
 
 obj-$(CONFIG_SND_SOC_EUKREA_TLV320) += snd-soc-eukrea-tlv320.o
 obj-$(CONFIG_SND_SOC_PHYCORE_AC97) += snd-soc-phycore-ac97.o
@@ -91,3 +92,4 @@ obj-$(CONFIG_SND_SOC_IMX_AUDMIX) += snd-soc-imx-audmix.o
 obj-$(CONFIG_SND_SOC_IMX_MQS) += snd-soc-imx-mqs.o
 obj-$(CONFIG_SND_SOC_IMX_PDM_MIC) += snd-soc-imx-pdm.o
 obj-$(CONFIG_SND_SOC_IMX_AK4458) += snd-soc-imx-ak4458.o
+obj-$(CONFIG_SND_SOC_IMX_AK5558) += snd-soc-imx-ak5558.o
