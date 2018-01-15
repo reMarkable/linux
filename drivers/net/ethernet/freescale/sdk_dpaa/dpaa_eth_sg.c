@@ -350,7 +350,13 @@ bool dpa_buf_is_recyclable(struct sk_buff *skb,
 	/* left align to the nearest cacheline */
 	new = (unsigned char *)((unsigned long)new & ~(SMP_CACHE_BYTES - 1));
 
-	if (likely(new >= skb->head &&
+	/* Make sure there is enough space to store the skb back-pointer in
+	 * the headroom, right before the start of the buffer.
+	 *
+	 * Guarantee that both maximum size and maximum data offsets aren't
+	 * crossed.
+	 */
+	if (likely(new >= (skb->head + sizeof(void *)) &&
 		   new >= (skb->data - DPA_MAX_FD_OFFSET) &&
 		   skb_end_pointer(skb) - new <= DPA_RECYCLE_MAX_SIZE)) {
 		*new_buf_start = new;
