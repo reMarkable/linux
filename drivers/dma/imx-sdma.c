@@ -8,7 +8,8 @@
 //
 // Based on code from Freescale:
 //
-// Copyright 2004-2009 Freescale Semiconductor, Inc. All Rights Reserved.
+// Copyright 2004-2016 Freescale Semiconductor, Inc. All Rights Reserved.
+// Copyright 2018 NXP.
 
 #include <linux/init.h>
 #include <linux/iopoll.h>
@@ -1686,8 +1687,8 @@ static void sdma_issue_pending(struct dma_chan *chan)
 
 #define SDMA_SCRIPT_ADDRS_ARRAY_SIZE_V1	34
 #define SDMA_SCRIPT_ADDRS_ARRAY_SIZE_V2	38
-#define SDMA_SCRIPT_ADDRS_ARRAY_SIZE_V3	41
-#define SDMA_SCRIPT_ADDRS_ARRAY_SIZE_V4	42
+#define SDMA_SCRIPT_ADDRS_ARRAY_SIZE_V3	43
+#define SDMA_SCRIPT_ADDRS_ARRAY_SIZE_V4	44
 
 static void sdma_add_scripts(struct sdma_engine *sdma,
 		const struct sdma_script_start_addrs *addr)
