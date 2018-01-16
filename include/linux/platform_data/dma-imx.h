@@ -57,6 +57,7 @@ struct imx_dma_data {
 	int priority;
 	bool src_dualfifo;
 	bool dst_dualfifo;
+	int done_sel;
 };
 
 static inline int imx_dma_is_ipu(struct dma_chan *chan)
