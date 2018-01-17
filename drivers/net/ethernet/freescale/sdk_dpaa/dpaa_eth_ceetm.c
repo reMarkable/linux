@@ -774,7 +774,6 @@ static int ceetm_init_prio(struct Qdisc *sch, struct ceetm_qdisc *priv,
 		}
 
 		child_cl->common.classid = TC_H_MAKE(sch->handle, (i + 1));
-		child_cl->refcnt = 1;
 		child_cl->parent = sch;
 		child_cl->type = CEETM_PRIO;
 		child_cl->shaped = priv->shaped;
@@ -986,7 +985,6 @@ static int ceetm_init_wbfs(struct Qdisc *sch, struct ceetm_qdisc *priv,
 		}
 
 		child_cl->common.classid = TC_H_MAKE(sch->handle, (i + 1));
-		child_cl->refcnt = 1;
 		child_cl->parent = sch;
 		child_cl->type = CEETM_WBFS;
 		child_cl->shaped = priv->shaped;
@@ -1297,29 +1295,9 @@ static void ceetm_attach(struct Qdisc *sch)
 	}
 }
 
-static unsigned long ceetm_cls_get(struct Qdisc *sch, u32 classid)
+static unsigned long ceetm_cls_search(struct Qdisc *sch, u32 handle)
 {
-	struct ceetm_class *cl;
-
-	pr_debug(KBUILD_BASENAME " : %s : classid %X from qdisc %X\n",
-		 __func__, classid, sch->handle);
-	cl = ceetm_find(classid, sch);
-
-	if (cl)
-		cl->refcnt++; /* Will decrement in put() */
-	return (unsigned long)cl;
-}
-
-static void ceetm_cls_put(struct Qdisc *sch, unsigned long arg)
-{
-	struct ceetm_class *cl = (struct ceetm_class *)arg;
-
-	pr_debug(KBUILD_BASENAME " : %s : classid %X from qdisc %X\n",
-		 __func__, cl->common.classid, sch->handle);
-	cl->refcnt--;
-
-	if (cl->refcnt == 0)
-		ceetm_cls_destroy(sch, cl);
+	return (unsigned long)ceetm_find(handle, sch);
 }
 
 static int ceetm_cls_change_root(struct ceetm_class *cl,
@@ -1540,7 +1518,6 @@ static int ceetm_cls_change(struct Qdisc *sch, u32 classid, u32 parentid,
 	cl->root.tbl = copt->tbl;
 
 	cl->common.classid = classid;
-	cl->refcnt = 1;
 	cl->parent = sch;
 	cl->root.child = NULL;
 	cl->root.wbfs_grp_a = false;
@@ -1696,15 +1673,9 @@ static int ceetm_cls_delete(struct Qdisc *sch, unsigned long arg)
 
 	sch_tree_lock(sch);
 	qdisc_class_hash_remove(&priv->clhash, &cl->common);
-	cl->refcnt--;
-
-	/* The refcnt should be at least 1 since we have incremented it in
-	 * get(). Will decrement again in put() where we will call destroy()
-	 * to actually free the memory if it reaches 0.
-	 */
-	WARN_ON(cl->refcnt == 0);
 
 	sch_tree_unlock(sch);
+	ceetm_cls_destroy(sch, cl);
 	return 0;
 }
 
@@ -1824,8 +1795,7 @@ static void ceetm_tcf_unbind(struct Qdisc *sch, unsigned long arg)
 const struct Qdisc_class_ops ceetm_cls_ops = {
 	.graft		=	ceetm_cls_graft,
 	.leaf		=	ceetm_cls_leaf,
-	.get		=	ceetm_cls_get,
-	.put		=	ceetm_cls_put,
+	.find		=	ceetm_cls_search,
 	.change		=	ceetm_cls_change,
 	.delete		=	ceetm_cls_delete,
 	.walk		=	ceetm_cls_walk,
