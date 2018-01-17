@@ -423,7 +423,7 @@ static void ceetm_cls_destroy(struct Qdisc *sch, struct ceetm_class *cl)
 			free_percpu(cl->wbfs.cstats);
 	}
 
-	tcf_destroy_chain(&cl->filter_list);
+	tcf_block_put(cl->block);
 	kfree(cl);
 }
 
@@ -440,11 +440,13 @@ static void ceetm_destroy(struct Qdisc *sch)
 		 __func__, sch->handle);
 
 	/* All filters need to be removed before destroying the classes */
-	tcf_destroy_chain(&priv->filter_list);
+	tcf_block_put(priv->block);
 
 	for (i = 0; i < priv->clhash.hashsize; i++) {
-		hlist_for_each_entry(cl, &priv->clhash.hash[i], common.hnode)
-			tcf_destroy_chain(&cl->filter_list);
+		hlist_for_each_entry(cl, &priv->clhash.hash[i], common.hnode) {
+			tcf_block_put(cl->block);
+			cl->block = NULL;
+		}
 	}
 
 	for (i = 0; i < priv->clhash.hashsize; i++) {
@@ -594,7 +596,7 @@ static int ceetm_init_root(struct Qdisc *sch, struct ceetm_qdisc *priv,
 	/* Validate inputs */
 	if (sch->parent != TC_H_ROOT) {
 		pr_err("CEETM: a root ceetm qdisc can not be attached to a class\n");
-		tcf_destroy_chain(&priv->filter_list);
+		tcf_block_put(priv->block);
 		qdisc_class_hash_destroy(&priv->clhash);
 		return -EINVAL;
 	}
@@ -1052,6 +1054,10 @@ static int ceetm_init(struct Qdisc *sch, struct nlattr *opt)
 		pr_err(KBUILD_BASENAME " : %s : tc error\n", __func__);
 		return -EINVAL;
 	}
+
+	ret = tcf_block_get(&priv->block, &priv->filter_list);
+	if (ret)
+		return ret;
 
 	ret = nla_parse_nested(tb, TCA_CEETM_QOPS, opt, ceetm_policy, NULL);
 	if (ret < 0) {
@@ -1521,6 +1527,12 @@ static int ceetm_cls_change(struct Qdisc *sch, u32 classid, u32 parentid,
 	if (!cl)
 		return -ENOMEM;
 
+	err = tcf_block_get(&cl->block, &cl->filter_list);
+	if (err) {
+		kfree(cl);
+		return err;
+	}
+
 	cl->type = copt->type;
 	cl->shaped = copt->shaped;
 	cl->root.rate = copt->rate;
@@ -1585,6 +1597,7 @@ channel_err:
 		pr_err(KBUILD_BASENAME " : %s : failed to release the channel %d\n",
 		       __func__, channel->idx);
 claim_err:
+	tcf_block_put(cl->block);
 	kfree(cl);
 	return err;
 }
@@ -1779,15 +1792,15 @@ static int ceetm_cls_dump_stats(struct Qdisc *sch, unsigned long arg,
 	return gnet_stats_copy_app(d, &xstats, sizeof(xstats));
 }
 
-static struct tcf_proto **ceetm_tcf_chain(struct Qdisc *sch, unsigned long arg)
+static struct tcf_block *ceetm_tcf_block(struct Qdisc *sch, unsigned long arg)
 {
 	struct ceetm_qdisc *priv = qdisc_priv(sch);
 	struct ceetm_class *cl = (struct ceetm_class *)arg;
-	struct tcf_proto **fl = cl ? &cl->filter_list : &priv->filter_list;
+	struct tcf_block *block = cl ? cl->block : priv->block;
 
 	pr_debug(KBUILD_BASENAME " : %s : class %X under qdisc %X\n", __func__,
 		 cl ? cl->common.classid : 0, sch->handle);
-	return fl;
+	return block;
 }
 
 static unsigned long ceetm_tcf_bind(struct Qdisc *sch, unsigned long parent,
@@ -1816,7 +1829,7 @@ const struct Qdisc_class_ops ceetm_cls_ops = {
 	.change		=	ceetm_cls_change,
 	.delete		=	ceetm_cls_delete,
 	.walk		=	ceetm_cls_walk,
-	.tcf_chain	=	ceetm_tcf_chain,
+	.tcf_block	=	ceetm_tcf_block,
 	.bind_tcf	=	ceetm_tcf_bind,
 	.unbind_tcf	=	ceetm_tcf_unbind,
 	.dump		=	ceetm_cls_dump,

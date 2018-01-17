@@ -141,6 +141,7 @@ struct ceetm_qdisc {
 	};
 	struct Qdisc_class_hash clhash;
 	struct tcf_proto *filter_list; /* qdisc attached filters */
+	struct tcf_block *block;
 };
 
 /* CEETM Qdisc configuration parameters */
@@ -192,6 +193,7 @@ struct ceetm_class {
 	struct Qdisc_class_common common;
 	int refcnt; /* usage count of this class */
 	struct tcf_proto *filter_list; /* class attached filters */
+	struct tcf_block *block;
 	struct Qdisc *parent;
 	bool shaped;
 	int type; /* ROOT/PRIO/WBFS */
