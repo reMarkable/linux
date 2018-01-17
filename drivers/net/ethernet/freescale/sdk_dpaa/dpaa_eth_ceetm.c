@@ -1853,6 +1853,7 @@ static struct ceetm_class *ceetm_classify(struct sk_buff *skb,
 		switch (result) {
 		case TC_ACT_QUEUED:
 		case TC_ACT_STOLEN:
+		case TC_ACT_TRAP:
 			*qerr = NET_XMIT_SUCCESS | __NET_XMIT_STOLEN;
 		case TC_ACT_SHOT:
 			/* No valid class found due to action */
