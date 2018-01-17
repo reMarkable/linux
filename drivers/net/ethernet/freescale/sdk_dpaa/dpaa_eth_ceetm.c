@@ -1053,7 +1053,7 @@ static int ceetm_init(struct Qdisc *sch, struct nlattr *opt)
 		return -EINVAL;
 	}
 
-	ret = nla_parse_nested(tb, TCA_CEETM_QOPS, opt, ceetm_policy);
+	ret = nla_parse_nested(tb, TCA_CEETM_QOPS, opt, ceetm_policy, NULL);
 	if (ret < 0) {
 		pr_err(KBUILD_BASENAME " : %s : tc error\n", __func__);
 		return ret;
@@ -1230,7 +1230,7 @@ static int ceetm_change(struct Qdisc *sch, struct nlattr *opt)
 
 	pr_debug(KBUILD_BASENAME " : %s : qdisc %X\n", __func__, sch->handle);
 
-	ret = nla_parse_nested(tb, TCA_CEETM_QOPS, opt, ceetm_policy);
+	ret = nla_parse_nested(tb, TCA_CEETM_QOPS, opt, ceetm_policy, NULL);
 	if (ret < 0) {
 		pr_err(KBUILD_BASENAME " : %s : tc error\n", __func__);
 		return ret;
@@ -1463,7 +1463,7 @@ static int ceetm_cls_change(struct Qdisc *sch, u32 classid, u32 parentid,
 		return -EINVAL;
 	}
 
-	err = nla_parse_nested(tb, TCA_CEETM_COPT, opt, ceetm_policy);
+	err = nla_parse_nested(tb, TCA_CEETM_COPT, opt, ceetm_policy, NULL);
 	if (err < 0) {
 		pr_err(KBUILD_BASENAME " : %s : tc error\n", __func__);
 		return -EINVAL;
