@@ -1053,7 +1053,7 @@ static int ceetm_init(struct Qdisc *sch, struct nlattr *opt)
 		return -EINVAL;
 	}
 
-	ret = tcf_block_get(&priv->block, &priv->filter_list);
+	ret = tcf_block_get(&priv->block, &priv->filter_list, sch);
 	if (ret)
 		return ret;
 
@@ -1505,7 +1505,7 @@ static int ceetm_cls_change(struct Qdisc *sch, u32 classid, u32 parentid,
 	if (!cl)
 		return -ENOMEM;
 
-	err = tcf_block_get(&cl->block, &cl->filter_list);
+	err = tcf_block_get(&cl->block, &cl->filter_list, sch);
 	if (err) {
 		kfree(cl);
 		return err;
