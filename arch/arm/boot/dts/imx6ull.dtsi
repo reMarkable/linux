@@ -32,6 +32,9 @@
 		i2c3 = &i2c4;
 		mmc0 = &usdhc1;
 		mmc1 = &usdhc2;
+		sai1 = &sai1;
+		sai2 = &sai2;
+		sai3 = &sai3;
 		serial0 = &uart1;
 		serial1 = &uart2;
 		serial2 = &uart3;
@@ -352,6 +355,7 @@
 				};
 
 				sai1: sai@02028000 {
+					#sound-dai-cells = <0>;
 					compatible = "fsl,imx6ul-sai",
 						     "fsl,imx6sx-sai";
 					reg = <0x02028000 0x4000>;
@@ -367,6 +371,7 @@
 				};
 
 				sai2: sai@0202c000 {
+					#sound-dai-cells = <0>;
 					compatible = "fsl,imx6ul-sai",
 						     "fsl,imx6sx-sai";
 					reg = <0x0202c000 0x4000>;
@@ -382,6 +387,7 @@
 				};
 
 				sai3: sai@02030000 {
+					#sound-dai-cells = <0>;
 					compatible = "fsl,imx6ul-sai",
 						     "fsl,imx6sx-sai";
 					reg = <0x02030000 0x4000>;
