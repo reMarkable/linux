@@ -1,0 +1,9 @@
+What:		/sys/bus/fsl-mc/devices/dprc.*/rescan
+Date:		November 2018
+KernelVersion:	5.0
+Contact:	Ioana Ciornei <ioana.ciornei@nxp.com>
+Description:	Writing a non-zero value to this attribute will
+		force a rescan of dprc.X container in the system and
+		synchronize the objects under dprc.X and the
+		Management Complex firmware.
+Users:		Userspace drivers and management tools
