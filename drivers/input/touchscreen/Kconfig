@@ -1339,6 +1339,7 @@ config TOUCHSCREEN_IQS5XX
 	  To compile this driver as a module, choose M here: the
 	  module will be called iqs5xx.
 
+source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
 endif
 
 source "drivers/input/touchscreen/focaltech_touch/Kconfig"
