@@ -515,7 +515,17 @@ int qbman_swp_enqueue(struct qbman_swp *s, const struct qbman_eq_desc *d,
 		return -EBUSY;
 
 	p = qbman_get_cmd(s, QBMAN_CENA_SWP_EQCR(EQAR_IDX(eqar)));
-	memcpy(&p->dca, &d->dca, 31);
+	/* This is mapped as DEVICE type memory, writes are
+	 * with address alignment:
+	 * desc.dca address alignment = 1
+	 * desc.seqnum address alignment = 2
+	 * desc.orpid address alignment = 4
+	 * desc.tgtid address alignment = 8
+	 */
+	p->dca = d->dca;
+	p->seqnum = d->seqnum;
+	p->orpid = d->orpid;
+	memcpy(&p->tgtid, &d->tgtid, 24);
 	memcpy(&p->fd, fd, sizeof(*fd));
 
 	if ((s->desc->qman_version & QMAN_REV_MASK) < QMAN_REV_5000) {
