@@ -1100,7 +1100,9 @@ static int ceetm_init(struct Qdisc *sch, struct nlattr *opt,
 
 	switch (priv->type) {
 	case CEETM_ROOT:
+		netif_tx_stop_all_queues(dev);
 		ret = ceetm_init_root(sch, priv, qopt, extack);
+		netif_tx_wake_all_queues(dev);
 		break;
 	case CEETM_PRIO:
 		ret = ceetm_init_prio(sch, priv, qopt);
