@@ -48,7 +48,7 @@ struct brcmf_chip {
 	u32 rambase;
 	u32 ramsize;
 	u32 srsize;
-	char name[8];
+	char name[12];
 };
 
 /**
@@ -101,5 +101,6 @@ void brcmf_chip_ulp_reset_lhl_regs(struct brcmf_chip *pub);
 void brcmf_chip_reset_pmu_regs(struct brcmf_chip *pub);
 void brcmf_chip_set_default_min_res_mask(struct brcmf_chip *pub);
 struct brcmf_core *brcmf_chip_get_d11core(struct brcmf_chip *pub, u8 unit);
+char *brcmf_chip_name(u32 chipid, u32 chiprev, char *buf, uint len);
 
 #endif /* BRCMF_AXIDMP_H */
