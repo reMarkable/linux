@@ -3813,6 +3813,18 @@ int qman_ceetm_query_lfqmt(int lfqid,
 			   struct qm_mcr_ceetm_lfqmt_query *lfqmt_query);
 
 /**
+ * qman_ceetm_query_cq - Queries a CEETM CQ
+ * @cqid: the channel ID (first byte) followed by the CQ idx
+ * @dcpid: CEETM portal ID
+ * @cq_query: storage for the queried CQ fields
+ *
+ * Returns zero for success or -EIO if the query command returns error.
+ *
+*/
+int qman_ceetm_query_cq(unsigned int cqid, unsigned int dcpid,
+			struct qm_mcr_ceetm_cq_query *cq_query);
+
+/**
  * qman_ceetm_query_write_statistics - Query (and optionally write) statistics
  * @cid: Target ID (CQID or CCGRID)
  * @dcp_idx: CEETM portal ID
