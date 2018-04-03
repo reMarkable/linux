@@ -1204,7 +1204,8 @@ static int evb_probe(struct fsl_mc_device *evb_dev)
 
 	priv = netdev_priv(netdev);
 
-	err = fsl_mc_portal_allocate(evb_dev, 0, &priv->mc_io);
+	err = fsl_mc_portal_allocate(evb_dev, FSL_MC_IO_ATOMIC_CONTEXT_PORTAL,
+				     &priv->mc_io);
 	if (unlikely(err)) {
 		dev_err(dev, "fsl_mc_portal_allocate err %d\n", err);
 		goto err_free_netdev;
