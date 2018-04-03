@@ -29,6 +29,7 @@
  */
 
 #include "qman_priv.h"
+#include <linux/iommu.h>
 
 struct qman_portal *qman_dma_portal;
 EXPORT_SYMBOL(qman_dma_portal);
@@ -231,6 +232,7 @@ static int qman_portal_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *node = dev->of_node;
+	struct iommu_domain *domain;
 	struct qm_portal_config *pcfg;
 	struct resource *addr_phys[2];
 	int irq, cpu, err, i;
@@ -292,6 +294,21 @@ static int qman_portal_probe(struct platform_device *pdev)
 	if (!pcfg->addr_virt_ci) {
 		dev_err(dev, "ioremap::CI failed\n");
 		goto err_ioremap2;
+	}
+
+	/* Create an 1-to-1 iommu mapping for cena portal area */
+	domain = iommu_get_domain_for_dev(dev);
+	if (domain) {
+		/*
+		 * Note: not mapping this as cacheable triggers the infamous
+		 * QMan CIDE error.
+		 */
+		err = iommu_map(domain,
+				addr_phys[0]->start, addr_phys[0]->start,
+				resource_size(addr_phys[0]),
+				IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE);
+		if (err)
+			dev_warn(dev, "failed to iommu_map() %d\n", err);
 	}
 
 	pcfg->pools = qm_get_pools_sdqcr();
