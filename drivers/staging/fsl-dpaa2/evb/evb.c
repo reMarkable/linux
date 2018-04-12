@@ -38,7 +38,7 @@
 #include <uapi/linux/if_bridge.h>
 #include <net/netlink.h>
 
-#include "../../fsl-mc/include/mc.h"
+#include <linux/fsl/mc.h>
 
 #include "dpdmux.h"
 #include "dpdmux-cmd.h"
