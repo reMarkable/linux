@@ -366,6 +366,8 @@ int mc_send_command(struct fsl_mc_io *mc_io, struct fsl_mc_command *cmd);
 	module_driver(__fsl_mc_driver, fsl_mc_driver_register, \
 		      fsl_mc_driver_unregister)
 
+void fsl_mc_device_remove(struct fsl_mc_device *mc_dev);
+
 /*
  * Macro to avoid include chaining to get THIS_MODULE
  */

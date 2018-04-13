@@ -561,8 +561,6 @@ int __must_check fsl_mc_device_add(struct fsl_mc_obj_desc *obj_desc,
 				   const char *driver_override,
 				   struct fsl_mc_device **new_mc_dev);
 
-void fsl_mc_device_remove(struct fsl_mc_device *mc_dev);
-
 int __init dprc_driver_init(void);
 
 void dprc_driver_exit(void);
