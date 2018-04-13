@@ -93,6 +93,7 @@ int dpmcp_reset(struct fsl_mc_io *mc_io,
 #define DPRC_CMDID_GET_API_VERSION              DPRC_CMD(0xa05)
 
 #define DPRC_CMDID_GET_ATTR                     DPRC_CMD(0x004)
+#define DPRC_CMDID_RESET_CONT                   DPRC_CMD(0x005)
 
 #define DPRC_CMDID_SET_IRQ                      DPRC_CMD(0x010)
 #define DPRC_CMDID_SET_IRQ_ENABLE               DPRC_CMD(0x012)
@@ -109,6 +110,10 @@ int dpmcp_reset(struct fsl_mc_io *mc_io,
 
 struct dprc_cmd_open {
 	__le32 container_id;
+};
+
+struct dprc_cmd_reset_container {
+	__le32 child_container_id;
 };
 
 struct dprc_cmd_set_irq {
@@ -393,6 +398,11 @@ int dprc_get_api_version(struct fsl_mc_io *mc_io,
 int dprc_get_container_id(struct fsl_mc_io *mc_io,
 			  u32 cmd_flags,
 			  int *container_id);
+
+int dprc_reset_container(struct fsl_mc_io *mc_io,
+			 u32 cmd_flags,
+			 u16 token,
+			 int child_container_id);
 
 /*
  * Data Path Buffer Pool (DPBP) API
