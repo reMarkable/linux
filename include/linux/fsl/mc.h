@@ -356,6 +356,10 @@ int mc_send_command(struct fsl_mc_io *mc_io, struct fsl_mc_command *cmd);
 #define fsl_mc_cont_dev(_dev) (fsl_mc_is_cont_dev(_dev) ? \
 	(_dev) : (_dev)->parent)
 
+#define fsl_mc_is_dev_coherent(_dev) \
+	(!((to_fsl_mc_device(_dev))->obj_desc.flags & \
+	FSL_MC_OBJ_FLAG_NO_MEM_SHAREABILITY))
+
 /*
  * module_fsl_mc_driver() - Helper macro for drivers that don't do
  * anything special in module init/exit.  This eliminates a lot of
