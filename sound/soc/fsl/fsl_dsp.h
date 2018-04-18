@@ -1,5 +1,5 @@
 /*
- * Freescale HIFI 4 driver
+ * Freescale DSP driver
  *
  * Copyright 2018 NXP
  *
@@ -8,8 +8,8 @@
  * kind, whether express or implied.
  */
 
-#include <uapi/linux/mxc_hifi4.h>
-#include "fsl_hifi4_proxy.h"
+#include <uapi/linux/mxc_dsp.h>
+#include "fsl_dsp_proxy.h"
 
 
 typedef void (*memcpy_func) (void *dest, const void *src, size_t n);
@@ -51,14 +51,14 @@ union xf_client_link {
 	struct xf_client    *client;
 };
 
-struct fsl_hifi4 {
+struct fsl_dsp {
 	struct device			*dev;
 	const char			*fw_name;
 	void __iomem			*regs;
 	void __iomem			*mu_base_virtaddr;
-	struct imx_sc_ipc		*hifi_ipcHandle;
-	unsigned int			hifi_mu_id;
-	int				hifi_mu_init;
+	struct imx_sc_ipc		*dsp_ipcHandle;
+	unsigned int			dsp_mu_id;
+	int				dsp_mu_init;
 	atomic_long_t			refcnt;
 	unsigned long			paddr;
 	unsigned long			dram0;
@@ -73,15 +73,15 @@ struct fsl_hifi4 {
 	void				*scratch_buf_virt;
 	dma_addr_t			 scratch_buf_phys;
 	int				 scratch_buf_size;
-	void				*hifi_config_virt;
-	dma_addr_t			 hifi_config_phys;
-	int				 hifi_config_size;
+	void				*dsp_config_virt;
+	dma_addr_t			 dsp_config_phys;
+	int				 dsp_config_size;
 
 	/* ...proxy data structures */
 	struct xf_proxy proxy;
 
 	/* ...mutex lock */
-	struct mutex hifi4_mutex;
+	struct mutex dsp_mutex;
 
 	/* ...global clients pool (item[0] serves as list terminator) */
 	union xf_client_link xf_client_map[XF_CFG_MAX_IPC_CLIENTS];
@@ -105,7 +105,7 @@ struct fsl_hifi4 {
 #define MSG_BUF_SIZE		8192
 #define INPUT_BUF_SIZE		4096
 #define OUTPUT_BUF_SIZE		16384
-#define HIFI_CONFIG_SIZE    4096
+#define DSP_CONFIG_SIZE    4096
 
 /*external buffer
  *  ----------------------------------------------------------------------
@@ -113,13 +113,13 @@ struct fsl_hifi4 {
  * -----------------------------------------------------------------------
  *  |  scratch buffer for malloc | 0xffffff | For MEM_scratch_malloc()
  * ------------------------------------------------------------------------
- *  |  global structure          | 4096     | For store hifi config structure
+ *  |  global structure          | 4096     | For store dsp config structure
  * ------------------------------------------------------------------------
  */
 
 #define MEMORY_REMAP_OFFSET	0x39000000
 
-/* reserved memory for hifi4 firmware and core libs to
+/* reserved memory for dsp firmware and core libs to
  * save their instruction/data section in SDRAM, the physical
  * address range is 0x8e000000 ~ 0x8fffffff (32M bytes).
  */
@@ -133,6 +133,6 @@ struct fsl_hifi4 {
 #define SC_C_OFS_PERIPH 41
 #define SC_C_OFS_IRQ    42
 
-void *memcpy_hifi(void *dest, const void *src, size_t count);
-void *memset_hifi(void *dest, int c, size_t count);
-struct xf_client *xf_client_lookup(struct fsl_hifi4 *hifi4_priv, u32 id);
+void *memcpy_dsp(void *dest, const void *src, size_t count);
+void *memset_dsp(void *dest, int c, size_t count);
+struct xf_client *xf_client_lookup(struct fsl_dsp *dsp_priv, u32 id);
