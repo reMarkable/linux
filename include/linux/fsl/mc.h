@@ -416,6 +416,7 @@ extern struct device_type fsl_mc_bus_dprc_type;
 extern struct device_type fsl_mc_bus_dpni_type;
 extern struct device_type fsl_mc_bus_dpio_type;
 extern struct device_type fsl_mc_bus_dpsw_type;
+extern struct device_type fsl_mc_bus_dpdmux_type;
 extern struct device_type fsl_mc_bus_dpbp_type;
 extern struct device_type fsl_mc_bus_dpcon_type;
 extern struct device_type fsl_mc_bus_dpmcp_type;
@@ -441,6 +442,11 @@ static inline bool is_fsl_mc_bus_dpio(const struct fsl_mc_device *mc_dev)
 static inline bool is_fsl_mc_bus_dpsw(const struct fsl_mc_device *mc_dev)
 {
 	return mc_dev->dev.type == &fsl_mc_bus_dpsw_type;
+}
+
+static inline bool is_fsl_mc_bus_dpdmux(const struct fsl_mc_device *mc_dev)
+{
+	return mc_dev->dev.type == &fsl_mc_bus_dpdmux_type;
 }
 
 static inline bool is_fsl_mc_bus_dpbp(const struct fsl_mc_device *mc_dev)

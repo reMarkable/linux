@@ -270,6 +270,10 @@ struct device_type fsl_mc_bus_dpsw_type = {
 	.name = "fsl_mc_bus_dpsw"
 };
 
+struct device_type fsl_mc_bus_dpdmux_type = {
+	.name = "fsl_mc_bus_dpdmux"
+};
+
 struct device_type fsl_mc_bus_dpbp_type = {
 	.name = "fsl_mc_bus_dpbp"
 };
@@ -304,6 +308,7 @@ static struct device_type *fsl_mc_get_device_type(const char *type)
 		{ &fsl_mc_bus_dpni_type, "dpni" },
 		{ &fsl_mc_bus_dpio_type, "dpio" },
 		{ &fsl_mc_bus_dpsw_type, "dpsw" },
+		{ &fsl_mc_bus_dpdmux_type, "dpdmux" },
 		{ &fsl_mc_bus_dpbp_type, "dpbp" },
 		{ &fsl_mc_bus_dpcon_type, "dpcon" },
 		{ &fsl_mc_bus_dpmcp_type, "dpmcp" },
