@@ -298,6 +298,10 @@ struct device_type fsl_mc_bus_dpseci_type = {
 	.name = "fsl_mc_bus_dpseci"
 };
 
+struct device_type fsl_mc_bus_dpdcei_type = {
+	.name = "fsl_mc_bus_dpdcei"
+};
+
 static struct device_type *fsl_mc_get_device_type(const char *type)
 {
 	static const struct {
@@ -315,6 +319,7 @@ static struct device_type *fsl_mc_get_device_type(const char *type)
 		{ &fsl_mc_bus_dpmac_type, "dpmac" },
 		{ &fsl_mc_bus_dprtc_type, "dprtc" },
 		{ &fsl_mc_bus_dpseci_type, "dpseci" },
+		{ &fsl_mc_bus_dpdcei_type, "dpdcei" },
 		{ NULL, NULL }
 	};
 	int i;
