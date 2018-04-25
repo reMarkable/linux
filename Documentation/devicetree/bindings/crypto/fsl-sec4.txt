@@ -203,6 +203,26 @@ EXAMPLE
 
 
 =====================================================================
+Secure memory (SM) Node
+
+  - compatible
+      Usage: required
+      Value type: <string>
+      Definition: Must include "fsl,imx6q-caam-sm"
+
+  - reg
+      Usage: required
+      Value type: <prop-encoded-array>
+      Definition: Specifies a two SM parameters:  an offset from
+          the parent physical address and the length the SM registers.
+
+EXAMPLE
+  caam_sm: caam-sm@100000 {
+    compatible = "fsl,imx6q-caam-sm";
+    reg = <0x100000 0x4000>;
+  };
+
+=====================================================================
 Run Time Integrity Check (RTIC) Node
 
   Child node of the crypto node.  Defines a register space that
