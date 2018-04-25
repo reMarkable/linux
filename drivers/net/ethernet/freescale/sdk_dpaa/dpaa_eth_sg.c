@@ -1113,6 +1113,11 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 				percpu_stats->tx_errors++;
 				return NETDEV_TX_OK;
 			}
+
+			/* propagate the skb ownership information */
+			if (skb->sk)
+				skb_set_owner_w(skb_new, skb->sk);
+
 			dev_kfree_skb(skb);
 			skb = skb_new;
 		}
