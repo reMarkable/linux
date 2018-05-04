@@ -502,17 +502,41 @@ static int memac_init_phy(struct net_device *net_dev,
 			  struct mac_device *mac_dev)
 {
 	struct phy_device       *phy_dev;
+	void (*adjust_link_handler)(struct net_device *);
 
 	if ((macdev2enetinterface(mac_dev) == e_ENET_MODE_XGMII_10000) ||
-	    (macdev2enetinterface(mac_dev) == e_ENET_MODE_SGMII_2500) ||
-	    of_phy_is_fixed_link(mac_dev->phy_node)) {
-		phy_dev = of_phy_connect(net_dev, mac_dev->phy_node,
-					 &adjust_link_void, 0,
-					 mac_dev->phy_if);
+	    (macdev2enetinterface(mac_dev) == e_ENET_MODE_SGMII_2500)) {
+		/* Pass a void link state handler to the PHY state machine
+		 * for XGMII (10G) and SGMII 2.5G, as the hardware does not
+		 * permit dynamic link speed adjustments. */
+		adjust_link_handler = adjust_link_void;
+	} else if (macdev2enetinterface(mac_dev) & e_ENET_IF_RGMII) {
+		/* Regular RGMII ports connected to a PHY, as well as
+		 * ports that are marked as "fixed-link" in the DTS,
+		 * will have the adjust_link callback. This calls
+		 * fman_memac_adjust_link in order to configure the
+		 * IF_MODE register, which is needed in both cases.
+		 */
+		adjust_link_handler = adjust_link;
+	} else if (of_phy_is_fixed_link(mac_dev->phy_node)) {
+		/* Pass a void link state handler for fixed-link
+		 * interfaces that are not RGMII. Only RGMII has been
+		 * tested and confirmed to work with fixed-link. Other
+		 * MII interfaces may need further work.
+		 * TODO: Change this as needed.
+		 */
+		adjust_link_handler = adjust_link_void;
 	} else {
-		phy_dev = of_phy_connect(net_dev, mac_dev->phy_node,
-					 &adjust_link, 0, mac_dev->phy_if);
+		/* MII, RMII, SMII, GMII, SGMII, BASEX ports,
+		 * that are NOT fixed-link.
+		 * TODO: May not be needed for interfaces that
+		 * pass through the SerDes block (*SGMII, XFI).
+		 */
+		adjust_link_handler = adjust_link;
 	}
+	phy_dev = of_phy_connect(net_dev, mac_dev->phy_node,
+	                         adjust_link_handler, 0,
+	                         mac_dev->phy_if);
 
 	if (unlikely(phy_dev == NULL) || IS_ERR(phy_dev)) {
 		netdev_err(net_dev, "Could not connect to PHY %s\n",
