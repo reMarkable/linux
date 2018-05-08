@@ -5185,7 +5185,7 @@ static int mxc_epdc_fb_resume(struct device *dev)
 #define mxc_epdc_fb_resume	NULL
 #endif
 
-#ifdef CONFIG_PM
+#ifdef CONFIG_IMX_BUSFREQ
 static int mxc_epdc_fb_runtime_suspend(struct device *dev)
 {
 	release_bus_freq(BUS_FREQ_HIGH);

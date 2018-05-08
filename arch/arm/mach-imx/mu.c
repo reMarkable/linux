@@ -194,7 +194,9 @@ static void mu_work_handler(struct work_struct *work)
 		m4_in_stop = true;
 		break;
 	case MU_LPM_M4_REQUEST_HIGH_BUS:
+#ifdef CONFIG_IMX_BUSFREQ
 		request_bus_freq(BUS_FREQ_HIGH);
+#endif
 #ifdef CONFIG_SOC_IMX6SX
 		if (cpu_is_imx6sx())
 			imx6sx_set_m4_highfreq(true);
@@ -204,7 +206,9 @@ static void mu_work_handler(struct work_struct *work)
 		m4_freq_low = false;
 		break;
 	case MU_LPM_M4_RELEASE_HIGH_BUS:
+#ifdef CONFIG_IMX_BUSFREQ
 		release_bus_freq(BUS_FREQ_HIGH);
+#endif
 #ifdef CONFIG_SOC_IMX6SX
 		if (cpu_is_imx6sx()) {
 			imx6sx_set_m4_highfreq(false);

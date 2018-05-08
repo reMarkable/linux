@@ -1087,6 +1087,8 @@ static int busfreq_probe(struct platform_device *pdev)
 
 	busfreq_dev = &pdev->dev;
 
+	dev_warn(busfreq_dev, "probing imx_busfreq\n");
+
 	/* Return if no IRAM space is allocated for ddr freq change code. */
 	if (!ddr_freq_change_iram_base)
 		return -ENOMEM;

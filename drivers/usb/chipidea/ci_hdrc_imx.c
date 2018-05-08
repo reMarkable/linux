@@ -529,7 +529,9 @@ static int ci_hdrc_imx_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_IMX_BUSFREQ
 	request_bus_freq(BUS_FREQ_HIGH);
+#endif
 	if (pdata.flags & CI_HDRC_PMQOS)
 		pm_qos_add_request(&data->pm_qos_req,
 			PM_QOS_CPU_DMA_LATENCY, 0);
@@ -664,7 +666,9 @@ err_clk:
 err_bus_freq:
 	if (pdata.flags & CI_HDRC_PMQOS)
 		pm_qos_remove_request(&data->pm_qos_req);
+#ifdef CONFIG_IMX_BUSFREQ
 	release_bus_freq(BUS_FREQ_HIGH);
+#endif
 	return ret;
 }
 
@@ -681,7 +685,10 @@ static int ci_hdrc_imx_remove(struct platform_device *pdev)
 	imx_disable_unprepare_clks(&pdev->dev);
 	if (data->data->flags & CI_HDRC_PMQOS)
 		pm_qos_remove_request(&data->pm_qos_req);
+
+#ifdef CONFIG_IMX_BUSFREQ
 	release_bus_freq(BUS_FREQ_HIGH);
+#endif
 	if (data->hsic_pad_regulator)
 		regulator_disable(data->hsic_pad_regulator);
 
@@ -713,7 +720,10 @@ static int imx_controller_suspend(struct device *dev)
 	imx_disable_unprepare_clks(dev);
 	if (data->data->flags & CI_HDRC_PMQOS)
 		pm_qos_remove_request(&data->pm_qos_req);
+
+#ifdef CONFIG_IMX_BUSFREQ
 	release_bus_freq(BUS_FREQ_HIGH);
+#endif
 	data->in_lpm = true;
 
 	return 0;
@@ -731,10 +741,13 @@ static int imx_controller_resume(struct device *dev)
 		return 0;
 	}
 
+#ifdef CONFIG_IMX_BUSFREQ
 	request_bus_freq(BUS_FREQ_HIGH);
+#endif
 	if (data->data->flags & CI_HDRC_PMQOS)
 		pm_qos_add_request(&data->pm_qos_req,
 			PM_QOS_CPU_DMA_LATENCY, 0);
+	
 	ret = imx_prepare_enable_clks(dev);
 	if (ret)
 		goto err_bus_freq;
@@ -772,7 +785,9 @@ clk_disable:
 err_bus_freq:
 	if (data->data->flags & CI_HDRC_PMQOS)
 		pm_qos_remove_request(&data->pm_qos_req);
+#ifdef CONFIG_IMX_BUSFREQ
 	release_bus_freq(BUS_FREQ_HIGH);
+#endif
 	return ret;
 }
 

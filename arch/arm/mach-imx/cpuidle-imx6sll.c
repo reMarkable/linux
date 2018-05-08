@@ -93,10 +93,16 @@ static int imx6sll_idle_finish(unsigned long val)
 static int imx6sll_enter_wait(struct cpuidle_device *dev,
 			    struct cpuidle_driver *drv, int index)
 {
+#ifdef CONFIG_IMX_BUSFREQ
 	int mode = get_bus_freq_mode();
+#endif
 
 	imx6_set_lpm(WAIT_UNCLOCKED);
+#ifdef CONFIG_IMX_BUSFREQ
 	if ((index == 1) || ((mode != BUS_FREQ_LOW) && index == 2)) {
+#else
+	if (index == 1) {
+#endif
 		index = 1;
 		cpu_do_idle();
 	} else {

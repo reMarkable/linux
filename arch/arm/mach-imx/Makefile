@@ -88,7 +88,7 @@ AFLAGS_headsmp.o :=-Wa,-march=armv7-a
 obj-$(CONFIG_SMP) += headsmp.o platsmp.o
 obj-$(CONFIG_HOTPLUG_CPU) += hotplug.o
 endif
-obj-y += busfreq_lpddr2.o busfreq-imx.o busfreq_ddr3.o
+obj-$(CONFIG_IMX_BUSFREQ) += busfreq_lpddr2.o busfreq-imx.o busfreq_ddr3.o
 AFLAGS_ddr3_freq_imx6.o :=-Wa,-march=armv7-a
 AFLAGS_smp_wfe_imx6.o :=-Wa,-march=armv7-a
 AFLAGS_lpddr2_freq_imx6q.o :=-Wa,-march=armv7-a

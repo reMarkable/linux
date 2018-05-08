@@ -66,6 +66,7 @@ static void (*imx6sl_wfi_in_iram_fn)(void __iomem *iram_vbase,
 static int imx6sl_enter_wait(struct cpuidle_device *dev,
 			    struct cpuidle_driver *drv, int index)
 {
+#ifdef CONFIG_IMX_BUSFREQ
 	int mode = get_bus_freq_mode();
 
 	imx6_set_lpm(WAIT_UNCLOCKED);
@@ -73,6 +74,7 @@ static int imx6sl_enter_wait(struct cpuidle_device *dev,
 		imx6sl_wfi_in_iram_fn(wfi_iram_base, (mode == BUS_FREQ_AUDIO) ? 1 : 0 ,
 			ldo2p5_dummy_enable);
 	} else {
+#endif
 		/*
 		 * Software workaround for ERR005311, see function
 		 * description for details.
@@ -80,7 +82,9 @@ static int imx6sl_enter_wait(struct cpuidle_device *dev,
 		imx6sl_set_wait_clk(true);
 		cpu_do_idle();
 		imx6sl_set_wait_clk(false);
+#ifdef CONFIG_IMX_BUSFREQ
 	}
+#endif
 	imx6_set_lpm(WAIT_CLOCKED);
 
 	return index;

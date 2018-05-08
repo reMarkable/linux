@@ -87,7 +87,7 @@ static void __init imx6sl_map_io(void)
 {
 	debug_ll_io_init();
 	imx6_pm_map_io();
-#ifdef CONFIG_CPU_FREQ
+#ifdef CONFIG_IMX_BUSFREQ
 	imx_busfreq_map_io();
 #endif
 }

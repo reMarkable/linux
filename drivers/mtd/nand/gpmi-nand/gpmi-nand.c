@@ -2498,7 +2498,9 @@ int gpmi_runtime_suspend(struct device *dev)
 	struct gpmi_nand_data *this = dev_get_drvdata(dev);
 
 	gpmi_disable_clk(this);
+#ifdef CONFIG_IMX_BUSFREQ
 	release_bus_freq(BUS_FREQ_HIGH);
+#endif
 	return 0;
 }
 
@@ -2511,7 +2513,9 @@ int gpmi_runtime_resume(struct device *dev)
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_IMX_BUSFREQ
 	request_bus_freq(BUS_FREQ_HIGH);
+#endif
 	return 0;
 }
 
