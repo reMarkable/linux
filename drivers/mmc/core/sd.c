@@ -1240,8 +1240,10 @@ int mmc_attach_sd(struct mmc_host *host)
 	WARN_ON(!host->claimed);
 
 	err = mmc_send_app_op_cond(host, 0, &ocr);
-	if (err)
+	if (err) {
+		printk("unable to send app op cond\n");
 		return err;
+	}
 
 	mmc_attach_bus(host, &mmc_sd_ops);
 	if (host->ocr_avail_sd)
@@ -1254,8 +1256,10 @@ int mmc_attach_sd(struct mmc_host *host)
 		mmc_go_idle(host);
 
 		err = mmc_spi_read_ocr(host, 0, &ocr);
-		if (err)
+		if (err) {
+			printk("unable to read spi ocr\n");
 			goto err;
+		}
 	}
 
 	rocr = mmc_select_voltage(host, ocr);
@@ -1264,6 +1268,7 @@ int mmc_attach_sd(struct mmc_host *host)
 	 * Can we support the voltage(s) of the card(s)?
 	 */
 	if (!rocr) {
+		printk("unable to get mmc voltage\n");
 		err = -EINVAL;
 		goto err;
 	}
@@ -1272,13 +1277,17 @@ int mmc_attach_sd(struct mmc_host *host)
 	 * Detect and init the card.
 	 */
 	err = mmc_sd_init_card(host, rocr, NULL);
-	if (err)
+	if (err) {
+		printk("unable to detect and/or init SD card\n");
 		goto err;
+	}
 
 	mmc_release_host(host);
 	err = mmc_add_card(host->card);
-	if (err)
+	if (err) {
+		printk("unable to claim mmc host\n");
 		goto remove_card;
+	}
 
 	mmc_claim_host(host);
 	return 0;
