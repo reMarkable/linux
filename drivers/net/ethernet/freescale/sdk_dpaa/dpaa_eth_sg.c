@@ -407,12 +407,6 @@ static struct sk_buff *__hot contig_fd_to_skb(const struct dpa_priv_s *priv,
 	 * warn us that the frame length is larger than the truesize. We
 	 * bypass the warning.
 	 */
-#ifndef CONFIG_PPC
-	/* We do not support Jumbo frames on LS1043 and thus we edit
-	 * the skb truesize only when the 4k errata is not present.
-	 */
-	if (likely(!dpaa_errata_a010022))
-#endif
 	skb->truesize = SKB_TRUESIZE(dpa_fd_length(fd));
 #endif
 
@@ -809,34 +803,30 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 {
 	int trans_offset = skb_transport_offset(skb);
 	int net_offset = skb_network_offset(skb);
+	int nsize, headroom, npage_order;
 	struct sk_buff *nskb = NULL;
-	int nsize, headroom;
 	struct page *npage;
 	void *npage_addr;
 
-	/* Guarantee the minimum required headroom */
-	if (skb_headroom(skb) >= priv->tx_headroom)
-		headroom = skb_headroom(skb);
-	else
-		headroom = priv->tx_headroom;
+	/* The headroom needs to accommodate our private data (64 bytes) but
+	 * we reserve 256 bytes instead to guarantee 256 data alignment.
+	 */
+	headroom = DPAA_A010022_HEADROOM;
 
-	npage = alloc_page(GFP_ATOMIC);
+	/* For the new skb we only need the old one's data (both non-paged and
+	 * paged). We can skip the old tailroom.
+	 */
+	nsize = headroom + skb->len +
+		SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
+
+	/* Reserve enough memory to accommodate Jumbo frames */
+	npage_order = (nsize - 1) / PAGE_SIZE;
+	npage = alloc_pages(GFP_ATOMIC | __GFP_COMP, npage_order);
 	if (unlikely(!npage)) {
 		WARN_ONCE(1, "Memory allocation failure\n");
 		return NULL;
 	}
 	npage_addr = page_address(npage);
-
-	/* For the new skb we only need the old one's data (both non-paged and
-	 * paged) and a headroom large enough to fit our private info. We can
-	 * skip the old tailroom.
-	 *
-	 * Make sure the new linearized buffer will not exceed a page's size.
-	 */
-	nsize = headroom + skb->len +
-		SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
-	if (unlikely(nsize > 4096))
-		goto err;
 
 	nskb = build_skb(npage_addr, nsize);
 	if (unlikely(!nskb))
@@ -846,7 +836,7 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 	 * alignment.
 	 * Code borrowed and adapted from skb_copy().
 	 */
-	skb_reserve(nskb, priv->tx_headroom);
+	skb_reserve(nskb, headroom);
 	skb_put(nskb, skb->len);
 	if (skb_copy_bits(skb, 0, nskb->data, skb->len)) {
 		WARN_ONCE(1, "skb parsing failure\n");

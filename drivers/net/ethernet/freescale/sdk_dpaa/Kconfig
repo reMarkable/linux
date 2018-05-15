@@ -80,7 +80,6 @@ config FSL_DPAA_ETH_JUMBO_FRAME
 	  significantly the driver's memory footprint and may even deplete
 	  the system memory. Also, the skb truesize is altered and messages
 	  from the stack that warn against this are bypassed.
-	  This option is not available on LS1043.
 
 config FSL_DPAA_TS
 	bool "Linux compliant timestamping"
