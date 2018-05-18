@@ -477,7 +477,9 @@ static void ceetm_destroy(struct Qdisc *sch)
 		if (!priv->root.qdiscs)
 			break;
 
-		/* Remove the pfifo qdiscs */
+		/* Destroy the pfifo qdiscs in case they haven't been attached
+		 * to the netdev queues yet.
+		 */
 		for (ntx = 0; ntx < dev->num_tx_queues; ntx++)
 			if (priv->root.qdiscs[ntx])
 				qdisc_destroy(priv->root.qdiscs[ntx]);
@@ -608,7 +610,16 @@ static int ceetm_init_root(struct Qdisc *sch, struct ceetm_qdisc *priv,
 		goto err_init_root;
 	}
 
-	/* pre-allocate underlying pfifo qdiscs */
+	/* Pre-allocate underlying pfifo qdiscs.
+	 *
+	 * We want to offload shaping and scheduling decisions to the hardware.
+	 * The pfifo qdiscs will be attached to the netdev queues and will
+	 * guide the traffic from the IP stack down to the driver with minimum
+	 * interference.
+	 *
+	 * The CEETM qdiscs and classes will be crossed when the traffic
+	 * reaches the driver.
+	 */
 	priv->root.qdiscs = kcalloc(dev->num_tx_queues,
 				    sizeof(priv->root.qdiscs[0]),
 				    GFP_KERNEL);
@@ -1280,7 +1291,10 @@ static int ceetm_change(struct Qdisc *sch, struct nlattr *opt,
 	return ret;
 }
 
-/* Attach the underlying pfifo qdiscs */
+/* Graft the underlying pfifo qdiscs to the netdev queues.
+ * It's safe to remove our references at this point, since the kernel will
+ * destroy the qdiscs on its own and no cleanup from our part is required.
+ */
 static void ceetm_attach(struct Qdisc *sch)
 {
 	struct net_device *dev = qdisc_dev(sch);
@@ -1296,6 +1310,9 @@ static void ceetm_attach(struct Qdisc *sch)
 		if (old_qdisc)
 			qdisc_destroy(old_qdisc);
 	}
+
+	kfree(priv->root.qdiscs);
+	priv->root.qdiscs = NULL;
 }
 
 static unsigned long ceetm_cls_search(struct Qdisc *sch, u32 handle)
