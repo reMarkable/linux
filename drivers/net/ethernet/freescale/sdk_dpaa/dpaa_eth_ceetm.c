@@ -491,6 +491,10 @@ static void ceetm_destroy(struct Qdisc *sch)
 		break;
 
 	case CEETM_WBFS:
+		/* Reset the WBFS groups and priorities */
+		if (priv->wbfs.ch)
+			qman_ceetm_channel_set_group(priv->wbfs.ch, 1, 0, 0);
+
 		if (priv->wbfs.parent)
 			priv->wbfs.parent->prio.child = NULL;
 		break;
