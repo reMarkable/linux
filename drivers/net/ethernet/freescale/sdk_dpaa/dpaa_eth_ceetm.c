@@ -90,6 +90,51 @@ static void dpaa_drain_fqs(struct net_device *dev)
 	}
 }
 
+/* Wait for the DPAA CEETM TX CQs to empty */
+static void ceetm_drain_class(struct ceetm_class *cl)
+{
+	struct qm_mcr_ceetm_cq_query cq_query;
+	struct qm_ceetm_cq *cq;
+	unsigned int idx;
+	int ret;
+
+	if (!cl)
+		return;
+
+	switch (cl->type) {
+	case CEETM_ROOT:
+		/* The ROOT classes aren't directly linked to CEETM CQs */
+		return;
+	case CEETM_PRIO:
+		cq = (struct qm_ceetm_cq*)cl->prio.cq;
+		break;
+	case CEETM_WBFS:
+		cq = (struct qm_ceetm_cq*)cl->wbfs.cq;
+		break;
+	}
+
+	if (!cq || !cl->ch)
+		return;
+
+	/* Build the query CQID by merging the channel and the CQ IDs */
+	idx = (cq->parent->idx << 4) | cq->idx;
+
+	while (true) {
+		ret = qman_ceetm_query_cq(idx,
+					  cl->ch->dcp_idx,
+					  &cq_query);
+		if (unlikely(ret)) {
+			pr_err(KBUILD_BASENAME
+			       " : %s : unable to query CQ %x: %d\n",
+			       __func__, idx, ret);
+			break;
+		}
+
+		if (cq_query.frm_cnt == 0)
+			break;
+	}
+}
+
 /* Enqueue Rejection Notification callback */
 static void ceetm_ern(struct qman_portal *portal, struct qman_fq *fq,
 		      const struct qm_mr_entry *msg)
@@ -376,6 +421,8 @@ static void ceetm_link_class(struct Qdisc *sch,
 /* Destroy a ceetm class */
 static void ceetm_cls_destroy(struct Qdisc *sch, struct ceetm_class *cl)
 {
+	struct net_device *dev = qdisc_dev(sch);
+
 	if (!cl)
 		return;
 
@@ -402,6 +449,12 @@ static void ceetm_cls_destroy(struct Qdisc *sch, struct ceetm_class *cl)
 			cl->prio.child = NULL;
 		}
 
+		/* We must make sure the CQ is empty before releasing it.
+		 * Pause all transmissions while we wait for it to drain.
+		 */
+		netif_tx_stop_all_queues(dev);
+		ceetm_drain_class(cl);
+
 		if (cl->prio.lfq && qman_ceetm_lfq_release(cl->prio.lfq))
 			pr_err(KBUILD_BASENAME
 			       " : %s : error releasing the LFQ %d\n",
@@ -422,9 +475,16 @@ static void ceetm_cls_destroy(struct Qdisc *sch, struct ceetm_class *cl)
 		if (cl->prio.cstats)
 			free_percpu(cl->prio.cstats);
 
+		netif_tx_wake_all_queues(dev);
 		break;
 
 	case CEETM_WBFS:
+		/* We must make sure the CQ is empty before releasing it.
+		 * Pause all transmissions while we wait for it to drain.
+		 */
+		netif_tx_stop_all_queues(dev);
+		ceetm_drain_class(cl);
+
 		if (cl->wbfs.lfq && qman_ceetm_lfq_release(cl->wbfs.lfq))
 			pr_err(KBUILD_BASENAME
 			       " : %s : error releasing the LFQ %d\n",
@@ -444,6 +504,8 @@ static void ceetm_cls_destroy(struct Qdisc *sch, struct ceetm_class *cl)
 
 		if (cl->wbfs.cstats)
 			free_percpu(cl->wbfs.cstats);
+
+		netif_tx_wake_all_queues(dev);
 	}
 
 	tcf_block_put(cl->block);
