@@ -335,10 +335,21 @@ static int brcmf_common_pd_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_OF
+static const struct of_device_id brcmfmac_of_table[] = {
+		{ .compatible = "brcm,bcm4329-fmac" },
+		{}
+};
+MODULE_DEVICE_TABLE(of, brcmfmac_of_table);
+#endif
+
 static struct platform_driver brcmf_pd = {
 	.remove		= brcmf_common_pd_remove,
 	.driver		= {
 		.name	= BRCMFMAC_PDATA_NAME,
+#ifdef CONFIG_OF
+		.of_match_table = of_match_ptr(brcmfmac_of_table),
+#endif
 	}
 };
 
