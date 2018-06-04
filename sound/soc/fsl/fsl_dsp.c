@@ -799,8 +799,8 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
 				IMX_SC_C_OFS_PERIPH, 0x5A);
 	if (ret) {
-		dev_err(&pdev->dev, "Error system address offset of PERIPH\n");
-		return -EIO;
+		dev_err(&pdev->dev, "Error system address offset of PERIPH %d\n",
+			sciErr);
 	}
 
 	ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
