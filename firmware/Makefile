@@ -40,6 +40,7 @@ fw-shipped-$(CONFIG_BNX2) += bnx2/bnx2-mips-09-6.2.1a.fw \
 			     bnx2/bnx2-mips-06-6.2.1.fw \
 			     bnx2/bnx2-rv2p-06-6.0.15.fw
 fw-shipped-$(CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_BINARY_FW_UPGRADE) += cyttsp5_fw_pid00.bin
+fw-shipped-$(CONFIG_BRCMFMAC) +=  brcm/brcmfmac4330-sdio.txt
 fw-shipped-$(CONFIG_CASSINI) += sun/cassini.bin
 fw-shipped-$(CONFIG_CHELSIO_T3) += cxgb3/t3b_psram-1.1.0.bin \
 				   cxgb3/t3c_psram-1.1.0.bin \
