@@ -51,6 +51,10 @@
 
 #include <linux/power/bq27xxx_battery.h>
 
+#ifdef CONFIG_BATTERY_BQ27441_ZEROGRAVITAS
+#include <linux/power/bq27441_battery.h>
+#endif
+
 #define DRIVER_VERSION		"1.2.0"
 
 #define BQ27XXX_MANUFACTURER	"Texas Instruments"
@@ -1037,6 +1041,10 @@ int bq27xxx_battery_setup(struct bq27xxx_device_info *di)
 
 	dev_info(di->dev, "support ver. %s enabled\n", DRIVER_VERSION);
 
+#ifdef CONFIG_BATTERY_BQ27441_ZEROGRAVITAS
+	bq27441_init(di);
+#endif
+
 	bq27xxx_battery_update(di);
 
 	mutex_lock(&bq27xxx_list_lock);
@@ -1140,6 +1148,10 @@ static int bq27xxx_battery_platform_probe(struct platform_device *pdev)
 static int bq27xxx_battery_platform_remove(struct platform_device *pdev)
 {
 	struct bq27xxx_device_info *di = platform_get_drvdata(pdev);
+
+#ifdef CONFIG_BATTERY_BQ27441_ZEROGRAVITAS
+	bq27441_exit(di);
+#endif
 
 	bq27xxx_battery_teardown(di);
 

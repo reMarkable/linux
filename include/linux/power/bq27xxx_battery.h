@@ -32,6 +32,7 @@ struct bq27xxx_platform_data {
 struct bq27xxx_device_info;
 struct bq27xxx_access_methods {
 	int (*read)(struct bq27xxx_device_info *di, u8 reg, bool single);
+	int (*write)(struct bq27xxx_device_info *di, u8 reg, const u8 *data, size_t len);
 };
 
 struct bq27xxx_reg_cache {
@@ -48,6 +49,8 @@ struct bq27xxx_reg_cache {
 	int health;
 };
 
+struct dentry;
+
 struct bq27xxx_device_info {
 	struct device *dev;
 	int id;
@@ -62,6 +65,7 @@ struct bq27xxx_device_info {
 	struct list_head list;
 	struct mutex lock;
 	u8 *regs;
+	struct dentry *dfs_dir;
 };
 
 void bq27xxx_battery_update(struct bq27xxx_device_info *di);
