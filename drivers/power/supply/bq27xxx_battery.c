@@ -59,6 +59,10 @@
 
 #include <linux/power/bq27xxx_battery.h>
 
+#ifdef CONFIG_BATTERY_BQ27441_ZEROGRAVITAS
+#include <linux/power/bq27441_battery.h>
+#endif
+
 #define BQ27XXX_MANUFACTURER	"Texas Instruments"
 
 /* BQ27XXX Flags */
@@ -1893,6 +1897,11 @@ int bq27xxx_battery_setup(struct bq27xxx_device_info *di)
 	}
 
 	bq27xxx_battery_settings(di);
+
+#ifdef CONFIG_BATTERY_BQ27441_ZEROGRAVITAS
+	bq27441_init(di);
+#endif
+
 	bq27xxx_battery_update(di);
 
 	mutex_lock(&bq27xxx_list_lock);
@@ -1925,6 +1934,4 @@ void bq27xxx_battery_teardown(struct bq27xxx_device_info *di)
 }
 EXPORT_SYMBOL_GPL(bq27xxx_battery_teardown);
 
-MODULE_AUTHOR("Rodolfo Giometti <giometti@linux.it>");
-MODULE_DESCRIPTION("BQ27xxx battery monitor driver");
 MODULE_LICENSE("GPL");

@@ -54,6 +54,8 @@ struct bq27xxx_reg_cache {
 	int health;
 };
 
+struct dentry;
+
 struct bq27xxx_device_info {
 	struct device *dev;
 	int id;
@@ -71,6 +73,7 @@ struct bq27xxx_device_info {
 	struct list_head list;
 	struct mutex lock;
 	u8 *regs;
+	struct dentry *dfs_dir;
 };
 
 void bq27xxx_battery_update(struct bq27xxx_device_info *di);

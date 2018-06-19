@@ -18,8 +18,14 @@
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <asm/unaligned.h>
+#include <linux/slab.h>
+#include <linux/string.h>
 
 #include <linux/power/bq27xxx_battery.h>
+
+#ifdef CONFIG_BATTERY_BQ27441_ZEROGRAVITAS
+#include <linux/power/bq27441_battery.h>
+#endif
 
 static DEFINE_IDR(battery_id);
 static DEFINE_MUTEX(battery_mutex);
@@ -217,6 +223,10 @@ static int bq27xxx_battery_i2c_remove(struct i2c_client *client)
 	struct bq27xxx_device_info *di = i2c_get_clientdata(client);
 
 	bq27xxx_battery_teardown(di);
+
+#ifdef CONFIG_BATTERY_BQ27441_ZEROGRAVITAS
+	bq27441_exit(di);
+#endif
 
 	mutex_lock(&battery_mutex);
 	idr_remove(&battery_id, di->id);
