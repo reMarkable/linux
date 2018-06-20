@@ -246,8 +246,8 @@ struct sk_buff *_dpa_cleanup_tx_fd(const struct dpa_priv_s *priv,
 
 	if (unlikely(fd->format == qm_fd_sg)) {
 		nr_frags = skb_shinfo(skb)->nr_frags;
-		dma_unmap_single(dpa_bp->dev, addr, dpa_fd_offset(fd) +
-				 sizeof(struct qm_sg_entry) * (1 + nr_frags),
+		dma_unmap_single(dpa_bp->dev, addr,
+				 dpa_fd_offset(fd) + DPA_SGT_SIZE,
 				 dma_dir);
 
 		/* The sgt buffer has been allocated with netdev_alloc_frag(),
@@ -896,7 +896,11 @@ int __hot skb_to_sg_fd(struct dpa_priv_s *priv,
 	nr_frags = skb_shinfo(skb)->nr_frags;
 	fd->format = qm_fd_sg;
 
-	sgt_size = sizeof(struct qm_sg_entry) * (1 + nr_frags);
+	/* The FMan reads 256 bytes from the start of the SGT regardless of
+	 * its size. In accordance, we reserve the same amount of memory as
+	 * well.
+	 */
+	sgt_size = DPA_SGT_SIZE;
 
 	/* Get a page frag to store the SGTable, or a full page if the errata
 	 * is in place and we need to avoid crossing a 4k boundary.

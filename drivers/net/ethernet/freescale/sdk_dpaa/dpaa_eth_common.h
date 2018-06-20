@@ -55,9 +55,11 @@
 	fm_set_##type##_port_params(port, &param); \
 }
 
+/* The SGT needs to be 256 bytes long. Even if the table has only one entry,
+ * the FMan will read 256 bytes from its start.
+ */
+#define DPA_SGT_SIZE 256
 #define DPA_SGT_MAX_ENTRIES 16 /* maximum number of entries in SG Table */
-
-#define DPA_SGT_ENTRIES_THRESHOLD	DPA_SGT_MAX_ENTRIES
 
 #define DPA_BUFF_RELEASE_MAX 8 /* maximum number of buffers released at once */
 
