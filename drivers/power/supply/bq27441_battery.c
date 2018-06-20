@@ -9,6 +9,7 @@
 #include <linux/slab.h>
 #include <linux/of.h>
 #include <linux/debugfs.h>
+#include <linux/uaccess.h>
 
 #include <linux/power/bq27xxx_battery.h>
 
@@ -740,11 +741,20 @@ static ssize_t debugfs_store_ext_byteorword(struct file *fp, const char __user *
 	u8 data[2] = {0, 0};
 	int index;
 	u32 dataout;
+	unsigned long bytesleft;
+	char kernelbuf[21] = {0};
 
 	if (!di)
 		return -EIO;
 
-	ret = sscanf(userbuf, "%u", &dataout);
+	if (count > 10)
+		return -EINVAL;
+
+	bytesleft = copy_from_user(kernelbuf, userbuf, 20);
+	if (bytesleft)
+		return -EINVAL;
+
+	ret = sscanf(kernelbuf, "%u", &dataout);
 	if (ret != 1 || dataout > 65535)
 		return -EINVAL;
 
