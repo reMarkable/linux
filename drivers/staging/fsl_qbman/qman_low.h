@@ -658,7 +658,7 @@ static inline int qm_dqrr_init(struct qm_portal *portal,
 			qm_dqrr_cce_consume(portal, dqrr->fill);
 			break;
 		case qm_dqrr_cdc:
-			qm_dqrr_cdc_consume_n(portal, (QM_DQRR_SIZE - 1));
+			qm_dqrr_cdc_consume_n(portal, (1<<QM_DQRR_SIZE) - 1);
 			break;
 		default:
 			DPA_ASSERT(0);
