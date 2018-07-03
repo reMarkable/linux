@@ -2176,7 +2176,7 @@ static struct sk_buff *dpaa_errata_a010022_prevent(struct sk_buff *skb,
 		WARN_ONCE(1, "skb parsing failure\n");
 		goto err;
 	}
-	copy_skb_header(nskb, skb);
+	skb_copy_header(nskb, skb);
 
 	/* We move the headroom when we align it so we have to reset the
 	 * network and transport header offsets relative to the new data
