@@ -159,3 +159,28 @@
 &usb1 {
 	status = "okay";
 };
+
+&emdio1 {
+	rgmii_phy1: ethernet-phy@1 {
+		/* AR8035 PHY - "compatible" property not strictly needed */
+		compatible = "ethernet-phy-id004d.d072";
+		reg = <0x1>;
+		/* Poll mode - no "interrupts" property defined */
+	};
+	rgmii_phy2: ethernet-phy@2 {
+		/* AR8035 PHY - "compatible" property not strictly needed */
+		compatible = "ethernet-phy-id004d.d072";
+		reg = <0x2>;
+		/* Poll mode - no "interrupts" property defined */
+	};
+};
+
+&dpmac17 {
+	phy-handle = <&rgmii_phy1>;
+	phy-connection-type = "rgmii-id";
+};
+
+&dpmac18 {
+	phy-handle = <&rgmii_phy2>;
+	phy-connection-type = "rgmii-id";
+};
