@@ -287,6 +287,16 @@ config AT803X_PHY
 	---help---
 	  Currently supports the AT8030 and AT8035 model
 
+config AT803X_PHY_SMART_EEE
+	depends on AT803X_PHY
+	default n
+	tristate "SmartEEE feature for AT803X PHYs"
+	---help---
+	  Enables the Atheros SmartEEE feature (not IEEE 802.3az). When 2 PHYs
+	  which support this feature are connected back-to-back, they may
+	  negotiate a low-power sleep mode autonomously, without the Ethernet
+	  controller's knowledge.  May cause packet loss.
+
 config BCM63XX_PHY
 	tristate "Broadcom 63xx SOCs internal PHY"
 	depends on BCM63XX || COMPILE_TEST
