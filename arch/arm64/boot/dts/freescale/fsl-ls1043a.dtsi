@@ -219,6 +219,7 @@
 		#size-cells = <2>;
 		ranges;
 		dma-ranges = <0x0 0x0 0x0 0x0 0x10000 0x00000000>;
+		dma-coherent;
 
 		clockgen: clocking@1ee1000 {
 			compatible = "fsl,ls1043a-clockgen";
@@ -771,7 +772,6 @@
 			reg-names = "ahci", "sata-ecc";
 			interrupts = <0 69 0x4>;
 			clocks = <&clockgen 4 0>;
-			dma-coherent;
 		};
 
 		msi1: msi-controller1@1571000 {
@@ -806,7 +806,6 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			device_type = "pci";
-			dma-coherent;
 			iommu-map = <0 &smmu 0 1>;	/* update by bootloader */
 			num-viewport = <6>;
 			bus-range = <0x0 0xff>;
@@ -833,7 +832,6 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			device_type = "pci";
-			dma-coherent;
 			iommu-map = <0 &smmu 0 1>;	/* update by bootloader */
 			num-viewport = <6>;
 			bus-range = <0x0 0xff>;
@@ -860,7 +858,6 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			device_type = "pci";
-			dma-coherent;
 			iommu-map = <0 &smmu 0 1>;	/* update by bootloader */
 			num-viewport = <6>;
 			bus-range = <0x0 0xff>;
