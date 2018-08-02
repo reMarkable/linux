@@ -323,6 +323,9 @@ static int qman_portal_probe(struct platform_device *pdev)
 	}
 
 	cpumask_set_cpu(cpu, &portal_cpus);
+	if (!__qman_portals_probed &&
+	    cpumask_weight(&portal_cpus) == num_online_cpus())
+		__qman_portals_probed = 1;
 	spin_unlock(&qman_lock);
 	pcfg->cpu = cpu;
 

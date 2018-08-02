@@ -1235,4 +1235,13 @@ void qman_portal_get_iperiod(struct qman_portal *portal, u32 *iperiod);
  */
 int qman_portal_set_iperiod(struct qman_portal *portal, u32 iperiod);
 
+/**
+ * qman_portals_probed - Check if all cpu bound qman portals are probed
+ *
+ * Returns 1 if all the required cpu bound qman portals successfully probed,
+ * -1 if probe errors appeared or 0 if the qman portals did not yet finished
+ * probing.
+ */
+int qman_portals_probed(void);
+
 #endif	/* __FSL_QMAN_H */
