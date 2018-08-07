@@ -367,10 +367,14 @@ struct fsl_asrc {
 
 	int asrc_rate;
 	int asrc_width;
+	int dma_type;  /* 0 is sdma, 1 is edma */
 
 	u32 regcache_cfg;
 	char name[20];
 };
+
+#define DMA_SDMA 0
+#define DMA_EDMA 1
 
 #define DRV_NAME "fsl-asrc-dai"
 extern struct snd_soc_component_driver fsl_asrc_component;
