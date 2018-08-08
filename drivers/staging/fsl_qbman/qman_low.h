@@ -682,6 +682,9 @@ static inline int qm_dqrr_init(struct qm_portal *portal,
 		(0 ? 0x10 : 0);				/* Ignore SP */
 	qm_out(CFG, cfg);
 	qm_dqrr_set_maxfill(portal, max_fill);
+
+	/* Recalculate cursor as we may have consumed frames */
+	dqrr->cursor = dqrr->ring + dqrr->ci;
 	return 0;
 }
 
