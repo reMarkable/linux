@@ -102,7 +102,7 @@ static irqreturn_t usdpaa_irq_handler(int irq, void *_ctx)
 	/* Set the inhibit register.  This will be reenabled
 	   once the USDPAA code handles the IRQ */
 	out_be32(ctx->inhibit_addr, 0x1);
-	pr_info("Inhibit at %p count %d", ctx->inhibit_addr, ctx->irq_count);
+	pr_debug("Inhibit at %p count %d", ctx->inhibit_addr, ctx->irq_count);
 	return IRQ_HANDLED;
 }
 
