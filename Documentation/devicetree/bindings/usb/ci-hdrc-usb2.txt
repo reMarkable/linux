@@ -97,6 +97,13 @@ i.mx specific properties
   It's recommended to specify the over current polarity.
 - power-active-high: power signal polarity is active high
 - external-vbus-divider: enables off-chip resistor divider for Vbus
+- picophy,pre-emp-curr-control: HS Transmitter Pre-Emphasis Current
+  Control. This signal controls the amount of current sourced to the
+  USB_OTG*_DP and USB_OTG*_DN pins after a J-to-K or K-to-J transition.
+  Details can refer to TXPREEMPAMPTUNE0 bits of USBNC_n_PHY_CFG1.
+- picophy,dc-vol-level-adjust: HS DC Voltage Level Adjustment.
+  Adjust the high-speed transmitter DC level voltage, details can refer
+  to TXVREFTUNE0 bits of USBNC_n_PHY_CFG1.
 
 Example:
 
