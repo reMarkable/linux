@@ -15,6 +15,8 @@
 #define PHY_CTRL0_FSEL_MASK		GENMASK(5, 10)
 #define PHY_CTRL0_FSEL_24M		0x2a
 #define PHY_CTRL0_FSEL_100M		0x27
+#define PHY_CTRL0_SSC_RANGE_MASK	GENMASK(21, 23)
+#define PHY_CTRL0_SSC_RANGE_4003PPM	(0x2 << 21)
 
 #define PHY_CTRL1			0x4
 #define PHY_CTRL1_RESET			BIT(0)
@@ -51,6 +53,8 @@ static int imx8mq_usb_phy_init(struct phy *phy)
 
 	value = readl(imx_phy->base + PHY_CTRL0);
 	value |= PHY_CTRL0_REF_SSP_EN;
+	value &= ~PHY_CTRL0_SSC_RANGE_MASK;
+	value |= PHY_CTRL0_SSC_RANGE_4003PPM;
 	writel(value, imx_phy->base + PHY_CTRL0);
 
 	value = readl(imx_phy->base + PHY_CTRL2);
