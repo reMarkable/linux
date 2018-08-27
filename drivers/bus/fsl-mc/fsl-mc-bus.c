@@ -140,7 +140,7 @@ static int fsl_mc_dma_configure(struct device *dev)
 	while (dev_is_fsl_mc(dma_dev))
 		dma_dev = dma_dev->parent;
 
-	return of_dma_configure(dev, dma_dev->of_node, 0);
+	return of_dma_configure(dev, dma_dev->of_node, 1);
 }
 
 static ssize_t modalias_show(struct device *dev, struct device_attribute *attr,
