@@ -687,9 +687,9 @@ static t_LnxWrpFmDev * ReadFmDevTreeNode (struct platform_device *of_dev)
     if (WARN_ON(strlen("ptp-timer") >= sizeof(ids[0].name)))
         return NULL;
     strcpy(ids[0].name, "ptp-timer");
-    if (WARN_ON(strlen("fsl,fman-rtc") >= sizeof(ids[0].compatible)))
+    if (WARN_ON(strlen("fsl,fman-ptp-timer") >= sizeof(ids[0].compatible)))
         return NULL;
-    strcpy(ids[0].compatible, "fsl,fman-rtc");
+    strcpy(ids[0].compatible, "fsl,fman-ptp-timer");
     for_each_child_of_node(fm_node, dev_node) {
         if (likely(of_match_node(ids, dev_node) != NULL)) {
             _errno = of_address_to_resource(dev_node, 0, &res);
@@ -920,7 +920,7 @@ static t_Error ConfigureFmDev(t_LnxWrpFmDev  *p_LnxWrpFmDev)
 
     if (p_LnxWrpFmDev->fmRtcPhysBaseAddr)
     {
-        dev_res = __devm_request_region(p_LnxWrpFmDev->dev, p_LnxWrpFmDev->res, p_LnxWrpFmDev->fmRtcPhysBaseAddr, p_LnxWrpFmDev->fmRtcMemSize, "fman-rtc");
+        dev_res = __devm_request_region(p_LnxWrpFmDev->dev, p_LnxWrpFmDev->res, p_LnxWrpFmDev->fmRtcPhysBaseAddr, p_LnxWrpFmDev->fmRtcMemSize, "fman-ptp-timer");
         if (unlikely(dev_res == NULL))
             RETURN_ERROR(MAJOR, E_INVALID_STATE, ("__devm_request_region() failed"));
 
