@@ -82,8 +82,8 @@ static void dpa_bp_recycle_frag(struct dpa_bp *dpa_bp, unsigned long vaddr,
 
 static int _dpa_bp_add_8_bufs(const struct dpa_bp *dpa_bp)
 {
+	void *new_buf, *fman_buf;
 	struct bm_buffer bmb[8];
-	void *new_buf;
 	dma_addr_t addr;
 	uint8_t i;
 	struct device *dev = dpa_bp->dev;
@@ -113,21 +113,37 @@ static int _dpa_bp_add_8_bufs(const struct dpa_bp *dpa_bp)
 
 		if (unlikely(!new_buf))
 			goto netdev_alloc_failed;
-		new_buf = PTR_ALIGN(new_buf + SMP_CACHE_BYTES, SMP_CACHE_BYTES);
+		new_buf = PTR_ALIGN(new_buf, SMP_CACHE_BYTES);
 
-		skb = build_skb(new_buf, DPA_SKB_SIZE(dpa_bp->size) +
-			SKB_DATA_ALIGN(sizeof(struct skb_shared_info)));
+		/* Apart from the buffer that will be used by the FMan, the
+		 * skb also guarantees enough space to hold the backpointer
+		 * in the headroom and the shared info at the end.
+		 */
+		skb = build_skb(new_buf,
+				SMP_CACHE_BYTES + DPA_SKB_SIZE(dpa_bp->size) +
+				SKB_DATA_ALIGN(sizeof(struct skb_shared_info)));
 		if (unlikely(!skb)) {
 			put_page(virt_to_head_page(new_buf));
 			goto build_skb_failed;
 		}
 
-		/* Store the skb back-pointer before the start of the buffer.
-		 * Otherwise it will be overwritten by the FMan.
+		/* Reserve SMP_CACHE_BYTES in the skb's headroom to store the
+		 * backpointer. This area will not be synced to, or
+		 * overwritten by, the FMan.
 		 */
-		DPA_WRITE_SKB_PTR(skb, skbh, new_buf, -1);
+		skb_reserve(skb, SMP_CACHE_BYTES);
 
-		addr = dma_map_single(dev, new_buf,
+		/* We don't sync the first SMP_CACHE_BYTES of the buffer to
+		 * the FMan. The skb backpointer is stored at the end of the
+		 * reserved headroom. Otherwise it will be overwritten by the
+		 * FMan.
+		 * The buffer synced with the FMan starts right after the
+		 * reserved headroom.
+		 */
+		fman_buf = new_buf + SMP_CACHE_BYTES;
+		DPA_WRITE_SKB_PTR(skb, skbh, fman_buf, -1);
+
+		addr = dma_map_single(dev, fman_buf,
 				dpa_bp->size, DMA_BIDIRECTIONAL);
 		if (unlikely(dma_mapping_error(dev, addr)))
 			goto dma_map_failed;
@@ -477,7 +493,6 @@ static struct sk_buff *__hot sg_fd_to_skb(const struct dpa_priv_s *priv,
 				 DMA_BIDIRECTIONAL);
 		if (i == 0) {
 			DPA_READ_SKB_PTR(skb, skbh, sg_vaddr, -1);
-			DPA_BUG_ON(skb->head != sg_vaddr);
 #ifdef CONFIG_FSL_DPAA_1588
 			if (priv->tsu && priv->tsu->valid &&
 			    priv->tsu->hwts_rx_en_ioctl)
