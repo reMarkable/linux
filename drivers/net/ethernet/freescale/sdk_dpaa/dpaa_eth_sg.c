@@ -830,8 +830,10 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 
 	/* For the new skb we only need the old one's data (both non-paged and
 	 * paged). We can skip the old tailroom.
+	 *
+	 * Make sure the skb_shinfo is cache-line aligned.
 	 */
-	nsize = headroom + skb->len +
+	nsize = SMP_CACHE_BYTES + DPA_SKB_SIZE(headroom + skb->len) +
 		SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
 
 	/* Reserve enough memory to accommodate Jumbo frames */
