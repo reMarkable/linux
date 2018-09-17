@@ -682,6 +682,9 @@ extern bool dpaa_errata_a010022; /* SoC affected by A010022 errata */
 #define HAS_DMA_ISSUE(start, size) \
 	(((uintptr_t)(start) + (size)) > \
 	 (((uintptr_t)(start) + 0x1000) & ~0xFFF))
+/* The headroom needs to accommodate our private data (64 bytes) but
+ * we reserve 256 bytes instead to guarantee 256 data alignment.
+ */
 #define DPAA_A010022_HEADROOM	256
 #endif  /* !CONFIG_PPC */
 

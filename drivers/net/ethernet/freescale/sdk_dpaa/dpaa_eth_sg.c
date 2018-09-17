@@ -823,9 +823,6 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 	struct page *npage;
 	void *npage_addr;
 
-	/* The headroom needs to accommodate our private data (64 bytes) but
-	 * we reserve 256 bytes instead to guarantee 256 data alignment.
-	 */
 	headroom = DPAA_A010022_HEADROOM;
 
 	/* For the new skb we only need the old one's data (both non-paged and
