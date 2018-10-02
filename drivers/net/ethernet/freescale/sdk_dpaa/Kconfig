@@ -24,7 +24,7 @@ config FSL_DPAA_CEETM_CCS_THRESHOLD_1G
 	hex "CEETM egress congestion threshold on 1G ports"
 	depends on FSL_DPAA_CEETM
 	range 0x1000 0x10000000
-	default "0x000a0000"
+	default "0x00005000"
 	help
 	  The size in bytes of the CEETM egress Class Congestion State threshold on 1G ports.
 	  The threshold needs to be configured keeping in mind the following factors:
@@ -38,7 +38,7 @@ config FSL_DPAA_CEETM_CCS_THRESHOLD_10G
 	hex "CEETM egress congestion threshold on 10G ports"
 	depends on FSL_DPAA_CEETM
 	range 0x1000 0x20000000
-	default "0x00640000"
+	default "0x00032000"
 	help
 	  The size in bytes of the CEETM egress Class Congestion State threshold on 10G ports.
 	  See FSL_DPAA_CEETM_CCS_THRESHOLD_1G for details.
