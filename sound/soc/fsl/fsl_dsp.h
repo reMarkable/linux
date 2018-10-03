@@ -5,6 +5,7 @@
  *
  */
 
+#include <linux/firmware/imx/ipc.h>
 #include <uapi/linux/mxc_dsp.h>
 #include "fsl_dsp_proxy.h"
 
