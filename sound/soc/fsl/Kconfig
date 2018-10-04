@@ -323,6 +323,15 @@ config SND_SOC_IMX_AUDMIX
 	  Say Y if you want to add support for SoC audio on an i.MX board with
 	  an Audio Mixer.
 
+config SND_SOC_IMX_DSP
+	tristate "SoC Audio support for i.MX boards with DSP port"
+	select SND_SOC_FSL_DSP
+	select SND_SOC_COMPRESS
+	help
+	  SoC Audio support for i.MX boards with DSP audio
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  IMX DSP.
+
 endif # SND_IMX_SOC
 
 endmenu
