@@ -765,6 +765,13 @@ static const struct file_operations dsp_fops = {
 	.release	= fsl_dsp_close,
 };
 
+extern struct snd_compr_ops dsp_platform_compr_ops;
+
+static const struct snd_soc_component_driver dsp_soc_platform_drv  = {
+	.name		= FSL_DSP_COMP_NAME,
+	.compr_ops      = &dsp_platform_compr_ops,
+};
+
 static int fsl_dsp_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -926,6 +933,12 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 
 	/* ...initialize mutex */
 	mutex_init(&dsp_priv->dsp_mutex);
+
+	ret = devm_snd_soc_register_component(&pdev->dev, &dsp_soc_platform_drv, NULL, 0);
+	if (ret) {
+		dev_err(&pdev->dev, "registering soc platform failed\n");
+		return ret;
+	}
 
 	return 0;
 }
