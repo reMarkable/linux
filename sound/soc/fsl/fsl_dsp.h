@@ -5,8 +5,10 @@
  *
  */
 
-#include <linux/firmware/imx/ipc.h>
+#ifndef FSL_DSP_H
+#define FSL_DSP_H
 #include <uapi/linux/mxc_dsp.h>
+#include <linux/firmware/imx/ipc.h>
 #include "fsl_dsp_proxy.h"
 
 
@@ -118,3 +120,6 @@ struct fsl_dsp {
 void *memcpy_dsp(void *dest, const void *src, size_t count);
 void *memset_dsp(void *dest, int c, size_t count);
 struct xf_client *xf_client_lookup(struct fsl_dsp *dsp_priv, u32 id);
+struct xf_client *xf_client_alloc(struct fsl_dsp *dsp_priv);
+
+#endif
