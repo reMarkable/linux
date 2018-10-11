@@ -131,6 +131,24 @@ config COH901318
 	help
 	  Enable support for ST-Ericsson COH 901 318 DMA.
 
+config CRYPTO_DEV_FSL_CAAM_DMA
+	tristate "CAAM DMA engine support"
+	depends on CRYPTO_DEV_FSL_CAAM_JR
+	default n
+	select DMA_ENGINE
+	select ASYNC_CORE
+	select ASYNC_TX_ENABLE_CHANNEL_SWITCH
+	help
+	  Selecting this will offload the DMA operations for users of
+	  the scatter gather memcopy API to the CAAM via job rings. The
+	  CAAM is a hardware module that provides hardware acceleration to
+	  cryptographic operations. It has a built-in DMA controller that can
+	  be programmed to read/write cryptographic data. This module defines
+	  a DMA driver that uses the DMA capabilities of the CAAM.
+
+	  To compile this as a module, choose M here: the module
+	  will be called caam_dma.
+
 config DMA_BCM2835
 	tristate "BCM2835 DMA engine support"
 	depends on ARCH_BCM2835
@@ -650,7 +668,6 @@ config ZX_DMA
 	select DMA_VIRTUAL_CHANNELS
 	help
 	  Support the DMA engine for ZTE ZX family platform devices.
-
 
 # driver files
 source "drivers/dma/bestcomm/Kconfig"
