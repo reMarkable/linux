@@ -635,23 +635,15 @@ static inline void _dpa_assign_wq(struct dpa_fq *fq)
 	}
 }
 
-#ifdef CONFIG_FSL_DPAA_ETH_USE_NDO_SELECT_QUEUE
-/* Use in lieu of skb_get_queue_mapping() */
 #ifdef CONFIG_FMAN_PFC
+/* Use in lieu of skb_get_queue_mapping() */
 #define dpa_get_queue_mapping(skb) \
 	(((skb)->priority < CONFIG_FMAN_PFC_COS_COUNT) ? \
 		((skb)->priority * dpa_num_cpus + smp_processor_id()) : \
 		((CONFIG_FMAN_PFC_COS_COUNT - 1) * \
 			dpa_num_cpus + smp_processor_id()));
-
 #else
-#define dpa_get_queue_mapping(skb) \
-	raw_smp_processor_id()
-#endif
-#else
-/* Use the queue selected by XPS */
-#define dpa_get_queue_mapping(skb) \
-	skb_get_queue_mapping(skb)
+#define dpa_get_queue_mapping(skb) skb_get_queue_mapping(skb)
 #endif
 
 #ifdef CONFIG_PTP_1588_CLOCK_DPAA

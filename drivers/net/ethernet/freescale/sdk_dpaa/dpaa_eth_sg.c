@@ -648,6 +648,8 @@ void __hot _dpa_rx(struct net_device *net_dev,
 	}
 #endif
 
+	skb_record_rx_queue(skb, raw_smp_processor_id());
+
 	if (use_gro) {
 		gro_result_t gro_result;
 		const struct qman_portal_config *pc =

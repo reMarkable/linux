@@ -96,17 +96,6 @@ config FSL_DPAA_1588
         help
          Enable IEEE1588 support code.
 
-config FSL_DPAA_ETH_USE_NDO_SELECT_QUEUE
-	bool "Use driver's Tx queue selection mechanism"
-	default y
-	depends on FSL_SDK_DPAA_ETH
-	help
-	  The DPAA-Ethernet driver defines a ndo_select_queue() callback for optimal selection
-	  of the egress FQ. That will override the XPS support for this netdevice.
-	  If for whatever reason you want to be in control of the egress FQ-to-CPU selection and mapping,
-	  or simply don't want to use the driver's ndo_select_queue() callback, then unselect this
-	  and use the standard XPS support instead.
-
 config FSL_DPAA_ETH_MAX_BUF_COUNT
 	int "Maximum nuber of buffers in private bpool"
 	depends on FSL_SDK_DPAA_ETH
@@ -178,7 +167,7 @@ config FSL_DPAA_ETH_DEBUG
 
 config FSL_DPAA_DBG_LOOP
 	bool "DPAA Ethernet Debug loopback"
-	depends on FSL_DPAA_ETH_DEBUGFS && FSL_DPAA_ETH_USE_NDO_SELECT_QUEUE
+	depends on FSL_DPAA_ETH_DEBUGFS
 	default n
 	help
 	  This option allows to divert all received traffic on a certain interface A towards a
