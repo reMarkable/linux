@@ -853,6 +853,36 @@ int dpni_set_link_cfg(struct fsl_mc_io *mc_io,
 }
 
 /**
+ * dpni_set_link_cfg_v2() - set the link configuration.
+ * @mc_io:      Pointer to MC portal's I/O object
+ * @cmd_flags:  Command flags; one or more of 'MC_CMD_FLAG_'
+ * @token:      Token of DPNI object
+ * @cfg:        Link configuration
+ *
+ * Return:      '0' on Success; Error code otherwise.
+ */
+int dpni_set_link_cfg_v2(struct fsl_mc_io *mc_io,
+			 u32 cmd_flags,
+			 u16 token,
+			 const struct dpni_link_cfg *cfg)
+{
+	struct fsl_mc_command cmd = { 0 };
+	struct dpni_cmd_set_link_cfg_v2 *cmd_params;
+
+	/* prepare command */
+	cmd.header = mc_encode_cmd_header(DPNI_CMDID_SET_LINK_CFG_V2,
+					  cmd_flags,
+					  token);
+	cmd_params = (struct dpni_cmd_set_link_cfg_v2 *)cmd.params;
+	cmd_params->rate = cpu_to_le32(cfg->rate);
+	cmd_params->options = cpu_to_le64(cfg->options);
+	cmd_params->advertising = cpu_to_le64(cfg->advertising);
+
+	/* send command to mc*/
+	return mc_send_command(mc_io, &cmd);
+}
+
+/**
  * dpni_get_link_cfg() - return the link configuration
  * @mc_io:	Pointer to MC portal's I/O object
  * @cmd_flags:	Command flags; one or more of 'MC_CMD_FLAG_'
@@ -921,6 +951,46 @@ int dpni_get_link_state(struct fsl_mc_io *mc_io,
 	state->up = dpni_get_field(rsp_params->flags, LINK_STATE);
 	state->rate = le32_to_cpu(rsp_params->rate);
 	state->options = le64_to_cpu(rsp_params->options);
+
+	return 0;
+}
+
+/**
+ * dpni_get_link_state_v2() - Return the link state (either up or down)
+ * @mc_io:      Pointer to MC portal's I/O object
+ * @cmd_flags:  Command flags; one or more of 'MC_CMD_FLAG_'
+ * @token:      Token of DPNI object
+ * @state:      Returned link state;
+ *
+ * Return:      '0' on Success; Error code otherwise.
+ */
+int dpni_get_link_state_v2(struct fsl_mc_io *mc_io,
+			   u32 cmd_flags,
+			   u16 token,
+			   struct dpni_link_state *state)
+{
+	struct fsl_mc_command cmd = { 0 };
+	struct dpni_rsp_get_link_state_v2 *rsp_params;
+	int err;
+
+	/* prepare command */
+	cmd.header = mc_encode_cmd_header(DPNI_CMDID_GET_LINK_STATE_V2,
+					  cmd_flags,
+					  token);
+
+	/* send command to mc*/
+	err = mc_send_command(mc_io, &cmd);
+	if (err)
+		return err;
+
+	/* retrieve response parameters */
+	rsp_params = (struct dpni_rsp_get_link_state_v2 *)cmd.params;
+	state->up = dpni_get_field(rsp_params->flags, LINK_STATE);
+	state->state_valid = dpni_get_field(rsp_params->flags, STATE_VALID);
+	state->rate = le32_to_cpu(rsp_params->rate);
+	state->options = le64_to_cpu(rsp_params->options);
+	state->supported = le64_to_cpu(rsp_params->supported);
+	state->advertising = le64_to_cpu(rsp_params->advertising);
 
 	return 0;
 }
