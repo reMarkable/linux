@@ -202,13 +202,29 @@ int dpmac_get_attributes(struct fsl_mc_io *mc_io,
 #define DPMAC_LINK_OPT_ASYM_PAUSE	0x0000000000000008ULL
 
 /**
+ * Advertised link speeds
+ */
+#define DPMAC_ADVERTISED_10BASET_FULL		0x0000000000000001ULL
+#define DPMAC_ADVERTISED_100BASET_FULL		0x0000000000000002ULL
+#define DPMAC_ADVERTISED_1000BASET_FULL		0x0000000000000004ULL
+#define DPMAC_ADVERTISED_10000BASET_FULL	0x0000000000000010ULL
+#define DPMAC_ADVERTISED_2500BASEX_FULL		0x0000000000000020ULL
+
+/**
+ * Advertise auto-negotiation enable
+ */
+#define DPMAC_ADVERTISED_AUTONEG		0x0000000000000008ULL
+
+/**
  * struct dpmac_link_cfg - Structure representing DPMAC link configuration
  * @rate: Link's rate - in Mbps
  * @options: Enable/Disable DPMAC link cfg features (bitmap)
+ * @advertising: Speeds that are advertised for autoneg (bitmap)
  */
 struct dpmac_link_cfg {
 	u32 rate;
 	u64 options;
+	u64 advertising;
 };
 
 int dpmac_get_link_cfg(struct fsl_mc_io *mc_io,
@@ -216,22 +232,38 @@ int dpmac_get_link_cfg(struct fsl_mc_io *mc_io,
 		       u16 token,
 		       struct dpmac_link_cfg *cfg);
 
+int dpmac_get_link_cfg_v2(struct fsl_mc_io *mc_io,
+			  u32 cmd_flags,
+			  u16 token,
+			  struct dpmac_link_cfg *cfg);
+
 /**
  * struct dpmac_link_state - DPMAC link configuration request
  * @rate: Rate in Mbps
  * @options: Enable/Disable DPMAC link cfg features (bitmap)
  * @up: Link state
+ * @state_valid: Ignore/Update the state of the link
+ * @supported: Speeds capability of the phy (bitmap)
+ * @advertising: Speeds that are advertised for autoneg (bitmap)
  */
 struct dpmac_link_state {
 	u32 rate;
 	u64 options;
 	int up;
+	int state_valid;
+	u64 supported;
+	u64 advertising;
 };
 
 int dpmac_set_link_state(struct fsl_mc_io *mc_io,
 			 u32 cmd_flags,
 			 u16 token,
 			 struct dpmac_link_state *link_state);
+
+int dpmac_set_link_state_v2(struct fsl_mc_io *mc_io,
+			    u32 cmd_flags,
+			    u16 token,
+			    struct dpmac_link_state *link_state);
 
 /**
  * enum dpmac_counter - DPMAC counter types

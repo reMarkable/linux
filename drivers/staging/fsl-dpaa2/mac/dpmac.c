@@ -492,6 +492,42 @@ int dpmac_get_link_cfg(struct fsl_mc_io *mc_io,
 }
 
 /**
+ * dpmac_get_link_cfg_v2() - Get Ethernet link configuration
+ * @mc_io:      Pointer to opaque I/O object
+ * @cmd_flags:  Command flags; one or more of 'MC_CMD_FLAG_'
+ * @token:      Token of DPMAC object
+ * @cfg:        Returned structure with the link configuration
+ *
+ * Return:      '0' on Success; Error code otherwise.
+ */
+int dpmac_get_link_cfg_v2(struct fsl_mc_io *mc_io,
+			  u32 cmd_flags,
+			  u16 token,
+			  struct dpmac_link_cfg *cfg)
+{
+	struct dpmac_rsp_get_link_cfg_v2 *rsp_params;
+	struct fsl_mc_command cmd = { 0 };
+	int err = 0;
+
+	/* prepare command */
+	cmd.header = mc_encode_cmd_header(DPMAC_CMDID_GET_LINK_CFG_V2,
+					  cmd_flags,
+					  token);
+
+	/* send command to mc*/
+	err = mc_send_command(mc_io, &cmd);
+	if (err)
+		return err;
+
+	rsp_params = (struct dpmac_rsp_get_link_cfg_v2 *)cmd.params;
+	cfg->options = le64_to_cpu(rsp_params->options);
+	cfg->rate = le32_to_cpu(rsp_params->rate);
+	cfg->advertising = le64_to_cpu(rsp_params->advertising);
+
+	return 0;
+}
+
+/**
  * dpmac_set_link_state() - Set the Ethernet link status
  * @mc_io:	Pointer to opaque I/O object
  * @cmd_flags:	Command flags; one or more of 'MC_CMD_FLAG_'
@@ -516,6 +552,40 @@ int dpmac_set_link_state(struct fsl_mc_io *mc_io,
 	cmd_params->options = cpu_to_le64(link_state->options);
 	cmd_params->rate = cpu_to_le32(link_state->rate);
 	dpmac_set_field(cmd_params->up, STATE, link_state->up);
+
+	/* send command to mc*/
+	return mc_send_command(mc_io, &cmd);
+}
+
+/**
+ * dpmac_set_link_state_v2() - Set the Ethernet link status
+ * @mc_io:      Pointer to opaque I/O object
+ * @cmd_flags:  Command flags; one or more of 'MC_CMD_FLAG_'
+ * @token:      Token of DPMAC object
+ * @link_state: Link state configuration
+ *
+ * Return:      '0' on Success; Error code otherwise.
+ */
+int dpmac_set_link_state_v2(struct fsl_mc_io *mc_io,
+			    u32 cmd_flags,
+			    u16 token,
+			    struct dpmac_link_state *link_state)
+{
+	struct dpmac_cmd_set_link_state_v2 *cmd_params;
+	struct fsl_mc_command cmd = { 0 };
+
+	/* prepare command */
+	cmd.header = mc_encode_cmd_header(DPMAC_CMDID_SET_LINK_STATE_V2,
+					  cmd_flags,
+					  token);
+	cmd_params = (struct dpmac_cmd_set_link_state_v2 *)cmd.params;
+	cmd_params->options = cpu_to_le64(link_state->options);
+	cmd_params->rate = cpu_to_le32(link_state->rate);
+	dpmac_set_field(cmd_params->state, STATE, link_state->up);
+	dpmac_set_field(cmd_params->state, STATE_VALID,
+			link_state->state_valid);
+	cmd_params->supported = cpu_to_le64(link_state->supported);
+	cmd_params->advertising = cpu_to_le64(link_state->advertising);
 
 	/* send command to mc*/
 	return mc_send_command(mc_io, &cmd);

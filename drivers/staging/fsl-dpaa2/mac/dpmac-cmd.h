@@ -36,9 +36,11 @@
 #define DPMAC_VER_MAJOR				4
 #define DPMAC_VER_MINOR				2
 #define DPMAC_CMD_BASE_VERSION			1
+#define DPMAC_CMD_2ND_VERSION			2
 #define DPMAC_CMD_ID_OFFSET			4
 
 #define DPMAC_CMD(id)	(((id) << DPMAC_CMD_ID_OFFSET) | DPMAC_CMD_BASE_VERSION)
+#define DPMAC_CMD_V2(id) (((id) << DPMAC_CMD_ID_OFFSET) | DPMAC_CMD_2ND_VERSION)
 
 /* Command IDs */
 #define DPMAC_CMDID_CLOSE		DPMAC_CMD(0x800)
@@ -58,7 +60,9 @@
 #define DPMAC_CMDID_CLEAR_IRQ_STATUS	DPMAC_CMD(0x017)
 
 #define DPMAC_CMDID_GET_LINK_CFG	DPMAC_CMD(0x0c2)
+#define DPMAC_CMDID_GET_LINK_CFG_V2	DPMAC_CMD_V2(0x0c2)
 #define DPMAC_CMDID_SET_LINK_STATE	DPMAC_CMD(0x0c3)
+#define DPMAC_CMDID_SET_LINK_STATE_V2	DPMAC_CMD_V2(0x0c3)
 #define DPMAC_CMDID_GET_COUNTER		DPMAC_CMD(0x0c4)
 
 #define DPMAC_CMDID_SET_PORT_MAC_ADDR	DPMAC_CMD(0x0c5)
@@ -139,8 +143,17 @@ struct dpmac_rsp_get_link_cfg {
 	u32 rate;
 };
 
+struct dpmac_rsp_get_link_cfg_v2 {
+	u64 options;
+	u32 rate;
+	u32 pad;
+	u64 advertising;
+};
+
 #define DPMAC_STATE_SIZE	1
 #define DPMAC_STATE_SHIFT	0
+#define DPMAC_STATE_VALID_SIZE	1
+#define DPMAC_STATE_VALID_SHIFT	1
 
 struct dpmac_cmd_set_link_state {
 	u64 options;
@@ -148,6 +161,17 @@ struct dpmac_cmd_set_link_state {
 	u32 pad;
 	/* only least significant bit is valid */
 	u8 up;
+};
+
+struct dpmac_cmd_set_link_state_v2 {
+	u64 options;
+	u32 rate;
+	u32 pad0;
+	/* from lsb: up:1, state_valid:1 */
+	u8 state;
+	u8 pad1[7];
+	u64 supported;
+	u64 advertising;
 };
 
 struct dpmac_cmd_get_counter {
