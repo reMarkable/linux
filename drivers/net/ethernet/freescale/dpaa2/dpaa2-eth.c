@@ -1357,7 +1357,13 @@ static int link_state_update(struct dpaa2_eth_priv *priv)
 	bool tx_pause;
 	int err;
 
-	err = dpni_get_link_state(priv->mc_io, 0, priv->mc_token, &state);
+	if (dpaa2_eth_cmp_dpni_ver(priv, DPNI_LINK_AUTONEG_VER_MAJOR,
+				   DPNI_LINK_AUTONEG_VER_MINOR) < 0)
+		err = dpni_get_link_state(priv->mc_io, 0, priv->mc_token,
+					  &state);
+	else
+		err = dpni_get_link_state_v2(priv->mc_io, 0, priv->mc_token,
+					     &state);
 	if (unlikely(err)) {
 		netdev_err(priv->net_dev,
 			   "dpni_get_link_state() failed\n");

@@ -542,6 +542,9 @@ static inline bool dpaa2_eth_rx_pause_enabled(u64 link_options)
 	return !!(link_options & DPNI_LINK_OPT_PAUSE);
 }
 
+#define DPNI_LINK_AUTONEG_VER_MAJOR	7
+#define DPNI_LINK_AUTONEG_VER_MINOR	8
+
 static inline
 unsigned int dpaa2_eth_needed_headroom(struct dpaa2_eth_priv *priv,
 				       struct sk_buff *skb)
