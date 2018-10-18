@@ -466,7 +466,7 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 	struct dpaa2_mac_priv	*priv = NULL;
 	struct device_node	*phy_node, *dpmac_node;
 	struct net_device	*netdev;
-	phy_interface_t		if_mode;
+	int			if_mode;
 	int			err = 0;
 
 	dev = &mc_dev->dev;
@@ -555,6 +555,13 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 		goto probe_fixed_link;
 	}
 
+	if_mode = of_get_phy_mode(dpmac_node);
+	if (if_mode >= 0) {
+		dev_dbg(dev, "\tusing if mode %s for eth_if %d\n",
+			phy_modes(if_mode), priv->attr.eth_if);
+		goto phy_connect;
+	}
+
 	if (priv->attr.eth_if < ARRAY_SIZE(dpaa2_mac_iface_mode)) {
 		if_mode = dpaa2_mac_iface_mode[priv->attr.eth_if];
 		dev_dbg(dev, "\tusing if mode %s for eth_if %d\n",
@@ -565,6 +572,7 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 		goto probe_fixed_link;
 	}
 
+phy_connect:
 	/* try to connect to the PHY */
 	netdev->phydev = of_phy_connect(netdev, phy_node,
 					&dpaa2_mac_link_changed, 0, if_mode);
