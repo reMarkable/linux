@@ -1,4 +1,5 @@
 /* Copyright 2015 Freescale Semiconductor Inc.
+ * Copyright 2018 NXP
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -91,6 +92,43 @@ static int cmp_dpmac_ver(struct dpaa2_mac_priv *priv,
 	return priv->dpmac_ver_major - ver_major;
 }
 
+#define DPMAC_LINK_AUTONEG_VER_MAJOR		4
+#define DPMAC_LINK_AUTONEG_VER_MINOR		3
+
+struct dpaa2_mac_link_mode_map {
+	u64 dpmac_lm;
+	u64 ethtool_lm;
+};
+
+static const struct dpaa2_mac_link_mode_map dpaa2_mac_lm_map[] = {
+	{DPMAC_ADVERTISED_10BASET_FULL, ETHTOOL_LINK_MODE_10baseT_Full_BIT},
+	{DPMAC_ADVERTISED_100BASET_FULL, ETHTOOL_LINK_MODE_100baseT_Full_BIT},
+	{DPMAC_ADVERTISED_1000BASET_FULL, ETHTOOL_LINK_MODE_1000baseT_Full_BIT},
+	{DPMAC_ADVERTISED_10000BASET_FULL, ETHTOOL_LINK_MODE_10000baseT_Full_BIT},
+	{DPMAC_ADVERTISED_2500BASEX_FULL, ETHTOOL_LINK_MODE_2500baseT_Full_BIT},
+	{DPMAC_ADVERTISED_AUTONEG, ETHTOOL_LINK_MODE_Autoneg_BIT},
+};
+
+static void link_mode_dpmac2phydev(u64 dpmac_lm, unsigned long *phydev_lm)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(dpaa2_mac_lm_map); i++) {
+		if (dpmac_lm & dpaa2_mac_lm_map[i].dpmac_lm)
+			linkmode_set_bit(dpaa2_mac_lm_map[i].ethtool_lm, phydev_lm);
+	}
+}
+
+static void link_mode_phydev2dpmac(unsigned long *phydev_lm, u64 *dpni_lm)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(dpaa2_mac_lm_map); i++) {
+		if (linkmode_test_bit(dpaa2_mac_lm_map[i].ethtool_lm, phydev_lm))
+			*dpni_lm |= dpaa2_mac_lm_map[i].dpmac_lm;
+	}
+}
+
 static void dpaa2_mac_link_changed(struct net_device *netdev)
 {
 	struct phy_device	*phydev;
@@ -122,11 +160,18 @@ static void dpaa2_mac_link_changed(struct net_device *netdev)
 		phy_print_status(phydev);
 	}
 
-	/* We must interrogate MC at all times, because we don't know
-	 * when and whether a potential DPNI may have read the link state.
-	 */
-	err = dpmac_set_link_state(priv->mc_dev->mc_io, 0,
-				   priv->mc_dev->mc_handle, &state);
+	if (cmp_dpmac_ver(priv, DPMAC_LINK_AUTONEG_VER_MAJOR,
+			  DPMAC_LINK_AUTONEG_VER_MINOR) < 0) {
+		err = dpmac_set_link_state(priv->mc_dev->mc_io, 0,
+					   priv->mc_dev->mc_handle, &state);
+	} else {
+		link_mode_phydev2dpmac(phydev->supported, &state.supported);
+		link_mode_phydev2dpmac(phydev->advertising, &state.advertising);
+		state.state_valid = 1;
+
+		err = dpmac_set_link_state_v2(priv->mc_dev->mc_io, 0,
+					      priv->mc_dev->mc_handle, &state);
+	}
 	if (unlikely(err))
 		dev_err(&priv->mc_dev->dev, "dpmac_set_link_state: %d\n", err);
 }
@@ -365,12 +410,17 @@ static void configure_link(struct dpaa2_mac_priv *priv,
 	phydev->speed = cfg->rate;
 	phydev->duplex  = !!(cfg->options & DPMAC_LINK_OPT_HALF_DUPLEX);
 
+	if (cfg->advertising != 0) {
+		linkmode_zero(phydev->advertising);
+		link_mode_dpmac2phydev(cfg->advertising, phydev->advertising);
+	}
+
 	if (cfg->options & DPMAC_LINK_OPT_AUTONEG) {
-		phydev->autoneg = 1;
-		phydev->advertising |= ADVERTISED_Autoneg;
+		phydev->autoneg = AUTONEG_ENABLE;
+		linkmode_set_bit(ETHTOOL_LINK_MODE_Autoneg_BIT, phydev->advertising);
 	} else {
-		phydev->autoneg = 0;
-		phydev->advertising &= ~ADVERTISED_Autoneg;
+		phydev->autoneg = AUTONEG_DISABLE;
+		linkmode_clear_bit(ETHTOOL_LINK_MODE_Autoneg_BIT, phydev->advertising);
 	}
 
 	phy_start_aneg(phydev);
@@ -392,8 +442,14 @@ static irqreturn_t dpaa2_mac_irq_handler(int irq_num, void *arg)
 
 	/* DPNI-initiated link configuration; 'ifconfig up' also calls this */
 	if (status & DPMAC_IRQ_EVENT_LINK_CFG_REQ) {
-		err = dpmac_get_link_cfg(mc_dev->mc_io, 0, mc_dev->mc_handle,
-					 &link_cfg);
+		if (cmp_dpmac_ver(priv, DPMAC_LINK_AUTONEG_VER_MAJOR,
+				  DPMAC_LINK_AUTONEG_VER_MINOR) < 0)
+			err = dpmac_get_link_cfg(mc_dev->mc_io, 0,
+						 mc_dev->mc_handle, &link_cfg);
+		else
+			err = dpmac_get_link_cfg_v2(mc_dev->mc_io, 0,
+						    mc_dev->mc_handle,
+						    &link_cfg);
 		if (unlikely(err))
 			goto out;
 
