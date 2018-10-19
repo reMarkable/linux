@@ -355,7 +355,7 @@ static irqreturn_t dpaa2_mac_irq_handler(int irq_num, void *arg)
 	struct device *dev = (struct device *)arg;
 	struct fsl_mc_device *mc_dev = to_fsl_mc_device(dev);
 	struct dpaa2_mac_priv *priv = dev_get_drvdata(dev);
-	struct dpmac_link_cfg link_cfg;
+	struct dpmac_link_cfg link_cfg = { 0 };
 	u32 status;
 	int err;
 
