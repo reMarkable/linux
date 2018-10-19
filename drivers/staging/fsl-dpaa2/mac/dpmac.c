@@ -515,7 +515,7 @@ int dpmac_set_link_state(struct fsl_mc_io *mc_io,
 	cmd_params = (struct dpmac_cmd_set_link_state *)cmd.params;
 	cmd_params->options = cpu_to_le64(link_state->options);
 	cmd_params->rate = cpu_to_le32(link_state->rate);
-	cmd_params->up = dpmac_get_field(link_state->up, STATE);
+	dpmac_set_field(cmd_params->up, STATE, link_state->up);
 
 	/* send command to mc*/
 	return mc_send_command(mc_io, &cmd);
