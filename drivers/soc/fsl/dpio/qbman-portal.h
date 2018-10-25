@@ -9,6 +9,13 @@
 
 #include <soc/fsl/dpaa2-fd.h>
 
+#define QMAN_REV_4000   0x04000000
+#define QMAN_REV_4100   0x04010000
+#define QMAN_REV_4101   0x04010001
+#define QMAN_REV_5000   0x05000000
+
+#define QMAN_REV_MASK   0xffff0000
+
 struct dpaa2_dq;
 struct qbman_swp;
 
@@ -177,6 +184,8 @@ void qbman_eq_desc_set_qd(struct qbman_eq_desc *d, u32 qdid,
 
 int qbman_swp_enqueue(struct qbman_swp *p, const struct qbman_eq_desc *d,
 		      const struct dpaa2_fd *fd);
+
+int qbman_orp_drop(struct qbman_swp *s, u16 orpid, u16 seqnum);
 
 void qbman_release_desc_clear(struct qbman_release_desc *d);
 void qbman_release_desc_set_bpid(struct qbman_release_desc *d, u16 bpid);
