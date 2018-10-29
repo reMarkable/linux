@@ -175,6 +175,23 @@
 	};
 };
 
+&emdio2 {
+	inphi_phy: emdio2_phy@0 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		reg = <0x0>;
+		interrupts = <0 9 IRQ_TYPE_EDGE_FALLING>,
+			<0 10 IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&dpmac5 {
+	phy-handle = <&inphi_phy>;
+};
+
+&dpmac6 {
+	phy-handle = <&inphi_phy>;
+};
+
 &dpmac17 {
 	phy-handle = <&rgmii_phy1>;
 	phy-connection-type = "rgmii-id";
