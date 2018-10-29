@@ -508,7 +508,7 @@
 			interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
 			clock-names = "i2c";
 			clocks = <&clockgen 4 15>;
-			scl-gpio = <&gpio2 15 GPIO_ACTIVE_HIGH>;
+			scl-gpios = <&gpio2 15 GPIO_ACTIVE_HIGH>;
 			status = "disabled";
 		};
 
@@ -553,7 +553,7 @@
 			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
 			clock-names = "i2c";
 			clocks = <&clockgen 4 15>;
-			scl-gpio = <&gpio2 16 GPIO_ACTIVE_HIGH>;
+			scl-gpios = <&gpio2 16 GPIO_ACTIVE_HIGH>;
 			status = "disabled";
 		};
 
