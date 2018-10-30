@@ -1035,7 +1035,7 @@ EXPORT_SYMBOL(skb_to_sg_fd);
 int __hot dpa_tx(struct sk_buff *skb, struct net_device *net_dev)
 {
 	struct dpa_priv_s	*priv;
-	const int queue_mapping = dpa_get_queue_mapping(skb);
+	int queue_mapping = dpa_get_queue_mapping(skb);
 	struct qman_fq *egress_fq, *conf_fq;
 
 #ifdef CONFIG_FSL_DPAA_HOOKS
@@ -1052,6 +1052,9 @@ int __hot dpa_tx(struct sk_buff *skb, struct net_device *net_dev)
 	if (priv->ceetm_en)
 		return ceetm_tx(skb, net_dev);
 #endif
+
+	if (unlikely(queue_mapping >= DPAA_ETH_TX_QUEUES))
+		queue_mapping = queue_mapping % DPAA_ETH_TX_QUEUES;
 
 	egress_fq = priv->egress_fqs[queue_mapping];
 	conf_fq = priv->conf_fqs[queue_mapping];
