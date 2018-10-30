@@ -139,6 +139,7 @@ struct imx_ahci_priv {
 	bool first_time;
 	u32 phy_params;
 	u32 imped_ratio;
+	u32 ext_osc;
 };
 
 void *sg_io_buffer_hack;
@@ -563,18 +564,32 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 			IMX8QM_PHY_MODE_MASK,
 			IMX8QM_PHY_MODE_SATA);
 
-	/*
-	 * BIT0 RXENA 1, BIT1 TXENA 0
-	 * BIT12 PHY_X1_EPCS_SEL 1.
-	 */
-	regmap_update_bits(imxpriv->gpr,
-			IMX8QM_CSR_MISC_OFFSET,
-			IMX8QM_MISC_IOB_RXENA,
-			IMX8QM_MISC_IOB_RXENA);
-	regmap_update_bits(imxpriv->gpr,
-			IMX8QM_CSR_MISC_OFFSET,
-			IMX8QM_MISC_IOB_TXENA,
-			0);
+	if (imxpriv->ext_osc) {
+		dev_info(dev, "external osc is used.\n");
+		/*
+		 * bit0 rx ena 1, bit1 tx ena 0
+		 * bit12 PHY_X1_EPCS_SEL 1.
+		 */
+		regmap_update_bits(imxpriv->gpr,
+				IMX8QM_CSR_MISC_OFFSET,
+				IMX8QM_MISC_IOB_RXENA,
+				IMX8QM_MISC_IOB_RXENA);
+		regmap_update_bits(imxpriv->gpr,
+				IMX8QM_CSR_MISC_OFFSET,
+				IMX8QM_MISC_IOB_TXENA,
+				0);
+	} else {
+		dev_info(dev, "internal pll is used.\n");
+		regmap_update_bits(imxpriv->gpr,
+				IMX8QM_CSR_MISC_OFFSET,
+				IMX8QM_MISC_IOB_RXENA,
+				0);
+		regmap_update_bits(imxpriv->gpr,
+				IMX8QM_CSR_MISC_OFFSET,
+				IMX8QM_MISC_IOB_TXENA,
+				IMX8QM_MISC_IOB_TXENA);
+
+	}
 	regmap_update_bits(imxpriv->gpr,
 			IMX8QM_CSR_MISC_OFFSET,
 			IMX8QM_MISC_PHYX1_EPCS_SEL,
@@ -846,7 +861,8 @@ static void ahci_imx_error_handler(struct ata_port *ap)
 
 	ahci_error_handler(ap);
 
-	if (!(imxpriv->first_time) || ahci_imx_hotplug)
+	if (!(imxpriv->first_time) || ahci_imx_hotplug ||
+			(imxpriv->type == AHCI_IMX8QM))
 		return;
 
 	imxpriv->first_time = false;
@@ -1072,13 +1088,29 @@ static struct scsi_host_template ahci_platform_sht = {
 
 static int imx8_sata_probe(struct device *dev, struct imx_ahci_priv *imxpriv)
 {
-	int ret;
 	struct resource *phy_res;
 	struct platform_device *pdev = imxpriv->ahci_pdev;
 	struct device_node *np = dev->of_node;
 
-	if (of_property_read_u32(np, "fsl,phy-imp", &imxpriv->imped_ratio))
+	if (!(dev->bus_dma_mask)) {
+		dev->bus_dma_mask = DMA_BIT_MASK(32);
+		dev_info(dev, "imx8qm sata only supports 32bit dma.\n");
+	}
+	if (of_property_read_u32(np, "ext_osc", &imxpriv->ext_osc) < 0) {
+		dev_info(dev, "ext_osc is not specified.\n");
+		/* Use the external osc as ref clk defaultly. */
+		imxpriv->ext_osc = 1;
+	}
+
+	if (of_property_read_u32(np, "fsl,phy-imp", &imxpriv->imped_ratio)) {
+		/*
+		 * Regarding to the differnet Hw designs,
+		 * Set the impedance ratio to 0x6c when 85OHM is used.
+		 * Keep it to default value 0x80, when 100OHM is used.
+		 */
+		dev_info(dev, "phy impedance ratio is not specified.\n");
 		imxpriv->imped_ratio = IMX8QM_SATA_PHY_IMPED_RATIO_85OHM;
+	}
 	phy_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "phy");
 	if (phy_res) {
 		imxpriv->phy_base = devm_ioremap(dev, phy_res->start,
@@ -1127,15 +1159,9 @@ static int imx8_sata_probe(struct device *dev, struct imx_ahci_priv *imxpriv)
 	/* Fetch GPIO, then enable the external OSC */
 	imxpriv->clkreq_gpio = of_get_named_gpio(np, "clkreq-gpio", 0);
 	if (gpio_is_valid(imxpriv->clkreq_gpio)) {
-		ret = devm_gpio_request_one(dev, imxpriv->clkreq_gpio,
+		devm_gpio_request_one(dev, imxpriv->clkreq_gpio,
 					    GPIOF_OUT_INIT_LOW,
 					    "SATA CLKREQ");
-		if (ret == -EBUSY) {
-			dev_info(dev, "clkreq had been initialized.\n");
-		} else if (ret) {
-			dev_err(dev, "%d unable to get clkreq.\n", ret);
-			return ret;
-		}
 	} else if (imxpriv->clkreq_gpio == -EPROBE_DEFER) {
 		return imxpriv->clkreq_gpio;
 	}
@@ -1275,12 +1301,6 @@ static int imx_ahci_probe(struct platform_device *pdev)
 		return PTR_ERR(imxpriv->sata_ref_clk);
 	}
 
-	imxpriv->ahb_clk = devm_clk_get(dev, "ahb");
-	if (IS_ERR(imxpriv->ahb_clk)) {
-		dev_err(dev, "can't get ahb clock.\n");
-		return PTR_ERR(imxpriv->ahb_clk);
-	}
-
 	if (imxpriv->type == AHCI_IMX6Q || imxpriv->type == AHCI_IMX6QP) {
 		u32 reg_value;
 
@@ -1357,8 +1377,17 @@ static int imx_ahci_probe(struct platform_device *pdev)
 		writel(reg_val, hpriv->mmio + HOST_PORTS_IMPL);
 	}
 
-	reg_val = clk_get_rate(imxpriv->ahb_clk) / 1000;
-	writel(reg_val, hpriv->mmio + IMX_TIMER1MS);
+	imxpriv->ahb_clk = devm_clk_get(dev, "ahb");
+	if (IS_ERR(imxpriv->ahb_clk)) {
+		dev_info(dev, "no ahb clock.\n");
+	} else {
+		/*
+		 * AHB clock is only used to configure the vendor specified
+		 * TIMER1MS register. Set it if the AHB clock is defined.
+		 */
+		reg_val = clk_get_rate(imxpriv->ahb_clk) / 1000;
+		writel(reg_val, hpriv->mmio + IMX_TIMER1MS);
+	}
 
 	/*
 	 * Due to IP bug on the Synopsis 3.00 SATA version,
@@ -1462,7 +1491,21 @@ static struct platform_driver imx_ahci_driver = {
 		.pm = &ahci_imx_pm_ops,
 	},
 };
-module_platform_driver(imx_ahci_driver);
+
+static int __init imx_ahci_init(void)
+{
+	int ret;
+
+	ret = platform_driver_register(&imx_ahci_driver);
+	if (ret)
+		pr_err("Unable to initialize imx ahci driver\n");
+	else
+		pr_info("imx ahci driver is registered.\n");
+
+	return ret;
+}
+
+device_initcall(imx_ahci_init);
 
 MODULE_DESCRIPTION("Freescale i.MX AHCI SATA platform driver");
 MODULE_AUTHOR("Richard Zhu <Hong-Xing.Zhu@freescale.com>");
