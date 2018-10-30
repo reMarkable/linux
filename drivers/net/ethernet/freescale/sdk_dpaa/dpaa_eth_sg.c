@@ -575,6 +575,8 @@ static inline int dpa_skb_loop(const struct dpa_priv_s *priv,
 		return 0; /* loop disabled by default */
 
 	skb_push(skb, ETH_HLEN); /* compensate for eth_type_trans */
+	/* Save the current CPU ID in order to maintain core affinity */
+	skb_set_queue_mapping(skb, raw_smp_processor_id());
 	dpa_tx(skb, dpa_loop_netdevs[priv->loop_to]);
 
 	return 1; /* Frame Tx on the selected interface */
