@@ -1982,7 +1982,7 @@ static struct ceetm_class *ceetm_classify(struct sk_buff *skb,
 
 int __hot ceetm_tx(struct sk_buff *skb, struct net_device *net_dev)
 {
-	const int queue_mapping = dpa_get_queue_mapping(skb);
+	int queue_mapping = dpa_get_queue_mapping(skb);
 	struct Qdisc *sch = net_dev->qdisc;
 	struct ceetm_class_stats *cstats;
 	struct ceetm_qdisc_stats *qstats;
@@ -2015,6 +2015,9 @@ int __hot ceetm_tx(struct sk_buff *skb, struct net_device *net_dev)
 		qstats->drops++;
 		goto drop;
 	}
+
+	if (unlikely(queue_mapping >= DPAA_ETH_TX_QUEUES))
+		queue_mapping = queue_mapping % DPAA_ETH_TX_QUEUES;
 
 	priv_dpa = netdev_priv(net_dev);
 	conf_fq = priv_dpa->conf_fqs[queue_mapping];
