@@ -66,7 +66,7 @@ struct fsl_esai {
 	u32 sck_rate[2];
 	bool hck_dir[2];
 	bool sck_div[2];
-	bool slave_mode;
+	bool slave_mode[2];
 	bool synchronous;
 	bool reset_at_xrun;
 	char name[32];
@@ -336,7 +336,7 @@ static int fsl_esai_set_bclk(struct snd_soc_dai *dai, bool tx, u32 freq)
 	int ret;
 
 	/* Don't apply for fully slave mode or unchanged bclk */
-	if (esai_priv->slave_mode || esai_priv->sck_rate[tx] == freq)
+	if (esai_priv->slave_mode[tx] || esai_priv->sck_rate[tx] == freq)
 		return 0;
 
 	if (ratio * freq > hck_rate)
@@ -445,34 +445,61 @@ static int fsl_esai_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 		return -EINVAL;
 	}
 
-	esai_priv->slave_mode = false;
+	if (esai_priv->slave_mode[0] == esai_priv->slave_mode[1]) {
+		/* DAI clock master masks */
+		switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
+		case SND_SOC_DAIFMT_CBM_CFM:
+			esai_priv->slave_mode[0] = true;
+			esai_priv->slave_mode[1] = true;
+			break;
+		case SND_SOC_DAIFMT_CBS_CFM:
+			xccr |= ESAI_xCCR_xCKD;
+			break;
+		case SND_SOC_DAIFMT_CBM_CFS:
+			xccr |= ESAI_xCCR_xFSD;
+			break;
+		case SND_SOC_DAIFMT_CBS_CFS:
+			xccr |= ESAI_xCCR_xFSD | ESAI_xCCR_xCKD;
+			esai_priv->slave_mode[0] = false;
+			esai_priv->slave_mode[1] = false;
+			break;
+		default:
+			return -EINVAL;
+		}
 
-	/* DAI clock master masks */
-	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBM_CFM:
-		esai_priv->slave_mode = true;
-		break;
-	case SND_SOC_DAIFMT_CBS_CFM:
-		xccr |= ESAI_xCCR_xCKD;
-		break;
-	case SND_SOC_DAIFMT_CBM_CFS:
-		xccr |= ESAI_xCCR_xFSD;
-		break;
-	case SND_SOC_DAIFMT_CBS_CFS:
-		xccr |= ESAI_xCCR_xFSD | ESAI_xCCR_xCKD;
-		break;
-	default:
-		return -EINVAL;
+		mask = ESAI_xCCR_xCKP | ESAI_xCCR_xHCKP | ESAI_xCCR_xFSP |
+			ESAI_xCCR_xFSD | ESAI_xCCR_xCKD;
+		regmap_update_bits(esai_priv->regmap,
+					REG_ESAI_TCCR, mask, xccr);
+		regmap_update_bits(esai_priv->regmap,
+					REG_ESAI_RCCR, mask, xccr);
+
+	} else {
+
+		mask = ESAI_xCCR_xCKP | ESAI_xCCR_xHCKP | ESAI_xCCR_xFSP |
+			ESAI_xCCR_xFSD | ESAI_xCCR_xCKD;
+		if (esai_priv->slave_mode[0])
+			regmap_update_bits(esai_priv->regmap,
+					REG_ESAI_RCCR, mask, xccr);
+		else
+			regmap_update_bits(esai_priv->regmap, REG_ESAI_RCCR,
+						mask,
+						xccr | ESAI_xCCR_xFSD |
+							ESAI_xCCR_xCKD);
+
+		if (esai_priv->slave_mode[1])
+			regmap_update_bits(esai_priv->regmap,
+						REG_ESAI_TCCR, mask, xccr);
+		else
+			regmap_update_bits(esai_priv->regmap, REG_ESAI_TCCR,
+						mask,
+						xccr | ESAI_xCCR_xFSD |
+							ESAI_xCCR_xCKD);
 	}
 
 	mask = ESAI_xCR_xFSL | ESAI_xCR_xFSR | ESAI_xCR_xWA;
 	regmap_update_bits(esai_priv->regmap, REG_ESAI_TCR, mask, xcr);
 	regmap_update_bits(esai_priv->regmap, REG_ESAI_RCR, mask, xcr);
-
-	mask = ESAI_xCCR_xCKP | ESAI_xCCR_xHCKP | ESAI_xCCR_xFSP |
-		ESAI_xCCR_xFSD | ESAI_xCCR_xCKD;
-	regmap_update_bits(esai_priv->regmap, REG_ESAI_TCCR, mask, xccr);
-	regmap_update_bits(esai_priv->regmap, REG_ESAI_RCCR, mask, xccr);
 
 	return 0;
 }
@@ -980,9 +1007,6 @@ static int fsl_esai_probe(struct platform_device *pdev)
 	/* Set a default slot number */
 	esai_priv->slots = 2;
 
-	/* Set a default master/slave state */
-	esai_priv->slave_mode = true;
-
 	/* Determine the FIFO depth */
 	iprop = of_get_property(np, "fsl,fifo-depth", NULL);
 	if (iprop)
@@ -997,6 +1021,20 @@ static int fsl_esai_probe(struct platform_device *pdev)
 
 	esai_priv->synchronous =
 		of_property_read_bool(np, "fsl,esai-synchronous");
+
+	if (!esai_priv->synchronous) {
+		if (of_property_read_bool(pdev->dev.of_node, "fsl,txm-rxs")) {
+			/* 0 --  rx,  1 -- tx */
+			esai_priv->slave_mode[0] = true;
+			esai_priv->slave_mode[1] = false;
+		}
+
+		if (of_property_read_bool(pdev->dev.of_node, "fsl,txs-rxm")) {
+			/* 0 --  rx,  1 -- tx */
+			esai_priv->slave_mode[0] = false;
+			esai_priv->slave_mode[1] = true;
+		}
+	}
 
 	/* Implement full symmetry for synchronous mode */
 	if (esai_priv->synchronous) {
