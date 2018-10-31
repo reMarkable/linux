@@ -646,16 +646,6 @@ static inline void _dpa_assign_wq(struct dpa_fq *fq)
 #define dpa_get_queue_mapping(skb) skb_get_queue_mapping(skb)
 #endif
 
-#ifdef CONFIG_PTP_1588_CLOCK_DPAA
-struct ptp_priv_s {
-	struct device_node *node;
-	struct platform_device *of_dev;
-	struct ptp_clock *clock;
-	struct mac_device *mac_dev;
-};
-extern struct ptp_priv_s ptp_priv;
-#endif
-
 static inline void _dpa_bp_free_pf(void *addr)
 {
 	put_page(virt_to_head_page(addr));
