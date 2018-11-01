@@ -39,6 +39,9 @@
 #endif
 
 #include <linux/string.h>
+#include <linux/of_platform.h>
+#include <linux/net_tstamp.h>
+#include <linux/fsl/ptp_qoriq.h>
 
 #include "dpaa_eth.h"
 #include "mac.h"                /* struct mac_device */
@@ -519,6 +522,47 @@ static void dpa_get_strings(struct net_device *net_dev, u32 stringset, u8 *data)
 	memcpy(strings, dpa_stats_global, size);
 }
 
+static int dpaa_get_ts_info(struct net_device *net_dev,
+			    struct ethtool_ts_info *info)
+{
+	struct dpa_priv_s *priv = netdev_priv(net_dev);
+	struct device *dev = priv->mac_dev->dev;
+	struct device_node *mac_node = dev->of_node;
+	struct device_node *fman_node = NULL, *ptp_node = NULL;
+	struct platform_device *ptp_dev = NULL;
+	struct qoriq_ptp *ptp = NULL;
+
+	info->phc_index = -1;
+
+	fman_node = of_get_parent(mac_node);
+	if (fman_node)
+		ptp_node = of_parse_phandle(fman_node, "ptimer-handle", 0);
+
+	if (ptp_node)
+		ptp_dev = of_find_device_by_node(ptp_node);
+
+	if (ptp_dev)
+		ptp = platform_get_drvdata(ptp_dev);
+
+	if (ptp)
+		info->phc_index = ptp->phc_index;
+
+#ifdef CONFIG_FSL_DPAA_TS
+	info->so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE |
+				SOF_TIMESTAMPING_RX_HARDWARE |
+				SOF_TIMESTAMPING_RAW_HARDWARE;
+	info->tx_types = (1 << HWTSTAMP_TX_OFF) |
+			 (1 << HWTSTAMP_TX_ON);
+	info->rx_filters = (1 << HWTSTAMP_FILTER_NONE) |
+			   (1 << HWTSTAMP_FILTER_ALL);
+#else
+	info->so_timestamping = SOF_TIMESTAMPING_RX_SOFTWARE |
+				SOF_TIMESTAMPING_SOFTWARE;
+#endif
+
+	return 0;
+}
+
 const struct ethtool_ops dpa_ethtool_ops = {
 	.get_link_ksettings = dpa_get_ksettings,
 	.set_link_ksettings = dpa_set_ksettings,
@@ -539,4 +583,5 @@ const struct ethtool_ops dpa_ethtool_ops = {
 	.get_wol = dpa_get_wol,
 	.set_wol = dpa_set_wol,
 #endif
+	.get_ts_info = dpaa_get_ts_info,
 };
