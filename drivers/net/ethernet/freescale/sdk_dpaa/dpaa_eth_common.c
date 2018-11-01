@@ -306,7 +306,7 @@ EXPORT_SYMBOL(dpa_fix_features);
 u64 dpa_get_timestamp_ns(const struct dpa_priv_s *priv, enum port_type rx_tx,
 			const void *data)
 {
-	u64 *ts, ns;
+	u64 *ts;
 
 	ts = fm_port_get_buffer_time_stamp(priv->mac_dev->port_dev[rx_tx],
 					   data);
@@ -316,10 +316,7 @@ u64 dpa_get_timestamp_ns(const struct dpa_priv_s *priv, enum port_type rx_tx,
 
 	be64_to_cpus(ts);
 
-	/* multiple DPA_PTP_NOMINAL_FREQ_PERIOD_NS for case of non power of 2 */
-	ns = *ts << DPA_PTP_NOMINAL_FREQ_PERIOD_SHIFT;
-
-	return ns;
+	return *ts;
 }
 
 int dpa_get_ts(const struct dpa_priv_s *priv, enum port_type rx_tx,
