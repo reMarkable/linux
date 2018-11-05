@@ -77,42 +77,7 @@
 		mask = <0x2>;
 	};
 
-	thermal-zones {
-		cpu_thermal: cpu-thermal {
-			polling-delay-passive = <1000>;
-			polling-delay = <5000>;
-
-			thermal-sensors = <&tmu 4>;
-
-			trips {
-				cpu_alert: cpu-alert {
-					temperature = <75000>;
-					hysteresis = <2000>;
-					type = "passive";
-				};
-				cpu_crit: cpu-crit {
-					temperature = <85000>;
-					hysteresis = <2000>;
-					type = "critical";
-				};
-			};
-
-			cooling-maps {
-				map0 {
-					trip = <&cpu_alert>;
-					cooling-device =
-						<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-				};
-			};
-		};
-	};
+	#include "fsl-tmu.dtsi"
 
 	timer: timer {
 		compatible = "arm,armv8-timer";
@@ -905,5 +870,38 @@
 			compatible = "linaro,optee-tz";
 			method = "smc";
 		};
+	};
+};
+
+#include "fsl-tmu-map1.dtsi"
+#include "fsl-tmu-map2.dtsi"
+#include "fsl-tmu-map3.dtsi"
+&thermal_zones {
+	thermal-zone1 {
+		status = "okay";
+	};
+
+	thermal-zone2{
+		status = "okay";
+	};
+
+	thermal-zone3{
+		status = "okay";
+	};
+
+	thermal-zone4{
+		status = "okay";
+	};
+
+	thermal-zone5{
+		status = "okay";
+	};
+
+	thermal-zone6{
+		status = "okay";
+	};
+
+	thermal-zone7 {
+		status = "okay";
 	};
 };
