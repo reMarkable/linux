@@ -25,7 +25,7 @@
 		#size-cells = <0>;
 
 		/* We have 2 clusters having 4 Cortex-A53 cores each */
-		cpu0: cpu@0 {
+		cooling_map0: cpu0: cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53";
 			reg = <0x0>;
@@ -61,7 +61,7 @@
 			#cooling-cells = <2>;
 		};
 
-		cpu4: cpu@100 {
+		cooling_map1: cpu4: cpu@100 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53";
 			reg = <0x100>;
@@ -128,42 +128,7 @@
 		};
 	};
 
-	thermal-zones {
-		cpu_thermal: cpu-thermal {
-			polling-delay-passive = <1000>;
-			polling-delay = <5000>;
-			thermal-sensors = <&tmu 0>;
-
-			trips {
-				cpu_alert: cpu-alert {
-					temperature = <85000>;
-					hysteresis = <2000>;
-					type = "passive";
-				};
-
-				cpu_crit: cpu-crit {
-					temperature = <95000>;
-					hysteresis = <2000>;
-					type = "critical";
-				};
-			};
-
-			cooling-maps {
-				map0 {
-					trip = <&cpu_alert>;
-					cooling-device =
-						<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-				};
-			};
-		};
-	};
+	#include "fsl-tmu.dtsi"
 
 	timer {
 		compatible = "arm,armv8-timer";
@@ -877,5 +842,17 @@
 			compatible = "linaro,optee-tz";
 			method = "smc";
 		};
+	};
+};
+
+#include "fsl-tmu-map1.dtsi"
+
+&thermal_zones {
+	thermal-zone0 {
+		status = "okay";
+	};
+
+	thermal-zone1 {
+		status = "okay";
 	};
 };

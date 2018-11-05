@@ -34,7 +34,7 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu0: cpu@0 {
+		cooling_map0: cpu0: cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a72";
 			reg = <0x0>;
@@ -116,38 +116,7 @@
 		mask = <0x02>;
 	};
 
-	thermal-zones {
-		cpu_thermal: cpu-thermal {
-			polling-delay-passive = <1000>;
-			polling-delay = <5000>;
-			thermal-sensors = <&tmu 3>;
-
-			trips {
-				cpu_alert: cpu-alert {
-					temperature = <85000>;
-					hysteresis = <2000>;
-					type = "passive";
-				};
-
-				cpu_crit: cpu-crit {
-					temperature = <95000>;
-					hysteresis = <2000>;
-					type = "critical";
-				};
-			};
-
-			cooling-maps {
-				map0 {
-					trip = <&cpu_alert>;
-					cooling-device =
-						<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-				};
-			};
-		};
-	};
+	#include "fsl-tmu.dtsi"
 
 	timer {
 		compatible = "arm,armv8-timer";
@@ -882,3 +851,25 @@
 
 #include "qoriq-qman-portals.dtsi"
 #include "qoriq-bman-portals.dtsi"
+
+&thermal_zones {
+	thermal-zone0 {
+		status = "okay";
+	};
+
+	thermal-zone1 {
+		status = "okay";
+	};
+
+	thermal-zone2 {
+		status = "okay";
+	};
+
+	thermal-zone3 {
+		status = "okay";
+	};
+
+	thermal-zone4 {
+		status = "okay";
+	};
+};
