@@ -184,8 +184,9 @@
 		};
 
 		serdes1: serdes@1ea0000 {
-				reg = <0x0 0x1ea0000 0 0x00002000>;
 				compatible = "fsl,serdes-10g";
+				reg = <0x0 0x1ea0000 0 0x00002000>;
+				little-endian;
 		};
 
 		tmu: tmu@1f80000 {
