@@ -77,9 +77,20 @@ static void __iomem *mobiveil_pcie_map_bus(struct pci_bus *bus,
 	return pcie->rp.config_axi_slave_base + where;
 }
 
+static int mobiveil_pcie_config_read(struct pci_bus *bus, unsigned int devfn,
+				     int where, int size, u32 *val)
+{
+	struct mobiveil_pcie *pcie = bus->sysdata;
+	struct root_port *rp = &pcie->rp;
+
+	if (bus->number > rp->root_bus_nr && rp->ops->read_other_conf)
+		return rp->ops->read_other_conf(bus, devfn, where, size, val);
+
+	return pci_generic_config_read(bus, devfn, where, size, val);
+}
 static struct pci_ops mobiveil_pcie_ops = {
 	.map_bus = mobiveil_pcie_map_bus,
-	.read = pci_generic_config_read,
+	.read = mobiveil_pcie_config_read,
 	.write = pci_generic_config_write,
 };
 
@@ -299,6 +310,10 @@ int mobiveil_host_init(struct mobiveil_pcie *pcie, bool reinit)
 	value &= 0xff;
 	value |= (PCI_CLASS_BRIDGE_PCI << 16);
 	csr_writel(pcie, value, PAB_INTP_AXI_PIO_CLASS);
+
+	/* Platform specific host init */
+	if (pcie->ops->host_init)
+		return pcie->ops->host_init(pcie);
 
 	return 0;
 }
