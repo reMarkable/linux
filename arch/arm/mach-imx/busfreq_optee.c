@@ -120,7 +120,7 @@ int update_freq_optee(int ddr_rate)
 	uint32_t all_cpus    = 0;
 #endif
 
-	pr_debug("\nBusfreq OPTEE set from %d to %d start...\n",
+	pr_info("\nBusfreq OPTEE set from %d to %d start...\n",
 			curr_ddr_rate, ddr_rate);
 
 	if (ddr_rate == curr_ddr_rate)
@@ -185,7 +185,8 @@ int update_freq_optee(int ddr_rate)
 
 	local_irq_enable();
 
-	pr_debug("Busfreq OPTEE set to %d done! cpu=%d\n", ddr_rate, me);
+	pr_info("Busfreq OPTEE set to %d done! cpu=%d\n",
+			ddr_rate, me);
 
 	return 0;
 }
