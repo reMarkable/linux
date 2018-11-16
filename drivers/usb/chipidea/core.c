@@ -1039,6 +1039,7 @@ static void ci_power_lost_work(struct work_struct *work)
 	struct ci_hdrc *ci = container_of(work, struct ci_hdrc,
 						power_lost_work);
 
+	disable_irq_nosync(ci->irq);
 	pm_runtime_get_sync(ci->dev);
 	if (!ci_otg_is_fsm_mode(ci))
 		ci_start_new_role(ci);
@@ -1256,11 +1257,19 @@ static int ci_hdrc_probe(struct platform_device *pdev)
 	device_set_wakeup_capable(&pdev->dev, true);
 	dbg_create_files(ci);
 	/* Init workqueue for controller power lost handling */
+	ci->power_lost_wq = create_freezable_workqueue("ci_power_lost");
+	if (!ci->power_lost_wq) {
+		dev_err(ci->dev, "can't create power_lost workqueue\n");
+		goto remove_debug;
+	}
+
 	INIT_WORK(&ci->power_lost_work, ci_power_lost_work);
 	mutex_init(&ci->mutex);
 
 	return 0;
 
+remove_debug:
+	dbg_remove_files(ci);
 stop:
 	if (ci->role_switch)
 		usb_role_switch_unregister(ci->role_switch);
@@ -1292,6 +1301,8 @@ static int ci_hdrc_remove(struct platform_device *pdev)
 		pm_runtime_put_noidle(&pdev->dev);
 	}
 
+	flush_workqueue(ci->power_lost_wq);
+	destroy_workqueue(ci->power_lost_wq);
 	dbg_remove_files(ci);
 	ci_role_destroy(ci);
 	ci_hdrc_enter_lpm(ci, true);
@@ -1378,6 +1389,7 @@ static int ci_suspend(struct device *dev)
 {
 	struct ci_hdrc *ci = dev_get_drvdata(dev);
 
+	flush_workqueue(ci->power_lost_wq);
 	if (ci->wq)
 		flush_workqueue(ci->wq);
 	/*
@@ -1443,10 +1455,8 @@ static int ci_resume(struct device *dev)
 	if (ci->role != CI_ROLE_END && ci_role(ci)->resume)
 		ci_role(ci)->resume(ci, power_lost);
 
-	if (power_lost) {
-		disable_irq_nosync(ci->irq);
-		schedule_work(&ci->power_lost_work);
-	}
+	if (power_lost)
+		queue_work(ci->power_lost_wq, &ci->power_lost_work);
 
 	if (ci->supports_runtime_pm) {
 		pm_runtime_disable(dev);
