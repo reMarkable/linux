@@ -59,14 +59,9 @@
 		#size-cells = <0>;
 		reg = <0x0>;	/* GEM_ID */
 		fsl,gemac-bus-id = <0x0>;	/* BUS_ID */
-		fsl,gemac-phy-id = <0x2>;	/* PHY_ID */
 		fsl,mdio-mux-val = <0x0>;
 		phy-mode = "sgmii";
-		fsl,pfe-phy-if-flags = <0x0>;
-
-		mdio@0 {
-			reg = <0x1>; /* enabled/disabled */
-		};
+		phy-handle = <&sgmii_phy>;
 	};
 
 	ethernet@1 {
@@ -75,13 +70,20 @@
 		#size-cells = <0>;
 		reg = <0x1>;	/* GEM_ID */
 		fsl,gemac-bus-id = < 0x1 >;	/* BUS_ID */
-		fsl,gemac-phy-id = < 0x1 >;	/* PHY_ID */
 		fsl,mdio-mux-val = <0x0>;
 		phy-mode = "rgmii-txid";
-		fsl,pfe-phy-if-flags = <0x0>;
+		phy-handle = <&rgmii_phy>;
+	};
+	mdio@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
 
-		mdio@0 {
-			reg = <0x0>; /* enabled/disabled */
+		sgmii_phy: ethernet-phy@2 {
+			reg = <0x2>;
+		};
+
+		rgmii_phy: ethernet-phy@1 {
+			reg = <0x1>;
 		};
 	};
 };

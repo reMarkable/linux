@@ -58,14 +58,9 @@
 		#size-cells = <0>;
 		reg = <0x0>;	/* GEM_ID */
 		fsl,gemac-bus-id = <0x0>;	/* BUS_ID */
-		fsl,gemac-phy-id = <0x1>;	/* PHY_ID */
 		fsl,mdio-mux-val = <0x0>;
 		phy-mode = "sgmii-2500";
-		fsl,pfe-phy-if-flags = <0x0>;
-
-		mdio@0 {
-			reg = <0x1>; /* enabled/disabled */
-		};
+		phy-handle = <&sgmii_phy1>;
 	};
 
 	ethernet@1 {
@@ -74,13 +69,23 @@
 		#size-cells = <0>;
 		reg = <0x1>;	/* GEM_ID */
 		fsl,gemac-bus-id = < 0x0>;	/* BUS_ID */
-		fsl,gemac-phy-id = < 0x2>;	/* PHY_ID */
 		fsl,mdio-mux-val = <0x0>;
 		phy-mode = "sgmii-2500";
-		fsl,pfe-phy-if-flags = <0x0>;
+		phy-handle = <&sgmii_phy2>;
+	};
 
-		mdio@0 {
-			reg = <0x0>; /* enabled/disabled */
+	mdio@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		sgmii_phy1: ethernet-phy@1 {
+			compatible = "ethernet-phy-ieee802.3-c45";
+			reg = <0x1>;
+		};
+
+		sgmii_phy2: ethernet-phy@2 {
+			compatible = "ethernet-phy-ieee802.3-c45";
+			reg = <0x2>;
 		};
 	};
 };
