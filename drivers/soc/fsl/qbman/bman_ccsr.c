@@ -262,7 +262,7 @@ static int fsl_bman_probe(struct platform_device *pdev)
 	/* Create an 1-to-1 iommu mapping for FBPR area */
 	domain = iommu_get_domain_for_dev(dev);
 	if (domain) {
-		ret = iommu_map(domain, fbpr_a, fbpr_a, fbpr_sz,
+		ret = iommu_map(domain, fbpr_a, fbpr_a, PAGE_ALIGN(fbpr_sz),
 				IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE);
 		if (ret)
 			dev_warn(dev, "failed to iommu_map() %d\n", ret);

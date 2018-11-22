@@ -839,11 +839,11 @@ static int fsl_qman_probe(struct platform_device *pdev)
 	/* Create an 1-to-1 iommu mapping for fqd and pfdr areas */
 	domain = iommu_get_domain_for_dev(dev);
 	if (domain) {
-		ret = iommu_map(domain, fqd_a, fqd_a, fqd_sz,
+		ret = iommu_map(domain, fqd_a, fqd_a, PAGE_ALIGN(fqd_sz),
 				IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE);
 		if (ret)
 			dev_warn(dev, "iommu_map(fqd) failed %d\n", ret);
-		ret = iommu_map(domain, pfdr_a, pfdr_a, pfdr_sz,
+		ret = iommu_map(domain, pfdr_a, pfdr_a, PAGE_ALIGN(pfdr_sz),
 				IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE);
 		if (ret)
 			dev_warn(dev, "iommu_map(pfdr) failed %d\n", ret);

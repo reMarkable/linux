@@ -305,7 +305,7 @@ static int qman_portal_probe(struct platform_device *pdev)
 		 */
 		err = iommu_map(domain,
 				addr_phys[0]->start, addr_phys[0]->start,
-				resource_size(addr_phys[0]),
+				PAGE_ALIGN(resource_size(addr_phys[0])),
 				IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE);
 		if (err)
 			dev_warn(dev, "failed to iommu_map() %d\n", err);
