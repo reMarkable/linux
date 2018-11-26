@@ -219,6 +219,9 @@
 #define ADV7511_REG_CEC_SOFT_RESET	0x50
 
 #define ADV7533_REG_CEC_OFFSET		0x70
+#define FORMAT_RATIO(x, y) (((x) * 100) / (y))
+#define RATIO_16_9 FORMAT_RATIO(16, 9)
+#define RATIO_4_3  FORMAT_RATIO(4, 3)
 
 enum adv7511_input_clock {
 	ADV7511_INPUT_CLOCK_1X,
@@ -402,7 +405,6 @@ static inline int adv7511_cec_init(struct device *dev, struct adv7511 *adv7511)
 #ifdef CONFIG_DRM_I2C_ADV7533
 void adv7533_dsi_power_on(struct adv7511 *adv);
 void adv7533_dsi_power_off(struct adv7511 *adv);
-void adv7533_mode_set(struct adv7511 *adv, const struct drm_display_mode *mode);
 int adv7533_patch_registers(struct adv7511 *adv);
 int adv7533_patch_cec_registers(struct adv7511 *adv);
 int adv7533_attach_dsi(struct adv7511 *adv);
