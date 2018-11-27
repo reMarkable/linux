@@ -642,6 +642,26 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 	}
 #endif /* CONFIG_FSL_DPAA2_MAC_NETDEVS */
 
+	/* get the interface mode from the dpmac of node or from the MC attributes */
+	if_mode = of_get_phy_mode(dpmac_node);
+	if (if_mode >= 0) {
+		dev_dbg(dev, "\tusing if mode %s for eth_if %d\n",
+			phy_modes(if_mode), priv->attr.eth_if);
+		goto link_type;
+	}
+
+	if (priv->attr.eth_if < ARRAY_SIZE(dpaa2_mac_iface_mode)) {
+		if_mode = dpaa2_mac_iface_mode[priv->attr.eth_if];
+		dev_dbg(dev, "\tusing if mode %s for eth_if %d\n",
+			phy_modes(if_mode), priv->attr.eth_if);
+	} else {
+		dev_err(dev, "Unexpected interface mode %d\n",
+			priv->attr.eth_if);
+		err = -EINVAL;
+		goto err_no_if_mode;
+	}
+
+link_type:
 	/* probe the PHY as fixed-link if the DPMAC attribute indicates so */
 	if (priv->attr.link_type == DPMAC_LINK_TYPE_FIXED)
 		goto probe_fixed_link;
@@ -652,24 +672,6 @@ static int dpaa2_mac_probe(struct fsl_mc_device *mc_dev)
 		goto probe_fixed_link;
 	}
 
-	if_mode = of_get_phy_mode(dpmac_node);
-	if (if_mode >= 0) {
-		dev_dbg(dev, "\tusing if mode %s for eth_if %d\n",
-			phy_modes(if_mode), priv->attr.eth_if);
-		goto phy_connect;
-	}
-
-	if (priv->attr.eth_if < ARRAY_SIZE(dpaa2_mac_iface_mode)) {
-		if_mode = dpaa2_mac_iface_mode[priv->attr.eth_if];
-		dev_dbg(dev, "\tusing if mode %s for eth_if %d\n",
-			phy_modes(if_mode), priv->attr.eth_if);
-	} else {
-		dev_warn(dev, "Unexpected interface mode %d, will probe as fixed link\n",
-			 priv->attr.eth_if);
-		goto probe_fixed_link;
-	}
-
-phy_connect:
 	/* try to connect to the PHY */
 	netdev->phydev = of_phy_connect(netdev, phy_node,
 					&dpaa2_mac_link_changed, 0, if_mode);
@@ -702,6 +704,14 @@ probe_fixed_link:
 			err = -EFAULT;
 			goto err_no_phy;
 		}
+
+		err = phy_connect_direct(netdev, netdev->phydev,
+					 &dpaa2_mac_link_changed, if_mode);
+		if (err) {
+			dev_err(dev, "error trying to connect to PHY\n");
+			goto err_no_phy;
+		}
+
 		dev_info(dev, "Registered fixed PHY.\n");
 	}
 
@@ -709,6 +719,7 @@ probe_fixed_link:
 
 	return 0;
 
+err_no_if_mode:
 err_defer:
 err_no_phy:
 #ifdef CONFIG_FSL_DPAA2_MAC_NETDEVS
