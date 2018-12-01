@@ -581,12 +581,6 @@ static void sec_mipi_dsim_config_cmd_lpm(struct sec_mipi_dsim *dsim,
 	else
 		escmode &= ~ESCMODE_CMDLPDT;
 
-	/* force BTA at the end of packet transfer
-	 * to receive the acknowledgment from dsi
-	 * peripheral for this transfer
-	 */
-	escmode |= ESCMODE_FORCEBTA;
-
 	dsim_write(dsim, escmode, DSIM_ESCMODE);
 }
 
