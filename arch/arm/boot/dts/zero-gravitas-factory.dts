@@ -119,11 +119,6 @@
 	};
 };
 
-&cpu0 {
-	arm-supply = <&sw1a_reg>;
-	soc-supply = <&sw1c_reg>;
-};
-
 &epdc {
         pinctrl-names = "default";
         pinctrl-0 = <&pinctrl_epdc_0>;
@@ -135,6 +130,21 @@
 
 &gpc {
 	 fsl,ldo-bypass = <1>;
+};
+
+&reg_arm {
+        vin-supply = <&sw1a_reg>;
+        regulator-allow-bypass;
+};
+
+&reg_soc {
+        vin-supply = <&sw1c_reg>;
+        regulator-allow-bypass;
+};
+
+&reg_pu {
+        vin-supply = <&sw1c_reg>;
+        regulator-allow-bypass;
 };
 
 &i2c1 {
