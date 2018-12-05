@@ -340,8 +340,6 @@ static void dpa_ts_tx_enable(struct net_device *dev)
 	struct dpa_priv_s *priv = netdev_priv(dev);
 	struct mac_device *mac_dev = priv->mac_dev;
 
-	if (mac_dev->fm_rtc_enable)
-		mac_dev->fm_rtc_enable(get_fm_handle(dev));
 	if (mac_dev->ptp_enable)
 		mac_dev->ptp_enable(mac_dev->get_mac_handle(mac_dev));
 
@@ -373,8 +371,6 @@ static void dpa_ts_rx_enable(struct net_device *dev)
 	struct dpa_priv_s *priv = netdev_priv(dev);
 	struct mac_device *mac_dev = priv->mac_dev;
 
-	if (mac_dev->fm_rtc_enable)
-		mac_dev->fm_rtc_enable(get_fm_handle(dev));
 	if (mac_dev->ptp_enable)
 		mac_dev->ptp_enable(mac_dev->get_mac_handle(mac_dev));
 
