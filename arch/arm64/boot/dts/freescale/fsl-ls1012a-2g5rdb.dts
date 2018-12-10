@@ -52,7 +52,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	ethernet@0 {
+	pfe_mac0: ethernet@0 {
 		compatible = "fsl,pfe-gemac-port";
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -62,7 +62,7 @@
 		phy-handle = <&sgmii_phy1>;
 	};
 
-	ethernet@1 {
+	pfe_mac1: ethernet@1 {
 		compatible = "fsl,pfe-gemac-port";
 		#address-cells = <1>;
 		#size-cells = <0>;

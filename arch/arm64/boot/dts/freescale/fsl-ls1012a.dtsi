@@ -529,11 +529,6 @@
 		clock-names = "pfe";
 
 		status = "okay";
-		pfe_mac0: ethernet@0 {
-		};
-
-		pfe_mac1: ethernet@1 {
-		};
 	};
 
 	firmware {
