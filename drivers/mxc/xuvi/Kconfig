@@ -1,0 +1,14 @@
+#
+# DVB device configuration
+#
+
+menu "XUVI/PPM HW TS filter and demux"
+	depends on ARCH_MXC
+
+config MXC_IMX_DMX_HW
+	tristate "Enable HW Implementation based on XUVI/PPM"
+	default y
+	help
+	  Hardware demux driver implementation using PPM
+
+endmenu
