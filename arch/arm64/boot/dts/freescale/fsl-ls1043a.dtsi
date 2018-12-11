@@ -695,7 +695,7 @@
 				 <&clockgen 4 0>;
 		};
 
-		usb_aux_bus: usb_aux_bus {
+		aux_bus: aux_bus {
 			#address-cells = <2>;
 			#size-cells = <2>;
 			compatible = "simple-bus";
@@ -740,15 +740,15 @@
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 				configure-gfladj;
 			};
-		};
 
-		sata: sata@3200000 {
-			compatible = "fsl,ls1043a-ahci";
-			reg = <0x0 0x3200000 0x0 0x10000>,
-				<0x0 0x20140520 0x0 0x4>;
-			reg-names = "ahci", "sata-ecc";
-			interrupts = <0 69 0x4>;
-			clocks = <&clockgen 4 0>;
+			sata: sata@3200000 {
+				compatible = "fsl,ls1043a-ahci";
+				reg = <0x0 0x3200000 0x0 0x10000>,
+					<0x0 0x20140520 0x0 0x4>;
+				reg-names = "ahci", "sata-ecc";
+				interrupts = <0 69 0x4>;
+				clocks = <&clockgen 4 0>;
+			};
 		};
 
 		msi1: msi-controller1@1571000 {
