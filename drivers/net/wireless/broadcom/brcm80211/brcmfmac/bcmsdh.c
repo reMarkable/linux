@@ -1139,7 +1139,7 @@ static int brcmf_ops_sdio_suspend(struct device *dev)
 	if (!retry && config->pm_state == BRCMF_CFG80211_PM_STATE_SUSPENDING)
 		brcmf_err("timed out wait for cfg80211 suspended\n");
 
-	if (func->num != SDIO_FUNC_1)
+	if (func->num != 1)
 		return 0;
 
 	sdiodev = bus_if->bus_priv.sdio;
