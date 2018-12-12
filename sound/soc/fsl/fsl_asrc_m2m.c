@@ -183,8 +183,11 @@ static int fsl_asrc_dmaconfig(struct fsl_asrc_pair *pair, struct dma_chan *chan,
 		slave_config.direction = DMA_DEV_TO_MEM;
 		slave_config.src_addr = dma_addr;
 		slave_config.src_addr_width = buswidth;
-		slave_config.src_maxburst =
-			m2m->watermark[OUT] * pair->channels;
+		if (asrc_priv->dma_type == DMA_SDMA)
+			slave_config.src_maxburst =
+				m2m->watermark[OUT] * pair->channels;
+		else
+			slave_config.src_maxburst = 1;
 	}
 
 	ret = dmaengine_slave_config(chan, &slave_config);
