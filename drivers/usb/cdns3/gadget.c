@@ -2408,9 +2408,9 @@ void cdns3_gadget_remove(struct cdns3 *cdns)
 	dma_free_coherent(usb_ss->sysdev, 8, usb_ss->setup, usb_ss->setup_dma);
 	dma_free_coherent(usb_ss->sysdev, 20, usb_ss->trb_ep0,
 			usb_ss->trb_ep0_dma);
+	kfree(usb_ss->zlp_buf);
 	device_unregister(cdns->gadget_dev);
 	cdns->gadget_dev = NULL;
-	kfree(usb_ss->zlp_buf);
 }
 
 static void __cdns3_gadget_start(struct usb_ss_dev *usb_ss)
