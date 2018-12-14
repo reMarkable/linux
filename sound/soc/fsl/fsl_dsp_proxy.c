@@ -192,6 +192,7 @@ int send_dpu_ext_msg_addr(struct xf_proxy *proxy)
 	dpu_ext_msg->scratch_size =  dsp_priv->scratch_buf_size;
 	dpu_ext_msg->dsp_config_phys =  dsp_priv->dsp_config_phys;
 	dpu_ext_msg->dsp_config_size =  dsp_priv->dsp_config_size;
+	dpu_ext_msg->dsp_board_type = dsp_priv->dsp_board_type;
 
 	icm_intr_extended_send(proxy, msghdr.allbits, &ext_msg);
 

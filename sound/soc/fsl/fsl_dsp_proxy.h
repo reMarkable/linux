@@ -350,6 +350,7 @@ struct dsp_mem_msg {
 	u32 scratch_size;
 	u32 dsp_config_phys;
 	u32 dsp_config_size;
+	u32 dsp_board_type;
 };
 
 static inline void xf_lock_init(spinlock_t *lock)
