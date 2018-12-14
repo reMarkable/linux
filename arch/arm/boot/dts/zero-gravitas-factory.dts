@@ -42,7 +42,7 @@
 			regulator-name = "usb_otg1_vbus";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
-			gpio = <&gpio4 15 0>;
+			/*gpio = <&gpio4 15 0>;*/
 			enable-active-high;
 			vin-supply = <&swbst_reg>;
 		};
