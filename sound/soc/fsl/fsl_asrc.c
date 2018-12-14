@@ -627,7 +627,9 @@ static int fsl_asrc_dai_hw_params(struct snd_pcm_substream *substream,
 	pair->pair_streams |= BIT(substream->stream);
 	pair->config = &config;
 
-	if (width == 16)
+	if (width == 8)
+		width = ASRC_WIDTH_8_BIT;
+	else if (width == 16)
 		width = ASRC_WIDTH_16_BIT;
 	else
 		width = ASRC_WIDTH_24_BIT;
@@ -741,8 +743,12 @@ static int fsl_asrc_dai_probe(struct snd_soc_dai *dai)
 	return 0;
 }
 
-#define FSL_ASRC_FORMATS	(SNDRV_PCM_FMTBIT_S24_LE | \
+#define FSL_ASRC_FORMATS_RX	(SNDRV_PCM_FMTBIT_S24_LE | \
 				 SNDRV_PCM_FMTBIT_S16_LE | \
+				 SNDRV_PCM_FMTBIT_S24_3LE)
+#define FSL_ASRC_FORMATS_TX	(SNDRV_PCM_FMTBIT_S24_LE | \
+				 SNDRV_PCM_FMTBIT_S16_LE | \
+				 SNDRV_PCM_FMTBIT_S8 | \
 				 SNDRV_PCM_FMTBIT_S24_3LE)
 
 static struct snd_soc_dai_driver fsl_asrc_dai = {
@@ -754,7 +760,7 @@ static struct snd_soc_dai_driver fsl_asrc_dai = {
 		.rate_min = 5512,
 		.rate_max = 192000,
 		.rates = SNDRV_PCM_RATE_KNOT,
-		.formats = FSL_ASRC_FORMATS,
+		.formats = FSL_ASRC_FORMATS_TX,
 	},
 	.capture = {
 		.stream_name = "ASRC-Capture",
@@ -763,7 +769,7 @@ static struct snd_soc_dai_driver fsl_asrc_dai = {
 		.rate_min = 5512,
 		.rate_max = 192000,
 		.rates = SNDRV_PCM_RATE_KNOT,
-		.formats = FSL_ASRC_FORMATS,
+		.formats = FSL_ASRC_FORMATS_RX,
 	},
 	.ops = &fsl_asrc_dai_ops,
 };
