@@ -188,11 +188,9 @@
 };
 
 &emdio2 {
-	inphi_phy: emdio2_phy@0 {
-		compatible = "ethernet-phy-ieee802.3-c45";
+	inphi_phy: ethernet-phy@0 {
+		compatible = "ethernet-phy-id0210.7440";
 		reg = <0x0>;
-		interrupts = <0 9 IRQ_TYPE_EDGE_FALLING>,
-			<0 10 IRQ_TYPE_EDGE_FALLING>;
 	};
 };
 
