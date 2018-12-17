@@ -251,7 +251,7 @@ static irqreturn_t fm_irq(int irq, void *_dev)
 #ifdef CONFIG_PM_SLEEP
     if (fman_get_normal_pending(p_Fm->p_FmFpmRegs) & INTR_EN_WAKEUP)
     {
-        pm_wakeup_event(p_LnxWrpFmDev->dev, 200);        
+        pm_wakeup_event(p_LnxWrpFmDev->dev, 200);
     }
 #endif
     FM_EventIsr(p_LnxWrpFmDev->h_Dev);
@@ -1107,7 +1107,7 @@ static t_Error InitFmDev(t_LnxWrpFmDev  *p_LnxWrpFmDev)
         p_LnxWrpFmDev->fmDevSettings.param.fmMacClkRatio =
             !!(get_rcwsr(4) & 0x1); /* RCW[FM_MAC_RAT1] */
 
-    {   
+    {
     /* T4 Devices ClkRatio is always 1 regardless of RCW[FM_MAC_RAT1] */
         uint32_t svr;
         svr = mfspr(SPRN_SVR);
@@ -1320,7 +1320,7 @@ static const struct of_device_id fm_match[] = {
 MODULE_DEVICE_TABLE(of, fm_match);
 #endif /* !MODULE */
 
-#ifdef CONFIG_PM
+#if defined CONFIG_PM && (defined CONFIG_PPC || defined CONFIG_PPC64)
 
 #define SCFG_FMCLKDPSLPCR_ADDR 0xFFE0FC00C
 #define SCFG_FMCLKDPSLPCR_DS_VAL 0x48402000
@@ -1373,11 +1373,11 @@ static const struct dev_pm_ops fm_pm_ops = {
 
 #define FM_PM_OPS (&fm_pm_ops)
 
-#else /* CONFIG_PM */
+#else /* CONFIG_PM && (CONFIG_PPC || CONFIG_PPC64) */
 
 #define FM_PM_OPS NULL
 
-#endif /* CONFIG_PM */
+#endif /* CONFIG_PM && (CONFIG_PPC || CONFIG_PPC64) */
 
 static struct platform_driver fm_driver = {
     .driver = {
