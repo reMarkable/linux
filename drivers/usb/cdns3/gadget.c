@@ -2420,10 +2420,6 @@ static void __cdns3_gadget_start(struct usb_ss_dev *usb_ss)
 			);
 
 	gadget_writel(usb_ss, &usb_ss->regs->usb_conf, USB_CONF__DEVEN__MASK);
-
-	gadget_writel(usb_ss, &usb_ss->regs->dbg_link1,
-		DBG_LINK1__LFPS_MIN_GEN_U1_EXIT_SET__MASK |
-		DBG_LINK1__LFPS_MIN_GEN_U1_EXIT__WRITE(0x3C));
 }
 
 static int cdns3_gadget_start(struct cdns3 *cdns)
