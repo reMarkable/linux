@@ -304,7 +304,8 @@ static int fsl_asrc_config_pair(struct fsl_asrc_pair *pair, bool p2p_in, bool p2
 	struct fsl_asrc *asrc_priv = pair->asrc_priv;
 	enum asrc_pair_index index = pair->index;
 	u32 inrate, outrate, indiv, outdiv;
-	u32 clk_index[2], div[2];
+	u32 clk_index[2], div[2], rem[2];
+	u64 clk_rate;
 	int in, out, channels;
 	int pre_proc, post_proc;
 	struct clk *clk;
@@ -363,8 +364,9 @@ static int fsl_asrc_config_pair(struct fsl_asrc_pair *pair, bool p2p_in, bool p2
 
 	/* We only have output clock for ideal ratio mode */
 	clk = asrc_priv->asrck_clk[clk_index[ideal ? OUT : IN]];
-
-	div[IN] = clk_get_rate(clk) / inrate;
+	clk_rate = clk_get_rate(clk);
+	rem[IN] = do_div(clk_rate, inrate);
+	div[IN] = (u32)clk_rate;
 	if (div[IN] == 0) {
 		pair_err("failed to support input sample rate %dHz by asrck_%x\n",
 				inrate, clk_index[ideal ? OUT : IN]);
@@ -379,11 +381,14 @@ static int fsl_asrc_config_pair(struct fsl_asrc_pair *pair, bool p2p_in, bool p2
 	 * When M2M mode, output rate should also need to align with the out
 	 * samplerate, but M2M must use less time to achieve good performance.
 	 */
-	if (p2p_out || p2p_in)
-		div[OUT] = clk_get_rate(clk) / outrate;
-	else
-		div[OUT] = clk_get_rate(clk) / IDEAL_RATIO_RATE;
-
+	clk_rate = clk_get_rate(clk);
+	if (p2p_out || p2p_in || (!ideal)) {
+		rem[OUT] = do_div(clk_rate, outrate);
+		div[OUT] = clk_rate;
+	} else {
+		rem[OUT] = do_div(clk_rate, IDEAL_RATIO_RATE);
+		div[OUT] = clk_rate;
+	}
 
 	if (div[OUT] == 0) {
 		pair_err("failed to support output sample rate %dHz by asrck_%x\n",
@@ -391,7 +396,13 @@ static int fsl_asrc_config_pair(struct fsl_asrc_pair *pair, bool p2p_in, bool p2
 		return -EINVAL;
 	}
 
-	if (div[IN] > 1024 && div[OUT] > 1024) {
+	if (!ideal && (div[IN] > 1024 || div[OUT] > 1024 ||
+				rem[IN] != 0 || rem[OUT] != 0)) {
+		pair_err("The divider can't be used for non ideal mode\n");
+		return -EINVAL;
+	}
+
+	if (ideal && div[IN] > 1024 && div[OUT] > 1024) {
 		pair_warn("both divider (%d, %d) are larger than threshold\n",
 							div[IN], div[OUT]);
 	}
