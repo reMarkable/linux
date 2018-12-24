@@ -1806,6 +1806,7 @@ static void usb_ss_gadget_ep_free_request(struct usb_ep *ep,
 		struct usb_request *request)
 {
 	kfree(request);
+	request = NULL;
 }
 
 /**
@@ -1927,6 +1928,9 @@ static int usb_ss_gadget_ep_dequeue(struct usb_ep *ep,
 	}
 
 	spin_unlock_irqrestore(&usb_ss->lock, flags);
+	if (&usb_ss_ep->endpoint == usb_ss->gadget.ep0)
+		flush_work(&usb_ss->pending_status_wq);
+
 	return ret;
 }
 
@@ -2127,6 +2131,7 @@ static int usb_ss_gadget_udc_stop(struct usb_gadget *gadget)
 	int ret = 0;
 
 	usb_ss->gadget_driver = NULL;
+	usb_ss->status_completion_no_call = 0;
 	list_for_each_entry_safe(usb_ss_ep, temp_ss_ep,
 		&usb_ss->ep_match_list, ep_match_pending_list) {
 		list_del(&usb_ss_ep->ep_match_pending_list);
