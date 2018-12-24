@@ -3575,7 +3575,7 @@ static void brcmf_report_wowl_wakeind(struct wiphy *wiphy, struct brcmf_if *ifp)
 	err = brcmf_fil_iovar_data_get(ifp, "wowl_wakeind", &wake_ind_le,
 				       sizeof(wake_ind_le));
 	if (err) {
-		bphy_err(drvr, "Get wowl_wakeind failed, err = %d\n", err);
+		brcmf_dbg(INFO, "cannet get wowl_wakeind, err = %d\n", err);
 		return;
 	}
 
