@@ -152,6 +152,8 @@ static void imx_rpmsg_timer_callback(unsigned long data)
 		mod_timer(&i2s_info->stream_timer[substream->stream],
 			     jiffies + msecs_to_jiffies(time_msec));
 	}
+
+	snd_pcm_period_elapsed(substream);
 }
 
 static int imx_rpmsg_pcm_open(struct snd_pcm_substream *substream)
@@ -257,7 +259,6 @@ static int imx_rpmsg_pcm_prepare(struct snd_pcm_substream *substream)
 	 */
 	if ((runtime->access == SNDRV_PCM_ACCESS_RW_INTERLEAVED ||
 		runtime->access == SNDRV_PCM_ACCESS_RW_NONINTERLEAVED) &&
-		(substream->f_flags & O_NONBLOCK) &&
 			rpmsg_i2s->version == 2 &&
 			rpmsg_i2s->enable_lpa)
 		rpmsg_i2s->force_lpa = 1;
