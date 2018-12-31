@@ -25,6 +25,8 @@
 
 #include "imx-hdmi.h"
 
+#define DRV_NAME "imx_hdmi_dma"
+
 #define HDMI_DMA_BURST_UNSPECIFIED_LEGNTH	0
 #define HDMI_DMA_BURST_INCR4			1
 #define HDMI_DMA_BURST_INCR8			2
@@ -422,9 +424,11 @@ static void hdmi_dma_mmap_copy(struct snd_pcm_substream *substream,
 				int offset, int count)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct hdmi_dma_priv *priv = runtime->private_data;
-	struct device *dev = rtd->platform->dev;
+	struct device *dev = component->dev;
 	u32 framecount, *dst;
 	u16 *src16;
 
@@ -608,9 +612,11 @@ static void hdmi_dma_init_iec_header(void)
 static int hdmi_dma_update_iec_header(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct hdmi_dma_priv *priv = runtime->private_data;
-	struct device *dev = rtd->platform->dev;
+	struct device *dev = component->dev;
 
 	iec_header.B.source = priv->channels;
 
@@ -731,8 +737,10 @@ static int hdmi_sdma_config(struct snd_pcm_substream *substream,
 			struct hdmi_dma_priv *priv)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
 	struct device *dai_dev = &priv->pdev->dev;
-	struct device *dev = rtd->platform->dev;
+	struct device *dev = component->dev;
 	struct dma_slave_config slave_config;
 	int ret;
 
@@ -774,7 +782,9 @@ static int hdmi_dma_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct hdmi_dma_priv *priv = runtime->private_data;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct device *dev = rtd->platform->dev;
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
+	struct device *dev = component->dev;
 	int ret;
 
 	priv->buffer_bytes = params_buffer_bytes(params);
@@ -860,7 +870,9 @@ static int hdmi_dma_prepare_and_submit(struct snd_pcm_substream *substream,
 					struct hdmi_dma_priv *priv)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct device *dev = rtd->platform->dev;
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
+	struct device *dev = component->dev;
 
 	priv->desc = dmaengine_prep_dma_cyclic(priv->dma_channel, 0, 0, 0,
 						DMA_TRANS_NONE, 0);
@@ -880,8 +892,10 @@ static int hdmi_dma_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
 	struct hdmi_dma_priv *priv = runtime->private_data;
-	struct device *dev = rtd->platform->dev;
+	struct device *dev = component->dev;
 	int ret;
 
 	switch (cmd) {
@@ -981,7 +995,9 @@ static int hdmi_dma_open(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct device *dev = rtd->platform->dev;
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
+	struct device *dev = component->dev;
 	struct hdmi_dma_priv *priv = dev_get_drvdata(dev);
 	int ret;
 
@@ -1031,7 +1047,9 @@ static struct snd_pcm_ops imx_hdmi_dma_pcm_ops = {
 
 static int imx_hdmi_dma_pcm_new(struct snd_soc_pcm_runtime *rtd)
 {
-	struct hdmi_dma_priv *priv = dev_get_drvdata(rtd->platform->dev);
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
+	struct hdmi_dma_priv *priv = dev_get_drvdata(component->dev);
 	struct snd_card *card = rtd->card->snd_card;
 	struct snd_pcm_substream *substream;
 	struct snd_pcm *pcm = rtd->pcm;
@@ -1070,7 +1088,9 @@ static void imx_hdmi_dma_pcm_free(struct snd_pcm *pcm)
 	int stream = SNDRV_PCM_STREAM_PLAYBACK;
 	struct snd_pcm_substream *substream = pcm->streams[stream].substream;
 	struct snd_soc_pcm_runtime *rtd = pcm->private_data;
-	struct hdmi_dma_priv *priv = dev_get_drvdata(rtd->platform->dev);
+	struct snd_soc_component *component =
+				snd_soc_rtdcom_lookup(rtd, DRV_NAME);
+	struct hdmi_dma_priv *priv = dev_get_drvdata(component->dev);
 
 	if (substream) {
 		snd_dma_free_pages(&substream->dma_buffer);
@@ -1084,7 +1104,8 @@ static void imx_hdmi_dma_pcm_free(struct snd_pcm *pcm)
 	priv->hw_buffer.addr = 0;
 }
 
-static struct snd_soc_platform_driver imx_hdmi_platform = {
+static const struct snd_soc_component_driver imx_hdmi_component = {
+	.name		= DRV_NAME,
 	.ops		= &imx_hdmi_dma_pcm_ops,
 	.pcm_new	= imx_hdmi_dma_pcm_new,
 	.pcm_free	= imx_hdmi_dma_pcm_free,
@@ -1128,7 +1149,8 @@ static int imx_soc_platform_probe(struct platform_device *pdev)
 		break;
 	}
 
-	ret = snd_soc_register_platform(&pdev->dev, &imx_hdmi_platform);
+	ret = devm_snd_soc_register_component(&pdev->dev,
+					      &imx_hdmi_component, NULL, 0);
 	if (ret)
 		goto err_plat;
 
@@ -1147,8 +1169,6 @@ static int imx_soc_platform_remove(struct platform_device *pdev)
 
 	dma_free_coherent(NULL, sizeof(struct hdmi_sdma_script),
 			priv->hdmi_sdma_t, priv->phy_hdmi_sdma_t);
-
-	snd_soc_unregister_platform(&pdev->dev);
 
 	return 0;
 }
