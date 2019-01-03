@@ -57,7 +57,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0x0>;	/* GEM_ID */
-		fsl,gemac-bus-id = <0x0>;	/* BUS_ID */
 		fsl,mdio-mux-val = <0x0>;
 		phy-mode = "sgmii-2500";
 		phy-handle = <&sgmii_phy1>;
@@ -68,7 +67,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0x1>;	/* GEM_ID */
-		fsl,gemac-bus-id = < 0x0>;	/* BUS_ID */
 		fsl,mdio-mux-val = <0x0>;
 		phy-mode = "sgmii-2500";
 		phy-handle = <&sgmii_phy2>;

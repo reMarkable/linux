@@ -121,7 +121,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0x1>;	/* GEM_ID */
-		fsl,gemac-bus-id = <0x1>;	/* BUS_ID */
 		fsl,mdio-mux-val = <0x0>;
 		phy-mode = "sgmii";
 		phy-handle = <&sgmii_phy2>;
