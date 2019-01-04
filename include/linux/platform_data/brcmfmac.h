@@ -178,6 +178,7 @@ struct brcmfmac_platform_data {
 	void	(*power_off)(void);
 	char	*fw_alternative_path;
 	int	device_count;
+	struct device *dev;
 	struct brcmfmac_pd_device devices[0];
 };
 

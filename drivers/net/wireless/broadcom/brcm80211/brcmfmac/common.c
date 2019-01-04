@@ -8,6 +8,7 @@
 #include <linux/netdevice.h>
 #include <linux/module.h>
 #include <linux/firmware.h>
+#include <linux/pinctrl/consumer.h>
 #include <brcmu_wifi.h>
 #include <brcmu_utils.h>
 #include "core.h"
@@ -442,6 +443,7 @@ struct brcmf_mp_device *brcmf_get_module_param(struct device *dev,
 	/* See if there is any device specific platform data configured */
 	found = false;
 	if (brcmfmac_pdata) {
+		pinctrl_pm_select_default_state(brcmfmac_pdata->dev);
 		for (i = 0; i < brcmfmac_pdata->device_count; i++) {
 			device_pd = &brcmfmac_pdata->devices[i];
 			if ((device_pd->bus_type == bus_type) &&
@@ -475,10 +477,30 @@ void brcmf_release_module_param(struct brcmf_mp_device *module_param)
 
 static int __init brcmf_common_pd_probe(struct platform_device *pdev)
 {
+	int err;
+	struct brcmfmac_platform_data pdata = {
+		.power_on = NULL,
+		.power_off = NULL,
+		.fw_alternative_path = NULL,
+		.device_count = 0,
+	};
+
 	brcmf_dbg(INFO, "Enter\n");
 
 	brcmfmac_pdata = dev_get_platdata(&pdev->dev);
+	if (!brcmfmac_pdata) {
+		err = platform_device_add_data(pdev, &pdata,
+					       sizeof(pdata));
+		if (err)
+			brcmf_err("platform data allocation failed\n");
+		brcmfmac_pdata = dev_get_platdata(&pdev->dev);
+		pinctrl_pm_select_idle_state(&pdev->dev);
+	}
 
+	if (!brcmfmac_pdata)
+		return 0;
+
+	brcmfmac_pdata->dev = &pdev->dev;
 	if (brcmfmac_pdata->power_on)
 		brcmfmac_pdata->power_on();
 
@@ -489,7 +511,7 @@ static int brcmf_common_pd_remove(struct platform_device *pdev)
 {
 	brcmf_dbg(INFO, "Enter\n");
 
-	if (brcmfmac_pdata->power_off)
+	if (brcmfmac_pdata && brcmfmac_pdata->power_off)
 		brcmfmac_pdata->power_off();
 
 	return 0;
