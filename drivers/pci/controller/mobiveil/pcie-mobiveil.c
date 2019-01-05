@@ -168,17 +168,11 @@ void program_ib_windows(struct mobiveil_pcie *pcie, int win_num, u64 cpu_addr,
 /*
  * routine to program the outbound windows
  */
-void program_ob_windows(struct mobiveil_pcie *pcie, int win_num, u64 cpu_addr,
-			u64 pci_addr, u32 type, u64 size)
+void __program_ob_windows(struct mobiveil_pcie *pcie, u8 func_no, int win_num,
+			  u64 cpu_addr, u64 pci_addr, u32 type, u64 size)
 {
 	u32 value;
 	u64 size64 = ~(size - 1);
-
-	if (win_num >= pcie->apio_wins) {
-		dev_err(&pcie->pdev->dev,
-			"ERROR: max outbound windows reached !\n");
-		return;
-	}
 
 	/*
 	 * program Enable Bit to 1, Type Bit to (00) base 2, AXI Window Size Bit
@@ -192,6 +186,7 @@ void program_ob_windows(struct mobiveil_pcie *pcie, int win_num, u64 cpu_addr,
 
 	csr_writel(pcie, upper_32_bits(size64), PAB_EXT_AXI_AMAP_SIZE(win_num));
 
+	csr_writel(pcie, func_no, PAB_AXI_AMAP_PCI_HDR_PARAM(win_num));
 	/*
 	 * program AXI window base with appropriate value in
 	 * PAB_AXI_AMAP_AXI_WIN0 register
@@ -205,8 +200,96 @@ void program_ob_windows(struct mobiveil_pcie *pcie, int win_num, u64 cpu_addr,
 		   PAB_AXI_AMAP_PEX_WIN_L(win_num));
 	csr_writel(pcie, upper_32_bits(pci_addr),
 		   PAB_AXI_AMAP_PEX_WIN_H(win_num));
+}
+
+void program_ob_windows(struct mobiveil_pcie *pcie, int win_num, u64 cpu_addr,
+			u64 pci_addr, u32 type, u64 size)
+{
+	if (win_num >= pcie->apio_wins) {
+		dev_err(&pcie->pdev->dev,
+			"ERROR: max outbound windows reached !\n");
+		return;
+	}
+
+	__program_ob_windows(pcie, 0, win_num, cpu_addr,
+			     pci_addr, type, size);
 
 	pcie->ob_wins_configured++;
+}
+
+void program_ob_windows_ep(struct mobiveil_pcie *pcie, u8 func_no, int win_num,
+			   u64 cpu_addr, u64 pci_addr, u32 type, u64 size)
+{
+	if (size & (size - 1))
+		size = 1 << (1 + ilog2(size));
+
+	__program_ob_windows(pcie, func_no, win_num, cpu_addr,
+			     pci_addr, type, size);
+}
+
+void program_ib_windows_ep(struct mobiveil_pcie *pcie, u8 func_no,
+			   int bar, u64 phys)
+{
+	csr_writel(pcie, upper_32_bits(phys),
+		   PAB_EXT_PEX_BAR_AMAP(func_no, bar));
+	csr_writel(pcie, lower_32_bits(phys) | PEX_BAR_AMAP_EN,
+		   PAB_PEX_BAR_AMAP(func_no, bar));
+}
+
+void mobiveil_pcie_disable_ib_win_ep(struct mobiveil_pcie *pcie,
+				     u8 func_no, u8 bar)
+{
+	u32 val;
+
+	val = csr_readl(pcie, PAB_PEX_BAR_AMAP(func_no, bar));
+	val &= ~(1 << 0);
+	csr_writel(pcie, val, PAB_PEX_BAR_AMAP(func_no, bar));
+}
+
+void mobiveil_pcie_disable_ob_win(struct mobiveil_pcie *pcie, int win_num)
+{
+	u32 val;
+
+	val = csr_readl(pcie, PAB_AXI_AMAP_CTRL(win_num));
+	val &= ~(1 << WIN_ENABLE_SHIFT);
+	csr_writel(pcie, val, PAB_AXI_AMAP_CTRL(win_num));
+}
+
+void mobiveil_pcie_enable_bridge_pio(struct mobiveil_pcie *pcie)
+{
+	u32 val;
+
+	val = csr_readl(pcie, PAB_CTRL);
+	val |= 1 << AMBA_PIO_ENABLE_SHIFT;
+	val |= 1 << PEX_PIO_ENABLE_SHIFT;
+	csr_writel(pcie, val, PAB_CTRL);
+}
+
+void mobiveil_pcie_enable_engine_apio(struct mobiveil_pcie *pcie)
+{
+	u32 val;
+
+	val = csr_readl(pcie, PAB_AXI_PIO_CTRL);
+	val |= APIO_EN_MASK;
+	csr_writel(pcie, val, PAB_AXI_PIO_CTRL);
+}
+
+void mobiveil_pcie_enable_engine_ppio(struct mobiveil_pcie *pcie)
+{
+	u32 val;
+
+	val = csr_readl(pcie, PAB_PEX_PIO_CTRL);
+	val |= 1 << PIO_ENABLE_SHIFT;
+	csr_writel(pcie, val, PAB_PEX_PIO_CTRL);
+}
+
+void mobiveil_pcie_enable_msi_ep(struct mobiveil_pcie *pcie)
+{
+	u32 val;
+
+	val =  csr_readl(pcie, PAB_INTP_AMBA_MISC_ENB);
+	val |= PAB_INTP_PAMR;
+	csr_writel(pcie, val, PAB_INTP_AMBA_MISC_ENB);
 }
 
 int mobiveil_bringup_link(struct mobiveil_pcie *pcie)
