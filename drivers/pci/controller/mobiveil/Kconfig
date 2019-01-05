@@ -27,13 +27,24 @@ config PCIE_MOBIVEIL_PLAT
 	  for address translation and it is a PCIe Gen4 IP.
 
 config PCIE_LAYERSCAPE_GEN4
-	bool "Freescale Layerscape PCIe Gen4 controller"
+	bool "Freescale Layerscpe PCIe Gen4 controller in RC mode"
 	depends on PCI
 	depends on OF && (ARM64 || ARCH_LAYERSCAPE)
 	depends on PCI_MSI_IRQ_DOMAIN
 	select PCIE_MOBIVEIL_HOST
 	help
 	  Say Y here if you want PCIe Gen4 controller support on
-	  Layerscape SoCs. The PCIe controller can work in RC or
-	  EP mode according to RCW[HOST_AGT_PEX] setting.
+	  Layerscape SoCs. And the PCIe controller work in RC mode
+	  by setting the RCW[HOST_AGT_PEX] to 0.
+
+config PCIE_LAYERSCAPE_GEN4_EP
+	bool "Freescale Layerscpe PCIe Gen4 controller in EP mode"
+	depends on PCI
+	depends on OF && (ARM64 || ARCH_LAYERSCAPE)
+	depends on PCI_ENDPOINT
+	select PCIE_MOBIVEIL_EP
+	help
+	  Say Y here if you want PCIe Gen4 controller support on
+	  Layerscape SoCs. And the PCIe controller work in EP mode
+	  by setting the RCW[HOST_AGT_PEX] to 1.
 endmenu
