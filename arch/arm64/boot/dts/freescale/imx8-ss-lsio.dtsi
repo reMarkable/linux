@@ -12,7 +12,6 @@ lsio_subsys: bus@5d000000 {
 		 <0x08000000 0x0 0x08000000 0x10000000>;
 
 	lsio_gpio0: gpio@5d080000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d080000 0x10000>;
 		interrupts = <GIC_SPI 136 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -23,7 +22,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_gpio1: gpio@5d090000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d090000 0x10000>;
 		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -34,7 +32,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_gpio2: gpio@5d0a0000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d0a0000 0x10000>;
 		interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -45,7 +42,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_gpio3: gpio@5d0b0000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d0b0000 0x10000>;
 		interrupts = <GIC_SPI 139 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -56,7 +52,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_gpio4: gpio@5d0c0000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d0c0000 0x10000>;
 		interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -67,7 +62,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_gpio5: gpio@5d0d0000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d0d0000 0x10000>;
 		interrupts = <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -78,7 +72,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_gpio6: gpio@5d0e0000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d0e0000 0x10000>;
 		interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -89,7 +82,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_gpio7: gpio@5d0f0000 {
-		compatible = "fsl,imx8qm-gpio", "fsl,imx35-gpio";
 		reg = <0x5d0f0000 0x10000>;
 		interrupts = <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>;
 		gpio-controller;
@@ -114,7 +106,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_mu0: mailbox@5d1b0000 {
-		compatible = "fsl,imx8qm-mu", "fsl,imx6sx-mu";
 		reg = <0x5d1b0000 0x10000>;
 		interrupts = <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>;
 		#mbox-cells = <0>;
@@ -122,14 +113,12 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_mu1: mailbox@5d1c0000 {
-		compatible = "fsl,imx8qm-mu", "fsl,imx6sx-mu";
 		reg = <0x5d1c0000 0x10000>;
 		interrupts = <GIC_SPI 177 IRQ_TYPE_LEVEL_HIGH>;
 		#mbox-cells = <2>;
 	};
 
 	lsio_mu2: mailbox@5d1d0000 {
-		compatible = "fsl,imx8qm-mu", "fsl,imx6sx-mu";
 		reg = <0x5d1d0000 0x10000>;
 		interrupts = <GIC_SPI 178 IRQ_TYPE_LEVEL_HIGH>;
 		#mbox-cells = <2>;
@@ -137,7 +126,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_mu3: mailbox@5d1e0000 {
-		compatible = "fsl,imx8qm-mu", "fsl,imx6sx-mu";
 		reg = <0x5d1e0000 0x10000>;
 		interrupts = <GIC_SPI 179 IRQ_TYPE_LEVEL_HIGH>;
 		#mbox-cells = <2>;
@@ -145,7 +133,6 @@ lsio_subsys: bus@5d000000 {
 	};
 
 	lsio_mu4: mailbox@5d1f0000 {
-		compatible = "fsl,imx8qm-mu", "fsl,imx6sx-mu";
 		reg = <0x5d1f0000 0x10000>;
 		interrupts = <GIC_SPI 179 IRQ_TYPE_LEVEL_HIGH>;
 		#mbox-cells = <2>;

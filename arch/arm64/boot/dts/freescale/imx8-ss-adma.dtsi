@@ -152,7 +152,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_lpuart0: serial@5a060000 {
-		compatible = "fsl,imx8qxp-lpuart", "fsl,imx7ulp-lpuart";
 		reg = <0x5a060000 0x1000>;
 		interrupts = <GIC_SPI 345 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
@@ -166,7 +165,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_lpuart1: serial@5a070000 {
-		compatible = "fsl,imx8qxp-lpuart", "fsl,imx7ulp-lpuart";
 		reg = <0x5a070000 0x1000>;
 		interrupts = <GIC_SPI 346 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
@@ -186,7 +184,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_lpuart2: serial@5a080000 {
-		compatible = "fsl,imx8qxp-lpuart", "fsl,imx7ulp-lpuart";
 		reg = <0x5a080000 0x1000>;
 		interrupts = <GIC_SPI 347 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
@@ -206,7 +203,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_lpuart3: serial@5a090000 {
-		compatible = "fsl,imx8qxp-lpuart", "fsl,imx7ulp-lpuart";
 		reg = <0x5a090000 0x1000>;
 		interrupts = <GIC_SPI 348 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
@@ -226,7 +222,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_i2c0: i2c@5a800000 {
-		compatible = "fsl,imx8qxp-lpi2c", "fsl,imx7ulp-lpi2c";
 		reg = <0x5a800000 0x4000>;
 		interrupts = <GIC_SPI 220 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
@@ -239,7 +234,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_i2c1: i2c@5a810000 {
-		compatible = "fsl,imx8qxp-lpi2c", "fsl,imx7ulp-lpi2c";
 		reg = <0x5a810000 0x4000>;
 		interrupts = <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
@@ -252,7 +246,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_i2c2: i2c@5a820000 {
-		compatible = "fsl,imx8qxp-lpi2c", "fsl,imx7ulp-lpi2c";
 		reg = <0x5a820000 0x4000>;
 		interrupts = <GIC_SPI 222 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
@@ -265,7 +258,6 @@ adma_subsys: bus@59000000 {
 	};
 
 	adma_i2c3: i2c@5a830000 {
-		compatible = "fsl,imx8qxp-lpi2c", "fsl,imx7ulp-lpi2c";
 		reg = <0x5a830000 0x4000>;
 		interrupts = <GIC_SPI 223 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;

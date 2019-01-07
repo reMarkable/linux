@@ -48,7 +48,6 @@ conn_subsys: bus@5b000000 {
 	};
 
 	usdhc1: mmc@5b010000 {
-		compatible = "fsl,imx8qm-usdhc", "fsl,imx8qxp-usdhc";
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 232 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b010000 0x10000>;
@@ -65,7 +64,6 @@ conn_subsys: bus@5b000000 {
 	};
 
 	usdhc2: mmc@5b020000 {
-		compatible = "fsl,imx8qm-usdhc", "fsl,imx8qxp-usdhc";
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 233 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b020000 0x10000>;
@@ -82,7 +80,6 @@ conn_subsys: bus@5b000000 {
 	};
 
 	usdhc3: mmc@5b030000 {
-		compatible = "fsl,imx8qm-usdhc", "fsl,imx8qxp-usdhc";
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 234 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b030000 0x10000>;
@@ -99,7 +96,6 @@ conn_subsys: bus@5b000000 {
 	};
 
 	fec1: ethernet@5b040000 {
-		compatible = "fsl,imx8qm-fec", "fsl,imx6sx-fec";
 		reg = <0x5b040000 0x10000>;
 		interrupts = <GIC_SPI 258 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 256 IRQ_TYPE_LEVEL_HIGH>,
@@ -121,7 +117,6 @@ conn_subsys: bus@5b000000 {
 	};
 
 	fec2: ethernet@5b050000 {
-		compatible = "fsl,imx8qm-fec", "fsl,imx6sx-fec";
 		reg = <0x5b050000 0x10000>;
 		interrupts = <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 260 IRQ_TYPE_LEVEL_HIGH>,

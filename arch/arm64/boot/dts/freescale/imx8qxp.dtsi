@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2018 NXP
+ * Copyright 2017-2019 NXP
  *	Dong Aisheng <aisheng.dong@nxp.com>
  */
 
@@ -355,6 +355,10 @@
 	#include "imx8-ss-hsio.dtsi"
 	#include "imx8-ss-img.dtsi"
 };
+
+#include "imx8qxp-ss-adma.dtsi"
+#include "imx8qxp-ss-conn.dtsi"
+#include "imx8qxp-ss-lsio.dtsi"
 
 &edma2 {
 	status = "okay";
