@@ -1355,6 +1355,10 @@ DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_VENDOR_ID_AL, PCI_ANY_ID,
    occur when mode detecting */
 DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_VENDOR_ID_VIA, PCI_ANY_ID,
 				PCI_CLASS_STORAGE_IDE, 8, quirk_no_ata_d3);
+/* Quirk the CYW4356 WIFI chip because the firmware still doesn't support
+   D3 mode */
+DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_VENDOR_ID_BROADCOM, 0x43ec,
+				PCI_CLASS_NETWORK_OTHER, 8, quirk_no_ata_d3);
 
 /*
  * This was originally an Alpha-specific thing, but it really fits here.
