@@ -625,9 +625,6 @@ static void sec_mipi_dsim_write_ph_to_sfr_fifo(struct sec_mipi_dsim *dsim,
 {
 	uint32_t pkthdr;
 
-	/* config LPM for CMD TX */
-	sec_mipi_dsim_config_cmd_lpm(dsim, use_lpm);
-
 	pkthdr = PKTHDR_SET_DATA1(((u8 *)header)[2])	| /* WC MSB  */
 		 PKTHDR_SET_DATA0(((u8 *)header)[1])	| /* WC LSB  */
 		 PKTHDR_SET_DI(((u8 *)header)[0]);	  /* Data ID */
@@ -731,7 +728,9 @@ static ssize_t sec_mipi_dsim_host_transfer(struct mipi_dsi_host *host,
 	if (unlikely(msg->rx_buf))
 		reinit_completion(&dsim->rx_done);
 
+	/* config LPM for CMD TX */
 	use_lpm = msg->flags & MIPI_DSI_MSG_USE_LPM ? true : false;
+	sec_mipi_dsim_config_cmd_lpm(dsim, use_lpm);
 
 	if (packet.payload_length) {		/* Long Packet case */
 		reinit_completion(&dsim->pl_tx_done);
