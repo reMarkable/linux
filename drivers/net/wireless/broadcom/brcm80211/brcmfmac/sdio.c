@@ -316,8 +316,7 @@ struct rte_console {
 #define BRCMF_SDIO_MAX_ACCESS_ERRORS	5
 
 static void brcmf_sdio_firmware_callback(struct device *dev, int err,
-					 const struct firmware *code,
-					 void *nvram, u32 nvram_len);
+					 struct brcmf_fw_request *fwreq);
 
 /*
  * Conversion of 802.1D priority to precedence level
@@ -2582,11 +2581,15 @@ brcmf_sdio_ulp_preinit(struct device *dev)
 		  M_ULP_WAKE_IND(sdiodev->shm_ulp));
 }
 
+#define BRCMF_SDIO_FW_CODE	0
+#define BRCMF_SDIO_FW_NVRAM	1
+
 /* Reinitialize ARM because In DS1 mode ARM got off */
 static int
 brcmf_sdio_ulp_reinit_fw(struct brcmf_sdio *bus)
 {
 	struct brcmf_sdio_dev *sdiodev = bus->sdiodev;
+	struct brcmf_fw_request *fwreq;
 	int err = 0;
 
 	/* After firmware redownload tx/rx seq are reset accordingly
@@ -2597,11 +2600,24 @@ brcmf_sdio_ulp_reinit_fw(struct brcmf_sdio *bus)
 	bus->rx_seq = 0;
 	bus->tx_max = 4;
 
-	err = brcmf_fw_get_firmwares(sdiodev->dev, BRCMF_FW_REQUEST_NVRAM,
-				     sdiodev->fw_name, sdiodev->nvram_name,
+	fwreq = kzalloc(sizeof(fwreq) + 2 * sizeof(struct brcmf_fw_item),
+			GFP_KERNEL);
+	if (!fwreq)
+		return -ENOMEM;
+
+	fwreq->items[BRCMF_SDIO_FW_CODE].path = sdiodev->fw_name;
+	fwreq->items[BRCMF_SDIO_FW_CODE].type = BRCMF_FW_TYPE_BINARY;
+	fwreq->items[BRCMF_SDIO_FW_NVRAM].path = sdiodev->nvram_name;
+	fwreq->items[BRCMF_SDIO_FW_NVRAM].type = BRCMF_FW_TYPE_NVRAM;
+	fwreq->n_items = 2;
+
+	err = brcmf_fw_get_firmwares(sdiodev->dev, fwreq,
 				     brcmf_sdio_firmware_callback);
-	if (err != 0)
+	if (err != 0) {
 		brcmf_err("async firmware request failed: %d\n", err);
+		kfree(fwreq);
+	}
+
 	return err;
 }
 
@@ -4266,9 +4282,6 @@ static const struct brcmf_bus_ops brcmf_sdio_bus_ops = {
 	.get_fwname = brcmf_sdio_get_fwname,
 	.debugfs_create = brcmf_sdio_debugfs_create
 };
-
-#define BRCMF_SDIO_FW_CODE	0
-#define BRCMF_SDIO_FW_NVRAM	1
 
 static void brcmf_sdio_firmware_callback(struct device *dev, int err,
 					 struct brcmf_fw_request *fwreq)
