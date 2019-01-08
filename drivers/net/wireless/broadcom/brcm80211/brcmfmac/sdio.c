@@ -2631,7 +2631,7 @@ brcmf_sdio_ulp_pre_redownload_check(struct brcmf_sdio *bus)
 	int reg_addr;
 	unsigned long timeout;
 
-	value = brcmf_sdiod_regrb(bus->sdiodev, SDIO_CCCR_IOEx, &err);
+	value = brcmf_sdiod_readb(bus->sdiodev, SDIO_CCCR_IOEx, &err);
 
 	if (value == SDIO_FUNC_ENABLE_1) {
 		brcmf_dbg(SDIO, "GOT THE INTERRUPT FROM UCODE\n");
@@ -2700,8 +2700,8 @@ brcmf_sdio_ulp_pre_redownload_check(struct brcmf_sdio *bus)
 			  wowl_wake_ind, ulp_wake_ind);
 		reg_addr = CORE_CC_REG(
 			  brcmf_chip_get_pmu(bus->ci)->base, min_res_mask);
-		brcmf_sdiod_regwl(bus->sdiodev, reg_addr,
-				  DEFAULT_43012_MIN_RES_MASK, &err);
+		brcmf_sdiod_writel(bus->sdiodev, reg_addr,
+				   DEFAULT_43012_MIN_RES_MASK, &err);
 		if (err)
 			brcmf_err("min_res_mask failed\n");
 
@@ -4414,18 +4414,6 @@ static void brcmf_sdio_firmware_callback(struct device *dev, int err,
 	}
 
 	sdio_release_host(sdiod->func1);
-
-	/* Waking up from deep sleep don't requirerd to reint the sdio bus
-	 * as all sdiod core registers will get restored by Firmware using
-	 * FCBS engine.
-	 */
-	if (!bus->sdiodev->ulp) {
-		err = brcmf_bus_started(dev);
-		if (err != 0) {
-			brcmf_err("dongle is not responding\n");
-			goto fail;
-		}
-	}
 
 	/* Assign bus interface call back */
 	sdiod->bus_if->dev = sdiod->dev;

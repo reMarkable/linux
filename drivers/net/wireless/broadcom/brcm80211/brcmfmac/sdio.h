@@ -427,15 +427,15 @@ void brcmf_sdio_trigger_dpc(struct brcmf_sdio *bus);
 #define C_DS1_CTRL_REQ_VALID			0x200
 
 #define D11SHM_WR(sdh, offset, val, ret) \
-	brcmf_sdiod_regwl(sdh, D11SHM_ADDR(offset), val, ret)
+	brcmf_sdiod_writel(sdh, D11SHM_ADDR(offset), val, ret)
 
 #define D11SHM_RD(sdh, offset, ret) \
-	brcmf_sdiod_regrl(sdh, D11SHM_ADDR(offset), ret)
+	brcmf_sdiod_readl(sdh, D11SHM_ADDR(offset), ret)
 
 #define D11REG_WR(sdh, addr, val, ret) \
-	brcmf_sdiod_regwl(sdh, addr, val, ret)
+	brcmf_sdiod_writel(sdh, addr, val, ret)
 
 #define D11REG_RD(sdh, addr, ret) \
-	brcmf_sdiod_regrl(sdh, addr, ret)
+	brcmf_sdiod_readl(sdh, addr, ret)
 
 #endif /* BRCMFMAC_SDIO_H */
