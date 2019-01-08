@@ -38,6 +38,7 @@ struct pwm_bl_data {
 					int brightness);
 	int			(*check_fb)(struct device *, struct fb_info *);
 	void			(*exit)(struct device *);
+	char			fb_id[16];
 };
 
 static void pwm_backlight_power_on(struct pwm_bl_data *pb)
@@ -222,6 +223,17 @@ int pwm_backlight_brightness_default(struct device *dev,
 	return 0;
 }
 
+static int pwm_backlight_check_fb_name(struct device *dev, struct fb_info *info)
+{
+	struct backlight_device *bl = dev_get_drvdata(dev);
+	struct pwm_bl_data *pb = bl_get_data(bl);
+
+	if (strcmp(info->fix.id, pb->fb_id) == 0)
+		return true;
+
+	return false;
+}
+
 static int pwm_backlight_parse_dt(struct device *dev,
 				  struct platform_pwm_backlight_data *data)
 {
@@ -234,11 +246,17 @@ static int pwm_backlight_parse_dt(struct device *dev,
 	int length;
 	u32 value;
 	int ret;
+	const char *names;
 
 	if (!node)
 		return -ENODEV;
 
 	memset(data, 0, sizeof(*data));
+
+	if (!of_property_read_string(node, "fb-names", &names)) {
+		strcpy(data->fb_id, names);
+		data->check_fb = &pwm_backlight_check_fb_name;
+	}
 
 	/*
 	 * These values are optional and set as 0 by default, the out values
@@ -361,7 +379,6 @@ static int pwm_backlight_parse_dt(struct device *dev,
 
 		data->max_brightness--;
 	}
-
 	return 0;
 }
 
@@ -484,6 +501,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	pb->enabled = false;
 	pb->post_pwm_on_delay = data->post_pwm_on_delay;
 	pb->pwm_off_delay = data->pwm_off_delay;
+	strcpy(pb->fb_id, data->fb_id);
 
 	pb->enable_gpio = devm_gpiod_get_optional(&pdev->dev, "enable",
 						  GPIOD_ASIS);
