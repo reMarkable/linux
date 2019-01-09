@@ -104,6 +104,12 @@ struct fsl_dsp {
 
 	/* ...global clients pool (item[0] serves as list terminator) */
 	union xf_client_link xf_client_map[XF_CFG_MAX_IPC_CLIENTS];
+
+	struct clk *esai_ipg_clk;
+	struct clk *esai_mclk;
+	struct clk *asrc_mem_clk;
+	struct clk *asrc_ipg_clk;
+	struct clk *asrck_clk[4];
 };
 
 #define IRAM_OFFSET		0x10000

@@ -783,6 +783,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	dma_addr_t buf_phys;
 	int size, offset, i;
 	int ret;
+	char tmp[16];
 
 	dsp_priv = devm_kzalloc(&pdev->dev, sizeof(*dsp_priv), GFP_KERNEL);
 	if (!dsp_priv)
@@ -953,6 +954,41 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	dsp_priv->esai_ipg_clk = devm_clk_get(&pdev->dev, "esai_ipg");
+	if (IS_ERR(dsp_priv->esai_ipg_clk)) {
+		dev_err(&pdev->dev, "failed to get esai ipg clock: %ld\n",
+				PTR_ERR(dsp_priv->esai_ipg_clk));
+		dsp_priv->esai_ipg_clk = NULL;
+	}
+
+	dsp_priv->esai_mclk = devm_clk_get(&pdev->dev, "esai_mclk");
+	if (IS_ERR(dsp_priv->esai_mclk)) {
+		dev_err(&pdev->dev, "failed to get esai mclk: %ld\n",
+				PTR_ERR(dsp_priv->esai_mclk));
+		dsp_priv->esai_mclk = NULL;
+	}
+
+	dsp_priv->asrc_mem_clk = devm_clk_get(&pdev->dev, "asrc_mem");
+	if (IS_ERR(dsp_priv->asrc_mem_clk)) {
+		dev_err(&pdev->dev, "failed to get mem clock\n");
+		dsp_priv->asrc_mem_clk = NULL;
+	}
+
+	dsp_priv->asrc_ipg_clk = devm_clk_get(&pdev->dev, "asrc_ipg");
+	if (IS_ERR(dsp_priv->asrc_ipg_clk)) {
+		dev_err(&pdev->dev, "failed to get ipg clock\n");
+		dsp_priv->asrc_ipg_clk = NULL;
+	}
+
+	for (i = 0; i < 4; i++) {
+		sprintf(tmp, "asrck_%x", i);
+		dsp_priv->asrck_clk[i] = devm_clk_get(&pdev->dev, tmp);
+		if (IS_ERR(dsp_priv->asrck_clk[i])) {
+			dev_err(&pdev->dev, "failed to get %s clock\n", tmp);
+			dsp_priv->asrck_clk[i] = NULL;
+		}
+	}
+
 	return 0;
 }
 
@@ -978,6 +1014,33 @@ static int fsl_dsp_runtime_resume(struct device *dev)
 	struct fsl_dsp *dsp_priv = dev_get_drvdata(dev);
 	struct xf_proxy *proxy = &dsp_priv->proxy;
 	int ret;
+	int i;
+
+	ret = clk_prepare_enable(dsp_priv->esai_ipg_clk);
+	if (ret) {
+		dev_err(dev, "failed to enable esai ipg clock: %d\n", ret);
+		return ret;
+	}
+
+	ret = clk_prepare_enable(dsp_priv->esai_mclk);
+	if (ret) {
+		dev_err(dev, "failed to enable esai mclk: %d\n", ret);
+		return ret;
+	}
+
+	ret = clk_prepare_enable(dsp_priv->asrc_mem_clk);
+	if (ret < 0)
+		dev_err(dev, "Failed to enable asrc_mem_clk ret = %d\n", ret);
+
+	ret = clk_prepare_enable(dsp_priv->asrc_ipg_clk);
+	if (ret < 0)
+		dev_err(dev, "Failed to enable asrc_ipg_clk ret = %d\n", ret);
+
+	for (i = 0; i < 4; i++) {
+		ret = clk_prepare_enable(dsp_priv->asrck_clk[i]);
+		if (ret < 0)
+			dev_err(dev, "failed to prepare arc clk %d\n", i);
+	}
 
 	if (!dsp_priv->dsp_mu_init) {
 		MU_Init(dsp_priv->mu_base_virtaddr);
@@ -1012,9 +1075,20 @@ static int fsl_dsp_runtime_suspend(struct device *dev)
 {
 	struct fsl_dsp *dsp_priv = dev_get_drvdata(dev);
 	struct xf_proxy *proxy = &dsp_priv->proxy;
+	int i;
 
 	dsp_priv->dsp_mu_init = 0;
 	proxy->is_ready = 0;
+
+	for (i = 0; i < 4; i++)
+		clk_disable_unprepare(dsp_priv->asrck_clk[i]);
+
+	clk_disable_unprepare(dsp_priv->asrc_ipg_clk);
+	clk_disable_unprepare(dsp_priv->asrc_mem_clk);
+
+	clk_disable_unprepare(dsp_priv->esai_mclk);
+	clk_disable_unprepare(dsp_priv->esai_ipg_clk);
+
 	return 0;
 }
 #endif /* CONFIG_PM */
