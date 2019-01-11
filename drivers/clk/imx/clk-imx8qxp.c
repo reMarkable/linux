@@ -64,6 +64,7 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	clks[IMX_HSIO_PER_CLK]		= clk_hw_register_fixed_rate(NULL, "hsio_per_clk_root", NULL, 0, 133333333);
 	clks[IMX_LSIO_MEM_CLK]		= clk_hw_register_fixed_rate(NULL, "lsio_mem_clk_root", NULL, 0, 200000000);
 	clks[IMX_LSIO_BUS_CLK]		= clk_hw_register_fixed_rate(NULL, "lsio_bus_clk_root", NULL, 0, 100000000);
+	clks[IMX_CM40_IPG_CLK]		= clk_hw_register_fixed_rate(NULL, "cm40_ipg_clk_root", NULL, 0, 132000000);
 
 	/* ARM core */
 	clks[IMX_A35_CLK]		= imx_clk_scu("a35_clk", IMX_SC_R_A35, IMX_SC_PM_CLK_CPU);
@@ -138,6 +139,9 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	/* GPU SS */
 	clks[IMX_GPU0_CORE_CLK]		= imx_clk_scu("gpu_core0_clk",	 IMX_SC_R_GPU_0_PID0, IMX_SC_PM_CLK_PER);
 	clks[IMX_GPU0_SHADER_CLK]	= imx_clk_scu("gpu_shader0_clk", IMX_SC_R_GPU_0_PID0, IMX_SC_PM_CLK_MISC);
+
+	 /* CM40 SS */
+	clks[IMX_CM40_I2C_DIV]		= imx_clk_scu("cm40_i2c_div", IMX_SC_R_M4_0_I2C, IMX_SC_PM_CLK_PER);
 
 	for (i = 0; i < clk_data->num; i++) {
 		if (IS_ERR(clks[i]))

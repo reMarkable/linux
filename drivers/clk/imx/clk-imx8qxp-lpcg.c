@@ -55,6 +55,17 @@ struct imx8qxp_ss_lpcg {
 	u8 num_max;
 };
 
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_cm40[] = {
+	{ IMX_CM40_LPCG_I2C_IPG_CLK, "cm40_lpcg_i2c_ipg_clk", "cm40_ipg_clk_root", 0, CM40_I2C_LPCG, 16, 0, },
+	{ IMX_CM40_LPCG_I2C_CLK, "cm40_lpcg_i2c_clk", "cm40_i2c_div", 0, CM40_I2C_LPCG, 0, 0, },
+};
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_cm40 = {
+	.lpcg = imx8qxp_lpcg_cm40,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_cm40),
+	.num_max = IMX_CM40_LPCG_CLK_END,
+};
+
 static const struct imx8qxp_lpcg_data imx8qxp_lpcg_adma[] = {
 	{ IMX_ADMA_LPCG_UART0_IPG_CLK, "uart0_lpcg_ipg_clk", "dma_ipg_clk_root", 0, ADMA_LPUART_0_LPCG, 16, 0, },
 	{ IMX_ADMA_LPCG_UART0_BAUD_CLK, "uart0_lpcg_baud_clk", "uart0_clk", 0, ADMA_LPUART_0_LPCG, 0, 0, },
@@ -205,6 +216,7 @@ static int imx8qxp_lpcg_clk_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id imx8qxp_lpcg_match[] = {
+	{ .compatible = "fsl,imx8qxp-lpcg-cm40", &imx8qxp_ss_cm40, },
 	{ .compatible = "fsl,imx8qxp-lpcg-adma", &imx8qxp_ss_adma, },
 	{ .compatible = "fsl,imx8qxp-lpcg-conn", &imx8qxp_ss_conn, },
 	{ .compatible = "fsl,imx8qxp-lpcg-lsio", &imx8qxp_ss_lsio, },

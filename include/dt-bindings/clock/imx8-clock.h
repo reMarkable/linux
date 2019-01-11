@@ -133,7 +133,11 @@
 #define IMX_ADMA_PWM_CLK				188
 #define IMX_ADMA_LCD_CLK				189
 
-#define IMX_SCU_CLK_END					190
+/* CM40 SS */
+#define IMX_CM40_IPG_CLK				200
+#define IMX_CM40_I2C_DIV				205
+
+#define IMX_SCU_CLK_END					220
 
 /* LPCG clocks */
 
@@ -291,5 +295,11 @@
 #define IMX_ADMA_LPCG_OCRAM_IPG_CLK			44
 
 #define IMX_ADMA_LPCG_CLK_END				45
+
+/* CM40 SS LPCG */
+#define IMX_CM40_LPCG_I2C_IPG_CLK			 0
+#define IMX_CM40_LPCG_I2C_CLK			 1
+
+#define IMX_CM40_LPCG_CLK_END			 2
 
 #endif /* __DT_BINDINGS_CLOCK_IMX_H */

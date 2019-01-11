@@ -99,4 +99,7 @@
 #define ADMA_FLEXCAN_1_LPCG		0x1ce0000
 #define ADMA_FLEXCAN_2_LPCG		0x1cf0000
 
+/* CM40 SS */
+#define CM40_I2C_LPCG			0x60000
+
 #endif /* _IMX8QXP_LPCG_H */
