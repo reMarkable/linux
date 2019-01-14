@@ -110,6 +110,7 @@ struct imx6_pcie {
 	/* power domain for hsio gpio used by pcie */
 	struct device		*pd_hsio_gpio;
 	const struct imx6_pcie_drvdata *drvdata;
+	struct regulator	*epdev_on;
 };
 
 /* Parameters for the waiting for PCIe PHY PLL to lock on i.MX7 */
@@ -1720,6 +1721,15 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	} else if (imx6_pcie->dis_gpio == -EPROBE_DEFER) {
 		return imx6_pcie->dis_gpio;
 	}
+
+	imx6_pcie->epdev_on = devm_regulator_get(&pdev->dev,
+						 "epdev_on");
+	if (IS_ERR(imx6_pcie->epdev_on))
+		return -EPROBE_DEFER;
+
+	ret = regulator_enable(imx6_pcie->epdev_on);
+	if (ret)
+		dev_err(dev, "failed to enable the epdev_on regulator\n");
 
 	imx6_pcie->reset_gpio = of_get_named_gpio(node, "reset-gpio", 0);
 	imx6_pcie->gpio_active_high = of_property_read_bool(node,
