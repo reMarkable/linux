@@ -610,6 +610,7 @@
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 				usb3-lpm-capable;
 				snps,dis-u1u2-when-u3-quirk;
+				snps,host-vbus-glitches;
 			};
 
 			usb1: usb@3000000 {
@@ -622,6 +623,7 @@
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 				usb3-lpm-capable;
 				snps,dis-u1u2-when-u3-quirk;
+				snps,host-vbus-glitches;
 			};
 
 			usb2: usb@3100000 {
@@ -634,6 +636,7 @@
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 				usb3-lpm-capable;
 				snps,dis-u1u2-when-u3-quirk;
+				snps,host-vbus-glitches;
 			};
 
 			sata: sata@3200000 {
