@@ -208,6 +208,30 @@ static const struct imx8qxp_ss_lpcg imx8qxp_ss_img = {
 	.num_max = IMX_IMG_LPCG_CLK_END,
 };
 
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_csi0[] = {
+	{ IMX_CSI_LPCG_CSI0_CORE_CLK, "csi_lpcg_csi0_core_clk", "mipi_csi0_core_clk", 0, CSI_CSI0_CORE_LPCG, 16, 0, },
+	{ IMX_CSI_LPCG_CSI0_ESC_CLK, "csi_lpcg_csi0_esc_clk", "mipi_csi0_esc_clk", 0, CSI_CSI0_ESC_LPCG, 16, 0, },
+	{ IMX_CSI_LPCG_CSI0_I2C0_CLK, "csi_lpcg_csi0_i2c0_clk", "mipi_csi0_i2c0_clk", 0, CSI_CSI0_I2C0_LPCG, 0, 0, },
+};
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_csi0 = {
+	.lpcg = imx8qxp_lpcg_csi0,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_csi0),
+	.num_max = IMX_CSI_LPCG_CSI0_CLK_END,
+};
+
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_csi1[] = {
+	{ IMX_CSI_LPCG_CSI1_CORE_CLK, "csi_lpcg_csi1_core_clk", "mipi_csi1_core_clk", 0, CSI_CSI1_CORE_LPCG, 16, 0, },
+	{ IMX_CSI_LPCG_CSI1_ESC_CLK, "csi_lpcg_csi1_esc_clk", "mipi_csi1_esc_clk", 0, CSI_CSI1_ESC_LPCG, 16, 0, },
+	{ IMX_CSI_LPCG_CSI1_I2C0_CLK, "csi_lpcg_csi1_i2c0_clk", "mipi_csi1_i2c0_clk", 0, CSI_CSI1_I2C0_LPCG, 0, 0, },
+};
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_csi1 = {
+	.lpcg = imx8qxp_lpcg_csi1,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_csi1),
+	.num_max = IMX_CSI_LPCG_CSI1_CLK_END,
+};
+
 static int imx8qxp_lpcg_clk_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -262,6 +286,8 @@ static const struct of_device_id imx8qxp_lpcg_match[] = {
 	{ .compatible = "fsl,imx8qxp-lpcg-lsio", &imx8qxp_ss_lsio, },
 	{ .compatible = "fsl,imx8qxp-lpcg-hsio", &imx8qxp_ss_hsio, },
 	{ .compatible = "fsl,imx8qxp-lpcg-img",  &imx8qxp_ss_img, },
+	{ .compatible = "fsl,imx8qxp-lpcg-csi0",  &imx8qxp_ss_csi0, },
+	{ .compatible = "fsl,imx8qxp-lpcg-csi1",  &imx8qxp_ss_csi1, },
 	{ /* sentinel */ }
 };
 

@@ -14,6 +14,10 @@
 /* CPU */
 #define IMX_A35_CLK					1
 
+#define IMX_24MHZ					4
+
+#define IMX_24MHZ					4
+
 /* LSIO SS */
 #define IMX_LSIO_MEM_CLK				2
 #define IMX_LSIO_BUS_CLK				3
@@ -96,6 +100,10 @@
 #define IMX_CSI0_ESC_CLK				131
 #define IMX_CSI0_PWM0_CLK				132
 #define IMX_CSI0_I2C0_CLK				133
+#define IMX_CSI1_CORE_CLK				134
+#define IMX_CSI1_ESC_CLK				135
+#define IMX_CSI1_PWM0_CLK				136
+#define IMX_CSI1_I2C0_CLK				137
 
 /* PARALLER CSI SS */
 #define IMX_PARALLEL_CSI_DPLL_CLK			140
@@ -341,5 +349,19 @@
 #define IMX_IMG_LPCG_CSI1_PXL_LINK_CLK			9
 
 #define IMX_IMG_LPCG_CLK_END				10
+
+/* CSI SS LPCG */
+#define IMX_CSI_LPCG_CSI0_CORE_CLK			0
+#define IMX_CSI_LPCG_CSI0_ESC_CLK			1
+#define IMX_CSI_LPCG_CSI0_I2C0_CLK			2
+
+#define IMX_CSI_LPCG_CSI0_CLK_END			3
+
+/* CSI SS LPCG */
+#define IMX_CSI_LPCG_CSI1_CORE_CLK			0
+#define IMX_CSI_LPCG_CSI1_ESC_CLK			1
+#define IMX_CSI_LPCG_CSI1_I2C0_CLK			2
+
+#define IMX_CSI_LPCG_CSI1_CLK_END			3
 
 #endif /* __DT_BINDINGS_CLOCK_IMX_H */
