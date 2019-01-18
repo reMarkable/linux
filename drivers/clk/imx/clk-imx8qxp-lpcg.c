@@ -189,6 +189,25 @@ static const struct imx8qxp_ss_lpcg imx8qxp_ss_hsio = {
 	.num_max = IMX_HSIO_LPCG_CLK_END,
 };
 
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_img[] = {
+	{ IMX_IMG_LPCG_PDMA0_CLK, "img_lpcg_pdma0_clk", "img_pxl_clk_root", 0, IMG_PDMA0_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_PDMA1_CLK, "img_lpcg_pdma1_clk", "img_pxl_clk_root", 0, IMG_PDMA1_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_PDMA2_CLK, "img_lpcg_pdma2_clk", "img_pxl_clk_root", 0, IMG_PDMA2_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_PDMA3_CLK, "img_lpcg_pdma3_clk", "img_pxl_clk_root", 0, IMG_PDMA3_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_PDMA4_CLK, "img_lpcg_pdma4_clk", "img_pxl_clk_root", 0, IMG_PDMA4_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_PDMA5_CLK, "img_lpcg_pdma5_clk", "img_pxl_clk_root", 0, IMG_PDMA5_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_PDMA6_CLK, "img_lpcg_pdma6_clk", "img_pxl_clk_root", 0, IMG_PDMA6_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_PDMA7_CLK, "img_lpcg_pdma7_clk", "img_pxl_clk_root", 0, IMG_PDMA7_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_CSI0_PXL_LINK_CLK, "img_lpcg_csi0_pxl_link_clk", "img_pxl_clk_root", 0, IMG_MIPI_CSI0_LPCG, 0, 0, },
+	{ IMX_IMG_LPCG_CSI1_PXL_LINK_CLK, "img_lpcg_csi1_pxl_link_clk", "img_pxl_clk_root", 0, IMG_MIPI_CSI1_LPCG, 0, 0, },
+};
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_img = {
+	.lpcg = imx8qxp_lpcg_img,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_img),
+	.num_max = IMX_IMG_LPCG_CLK_END,
+};
+
 static int imx8qxp_lpcg_clk_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -242,6 +261,7 @@ static const struct of_device_id imx8qxp_lpcg_match[] = {
 	{ .compatible = "fsl,imx8qxp-lpcg-conn", &imx8qxp_ss_conn, },
 	{ .compatible = "fsl,imx8qxp-lpcg-lsio", &imx8qxp_ss_lsio, },
 	{ .compatible = "fsl,imx8qxp-lpcg-hsio", &imx8qxp_ss_hsio, },
+	{ .compatible = "fsl,imx8qxp-lpcg-img",  &imx8qxp_ss_img, },
 	{ /* sentinel */ }
 };
 
