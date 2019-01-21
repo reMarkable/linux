@@ -26,6 +26,7 @@
 		gpio5 = &lsio_gpio5;
 		gpio6 = &lsio_gpio6;
 		gpio7 = &lsio_gpio7;
+		dpu0 = &dpu1;
 		mmc0 = &usdhc1;
 		mmc1 = &usdhc2;
 		mmc2 = &usdhc3;
@@ -320,6 +321,7 @@
 
 	/* sorted in register address */
 	#include "imx8-ss-vpu.dtsi"
+	#include "imx8-ss-dc.dtsi"
 	#include "imx8-ss-adma.dtsi"
 	#include "imx8-ss-conn.dtsi"
 	#include "imx8-ss-ddr.dtsi"
