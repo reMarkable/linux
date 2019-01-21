@@ -222,4 +222,54 @@ adma_subsys: bus@59000000 {
 		power-domains = <&pd IMX_SC_R_I2C_3>;
 		status = "disabled";
 	};
+
+	flexcan1: can@5a8d0000 {
+		compatible = "fsl,imx8qxp-flexcan", "fsl,imx8qm-flexcan";
+		reg = <0x5a8d0000 0x10000>;
+		interrupts = <GIC_SPI 235 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&gic>;
+		clocks = <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_CLK>,
+			 <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_PE_CLK>;
+		clock-names = "ipg", "per";
+		assigned-clocks = <&clk IMX_ADMA_CAN0_CLK>;
+		assigned-clock-rates = <40000000>;
+		power-domains = <&pd IMX_SC_R_CAN_0>;
+		/* SLSlice[4] */
+		fsl,clk-source= <0>;
+		status = "disabled";
+	};
+
+	flexcan2: can@5a8e0000 {
+		compatible = "fsl,imx8qxp-flexcan", "fsl,imx8qm-flexcan";
+		reg = <0x5a8e0000 0x10000>;
+		interrupts = <GIC_SPI 236 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&gic>;
+		/* CAN0 clock and PD is shared among all CAN instances */
+		clocks = <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_CLK>,
+			 <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_PE_CLK>;
+		clock-names = "ipg", "per";
+		assigned-clocks = <&clk IMX_ADMA_CAN0_CLK>;
+		assigned-clock-rates = <40000000>;
+		power-domains = <&pd IMX_SC_R_CAN_1>;
+		/* SLSlice[4] */
+		fsl,clk-source = <0>;
+		status = "disabled";
+	};
+
+	flexcan3: can@5a8f0000 {
+		compatible = "fsl,imx8qxp-flexcan", "fsl,imx8qm-flexcan";
+		reg = <0x5a8f0000 0x10000>;
+		interrupts = <GIC_SPI 237 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&gic>;
+		/* CAN0 clock and PD is shared among all CAN instances */
+		clocks = <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_CLK>,
+			 <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_PE_CLK>;
+		clock-names = "ipg", "per";
+		assigned-clocks = <&clk IMX_ADMA_CAN0_CLK>;
+		assigned-clock-rates = <40000000>;
+		power-domains = <&pd IMX_SC_R_CAN_2>;
+		/* SLSlice[4] */
+		fsl,clk-source = <0>;
+		status = "disabled";
+	};
 };
