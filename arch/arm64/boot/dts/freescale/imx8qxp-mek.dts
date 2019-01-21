@@ -220,6 +220,10 @@
 	status = "okay";
 };
 
+&dpu1 {
+	status = "okay";
+};
+
 &adma_lpuart0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpuart0>;
