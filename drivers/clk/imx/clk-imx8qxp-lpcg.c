@@ -83,6 +83,9 @@ static const struct imx8qxp_lpcg_data imx8qxp_lpcg_adma[] = {
 	{ IMX_ADMA_LPCG_I2C2_CLK, "i2c2_lpcg_clk", "i2c2_clk", 0, ADMA_LPI2C_2_LPCG, 0, 0, },
 	{ IMX_ADMA_LPCG_I2C3_IPG_CLK, "i2c3_lpcg_ipg_clk", "dma_ipg_clk_root", 0, ADMA_LPI2C_3_LPCG, 16, 0, },
 	{ IMX_ADMA_LPCG_I2C3_CLK, "i2c3_lpcg_clk", "i2c3_clk", 0, ADMA_LPI2C_3_LPCG, 0, 0, },
+	{ IMX_ADMA_LPCG_CAN0_IPG_CHI_CLK, "can0_lpcg_chi_clk", "dma_ipg_clk_root", 0, ADMA_FLEXCAN_0_LPCG, 20, 0, },
+	{ IMX_ADMA_LPCG_CAN0_IPG_CLK, "can0_lpcg_ipg_clk", "can0_lpcg_chi_clk", 0, ADMA_FLEXCAN_0_LPCG, 16, 0, },
+	{ IMX_ADMA_LPCG_CAN0_IPG_PE_CLK, "can0_lpcg_pe_clk", "can0_clk", 0, ADMA_FLEXCAN_0_LPCG, 0, 0, },
 
 	{ IMX_ADMA_LPCG_DSP_CORE_CLK, "dsp_lpcg_core_clk", "dma_ipg_clk_root", 0, ADMA_HIFI_LPCG, 28, 0, },
 	{ IMX_ADMA_LPCG_DSP_IPG_CLK, "dsp_lpcg_ipg_clk", "dma_ipg_clk_root", 0, ADMA_HIFI_LPCG, 20, 0, },
