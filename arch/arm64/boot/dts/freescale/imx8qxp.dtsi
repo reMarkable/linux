@@ -218,3 +218,7 @@
 	#include "imx8-ss-ddr.dtsi"
 	#include "imx8-ss-lsio.dtsi"
 };
+
+&edma2 {
+	status = "okay";
+};

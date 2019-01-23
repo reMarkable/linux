@@ -16,6 +16,113 @@ adma_subsys: bus@59000000 {
 		#clock-cells = <1>;
 	};
 
+	edma0: dma-controller@591F0000 {
+		compatible = "fsl,imx8qm-edma";
+		reg = <0x59200000 0x10000>, /* asrc0 */
+			<0x59210000 0x10000>,
+			<0x59220000 0x10000>,
+			<0x59230000 0x10000>,
+			<0x59240000 0x10000>,
+			<0x59250000 0x10000>,
+			<0x59260000 0x10000>, /* esai0 rx */
+			<0x59270000 0x10000>, /* esai0 tx */
+			<0x59280000 0x10000>, /* spdif0 rx */
+			<0x59290000 0x10000>, /* spdif0 tx */
+			<0x592c0000 0x10000>, /* sai0 rx */
+			<0x592d0000 0x10000>, /* sai0 tx */
+			<0x592e0000 0x10000>, /* sai1 rx */
+			<0x592f0000 0x10000>, /* sai1 tx */
+			<0x59350000 0x10000>,
+			<0x59370000 0x10000>;
+		#dma-cells = <3>;
+		shared-interrupt;
+		dma-channels = <16>;
+		interrupts = <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>, /* asrc 0 */
+				<GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 376 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 377 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 378 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 379 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 410 IRQ_TYPE_LEVEL_HIGH>, /* esai0 */
+				<GIC_SPI 410 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 457 IRQ_TYPE_LEVEL_HIGH>, /* spdif0 */
+				<GIC_SPI 459 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 315 IRQ_TYPE_LEVEL_HIGH>, /* sai0 */
+				<GIC_SPI 315 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 317 IRQ_TYPE_LEVEL_HIGH>, /* sai1 */
+				<GIC_SPI 317 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 391 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 393 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "edma0-chan0-rx", "edma0-chan1-rx", /* asrc0 */
+				"edma0-chan2-rx", "edma0-chan3-tx",
+				"edma0-chan4-tx", "edma0-chan5-tx",
+				"edma0-chan6-rx", "edma0-chan7-tx", /* esai0 */
+				"edma0-chan8-rx", "edma0-chan9-tx", /* spdif0 */
+				"edma0-chan12-rx", "edma0-chan13-tx", /* sai0 */
+				"edma0-chan14-rx", "edma0-chan15-tx", /* sai1 */
+				"edma0-chan21-tx",		/* gpt5 */
+				"edma0-chan23-rx";		/* gpt7 */
+		status = "okay";
+	};
+
+	edma1: dma-controller@599F0000 {
+		compatible = "fsl,imx8qm-edma";
+		reg = <0x59A00000 0x10000>, /* asrc1 */
+			<0x59A10000 0x10000>,
+			<0x59A20000 0x10000>,
+			<0x59A30000 0x10000>,
+			<0x59A40000 0x10000>,
+			<0x59A50000 0x10000>,
+			<0x59A80000 0x10000>, /* sai4 rx */
+			<0x59A90000 0x10000>, /* sai4 tx */
+			<0x59AA0000 0x10000>; /* sai5 tx */
+		#dma-cells = <3>;
+		shared-interrupt;
+		dma-channels = <9>;
+		interrupts = <GIC_SPI 382 IRQ_TYPE_LEVEL_HIGH>, /* asrc 1 */
+				<GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 384 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 385 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 386 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 387 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 330 IRQ_TYPE_LEVEL_HIGH>, /* sai4 */
+				<GIC_SPI 330 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 332 IRQ_TYPE_LEVEL_HIGH>; /* sai5 */
+		interrupt-names = "edma1-chan0-rx", "edma1-chan1-rx", /* asrc1 */
+				"edma1-chan2-rx", "edma1-chan3-tx",
+				"edma1-chan4-tx", "edma1-chan5-tx",
+				"edma1-chan8-rx", "edma1-chan9-tx", /* sai4 */
+				"edma1-chan10-tx";                 /* sai5 */
+		status = "okay";
+	};
+
+	edma2: dma-controller@5a1f0000 {
+		compatible = "fsl,imx8qm-edma";
+		reg = <0x5a280000 0x10000>, /* channel8 UART0 rx */
+		      <0x5a290000 0x10000>, /* channel9 UART0 tx */
+		      <0x5a2a0000 0x10000>, /* channel10 UART1 rx */
+		      <0x5a2b0000 0x10000>, /* channel11 UART1 tx */
+		      <0x5a2c0000 0x10000>, /* channel12 UART2 rx */
+		      <0x5a2d0000 0x10000>, /* channel13 UART2 tx */
+		      <0x5a2e0000 0x10000>, /* channel14 UART3 rx */
+		      <0x5a2f0000 0x10000>; /* channel15 UART3 tx */
+		#dma-cells = <3>;
+		dma-channels = <8>;
+		interrupts = <GIC_SPI 434 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 435 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 436 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 437 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 438 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 439 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 440 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 441 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "edma2-chan8-rx", "edma2-chan9-tx",
+				  "edma2-chan10-rx", "edma2-chan11-tx",
+				  "edma2-chan12-rx", "edma2-chan13-tx",
+				  "edma2-chan14-rx", "edma2-chan15-tx";
+		status = "disabled";
+	};
+
 	adma_lpuart0: serial@5a060000 {
 		compatible = "fsl,imx8qxp-lpuart", "fsl,imx7ulp-lpuart";
 		reg = <0x5a060000 0x1000>;
