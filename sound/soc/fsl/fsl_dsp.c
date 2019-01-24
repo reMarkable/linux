@@ -975,38 +975,26 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	}
 
 	dsp_priv->esai_ipg_clk = devm_clk_get(&pdev->dev, "esai_ipg");
-	if (IS_ERR(dsp_priv->esai_ipg_clk)) {
-		dev_err(&pdev->dev, "failed to get esai ipg clock: %ld\n",
-				PTR_ERR(dsp_priv->esai_ipg_clk));
+	if (IS_ERR(dsp_priv->esai_ipg_clk))
 		dsp_priv->esai_ipg_clk = NULL;
-	}
 
 	dsp_priv->esai_mclk = devm_clk_get(&pdev->dev, "esai_mclk");
-	if (IS_ERR(dsp_priv->esai_mclk)) {
-		dev_err(&pdev->dev, "failed to get esai mclk: %ld\n",
-				PTR_ERR(dsp_priv->esai_mclk));
+	if (IS_ERR(dsp_priv->esai_mclk))
 		dsp_priv->esai_mclk = NULL;
-	}
 
 	dsp_priv->asrc_mem_clk = devm_clk_get(&pdev->dev, "asrc_mem");
-	if (IS_ERR(dsp_priv->asrc_mem_clk)) {
-		dev_err(&pdev->dev, "failed to get mem clock\n");
+	if (IS_ERR(dsp_priv->asrc_mem_clk))
 		dsp_priv->asrc_mem_clk = NULL;
-	}
 
 	dsp_priv->asrc_ipg_clk = devm_clk_get(&pdev->dev, "asrc_ipg");
-	if (IS_ERR(dsp_priv->asrc_ipg_clk)) {
-		dev_err(&pdev->dev, "failed to get ipg clock\n");
+	if (IS_ERR(dsp_priv->asrc_ipg_clk))
 		dsp_priv->asrc_ipg_clk = NULL;
-	}
 
 	for (i = 0; i < 4; i++) {
 		sprintf(tmp, "asrck_%x", i);
 		dsp_priv->asrck_clk[i] = devm_clk_get(&pdev->dev, tmp);
-		if (IS_ERR(dsp_priv->asrck_clk[i])) {
-			dev_err(&pdev->dev, "failed to get %s clock\n", tmp);
+		if (IS_ERR(dsp_priv->asrck_clk[i]))
 			dsp_priv->asrck_clk[i] = NULL;
-		}
 	}
 
 	return 0;
