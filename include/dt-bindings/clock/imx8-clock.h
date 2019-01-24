@@ -37,6 +37,8 @@
 #define IMX_CONN_AXI_CLK_ROOT				30
 #define IMX_CONN_AHB_CLK_ROOT				31
 #define IMX_CONN_IPG_CLK_ROOT				32
+#define IMX_CONN_PLL0_CLK				33
+#define IMX_CONN_PLL1_CLK				34
 #define IMX_CONN_SDHC0_CLK				40
 #define IMX_CONN_SDHC1_CLK				41
 #define IMX_CONN_SDHC2_CLK				42
