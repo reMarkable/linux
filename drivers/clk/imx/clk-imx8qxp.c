@@ -17,6 +17,14 @@
 #include <dt-bindings/clock/imx8-clock.h>
 #include <dt-bindings/firmware/imx/rsrc.h>
 
+static const char *sdhc0_sels[] = {
+	"dummy",
+	"conn_pll0_clk",
+	"conn_pll1_clk",
+	"dummy",
+	"dummy",
+};
+
 static int imx8qxp_clk_probe(struct platform_device *pdev)
 {
 	struct device_node *ccm_node = pdev->dev.of_node;
@@ -42,6 +50,9 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	clks[IMX_CONN_AXI_CLK_ROOT]	= clk_hw_register_fixed_rate(NULL, "conn_axi_clk_root", NULL, 0, 333333333);
 	clks[IMX_CONN_AHB_CLK_ROOT]	= clk_hw_register_fixed_rate(NULL, "conn_ahb_clk_root", NULL, 0, 166666666);
 	clks[IMX_CONN_IPG_CLK_ROOT]	= clk_hw_register_fixed_rate(NULL, "conn_ipg_clk_root", NULL, 0, 83333333);
+	clks[IMX_CONN_PLL0_CLK]		= clk_hw_register_fixed_rate(NULL, "conn_pll0_clk", NULL, 0, 792000000);
+	clks[IMX_CONN_PLL1_CLK]		= clk_hw_register_fixed_rate(NULL, "conn_pll1_clk", NULL, 0, 1000000000);
+
 	clks[IMX_DC_AXI_EXT_CLK]	= clk_hw_register_fixed_rate(NULL, "dc_axi_ext_clk_root", NULL, 0, 800000000);
 	clks[IMX_DC_AXI_INT_CLK]	= clk_hw_register_fixed_rate(NULL, "dc_axi_int_clk_root", NULL, 0, 400000000);
 	clks[IMX_DC_CFG_CLK]		= clk_hw_register_fixed_rate(NULL, "dc_cfg_clk_root", NULL, 0, 100000000);
@@ -95,7 +106,7 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	clks[IMX_ADMA_LCD_CLK]		= imx_clk_scu("lcd_clk",   IMX_SC_R_LCD_0, IMX_SC_PM_CLK_PER);
 
 	/* Connectivity */
-	clks[IMX_CONN_SDHC0_CLK]	= imx_clk_scu("sdhc0_clk", IMX_SC_R_SDHC_0, IMX_SC_PM_CLK_PER);
+	clks[IMX_CONN_SDHC0_CLK]	= imx_clk_scu2("sdhc0_clk", sdhc0_sels, ARRAY_SIZE(sdhc0_sels), IMX_SC_R_SDHC_0, IMX_SC_PM_CLK_PER);
 	clks[IMX_CONN_SDHC1_CLK]	= imx_clk_scu("sdhc1_clk", IMX_SC_R_SDHC_1, IMX_SC_PM_CLK_PER);
 	clks[IMX_CONN_SDHC2_CLK]	= imx_clk_scu("sdhc2_clk", IMX_SC_R_SDHC_2, IMX_SC_PM_CLK_PER);
 	clks[IMX_CONN_ENET0_ROOT_CLK]	= imx_clk_scu("enet0_clk", IMX_SC_R_ENET_0, IMX_SC_PM_CLK_PER);
