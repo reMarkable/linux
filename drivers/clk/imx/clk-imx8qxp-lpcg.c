@@ -171,6 +171,24 @@ static const struct imx8qxp_ss_lpcg imx8qxp_ss_lsio = {
 	.num_max = IMX_LSIO_LPCG_CLK_END,
 };
 
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_hsio[] = {
+	{ IMX_HSIO_LPCG_PCIEB_MSTR_AXI_CLK, "hsio_pcie_mstr_axi_clk", "hsio_axi_clk_root", 0, HSIO_PCIEB_LPCG, 16, 0, },
+	{ IMX_HSIO_LPCG_PCIEB_SLV_AXI_CLK, "hsio_pcie_slv_axi_clk", "hsio_axi_clk_root", 0, HSIO_PCIEB_LPCG, 20, 0, },
+	{ IMX_HSIO_LPCG_PCIEB_DBI_AXI_CLK, "hsio_pcie_dbi_axi_clk", "hsio_axi_clk_root", 0, HSIO_PCIEB_LPCG, 24, 0, },
+	{ IMX_HSIO_LPCG_PHYX1_PCLK, "hsio_pcie_phyx1_pclk", "dummy", 0, HSIO_PHYX1_LPCG, 0, 0, },
+	{ IMX_HSIO_LPCG_PHYX1_APB_CLK, "hsio_pcie_phyx1_apb_clk", "hsio_per_clk_root", 0, HSIO_PHYX1_LPCG, 16, 0, },
+	{ IMX_HSIO_LPCG_PHYX1_PER_CLK, "hsio_phyx1_per_clk", "hsio_per_clk_root", 0, HSIO_CRR_1_LPCG, 16, 0, },
+	{ IMX_HSIO_LPCG_PCIEB_PER_CLK, "hsio_pcieb_per_clk", "hsio_per_clk_root", 0, HSIO_CRR_3_LPCG, 16, 0, },
+	{ IMX_HSIO_LPCG_MISC_PER_CLK, "hsio_misc_per_clk", "hsio_per_clk_root", 0, HSIO_CRR_5_LPCG, 16, 0, },
+	{ IMX_HSIO_LPCG_GPIO_PER_CLK, "hsio_gpio_per_clk", "hsio_per_clk_root", 0, HSIO_GPIO_LPCG, 16, 0, },
+};
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_hsio = {
+	.lpcg = imx8qxp_lpcg_hsio,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_hsio),
+	.num_max = IMX_HSIO_LPCG_CLK_END,
+};
+
 static int imx8qxp_lpcg_clk_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -223,6 +241,7 @@ static const struct of_device_id imx8qxp_lpcg_match[] = {
 	{ .compatible = "fsl,imx8qxp-lpcg-adma", &imx8qxp_ss_adma, },
 	{ .compatible = "fsl,imx8qxp-lpcg-conn", &imx8qxp_ss_conn, },
 	{ .compatible = "fsl,imx8qxp-lpcg-lsio", &imx8qxp_ss_lsio, },
+	{ .compatible = "fsl,imx8qxp-lpcg-hsio", &imx8qxp_ss_hsio, },
 	{ /* sentinel */ }
 };
 
