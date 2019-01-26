@@ -1066,11 +1066,14 @@ static int i2c_imx_xfer(struct i2c_adapter *adapter,
 
 	dev_dbg(&i2c_imx->adapter.dev, "<%s>\n", __func__);
 
-
 	if (!pm_runtime_enabled(i2c_imx->adapter.dev.parent)) {
 		pm_runtime_enable(i2c_imx->adapter.dev.parent);
 		enable_runtime_pm = true;
 	}
+
+	result = pm_runtime_get_sync(i2c_imx->adapter.dev.parent);
+	if (result < 0)
+		goto out;
 
 	/*
 	 * workround for ERR010027: ensure that the I2C BUS is idle
@@ -1084,10 +1087,6 @@ static int i2c_imx_xfer(struct i2c_adapter *adapter,
 		else
 			goto out;
 	}
-
-	result = pm_runtime_get_sync(i2c_imx->adapter.dev.parent);
-	if (result < 0)
-		goto out;
 
 	/* Start I2C transfer */
 	result = i2c_imx_start(i2c_imx);
