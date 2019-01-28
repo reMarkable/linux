@@ -942,6 +942,7 @@ struct dwc3_scratchpad_array {
  * @nr_scratch: number of scratch buffers
  * @u1u2: only used on revisions <1.83a for workaround
  * @maximum_speed: maximum speed requested (mainly for testing purposes)
+ * @otg_caps: the OTG capabilities from hardware point
  * @revision: revision register contents
  * @version_type: VERSIONTYPE register contents, a sub release of a revision
  * @dr_mode: requested mode of operation
@@ -1095,6 +1096,7 @@ struct dwc3 {
 	u32			nr_scratch;
 	u32			u1u2;
 	u32			maximum_speed;
+	struct usb_otg_caps	otg_caps;
 
 	/*
 	 * All 3.1 IP version constants are greater than the 3.0 IP

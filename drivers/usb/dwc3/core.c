@@ -1257,6 +1257,17 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 
 	dwc->maximum_speed = usb_get_maximum_speed(dev);
 	dwc->dr_mode = usb_get_dr_mode(dev);
+	if (dwc->dr_mode == USB_DR_MODE_OTG) {
+		dwc->otg_caps.otg_rev = 0x0300;
+		dwc->otg_caps.hnp_support = true;
+		dwc->otg_caps.srp_support = true;
+		dwc->otg_caps.adp_support = true;
+
+		/* Update otg capabilities by DT properties */
+		of_usb_update_otg_caps(dev->of_node,
+				       &dwc->otg_caps);
+	}
+
 	dwc->hsphy_mode = of_usb_get_phy_mode(dev->of_node);
 
 	dwc->sysdev_is_parent = device_property_read_bool(dev,
