@@ -7,6 +7,7 @@ menu "MXC support drivers"
 # drivers common to MXC and MX8 go here:
 
 #if ARCH_MXC_ARM64
+source "drivers/mxc/hantro/Kconfig"
 source "drivers/mxc/vpu_malone/Kconfig"
 source "drivers/mxc/vpu_windsor/Kconfig"
 #endif
