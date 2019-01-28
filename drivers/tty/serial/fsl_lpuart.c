@@ -919,7 +919,12 @@ static void lpuart32_rxint(struct lpuart_port *sport)
 		 */
 		sr = lpuart32_read(&sport->port, UARTSTAT);
 		rx = lpuart32_read(&sport->port, UARTDATA);
-		rx &= 0x3ff;
+
+		if ((sr & UARTSTAT_FE) && (rx & UARTDATA_FRETSC) &&
+			!(rx & UARTDATA_MASK)) {
+			if (uart_handle_break(&sport->port))
+				continue;
+		}
 
 		if (uart_handle_sysrq_char(&sport->port, (unsigned char)rx))
 			continue;
