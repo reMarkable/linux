@@ -22,6 +22,7 @@
 #include <linux/of_dma.h>
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
+#include <linux/reset.h>
 #include <linux/serial_core.h>
 #include <linux/slab.h>
 #include <linux/tty_flip.h>
@@ -1543,8 +1544,17 @@ static void lpuart32_configure(struct lpuart_port *sport)
 static int lpuart32_startup(struct uart_port *port)
 {
 	struct lpuart_port *sport = container_of(port, struct lpuart_port, port);
+	struct tty_port *tty_port = &sport->port.state->port;
 	unsigned long flags;
 	unsigned long temp;
+	int ret;
+
+	/* some modem may need reset */
+	if (!tty_port_suspended(tty_port)) {
+		ret = device_reset(sport->port.dev);
+		if (ret && ret != -ENOENT)
+			return ret;
+	}
 
 	/* determine FIFO size */
 	temp = lpuart32_read(&sport->port, UARTFIFO);
