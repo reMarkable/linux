@@ -17,7 +17,7 @@ conn_subsys: bus@5b000000 {
 	};
 
 	usdhc1: mmc@5b010000 {
-		compatible = "fsl,imx8qm-usdhc", "fsl,imx7d-usdhc";
+		compatible = "fsl,imx8qm-usdhc", "fsl,imx8qxp-usdhc";
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 232 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b010000 0x10000>;
@@ -28,11 +28,13 @@ conn_subsys: bus@5b000000 {
 		assigned-clocks = <&clk IMX_CONN_SDHC0_CLK>;
 		assigned-clock-rates = <200000000>;
 		power-domains = <&pd IMX_SC_R_SDHC_0>;
+		fsl,tuning-start-tap = <20>;
+		fsl,tuning-step= <2>;
 		status = "disabled";
 	};
 
 	usdhc2: mmc@5b020000 {
-		compatible = "fsl,imx8qm-usdhc", "fsl,imx7d-usdhc";
+		compatible = "fsl,imx8qm-usdhc", "fsl,imx8qxp-usdhc";
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 233 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b020000 0x10000>;
@@ -49,7 +51,7 @@ conn_subsys: bus@5b000000 {
 	};
 
 	usdhc3: mmc@5b030000 {
-		compatible = "fsl,imx8qm-usdhc", "fsl,imx7d-usdhc";
+		compatible = "fsl,imx8qm-usdhc", "fsl,imx8qxp-usdhc";
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 234 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b030000 0x10000>;
@@ -60,6 +62,8 @@ conn_subsys: bus@5b000000 {
 		assigned-clocks = <&clk IMX_CONN_SDHC2_CLK>;
 		assigned-clock-rates = <200000000>;
 		power-domains = <&pd IMX_SC_R_SDHC_2>;
+		fsl,tuning-start-tap = <20>;
+		fsl,tuning-step= <2>;
 		status = "disabled";
 	};
 
