@@ -283,6 +283,12 @@ properties:
     description:
       SDIO only. Enables wake up of host system on SDIO IRQ assertion.
 
+  pm-ignore-notify:
+    $ref: /schemas/types.yaml#/definitions/flag
+    description:
+      Ignore mmc PM notify. This will prevent MMC core automatically
+      to re-detect cards after sysem resume back.
+
   vmmc-supply:
     description:
       Supply for the card power
