@@ -297,5 +297,8 @@ config ARCH_ZYNQMP
 	select ZYNQMP_FIRMWARE
 	help
 	  This enables support for Xilinx ZynqMP Family
-
+config ARCH_FSL_IMX8MQ
+        bool "Freescale i.MX8MQ SOC"
+        help
+          This enables support for Freescale i.MX8MQ SOC.
 endmenu
