@@ -119,6 +119,8 @@ static const struct imx8qxp_lpcg_data imx8qxp_lpcg_conn[] = {
 	{ IMX_CONN_LPCG_ENET1_AHB_CLK, "enet1_ahb_clk", "conn_axi_clk_root", 0, CONN_ENET_1_LPCG, 8, 0, },
 	{ IMX_CONN_LPCG_ENET1_IPG_S_CLK, "enet1_ipg_s_clk", "conn_ipg_clk_root", 0, CONN_ENET_1_LPCG, 20, 0, },
 	{ IMX_CONN_LPCG_ENET1_IPG_CLK, "enet1_ipg_clk", "enet0_ipg_s_clk", 0, CONN_ENET_1_LPCG, 16, 0, },
+	{ IMX_CONN_LPCG_USB2_PHY_IPG_CLK, "usboh3_phy_ipg_clk", "conn_ipg_clk_root", 0, CONN_USB_2_LPCG, 28, 0, },
+	{ IMX_CONN_LPCG_USB2_AHB_CLK, "usboh3_ahb_clk", "conn_ahb_clk_root", 0, CONN_USB_2_LPCG, 24, 0, },
 };
 
 static const struct imx8qxp_ss_lpcg imx8qxp_ss_conn = {
