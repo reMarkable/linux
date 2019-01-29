@@ -136,4 +136,7 @@
 #define CSI_CSI1_ESC_LPCG		0x1C
 #define CSI_CSI1_I2C0_LPCG		0x14
 
+/* DC0 SS */
+/* TODO: ADD DC LPCGs */
+
 #endif /* _IMX8QXP_LPCG_H */
