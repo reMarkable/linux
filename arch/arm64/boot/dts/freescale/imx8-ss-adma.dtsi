@@ -123,6 +123,34 @@ adma_subsys: bus@59000000 {
 		status = "disabled";
 	};
 
+	adma_lpspi0: spi@5a000000 {
+		compatible = "fsl,imx7ulp-spi";
+		reg = <0x5a000000 0x10000>;
+		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&gic>;
+		clocks = <&adma_lpcg IMX_ADMA_LPCG_SPI0_CLK>,
+			 <&adma_lpcg IMX_ADMA_LPCG_SPI0_IPG_CLK>;
+		clock-names = "per", "ipg";
+		assigned-clocks = <&clk IMX_ADMA_SPI0_CLK>;
+		assigned-clock-rates = <20000000>;
+		power-domains = <&pd IMX_SC_R_SPI_0>;
+		status = "disabled";
+	};
+
+	adma_lpspi2: spi@5a020000 {
+		compatible = "fsl,imx7ulp-spi";
+		reg = <0x5a020000 0x10000>;
+		interrupts = <GIC_SPI 218 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&gic>;
+		clocks = <&adma_lpcg IMX_ADMA_LPCG_SPI2_CLK>,
+			 <&adma_lpcg IMX_ADMA_LPCG_SPI2_IPG_CLK>;
+		clock-names = "per", "ipg";
+		assigned-clocks = <&clk IMX_ADMA_SPI2_CLK>;
+		assigned-clock-rates = <20000000>;
+		power-domains = <&pd IMX_SC_R_SPI_2>;
+		status = "disabled";
+	};
+
 	adma_lpuart0: serial@5a060000 {
 		compatible = "fsl,imx8qxp-lpuart", "fsl,imx7ulp-lpuart";
 		reg = <0x5a060000 0x1000>;
