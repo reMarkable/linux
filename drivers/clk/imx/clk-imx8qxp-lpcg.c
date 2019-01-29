@@ -67,6 +67,10 @@ static const struct imx8qxp_ss_lpcg imx8qxp_ss_cm40 = {
 };
 
 static const struct imx8qxp_lpcg_data imx8qxp_lpcg_adma[] = {
+	{ IMX_ADMA_LPCG_SPI0_IPG_CLK, "spi0_lpcg_ipg_clk", "dma_ipg_clk_root", 0, ADMA_LPSPI_0_LPCG, 16, 0, },
+	{ IMX_ADMA_LPCG_SPI0_CLK, "spi0_lpcg_clk", "spi0_clk", 0, ADMA_LPSPI_0_LPCG, 0, 0, },
+	{ IMX_ADMA_LPCG_SPI2_IPG_CLK, "spi2_lpcg_ipg_clk", "dma_ipg_clk_root", 0, ADMA_LPSPI_2_LPCG, 16, 0, },
+	{ IMX_ADMA_LPCG_SPI2_CLK, "spi2_lpcg_clk", "spi2_clk", 0, ADMA_LPSPI_2_LPCG, 0, 0, },
 	{ IMX_ADMA_LPCG_UART0_IPG_CLK, "uart0_lpcg_ipg_clk", "dma_ipg_clk_root", 0, ADMA_LPUART_0_LPCG, 16, 0, },
 	{ IMX_ADMA_LPCG_UART0_BAUD_CLK, "uart0_lpcg_baud_clk", "uart0_clk", 0, ADMA_LPUART_0_LPCG, 0, 0, },
 	{ IMX_ADMA_LPCG_UART1_IPG_CLK, "uart1_lpcg_ipg_clk", "dma_ipg_clk_root", 0, ADMA_LPUART_1_LPCG, 16, 0, },
