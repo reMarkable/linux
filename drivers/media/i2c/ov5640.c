@@ -2234,6 +2234,8 @@ static int ov5640_set_fmt(struct v4l2_subdev *sd,
 	if (mbus_fmt->code != sensor->fmt.code)
 		sensor->pending_fmt_change = true;
 
+	if (sensor->pending_mode_change || sensor->pending_fmt_change)
+		sensor->fmt = *mbus_fmt;
 out:
 	mutex_unlock(&sensor->lock);
 	return ret;
