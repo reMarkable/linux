@@ -107,6 +107,14 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	clks[IMX_ADMA_PWM_CLK]		= imx_clk_scu("pwm_clk",   IMX_SC_R_LCD_0_PWM_0, IMX_SC_PM_CLK_PER);
 	clks[IMX_ADMA_LCD_CLK]		= imx_clk_scu("lcd_clk",   IMX_SC_R_LCD_0, IMX_SC_PM_CLK_PER);
 
+	clks[IMX_ADMA_AUD_PLL0]		= imx_clk_scu("audio_pll0_clk", IMX_SC_R_AUDIO_PLL_0, IMX_SC_PM_CLK_PLL);
+	clks[IMX_ADMA_AUD_PLL1]		= imx_clk_scu("audio_pll1_clk", IMX_SC_R_AUDIO_PLL_1, IMX_SC_PM_CLK_PLL);
+
+	clks[IMX_ADMA_AUD_PLL_DIV_CLK0_CLK]	= imx_clk_scu("audio_pll_div_clk0_clk", IMX_SC_R_AUDIO_PLL_0, IMX_SC_PM_CLK_MISC0);
+	clks[IMX_ADMA_AUD_PLL_DIV_CLK1_CLK]	= imx_clk_scu("audio_pll_div_clk1_clk", IMX_SC_R_AUDIO_PLL_1, IMX_SC_PM_CLK_MISC0);
+	clks[IMX_ADMA_AUD_REC_CLK0_CLK]	= imx_clk_scu("audio_rec_clk0_clk", IMX_SC_R_AUDIO_PLL_0, IMX_SC_PM_CLK_MISC1);
+	clks[IMX_ADMA_AUD_REC_CLK1_CLK]	= imx_clk_scu("audio_rec_clk1_clk", IMX_SC_R_AUDIO_PLL_1, IMX_SC_PM_CLK_MISC1);
+
 	/* Connectivity */
 	clks[IMX_CONN_SDHC0_CLK]	= imx_clk_scu2("sdhc0_clk", sdhc0_sels, ARRAY_SIZE(sdhc0_sels), IMX_SC_R_SDHC_0, IMX_SC_PM_CLK_PER);
 	clks[IMX_CONN_SDHC1_CLK]	= imx_clk_scu("sdhc1_clk", IMX_SC_R_SDHC_1, IMX_SC_PM_CLK_PER);
