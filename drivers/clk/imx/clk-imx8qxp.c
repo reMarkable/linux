@@ -140,8 +140,28 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	clks[IMX_DC0_BYPASS1_CLK]	= imx_clk_scu("dc0_bypass1_clk", IMX_SC_R_DC_0_VIDEO1, IMX_SC_PM_CLK_BYPASS);
 
 	/* MIPI-LVDS SS */
+	clks[IMX_MIPI0_BYPASS_CLK]	= imx_clk_scu("mipi0_bypass_clk", IMX_SC_R_MIPI_0, IMX_SC_PM_CLK_BYPASS);
+	clks[IMX_MIPI0_PIXEL_CLK]	= imx_clk_scu("mipi0_pixel_clk", IMX_SC_R_MIPI_0, IMX_SC_PM_CLK_PER);
+	clks[IMX_LVDS0_PIXEL_CLK]	= imx_clk_scu("lvds0_pixel_clk", IMX_SC_R_LVDS_0, IMX_SC_PM_CLK_MISC2);
+	clks[IMX_LVDS0_BYPASS_CLK]	= imx_clk_scu("lvds0_bypass_clk", IMX_SC_R_LVDS_0, IMX_SC_PM_CLK_BYPASS);
+	clks[IMX_LVDS0_PHY_CLK]		= imx_clk_scu("lvds0_phy_clk", IMX_SC_R_LVDS_0, IMX_SC_PM_CLK_MISC3);
+	clks[IMX_MIPI0_DSI_TX_ESC_CLK]	= imx_clk_scu("mipi0_dsi_tx_esc_clk", IMX_SC_R_MIPI_0, IMX_SC_PM_CLK_MST_BUS);
+	clks[IMX_MIPI0_DSI_RX_ESC_CLK]	= imx_clk_scu("mipi0_dsi_rx_esc_clk", IMX_SC_R_MIPI_0, IMX_SC_PM_CLK_SLV_BUS);
+	clks[IMX_MIPI0_DSI_PHY_CLK]	= imx_clk_scu("mipi0_dsi_phy_clk", IMX_SC_R_MIPI_0, IMX_SC_PM_CLK_PHY);
 	clks[IMX_MIPI0_I2C0_CLK]	= imx_clk_scu("mipi0_i2c0_clk", IMX_SC_R_MIPI_0_I2C_0, IMX_SC_PM_CLK_MISC2);
 	clks[IMX_MIPI0_I2C1_CLK]	= imx_clk_scu("mipi0_i2c1_clk", IMX_SC_R_MIPI_0_I2C_1, IMX_SC_PM_CLK_MISC2);
+	clks[IMX_MIPI0_PWM0_CLK]	= imx_clk_scu("mipi0_pwm_clk", IMX_SC_R_MIPI_0_PWM_0, IMX_SC_PM_CLK_PER);
+
+	clks[IMX_MIPI1_BYPASS_CLK]	= imx_clk_scu("mipi1_bypass_clk", IMX_SC_R_MIPI_1, IMX_SC_PM_CLK_BYPASS);
+	clks[IMX_MIPI1_PIXEL_CLK]	= imx_clk_scu("mipi1_pixel_clk", IMX_SC_R_MIPI_1, IMX_SC_PM_CLK_PER);
+	clks[IMX_LVDS1_PIXEL_CLK]	= imx_clk_scu("lvds1_pixel_clk", IMX_SC_R_LVDS_1, IMX_SC_PM_CLK_MISC2);
+	clks[IMX_LVDS1_BYPASS_CLK]	= imx_clk_scu("lvds1_bypass_clk", IMX_SC_R_LVDS_1, IMX_SC_PM_CLK_BYPASS);
+	clks[IMX_LVDS1_PHY_CLK]		= imx_clk_scu("lvds1_phy_clk", IMX_SC_R_LVDS_1, IMX_SC_PM_CLK_MISC3);
+	clks[IMX_MIPI1_DSI_TX_ESC_CLK]	= imx_clk_scu("mipi1_dsi_tx_esc_clk", IMX_SC_R_MIPI_1, IMX_SC_PM_CLK_MST_BUS);
+	clks[IMX_MIPI1_DSI_RX_ESC_CLK]	= imx_clk_scu("mipi1_dsi_rx_esc_clk", IMX_SC_R_MIPI_1, IMX_SC_PM_CLK_SLV_BUS);
+	clks[IMX_MIPI1_I2C0_CLK]	= imx_clk_scu("mipi1_i2c0_clk", IMX_SC_R_MIPI_1_I2C_0, IMX_SC_PM_CLK_MISC2);
+	clks[IMX_MIPI1_I2C1_CLK]	= imx_clk_scu("mipi1_i2c1_clk", IMX_SC_R_MIPI_1_I2C_1, IMX_SC_PM_CLK_MISC2);
+	clks[IMX_MIPI1_PWM0_CLK]	= imx_clk_scu("mipi1_pwm_clk", IMX_SC_R_MIPI_1_PWM_0, IMX_SC_PM_CLK_PER);
 
 	/* MIPI CSI SS */
 	clks[IMX_CSI0_CORE_CLK]		= imx_clk_scu("mipi_csi0_core_clk", IMX_SC_R_CSI_0, IMX_SC_PM_CLK_PER);
