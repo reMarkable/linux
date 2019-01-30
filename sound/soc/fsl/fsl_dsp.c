@@ -52,6 +52,7 @@
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/pm_runtime.h>
+#include <linux/pm_domain.h>
 #include <linux/mx8_mu.h>
 #include <linux/uaccess.h>
 #include <linux/poll.h>
@@ -783,6 +784,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	dma_addr_t buf_phys;
 	int size, offset, i;
 	int ret;
+	int num_domains = 0;
 	char tmp[16];
 
 	dsp_priv = devm_kzalloc(&pdev->dev, sizeof(*dsp_priv), GFP_KERNEL);
@@ -815,6 +817,24 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Cannot get scu handle %d\n", ret);
 		return ret;
 	};
+
+	num_domains = of_count_phandle_with_args(np, "power-domains",
+						 "#power-domain-cells");
+	for (i = 0; i < num_domains; i++) {
+		struct device *pd_dev;
+		struct device_link *link;
+
+		pd_dev = dev_pm_domain_attach_by_id(&pdev->dev, i);
+		if (IS_ERR(pd_dev))
+			return PTR_ERR(pd_dev);
+
+		link = device_link_add(&pdev->dev, pd_dev,
+			DL_FLAG_STATELESS |
+			DL_FLAG_PM_RUNTIME |
+			DL_FLAG_RPM_ACTIVE);
+		if (IS_ERR(link))
+			return PTR_ERR(link);
+	}
 
 	if (dsp_priv->dsp_board_type == DSP_IMX8QXP_TYPE) {
 		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
