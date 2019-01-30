@@ -314,6 +314,49 @@ static const struct imx8qxp_ss_lpcg imx8qxp_ss_dc = {
 	.num_max = IMX_DC0_LPCG_CLK_END,
 };
 
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_mipi0[] = {
+	{ IMX_MIPI0_LPCG_I2C0_CLK, "mipi0_lpcg_i2c0_clk", "mipi0_i2c0_clk", 0, 0x14, 0, 0, },
+	{ IMX_MIPI0_LPCG_I2C1_CLK, "mipi0_lpcg_i2c1_clk", "mipi0_i2c1_clk", 0, 0x14, 0, 0, }, //FIXME: same LPCG offset as I2C0
+	{ IMX_MIPI0_LPCG_I2C0_IPG_S_CLK, "mipi0_lpcg_i2c0_ipg_s", "mipi_ipg_clk_root", 0, 0x10, 0, 0, },
+	{ IMX_MIPI0_LPCG_I2C0_IPG_CLK, "mipi0_lpcg_i2c0_ipg_clk", "mipi0_lpcg_i2c0_ipg_s", 0, 0, 0, 0, },
+	{ IMX_MIPI0_LPCG_I2C1_IPG_S_CLK, "mipi0_lpcg_i2c1_ipg_s", "mipi_ipg_clk_root", 0, 0x14, 0, 0, },
+	{ IMX_MIPI0_LPCG_I2C1_IPG_CLK, "mipi0_lpcg_i2c1_ipg_clk", "mipi0_lpcg_i2c1_ipg_s", 0, 0, 0, 0, }, //FIXME: same LPCG offset as I2C0
+	{ IMX_MIPI0_LPCG_PWM_IPG_S_CLK, "mipi0_lpcg_pwm_ipg_s", "mipi_ipg_clk_root", 0, 0xc, 16, 0, },
+	{ IMX_MIPI0_LPCG_PWM_IPG_CLK, "mipi0_lpcg_pwm_ipg_cl", "mipi0_lpcg_pwm_ipg_s", 0, 0xc, 16, 0, }, //FIXME: same LPCG offset as IPG_S
+	{ IMX_MIPI0_LPCG_PWM_32K_CLK, "mipi0_lpcg_pwm_32K_clk", "xtal_32KHz", 0, 0xc, 0, 0, },
+	{ IMX_MIPI0_LPCG_PWM_CLK, "mipi0_lpcg_pwm_clk", "mipi0_pwm_clk", 0, 0xc, 0, 0, }, //FIXME: same LPCG offset as 32K_CLK
+	{ IMX_MIPI0_LPCG_GPIO_IPG_CLK, "mipi0_lpcg_gpio_ipg_clk", "mipi_ipg_clk_root", 0, 0x8, 0, 0, },
+	{ IMX_MIPI0_LPCG_LIS_IPG_CLK, "mipi0_lis_ipg_clk", "mipi_ipg_clk_root", 0, 0, 16, 0, },
+};
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_mipi0 = {
+	.lpcg = imx8qxp_lpcg_mipi0,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_mipi0),
+	.num_max = IMX_MIPI0_LPCG_CLK_END,
+};
+
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_mipi1[] = {
+	{ IMX_MIPI1_LPCG_I2C0_CLK, "mipi1_lpcg_i2c0_clk", "mipi1_i2c0_clk", 0, 0x14, 0, 0, },
+	{ IMX_MIPI1_LPCG_I2C1_CLK, "mipi1_lpcg_i2c1_clk", "mipi1_i2c1_clk", 0, 0x14, 0, 0, }, //FIXME: same LPCG offset as I2C0
+	{ IMX_MIPI1_LPCG_I2C0_IPG_S_CLK, "mipi1_lpcg_i2c0_ipg_s", "mipi_ipg_clk_root", 0, 0x10, 0, 0, },
+	{ IMX_MIPI1_LPCG_I2C0_IPG_CLK, "mipi1_lpcg_i2c0_ipg_clk", "mipi1_lpcg_i2c0_ipg_s", 0, 0, 0, 0, },
+	{ IMX_MIPI1_LPCG_I2C1_IPG_S_CLK, "mipi1_lpcg_i2c1_ipg_s", "mipi_ipg_clk_root", 0, 0x14, 0, 0, },
+	{ IMX_MIPI1_LPCG_I2C1_IPG_CLK, "mipi1_lpcg_i2c1_ipg_clk", "mipi1_lpcg_i2c1_ipg_s", 0, 0, 0, 0, }, //FIXME: same LPCG offset as I2C0
+	{ IMX_MIPI1_LPCG_PWM_IPG_S_CLK, "mipi1_lpcg_pwm_ipg_s", "mipi_ipg_clk_root", 0, 0xc, 16, 0, },
+	{ IMX_MIPI1_LPCG_PWM_IPG_CLK, "mipi1_lpcg_pwm_ipg_clk", "mipi1_lpcg_pwm_ipg_s", 0, 0xc, 16, 0, }, //FIXME: same LPCG offset as IPG_S
+	{ IMX_MIPI1_LPCG_PWM_32K_CLK, "mipi1_lpcg_pwm_32K_clk", "xtal_32KHz", 0, 0xc, 0, 0, },
+	{ IMX_MIPI1_LPCG_PWM_CLK, "mipi1_lpcg_pwm_clk", "mipi1_pwm_clk", 0, 0xc, 0, 0, }, //FIXME: same LPCG offset as 32K_CLK
+	{ IMX_MIPI1_LPCG_GPIO_IPG_CLK, "mipi1_lpcg_gpio_ipg_clk", "mipi_ipg_clk_root", 0, 0x8, 0, 0, },
+	{ IMX_MIPI1_LPCG_LIS_IPG_CLK, "mipi1_lis_ipg_clk", "mipi_ipg_clk_root", 0, 0, 16, 0, },
+};
+
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_mipi1 = {
+	.lpcg = imx8qxp_lpcg_mipi1,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_mipi1),
+	.num_max = IMX_MIPI1_LPCG_CLK_END,
+};
+
 static int imx8qxp_lpcg_clk_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -371,6 +414,8 @@ static const struct of_device_id imx8qxp_lpcg_match[] = {
 	{ .compatible = "fsl,imx8qxp-lpcg-csi0",  &imx8qxp_ss_csi0, },
 	{ .compatible = "fsl,imx8qxp-lpcg-csi1",  &imx8qxp_ss_csi1, },
 	{ .compatible = "fsl,imx8qxp-lpcg-dc",   &imx8qxp_ss_dc, },
+	{ .compatible = "fsl,imx8qxp-lpcg-mipi0",  &imx8qxp_ss_mipi0, },
+	{ .compatible = "fsl,imx8qxp-lpcg-mipi1",  &imx8qxp_ss_mipi1, },
 	{ /* sentinel */ }
 };
 
