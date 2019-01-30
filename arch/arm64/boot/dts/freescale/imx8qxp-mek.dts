@@ -255,6 +255,10 @@
 	status = "okay";
 };
 
+&adma_dsp {
+	status = "okay";
+};
+
 &adma_esai0 {
 	compatible = "fsl,imx8qm-esai";
 	pinctrl-names = "default";
