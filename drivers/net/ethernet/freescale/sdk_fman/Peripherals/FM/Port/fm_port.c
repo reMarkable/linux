@@ -581,7 +581,8 @@ static t_Error SetExtBufferPools(t_FmPort *p_FmPort)
     p_FmPort->rxPoolsParams.numOfPools = p_ExtBufPools->numOfPoolsUsed;
     p_FmPort->rxPoolsParams.largestBufSize =
             sizesArray[orderedArray[p_ExtBufPools->numOfPoolsUsed - 1]];
-    p_FmPort->rxPoolsParams.secondLargestBufSize =
+    if (p_ExtBufPools->numOfPoolsUsed > 1)
+        p_FmPort->rxPoolsParams.secondLargestBufSize =
             sizesArray[orderedArray[p_ExtBufPools->numOfPoolsUsed - 2]];
 
     /* FMBM_RMPD reg. - pool depletion */
