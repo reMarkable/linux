@@ -78,10 +78,11 @@
 	};
 
 	fpga: board-control@2,0 {
-		compatible = "fsl,ls1043aqds-fpga", "fsl,fpga-qixis";
+		compatible = "fsl,ls1043aqds-fpga", "fsl,fpga-qixis", "simple-bus";
 		reg = <0x2 0x0 0x0000100>;
 		#address-cells = <1>;
 		#size-cells = <1>;
+		ranges = <0 2 0 0x100>;
 	};
 };
 
