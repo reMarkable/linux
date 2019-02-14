@@ -3654,16 +3654,6 @@ static void brcmf_sdio_dataworker(struct work_struct *work)
 	struct brcmf_sdio *bus = container_of(work, struct brcmf_sdio,
 					      datawork);
 
-    // SBA:
-    printk("[brcmf_sdio_dataworker]\n");
-    printk("bus->rxpending: %d\n", bus->rxpending);
-    printk("bus->rxlen:     %d\n", bus->rxlen);
-    printk("bus->ipend:     %d\n", bus->ipend);
-    printk("bus->spurious:  %d\n", bus->spurious);
-    printk("bus->sleeping:  %d\n", bus->sleeping);
-    printk("bus->fcstate:   %d\n", bus->fcstate);
-    printk("bus->intstatus: %d\n", bus->intstatus);
-
 	bus->dpc_running = true;
 	wmb();
 	while (ACCESS_ONCE(bus->dpc_triggered)) {
