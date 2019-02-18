@@ -603,6 +603,8 @@ patternProperties:
     description: MiraMEMS Sensing Technology Co., Ltd.
   "^mitsubishi,.*":
     description: Mitsubishi Electric Corporation
+  "^mixel,.*":
+    description: Mixel, Inc
   "^mosaixtech,.*":
     description: Mosaix Technologies, Inc.
   "^motorola,.*":
