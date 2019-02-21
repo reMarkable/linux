@@ -21,7 +21,7 @@
 		mmc0 = &usdhc1;
 		mmc1 = &usdhc2;
 		mmc2 = &usdhc3;
-		serial0 = &adma_lpuart0;
+		serial0 = &lpuart0;
 		isi0 = &isi_0;
 		isi1 = &isi_1;
 		isi2 = &isi_2;
