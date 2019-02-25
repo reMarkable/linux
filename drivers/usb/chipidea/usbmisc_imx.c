@@ -102,6 +102,9 @@
 #define MX7D_USB_VBUS_WAKEUP_SOURCE_BVALID	MX7D_USB_VBUS_WAKEUP_SOURCE(2)
 #define MX7D_USB_VBUS_WAKEUP_SOURCE_SESS_END	MX7D_USB_VBUS_WAKEUP_SOURCE(3)
 
+#define MX6_USB_OTG_WAKEUP_BITS (MX6_BM_WAKEUP_ENABLE | MX6_BM_VBUS_WAKEUP | \
+				 MX6_BM_ID_WAKEUP)
+
 struct usbmisc_ops {
 	/* It's called once when probe a usb device */
 	int (*init)(struct imx_usbmisc_data *data);
@@ -336,14 +339,17 @@ static int usbmisc_imx53_init(struct imx_usbmisc_data *data)
 	return 0;
 }
 
-static u32 imx6q_finalize_wakeup_setting(struct imx_usbmisc_data *data)
+static u32 usbmisc_wakeup_setting(struct imx_usbmisc_data *data)
 {
-	if (data->available_role == USB_DR_MODE_PERIPHERAL)
-		return MX6_BM_VBUS_WAKEUP;
-	else if (data->available_role == USB_DR_MODE_OTG)
-		return MX6_BM_VBUS_WAKEUP | MX6_BM_ID_WAKEUP;
+	u32 wakeup_setting = MX6_USB_OTG_WAKEUP_BITS;
 
-	return 0;
+	if (data->ext_id || data->available_role != USB_DR_MODE_OTG)
+		wakeup_setting &= ~MX6_BM_ID_WAKEUP;
+
+	if (data->ext_vbus || data->available_role == USB_DR_MODE_HOST)
+		wakeup_setting &= ~MX6_BM_VBUS_WAKEUP;
+
+	return wakeup_setting;
 }
 
 static int usbmisc_imx6q_set_wakeup
@@ -352,7 +358,7 @@ static int usbmisc_imx6q_set_wakeup
 	struct imx_usbmisc *usbmisc = dev_get_drvdata(data->dev);
 	unsigned long flags;
 	int ret = 0;
-	u32 val, wakeup_setting = MX6_BM_WAKEUP_ENABLE;
+	u32 val;
 
 	if (data->index > 3)
 		return -EINVAL;
@@ -360,8 +366,8 @@ static int usbmisc_imx6q_set_wakeup
 	spin_lock_irqsave(&usbmisc->lock, flags);
 	val = readl(usbmisc->base + data->index * 4);
 	if (enabled) {
-		wakeup_setting |= imx6q_finalize_wakeup_setting(data);
-		val |= wakeup_setting;
+		val &= ~MX6_USB_OTG_WAKEUP_BITS;
+		val |= usbmisc_wakeup_setting(data);
 		if (vbus_wakeup_reg) {
 			spin_unlock_irqrestore(&usbmisc->lock, flags);
 			ret = regulator_enable(vbus_wakeup_reg);
@@ -370,8 +376,7 @@ static int usbmisc_imx6q_set_wakeup
 	} else {
 		if (val & MX6_BM_WAKEUP_INTR)
 			pr_debug("wakeup int at ci_hdrc.%d\n", data->index);
-		wakeup_setting |= MX6_BM_VBUS_WAKEUP | MX6_BM_ID_WAKEUP;
-		val &= ~wakeup_setting;
+		val &= ~MX6_USB_OTG_WAKEUP_BITS;
 	}
 	writel(val, usbmisc->base + data->index * 4);
 	spin_unlock_irqrestore(&usbmisc->lock, flags);
@@ -570,17 +575,17 @@ static int usbmisc_imx7d_set_wakeup
 	struct imx_usbmisc *usbmisc = dev_get_drvdata(data->dev);
 	unsigned long flags;
 	u32 val;
-	u32 wakeup_setting = (MX6_BM_WAKEUP_ENABLE |
-		MX6_BM_VBUS_WAKEUP | MX6_BM_ID_WAKEUP);
 
 	spin_lock_irqsave(&usbmisc->lock, flags);
 	val = readl(usbmisc->base);
 	if (enabled) {
-		writel(val | wakeup_setting, usbmisc->base);
+		val &= ~MX6_USB_OTG_WAKEUP_BITS;
+		val |= usbmisc_wakeup_setting(data);
+		writel(val, usbmisc->base);
 	} else {
 		if (val & MX6_BM_WAKEUP_INTR)
 			dev_dbg(data->dev, "wakeup int\n");
-		writel(val & ~wakeup_setting, usbmisc->base);
+		writel(val & ~MX6_USB_OTG_WAKEUP_BITS, usbmisc->base);
 	}
 	spin_unlock_irqrestore(&usbmisc->lock, flags);
 

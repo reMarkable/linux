@@ -23,6 +23,8 @@ struct imx_usbmisc_data {
 	unsigned int ulpi:1; /* connected to an ULPI phy */
 	unsigned int hsic:1; /* HSIC controlller */
 	enum usb_dr_mode available_role;
+	unsigned int ext_id:1; /* ID from exteranl event */
+	unsigned int ext_vbus:1; /* Vbus from exteranl event */
 };
 
 int imx_usbmisc_init(struct imx_usbmisc_data *data);
