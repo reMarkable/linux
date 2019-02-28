@@ -12,6 +12,7 @@
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
 #include <linux/slab.h>
 
 #include "clk-scu.h"
@@ -434,6 +435,12 @@ static int imx_lpcg_parse_clks_from_dt(struct platform_device *pdev,
 
 	autogate = of_property_read_bool(np, "hw-autogate");
 
+	pm_runtime_get_noresume(&pdev->dev);
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_set_autosuspend_delay(&pdev->dev, 500);
+	pm_runtime_use_autosuspend(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+
 	for (i = 0; i < clk_data->num; i++) {
 		if (bit_offset[i] > 31) {
 			dev_warn(&pdev->dev, "invalid bit offset of clock %d\n",
@@ -441,9 +448,9 @@ static int imx_lpcg_parse_clks_from_dt(struct platform_device *pdev,
 			return -EINVAL;
 		}
 
-		clk_hws[i] = imx_clk_lpcg_scu(output_names[i],
-					      parent_names[i], 0, base,
-					      bit_offset[i], autogate);
+		clk_hws[i] = imx_clk_lpcg_scu_dev(&pdev->dev, output_names[i],
+						  parent_names[i], 0, base,
+						  bit_offset[i], autogate);
 		if (IS_ERR(clk_hws[i])) {
 			dev_warn(&pdev->dev, "failed to register clock %d\n",
 				 i);
@@ -451,8 +458,13 @@ static int imx_lpcg_parse_clks_from_dt(struct platform_device *pdev,
 		}
 	}
 
-	return devm_of_clk_add_hw_provider(&pdev->dev, of_clk_hw_onecell_get,
-					   clk_data);
+	ret = devm_of_clk_add_hw_provider(&pdev->dev, of_clk_hw_onecell_get,
+					  clk_data);
+
+	pm_runtime_mark_last_busy(&pdev->dev);
+	pm_runtime_put_autosuspend(&pdev->dev);
+
+	return ret;
 }
 
 static int imx8qxp_lpcg_clk_probe(struct platform_device *pdev)
