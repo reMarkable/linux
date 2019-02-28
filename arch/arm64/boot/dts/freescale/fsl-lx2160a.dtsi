@@ -478,26 +478,26 @@
 			little-endian;
 		};
 
-		/* TODO: WRIOP (CCSR?) */
-		emdio1: mdio@0x8B96000 { /* WRIOP0: 0x8B8_0000, E-MDIO1: 0x1_6000 */
+		/* WRIOP0: 0x8b8_0000, E-MDIO1: 0x1_6000 */
+		emdio1: mdio@8b96000 {
 			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8B96000 0x0 0x1000>;
-			device_type = "mdio";			/* TODO: is this necessary? */
-			little-endian;	/* force the driver in LE mode */
-
-			/* Not necessary on the QDS, but needed on the RDB */
+			reg = <0x0 0x8b96000 0x0 0x1000>;
+			interrupts = <GIC_SPI 90 IRQ_TYPE_LEVEL_HIGH>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			little-endian;	/* force the driver in LE mode */
+			status = "disabled";
 		};
 
-		emdio2: mdio@0x8B97000 { /* WRIOP0: 0x8B8_0000, E-MDIO2: 0x1_7000 */
+		/* WRIOP0: 0x8b8_0000, E-MDIO2: 0x1_7000 */
+		emdio2: mdio@8b97000 {
 			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8B97000 0x0 0x1000>;
-			device_type = "mdio";			/* TODO: is this necessary? */
-			little-endian;	/* force the driver in LE mode */
-
+			reg = <0x0 0x8b97000 0x0 0x1000>;
+			interrupts = <GIC_SPI 91 IRQ_TYPE_LEVEL_HIGH>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			little-endian;	/* force the driver in LE mode */
+			status = "disabled";
 		};
 
 		pcs_mdio1: mdio@0x8c07000 {
