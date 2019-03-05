@@ -448,6 +448,9 @@ static int _genpd_power_off(struct generic_pm_domain *genpd, bool timed)
 	if (!genpd->power_off)
 		return 0;
 
+	if (atomic_read(&genpd->sd_count) > 0)
+		return -EBUSY;
+
 	if (!timed)
 		return genpd->power_off(genpd);
 
@@ -544,9 +547,6 @@ static int genpd_power_off(struct generic_pm_domain *genpd, bool one_dev_on,
 	/* Default to shallowest state. */
 	if (!genpd->gov)
 		genpd->state_idx = 0;
-
-	if (atomic_read(&genpd->sd_count) > 0)
-		return -EBUSY;
 
 	/*
 	 * If sd_count > 0 at this point, one of the subdomains hasn't
@@ -960,8 +960,7 @@ static void genpd_sync_power_off(struct generic_pm_domain *genpd, bool use_lock,
 	if (!genpd_status_on(genpd) || genpd_is_always_on(genpd))
 		return;
 
-	if (genpd->suspended_count != genpd->device_count
-	    || atomic_read(&genpd->sd_count) > 0)
+	if (genpd->suspended_count != genpd->device_count)
 		return;
 
 	/* Choose the deepest state when suspending */
