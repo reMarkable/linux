@@ -772,16 +772,17 @@ EXPORT_SYMBOL(skb_to_contig_fd);
 
 #ifndef CONFIG_PPC
 /* Verify the conditions that trigger the A010022 errata: data unaligned to
- * 16 bytes and 4K memory address crossings.
+ * 16 bytes, 4K memory address crossings and S/G fragments.
  */
 static bool a010022_check_skb(struct sk_buff *skb, struct dpa_priv_s *priv)
 {
-	int nr_frags, i = 0;
-	skb_frag_t *frag;
-
 	/* Check if the headroom is aligned */
 	if (((uintptr_t)skb->data - priv->tx_headroom) %
 	    priv->buf_layout[TX].data_align != 0)
+		return true;
+
+	/* Check for paged data in the skb. We do not support S/G fragments */
+	if (skb_is_nonlinear(skb))
 		return true;
 
 	/* Check if the headroom crosses a boundary */
@@ -795,20 +796,6 @@ static bool a010022_check_skb(struct sk_buff *skb, struct dpa_priv_s *priv)
 	/* Check if the entire linear skb crosses a boundary */
 	if (HAS_DMA_ISSUE(skb->head, skb_end_offset(skb)))
 		return true;
-
-	nr_frags = skb_shinfo(skb)->nr_frags;
-
-	while (i < nr_frags) {
-		frag = &skb_shinfo(skb)->frags[i];
-
-		/* Check if a paged fragment crosses a boundary from its
-		 * offset to its end.
-		 */
-		if (HAS_DMA_ISSUE(frag->page_offset, frag->size))
-			return true;
-
-		i++;
-	}
 
 	return false;
 }

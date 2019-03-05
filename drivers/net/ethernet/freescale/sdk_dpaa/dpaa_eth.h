@@ -653,9 +653,10 @@ static inline void _dpa_bp_free_pf(void *addr)
 
 /* LS1043A SoC has a HW issue regarding FMan DMA transactions; The issue
  * manifests itself at high traffic rates when frames cross 4K memory
- * boundaries or when they are not aligned to 16 bytes; For the moment, we
- * use a SW workaround that realigns frames to 256 bytes. Scatter/Gather
- * frames aren't supported on egress.
+ * boundaries, when they are not aligned to 16 bytes or when they have
+ * Scatter/Gather fragments; For the moment, we use a SW workaround that
+ * realigns frames to 256 bytes. Scatter/Gather frames aren't supported
+ * on egress.
  */
 
 #ifndef CONFIG_PPC
