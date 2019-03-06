@@ -64,6 +64,9 @@ struct imx_mu_priv {
 	struct clk		*clk;
 	int			irq;
 
+	/* for control register save and restore */
+	u32 xcr;
+
 	bool			side_b;
 };
 
@@ -334,6 +337,29 @@ static int imx_mu_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int imx_mu_suspend_noirq(struct device *dev)
+{
+	struct imx_mu_priv *priv = dev_get_drvdata(dev);
+
+	priv->xcr = imx_mu_read(priv, IMX_MU_xCR);
+
+        return 0;
+}
+
+static int imx_mu_resume_noirq(struct device *dev)
+{
+	struct imx_mu_priv *priv = dev_get_drvdata(dev);
+
+	imx_mu_write(priv, priv->xcr, IMX_MU_xCR);
+
+	return 0;
+}
+
+static const struct dev_pm_ops imx_mu_pm_ops = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(imx_mu_suspend_noirq,
+				      imx_mu_resume_noirq)
+};
+
 static const struct of_device_id imx_mu_dt_ids[] = {
 	{ .compatible = "fsl,imx6sx-mu" },
 	{ },
@@ -346,6 +372,7 @@ static struct platform_driver imx_mu_driver = {
 	.driver = {
 		.name	= "imx_mu",
 		.of_match_table = imx_mu_dt_ids,
+		.pm = &imx_mu_pm_ops,
 	},
 };
 module_platform_driver(imx_mu_driver);
