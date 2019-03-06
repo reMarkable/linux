@@ -100,7 +100,6 @@ enum lpi2c_imx_pincfg {
 
 struct lpi2c_imx_struct {
 	struct i2c_adapter	adapter;
-	struct clk		*clk;
 	int			irq;
 	struct clk		*clk_per;
 	struct clk		*clk_ipg;
@@ -579,10 +578,16 @@ static int lpi2c_imx_probe(struct platform_device *pdev)
 	strlcpy(lpi2c_imx->adapter.name, pdev->name,
 		sizeof(lpi2c_imx->adapter.name));
 
-	lpi2c_imx->clk = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(lpi2c_imx->clk)) {
+	lpi2c_imx->clk_per = devm_clk_get(&pdev->dev, "per");
+	if (IS_ERR(lpi2c_imx->clk_per)) {
 		dev_err(&pdev->dev, "can't get I2C peripheral clock\n");
-		return PTR_ERR(lpi2c_imx->clk);
+		return PTR_ERR(lpi2c_imx->clk_per);
+	}
+
+	lpi2c_imx->clk_ipg = devm_clk_get(&pdev->dev, "ipg");
+	if (IS_ERR(lpi2c_imx->clk_ipg)) {
+		dev_err(&pdev->dev, "can't get I2C ipg clock\n");
+		return PTR_ERR(lpi2c_imx->clk_ipg);
 	}
 
 	ret = of_property_read_u32(pdev->dev.of_node,
