@@ -42,7 +42,12 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
 	struct platform_device *cpu_pdev;
 	struct imx_rpmsg_data *data;
 	struct fsl_rpmsg_i2s         *rpmsg_i2s;
+	struct snd_soc_dai_link_component *dlc;
 	int ret;
+
+	dlc = devm_kzalloc(&pdev->dev, 3 * sizeof(*dlc), GFP_KERNEL);
+	if (!dlc)
+		return -ENOMEM;
 
 	cpu_np = of_parse_phandle(pdev->dev.of_node, "cpu-dai", 0);
 	if (!cpu_np) {
@@ -66,6 +71,13 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
 
 	rpmsg_i2s = platform_get_drvdata(cpu_pdev);
 
+	data->dai[0].cpus = &dlc[0];
+	data->dai[0].num_cpus = 1;
+	data->dai[0].platforms = &dlc[1];
+	data->dai[0].num_platforms = 1;
+	data->dai[0].codecs = &dlc[2];
+	data->dai[0].num_codecs = 1;
+
 	data->dai[0].name = "rpmsg hifi";
 	data->dai[0].stream_name = "rpmsg hifi";
 	data->dai[0].dai_fmt = SND_SOC_DAIFMT_I2S |
@@ -73,25 +85,25 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
 			    SND_SOC_DAIFMT_CBM_CFM;
 
 	if (rpmsg_i2s->codec_wm8960) {
-		data->dai[0].codec_dai_name = "rpmsg-wm8960-hifi";
-		data->dai[0].codec_name = "rpmsg-audio-codec-wm8960";
+		data->dai[0].codecs->dai_name = "rpmsg-wm8960-hifi";
+		data->dai[0].codecs->name = "rpmsg-audio-codec-wm8960";
 	}
 
 	if (rpmsg_i2s->codec_dummy) {
-		data->dai[0].codec_dai_name = "snd-soc-dummy-dai";
-		data->dai[0].codec_name = "snd-soc-dummy";
+		data->dai[0].codecs->dai_name = "snd-soc-dummy-dai";
+		data->dai[0].codecs->name = "snd-soc-dummy";
 	}
 
 	if (rpmsg_i2s->codec_ak4497) {
-		data->dai[0].codec_dai_name = "rpmsg-ak4497-aif";
-		data->dai[0].codec_name = "rpmsg-audio-codec-ak4497";
+		data->dai[0].codecs->dai_name = "rpmsg-ak4497-aif";
+		data->dai[0].codecs->name = "rpmsg-audio-codec-ak4497";
 		data->dai[0].dai_fmt = SND_SOC_DAIFMT_I2S |
 			    SND_SOC_DAIFMT_NB_NF |
 			    SND_SOC_DAIFMT_CBS_CFS;
 	}
 
-	data->dai[0].cpu_dai_name = dev_name(&cpu_pdev->dev);
-	data->dai[0].platform_of_node = cpu_np;
+	data->dai[0].cpus->dai_name = dev_name(&cpu_pdev->dev);
+	data->dai[0].platforms->of_node = cpu_np;
 	data->dai[0].playback_only = true;
 	data->dai[0].capture_only = true;
 	data->card.num_links = 1;

@@ -70,6 +70,25 @@ static int i2s_send_message(struct i2s_rpmsg *msg,
 					sizeof(struct i2s_rpmsg_r));
 		memcpy(&info->rpmsg[msg->recv_msg.header.cmd].recv_msg,
 			&msg->recv_msg, sizeof(struct i2s_rpmsg_r));
+
+		/*
+		 * Reset the buffer pointer to be zero, actully we have
+		 * set the buffer pointer to be zero in imx_rpmsg_terminate_all
+		 * But if there is timer task queued in queue, after it is
+		 * executed the buffer pointer will be changed, so need to
+		 * reset it again with TERMINATE command.
+		 */
+
+		switch (msg->send_msg.header.cmd) {
+		case I2S_TX_TERMINATE:
+			info->rpmsg[I2S_TX_POINTER].recv_msg.param.buffer_offset = 0;
+			break;
+		case I2S_RX_TERMINATE:
+			info->rpmsg[I2S_RX_POINTER].recv_msg.param.buffer_offset = 0;
+			break;
+		default:
+			break;
+		}
 	}
 
 	dev_dbg(&info->rpdev->dev, "cmd:%d, resp %d\n",
@@ -136,6 +155,7 @@ static const struct of_device_id fsl_rpmsg_i2s_ids[] = {
 	{ .compatible = "fsl,imx8mq-rpmsg-i2s"},
 	{ .compatible = "fsl,imx8qxp-rpmsg-i2s"},
 	{ .compatible = "fsl,imx8qm-rpmsg-i2s"},
+	{ .compatible = "fsl,imx8mn-rpmsg-i2s"},
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, fsl_rpmsg_i2s_ids);
@@ -144,11 +164,40 @@ static void rpmsg_i2s_work(struct work_struct *work)
 {
 	struct work_of_rpmsg *work_of_rpmsg;
 	struct i2s_info *i2s_info;
+	bool is_period_done = false;
+	unsigned long flags;
+	struct i2s_rpmsg msg;
 
 	work_of_rpmsg = container_of(work, struct work_of_rpmsg, work);
 	i2s_info = work_of_rpmsg->i2s_info;
 
-	i2s_send_message(&work_of_rpmsg->msg, i2s_info);
+	spin_lock_irqsave(&i2s_info->lock[0], flags);
+	if (i2s_info->period_done_msg_enabled[0]) {
+		memcpy(&msg, &i2s_info->period_done_msg[0], sizeof(struct i2s_rpmsg_s));
+		i2s_info->period_done_msg_enabled[0] = false;
+		spin_unlock_irqrestore(&i2s_info->lock[0], flags);
+
+		i2s_send_message(&msg, i2s_info);
+	} else
+		spin_unlock_irqrestore(&i2s_info->lock[0], flags);
+
+	if (i2s_info->period_done_msg_enabled[1]) {
+		i2s_send_message(&i2s_info->period_done_msg[1], i2s_info);
+		i2s_info->period_done_msg_enabled[1] = false;
+	}
+
+	if (work_of_rpmsg->msg.send_msg.header.type == I2S_TYPE_C &&
+	       (work_of_rpmsg->msg.send_msg.header.cmd == I2S_TX_PERIOD_DONE ||
+		work_of_rpmsg->msg.send_msg.header.cmd == I2S_RX_PERIOD_DONE))
+		is_period_done = true;
+
+	if (!is_period_done)
+		i2s_send_message(&work_of_rpmsg->msg, i2s_info);
+
+	spin_lock_irqsave(&i2s_info->wq_lock, flags);
+	i2s_info->work_read_index++;
+	i2s_info->work_read_index %= WORK_MAX_NUM;
+	spin_unlock_irqrestore(&i2s_info->wq_lock, flags);
 }
 
 static int fsl_rpmsg_i2s_probe(struct platform_device *pdev)
@@ -179,6 +228,7 @@ static int fsl_rpmsg_i2s_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
+	i2s_info->work_write_index = 1;
 	i2s_info->send_message = i2s_send_message;
 
 	for (i = 0; i < WORK_MAX_NUM; i++) {
@@ -198,6 +248,7 @@ static int fsl_rpmsg_i2s_probe(struct platform_device *pdev)
 	mutex_init(&i2s_info->i2c_lock);
 	spin_lock_init(&i2s_info->lock[0]);
 	spin_lock_init(&i2s_info->lock[1]);
+	spin_lock_init(&i2s_info->wq_lock);
 
 	if (of_device_is_compatible(pdev->dev.of_node,
 				    "fsl,imx7ulp-rpmsg-i2s")) {
@@ -239,6 +290,21 @@ static int fsl_rpmsg_i2s_probe(struct platform_device *pdev)
 					SNDRV_PCM_FMTBIT_DSD_U8 |
 					SNDRV_PCM_FMTBIT_DSD_U16_LE |
 					SNDRV_PCM_FMTBIT_DSD_U32_LE;
+
+		fsl_rpmsg_i2s_dai.playback.rates = rpmsg_i2s->rates;
+		fsl_rpmsg_i2s_dai.playback.formats = rpmsg_i2s->formats;
+		fsl_rpmsg_i2s_dai.capture.rates = rpmsg_i2s->rates;
+		fsl_rpmsg_i2s_dai.capture.formats = rpmsg_i2s->formats;
+	}
+
+	if (of_device_is_compatible(pdev->dev.of_node,
+				    "fsl,imx8mn-rpmsg-i2s")) {
+		rpmsg_i2s->codec_dummy = 1;
+		rpmsg_i2s->version = 2;
+		rpmsg_i2s->rates = SNDRV_PCM_RATE_KNOT;
+		rpmsg_i2s->formats = SNDRV_PCM_FMTBIT_S16_LE |
+					SNDRV_PCM_FMTBIT_S24_LE |
+					SNDRV_PCM_FMTBIT_S32_LE;
 
 		fsl_rpmsg_i2s_dai.playback.rates = rpmsg_i2s->rates;
 		fsl_rpmsg_i2s_dai.playback.formats = rpmsg_i2s->formats;

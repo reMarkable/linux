@@ -309,7 +309,7 @@
 
 #define         I2S_TYPE_A_NUM          0x18
 
-#define         WORK_MAX_NUM		0x18
+#define         WORK_MAX_NUM		0x30
 
 #define		I2S_TX_PERIOD_DONE	0x0
 #define		I2S_RX_PERIOD_DONE	0x1
@@ -384,6 +384,11 @@ struct work_of_rpmsg {
 	struct work_struct       work;
 };
 
+struct stream_timer {
+	struct timer_list        timer;
+	struct snd_pcm_substream *substream;
+};
+
 typedef void (*dma_callback)(void *arg);
 struct i2s_info {
 	struct rpmsg_device     *rpdev;
@@ -394,18 +399,23 @@ struct i2s_info {
 	struct i2s_rpmsg_r       recv_msg;
 
 	struct i2s_rpmsg         rpmsg[I2S_CMD_MAX_NUM];
+	struct i2s_rpmsg         period_done_msg[2];
+	bool                     period_done_msg_enabled[2];
 
 	struct workqueue_struct  *rpmsg_wq;
 	struct work_of_rpmsg	 work_list[WORK_MAX_NUM];
-	int                      work_index;
+	int                      work_write_index;
+	int                      work_read_index;
+	int                      msg_drop_count[2];
 	int                      num_period[2];
 	void                     *callback_param[2];
 	int (*send_message)(struct i2s_rpmsg *msg, struct i2s_info *info);
 	dma_callback             callback[2];
 	spinlock_t               lock[2];
+	spinlock_t               wq_lock;
 	struct mutex             tx_lock;
 	struct mutex             i2c_lock;
-	struct timer_list        stream_timer[2];
+	struct stream_timer      stream_timer[2];
 	int                      prealloc_buffer_size;
 };
 
