@@ -1237,8 +1237,6 @@ int dpa_fq_init(struct dpa_fq *dpa_fq, bool td_enable)
 		memset(&initfq, 0, sizeof(initfq));
 
 		initfq.we_mask = QM_INITFQ_WE_FQCTRL;
-		/* FIXME: why would we want to keep an empty FQ in cache? */
-		initfq.fqd.fq_ctrl = QM_FQCTRL_PREFERINCACHE;
 
 		/* Try to reduce the number of portal interrupts for
 		 * Tx Confirmation FQs.
