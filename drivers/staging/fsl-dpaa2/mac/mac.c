@@ -148,6 +148,11 @@ static void dpaa2_mac_link_changed(struct net_device *netdev)
 		if (phydev->autoneg)
 			state.options |= DPMAC_LINK_OPT_AUTONEG;
 
+		if (phydev->pause && linkmode_test_bit(ETHTOOL_LINK_MODE_Pause_BIT, phydev->advertising))
+			state.options |= DPMAC_LINK_OPT_PAUSE;
+		if (phydev->pause && linkmode_test_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, phydev->advertising))
+			state.options |= DPMAC_LINK_OPT_ASYM_PAUSE;
+
 		netif_carrier_on(netdev);
 	} else {
 		netif_carrier_off(netdev);
@@ -413,6 +418,20 @@ static void configure_link(struct dpaa2_mac_priv *priv,
 	if (cfg->advertising != 0) {
 		linkmode_zero(phydev->advertising);
 		link_mode_dpmac2phydev(cfg->advertising, phydev->advertising);
+	}
+
+	if (linkmode_test_bit(ETHTOOL_LINK_MODE_Pause_BIT, phydev->supported)) {
+		if (cfg->options & DPMAC_LINK_OPT_PAUSE)
+			linkmode_set_bit(ETHTOOL_LINK_MODE_Pause_BIT, phydev->advertising);
+		else
+			linkmode_clear_bit(ETHTOOL_LINK_MODE_Pause_BIT, phydev->advertising);
+	}
+
+	if (linkmode_test_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, phydev->supported)) {
+		if (cfg->options & DPMAC_LINK_OPT_ASYM_PAUSE)
+			linkmode_set_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, phydev->advertising);
+		else
+			linkmode_clear_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, phydev->advertising);
 	}
 
 	if (cfg->options & DPMAC_LINK_OPT_AUTONEG) {
