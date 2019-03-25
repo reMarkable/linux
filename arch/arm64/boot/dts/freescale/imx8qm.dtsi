@@ -21,6 +21,16 @@
 		mmc1 = &usdhc2;
 		mmc2 = &usdhc3;
 		serial0 = &adma_lpuart0;
+		isi0 = &isi_0;
+		isi1 = &isi_1;
+		isi2 = &isi_2;
+		isi3 = &isi_3;
+		isi4 = &isi_4;
+		isi5 = &isi_5;
+		isi6 = &isi_6;
+		isi7 = &isi_7;
+		csi0 = &mipi_csi_0;
+		csi1 = &mipi_csi_1;
 	};
 
 	cpus {
@@ -201,4 +211,5 @@
 	#include "imx8-ss-conn.dtsi"
 	#include "imx8-ss-lsio.dtsi"
 	#include "imx8-ss-hsio.dtsi"
+	#include "imx8-ss-img.dtsi"
 };
