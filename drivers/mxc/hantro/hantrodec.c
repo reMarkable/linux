@@ -19,6 +19,7 @@
  *    http://www.opensource.org/licenses/gpl-license.html
  *    http://www.gnu.org/copyleft/gpl.html
  *****************************************************************************/
+
 #include <linux/hantrodec.h>
 #include "dwl_defs.h"
 #include <linux/io.h>
@@ -1030,9 +1031,9 @@ static long hantrodec_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 	 * "write" is reversed
 	 */
 	if (_IOC_DIR(cmd) & _IOC_READ)
-		err = !access_ok(VERIFY_WRITE, (void *) arg, _IOC_SIZE(cmd));
+		err = !access_ok((void *) arg, _IOC_SIZE(cmd));
 	else if (_IOC_DIR(cmd) & _IOC_WRITE)
-		err = !access_ok(VERIFY_READ, (void *) arg, _IOC_SIZE(cmd));
+		err = !access_ok((void *) arg, _IOC_SIZE(cmd));
 
 	if (err)
 		return -EFAULT;
@@ -1263,7 +1264,7 @@ static int get_hantro_core_desc32(struct core_desc *kp, struct core_desc_32 __us
 {
 	u32 tmp;
 
-	if (!access_ok(VERIFY_READ, up, sizeof(struct core_desc_32)) ||
+	if (!access_ok(up, sizeof(struct core_desc_32)) ||
 				get_user(kp->id, &up->id) ||
 				get_user(kp->size, &up->size) ||
 				get_user(tmp, &up->regs)) {
@@ -1277,7 +1278,7 @@ static int put_hantro_core_desc32(struct core_desc *kp, struct core_desc_32 __us
 {
 	u32 tmp = (u32)((unsigned long)kp->regs);
 
-	if (!access_ok(VERIFY_WRITE, up, sizeof(struct core_desc_32)) ||
+	if (!access_ok(up, sizeof(struct core_desc_32)) ||
 				put_user(kp->id, &up->id) ||
 				put_user(kp->size, &up->size) ||
 				put_user(tmp, &up->regs)) {
