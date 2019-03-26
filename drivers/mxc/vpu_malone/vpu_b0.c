@@ -917,7 +917,7 @@ static int v4l2_ioctl_qbuf(struct file *file,
 	} else
 		return -EINVAL;
 
-	ret = vb2_qbuf(&q_data->vb2_q, buf);
+	ret = vb2_qbuf(&q_data->vb2_q, NULL, buf);
 	if (!ret) {
 		if (buf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 			wake_up_interruptible(&ctx->buffer_wq);
@@ -993,22 +993,6 @@ static int v4l2_ioctl_try_fmt(struct file *file,
 			return -EINVAL;
 	} else
 		return -EINVAL;
-
-	return 0;
-}
-
-static int v4l2_ioctl_g_crop(struct file *file,
-		void *fh,
-		struct v4l2_crop *cr
-		)
-{
-	struct vpu_ctx *ctx = v4l2_fh_to_ctx(fh);
-
-	vpu_dbg(LVL_INFO, "%s()\n", __func__);
-	cr->c.left = ctx->pSeqinfo->uFrameCropLeftOffset;
-	cr->c.top = ctx->pSeqinfo->uFrameCropTopOffset;
-	cr->c.width = ctx->pSeqinfo->uHorRes;
-	cr->c.height = ctx->pSeqinfo->uVerRes;
 
 	return 0;
 }
@@ -1147,7 +1131,6 @@ static const struct v4l2_ioctl_ops v4l2_decoder_ioctl_ops = {
 	.vidioc_s_fmt_vid_cap_mplane    = v4l2_ioctl_s_fmt,
 	.vidioc_s_fmt_vid_out_mplane    = v4l2_ioctl_s_fmt,
 	.vidioc_expbuf                  = v4l2_ioctl_expbuf,
-	.vidioc_g_crop                  = v4l2_ioctl_g_crop,
 	.vidioc_decoder_cmd             = v4l2_ioctl_decoder_cmd,
 	.vidioc_subscribe_event         = v4l2_ioctl_subscribe_event,
 	.vidioc_unsubscribe_event       = v4l2_event_unsubscribe,
