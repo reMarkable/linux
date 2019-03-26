@@ -1150,54 +1150,6 @@ static int vpu_enc_v4l2_ioctl_try_fmt(struct file *file,
 	return 0;
 }
 
-static int vpu_enc_v4l2_ioctl_g_crop(struct file *file, void *fh,
-				struct v4l2_crop *cr)
-{
-	struct vpu_ctx *ctx = v4l2_fh_to_ctx(fh);
-	struct queue_data *src = &ctx->q_data[V4L2_SRC];
-
-	if (!cr)
-		return -EINVAL;
-
-	if (get_queue_by_v4l2_type(ctx, cr->type) != src)
-		return -EINVAL;
-
-
-	vpu_dbg(LVL_DEBUG, "%s()\n", __func__);
-	cr->c.left = src->rect.left;
-	cr->c.top = src->rect.top;
-	cr->c.width = src->rect.width;
-	cr->c.height = src->rect.height;
-
-	return 0;
-}
-
-static int vpu_enc_v4l2_ioctl_s_crop(struct file *file, void *fh,
-				const struct v4l2_crop *cr)
-{
-	struct vpu_ctx *ctx = v4l2_fh_to_ctx(fh);
-	struct queue_data *src = &ctx->q_data[V4L2_SRC];
-	struct vpu_dev *dev = ctx->dev;
-
-	if (!cr)
-		return -EINVAL;
-	if (!dev)
-		return -EINVAL;
-
-	if (get_queue_by_v4l2_type(ctx, cr->type) != src)
-		return -EINVAL;
-
-	vpu_dbg(LVL_DEBUG, "%s()\n", __func__);
-
-	src->rect.left = ALIGN(cr->c.left, dev->supported_size.step_width);
-	src->rect.top = ALIGN(cr->c.top, dev->supported_size.step_height);
-	src->rect.width = ALIGN(cr->c.width, dev->supported_size.step_width);
-	src->rect.height = ALIGN(cr->c.height, dev->supported_size.step_height);
-	valid_crop_info(src, &src->rect);
-
-	return 0;
-}
-
 static int response_stop_stream(struct vpu_ctx *ctx)
 {
 	struct queue_data *queue;
@@ -1412,8 +1364,6 @@ static const struct v4l2_ioctl_ops vpu_enc_v4l2_ioctl_ops = {
 	.vidioc_g_parm			= vpu_enc_v4l2_ioctl_g_parm,
 	.vidioc_s_parm			= vpu_enc_v4l2_ioctl_s_parm,
 	.vidioc_expbuf                  = vpu_enc_v4l2_ioctl_expbuf,
-	.vidioc_g_crop                  = vpu_enc_v4l2_ioctl_g_crop,
-	.vidioc_s_crop			= vpu_enc_v4l2_ioctl_s_crop,
 	.vidioc_encoder_cmd             = vpu_enc_v4l2_ioctl_encoder_cmd,
 	.vidioc_subscribe_event         = vpu_enc_v4l2_ioctl_subscribe_event,
 	.vidioc_unsubscribe_event       = v4l2_event_unsubscribe,
