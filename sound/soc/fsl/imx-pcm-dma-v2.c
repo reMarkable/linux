@@ -99,26 +99,21 @@ static snd_pcm_uframes_t imx_pcm_pointer(struct snd_pcm_substream *substream)
 	return snd_dmaengine_pcm_pointer(substream);
 }
 
-static int imx_pcm_preallocate_dma_buffer(struct snd_pcm_substream *substream,
+static void imx_pcm_preallocate_dma_buffer(struct snd_pcm_substream *substream,
 	struct device *dev)
 {
 	size_t size = imx_pcm_hardware.buffer_bytes_max;
-	int ret;
 
-	ret = snd_pcm_lib_preallocate_pages(substream,
+	snd_pcm_lib_preallocate_pages(substream,
 				SNDRV_DMA_TYPE_DEV_IRAM,
 				dev,
 				size,
 				size);
-	if (ret)
-		return ret;
-
-	return 0;
 }
 
-static int imx_pcm_free_dma_buffers(struct snd_pcm_substream *substream)
+static void imx_pcm_free_dma_buffers(struct snd_pcm_substream *substream)
 {
-	return snd_pcm_lib_preallocate_free(substream);
+	snd_pcm_lib_preallocate_free(substream);
 }
 
 static int imx_pcm_open(struct snd_pcm_substream *substream)
@@ -207,9 +202,7 @@ static int imx_pcm_open(struct snd_pcm_substream *substream)
 
 	snd_soc_set_runtime_hwparams(substream, &imx_pcm_hardware);
 
-	ret = imx_pcm_preallocate_dma_buffer(substream, chan->device->dev);
-	if (ret)
-		return ret;
+	imx_pcm_preallocate_dma_buffer(substream, chan->device->dev);
 
 	ret = snd_pcm_hw_constraint_integer(substream->runtime,
 					    SNDRV_PCM_HW_PARAM_PERIODS);
@@ -232,11 +225,7 @@ static int imx_pcm_mmap(struct snd_pcm_substream *substream,
 
 static int imx_pcm_close(struct snd_pcm_substream *substream)
 {
-	int ret;
-
-	ret = imx_pcm_free_dma_buffers(substream);
-	if (ret)
-		return ret;
+	imx_pcm_free_dma_buffers(substream);
 
 	return snd_dmaengine_pcm_close_release_chan(substream);
 }
