@@ -1045,7 +1045,7 @@ static int vpu_enc_v4l2_ioctl_qbuf(struct file *file,
 	if (ret < 0)
 		return ret;
 
-	ret = vb2_qbuf(&q_data->vb2_q, buf);
+	ret = vb2_qbuf(&q_data->vb2_q, NULL, buf);
 
 	if (!ret && buf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
 		count_yuv_input(ctx);
