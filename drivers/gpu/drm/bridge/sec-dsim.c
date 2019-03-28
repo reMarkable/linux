@@ -1917,7 +1917,6 @@ int sec_mipi_dsim_bind(struct device *dev, struct device *master, void *data,
 	bridge->funcs = &sec_mipi_dsim_bridge_funcs;
 	bridge->of_node = dev->of_node;
 	bridge->encoder = encoder;
-	encoder->bridge = bridge;
 
 	/* attach sec dsim bridge and its next bridge if exists */
 	ret = drm_bridge_attach(encoder, bridge, NULL);
