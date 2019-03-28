@@ -834,9 +834,13 @@ static int sec_mipi_dsim_bridge_attach(struct drm_bridge *bridge)
 		endpoint = of_graph_get_next_endpoint(np, endpoint);
 	}
 
-	/* No valid dsi device attached */
+	/* For the panel driver loading is after dsim bridge,
+	 * defer bridge binding to wait for panel driver ready.
+	 * The disadvantage of probe defer is endless probing
+	 * in some cases.
+	 */
 	if (!next)
-		return -ENODEV;
+		return -EPROBE_DEFER;
 
 	/* duplicate bridges or next bridge exists */
 	WARN_ON(bridge == next || bridge->next || dsim->next);
