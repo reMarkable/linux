@@ -63,6 +63,13 @@
 		#reset-cells = <0>;
 	};
 
+        wacom_reset: wacom-reset {
+                compatible = "gpio-reset";
+                reset-gpios = <&gpio6 12 1>;
+                reset-delay-us = <100000>;
+                #reset-cells = <0>;
+        };
+
 	spi4 {
 		compatible = "spi-gpio";
 		pinctrl-names = "default";
@@ -451,6 +458,7 @@
 		compatible = "fsl,mpl3115";
 		reg = <0x60>;
 	};
+
 };
 
 &i2c3 {
@@ -469,6 +477,14 @@
 		reg = <0x39>;
 		status = "okay";
 	};
+
+        digitizer: wacom-i2c@09 {
+                compatible = "wacom,wacom-i2c";
+                reg = <0x09>;
+                interrupt-parent = <&gpio6>;
+                interrupts = <13 2>;
+                resets = <&wacom_reset>;
+        };
 
 	max17135: max17135@48 {
 		pinctrl-names = "default";
@@ -804,17 +820,11 @@
 			>;
 		};
 
-		pinctrl_epdc_elan_touch: epdc_elan_touch_grp {
-			fsl,pins = <
-				MX7D_PAD_SAI1_RX_DATA__GPIO6_IO12 0x59
-				MX7D_PAD_SAI1_TX_DATA__GPIO6_IO15 0x1b
-				MX7D_PAD_SAI1_TX_BCLK__GPIO6_IO13 0x80000000
-			>;
-		};
-
 		pinctrl_hog_1: hoggrp-1 {
 			fsl,pins = <
 				MX7D_PAD_EPDC_BDR0__GPIO2_IO28	0x59 /* headphone detect */
+                                MX7D_PAD_SAI1_RX_DATA__GPIO6_IO12 0x14
+                                MX7D_PAD_SAI1_TX_BCLK__GPIO6_IO13 0x14
 			>;
 		};
 
