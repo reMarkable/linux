@@ -184,14 +184,14 @@
 	aquantia_phy1: ethernet-phy@4 {
 		/* AQR107 PHY - "compatible" property not strictly needed */
 		compatible = "ethernet-phy-ieee802.3-c45";
+		interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x4>;
-		/* Poll mode - no "interrupts" property defined */
 	};
 	aquantia_phy2: ethernet-phy@5 {
 		/* AQR107 PHY - "compatible" property not strictly needed */
 		compatible = "ethernet-phy-ieee802.3-c45";
+		interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5>;
-		/* Poll mode - no "interrupts" property defined */
 	};
 };
 
