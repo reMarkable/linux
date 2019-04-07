@@ -3603,8 +3603,6 @@ static int show_v4l2_buf_status(struct vpu_ctx *ctx, char *buf, u32 size)
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:queued,", VB2_BUF_STATE_QUEUED);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
-			" %d:requeueing,", VB2_BUF_STATE_REQUEUEING);
-	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:active,", VB2_BUF_STATE_ACTIVE);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:done,", VB2_BUF_STATE_DONE);
@@ -3947,8 +3945,6 @@ static ssize_t show_buffer_info(struct device *dev,
 			" %d:preparing,", VB2_BUF_STATE_PREPARING);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:queued,", VB2_BUF_STATE_QUEUED);
-	num += scnprintf(buf + num, PAGE_SIZE - num,
-			" %d:requeueing,", VB2_BUF_STATE_REQUEUEING);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:active,", VB2_BUF_STATE_ACTIVE);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
