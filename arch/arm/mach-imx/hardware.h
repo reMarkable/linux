@@ -102,6 +102,7 @@
 #include "mx2x.h"
 #include "mx21.h"
 #include "mx27.h"
+#include "mx6.h"
 #include "mx7.h"
 
 #define imx_map_entry(soc, name, _type)	{				\

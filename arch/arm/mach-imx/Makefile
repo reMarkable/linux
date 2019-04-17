@@ -78,7 +78,8 @@ AFLAGS_headsmp.o :=-Wa,-march=armv7-a
 obj-$(CONFIG_SMP) += headsmp.o platsmp.o
 obj-$(CONFIG_HOTPLUG_CPU) += hotplug.o
 endif
-obj-$(CONFIG_SOC_IMX6Q) += mach-imx6q.o
+obj-$(CONFIG_SOC_IMX6Q) += mach-imx6q.o ddr3_freq_imx6.o smp_wfe_imx6.o busfreq_lpddr2.o \
+				lpddr2_freq_imx6q.o
 obj-$(CONFIG_SOC_IMX6SL) += mach-imx6sl.o
 obj-$(CONFIG_SOC_IMX6SLL) += mach-imx6sl.o
 obj-$(CONFIG_SOC_IMX6SX) += mach-imx6sx.o
@@ -90,8 +91,11 @@ obj-$(CONFIG_SOC_IMX7ULP) += mach-imx7ulp.o pm-imx7ulp.o
 
 obj-y += busfreq-imx.o busfreq_ddr3.o
 AFLAGS_smp_wfe.o :=-Wa,-march=armv7-a
+AFLAGS_smp_wfe_imx6.o :=-Wa,-march=armv7-a
 AFLAGS_ddr3_freq_imx7d.o :=-Wa,-march=armv7-a
 AFLAGS_lpddr3_freq_imx.o :=-Wa,-march=armv7-a
+AFLAGS_ddr3_freq_imx6.o :=-Wa,-march=armv7-a
+AFLAGS_lpddr2_freq_imx6q.o :=-Wa,-march=armv7-a
 
 ifeq ($(CONFIG_SUSPEND),y)
 AFLAGS_suspend-imx6.o :=-Wa,-march=armv7-a
