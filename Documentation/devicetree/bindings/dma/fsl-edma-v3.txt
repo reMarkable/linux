@@ -30,6 +30,8 @@ Required properties:
 		0: not dual fifo case, 1: dualfifo case.
 	See the SoC's reference manual for all the supported request sources.
 - dma-channels : Number of channels supported by the controller
+- power-domains: Power domains for edma channel used.
+- power-domain-names: Power domains name for edma channel used.
 
 Examples:
 edma0: dma-controller@40018000 {
@@ -46,6 +48,12 @@ edma0: dma-controller@40018000 {
 		     <GIC_SPI 437 IRQ_TYPE_LEVEL_HIGH>;
 	interrupt-names = "edma0-chan12-rx", "edma0-chan13-tx",
 			  "edma0-chan14-rx", "edma0-chan15-tx";
+	power-domains = <&pd IMX_SC_R_DMA_0_CH12>,
+			<&pd IMX_SC_R_DMA_0_CH13>,
+			<&pd IMX_SC_R_DMA_0_CH14>,
+			<&pd IMX_SC_R_DMA_0_CH15>;
+	power-domain-names = "edma0-chan12", "edma0-chan13",
+			     "edma0-chan14", "edma0-chan15";
 	status = "okay";
 };
 
@@ -65,7 +73,8 @@ lpuart1: serial@5a070000 {
 	clock-names = "ipg";
 	assigned-clock-names = <&clk IMX8QM_UART1_CLK>;
 	assigned-clock-rates = <80000000>;
-	power-domains = <&pd_dma_lpuart1>;
+	power-domains = <&pd IMX_SC_R_UART_1>,
+	power-domain-names = "uart";
 	dma-names = "tx","rx";
 	dmas = <&edma0 15 0 0>,
 		<&edma0 14 0 1>;
