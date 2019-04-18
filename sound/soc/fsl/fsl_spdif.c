@@ -750,6 +750,7 @@ static int fsl_spdif_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
 	struct clk *clk, *p, *pll = 0, *npll = 0;
 	u64 ratio = freq;
 	int ret, i;
+	bool reparent = false;
 
 	if (dir != SND_SOC_CLOCK_OUT || freq == 0 || clk_id != STC_TXCLK_SPDIF_ROOT)
 		return 0;
@@ -775,23 +776,22 @@ static int fsl_spdif_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
 		p = pp;
 	}
 
-	if (pll) {
-		npll = (do_div(ratio, 8000) ? data->pll11k_clk : data->pll8k_clk);
-		if (!clk_is_match(pll, npll)) {
-			ret = clk_set_parent(p, npll);
-			if (ret < 0)
-				dev_warn(cpu_dai->dev,
-					"failed to set parent %s: %d\n",
-					__clk_get_name(npll), ret);
-		}
+	npll = (do_div(ratio, 8000) ? data->pll11k_clk : data->pll8k_clk);
+	reparent = (pll && !clk_is_match(pll, npll));
+
+	clk_disable_unprepare(clk);
+	if (reparent) {
+		ret = clk_set_parent(p, npll);
+		if (ret < 0)
+			dev_warn(cpu_dai->dev, "failed to set parent %s: %d\n",
+				 __clk_get_name(npll), ret);
 	}
 
 	ret = clk_set_rate(clk, freq);
-	if (ret < 0) {
-		dev_err(cpu_dai->dev, "failed to set clock rate (%u): %d\n",
-			freq, ret);
-		return ret;
-	}
+	if (ret < 0)
+		dev_warn(cpu_dai->dev, "failed to set clock rate (%u): %d\n",
+			 freq, ret);
+	clk_prepare_enable(clk);
 
 	for (i = 0; i < SPDIF_TXRATE_MAX; i++) {
 		ret = fsl_spdif_probe_txclk(data, i);
