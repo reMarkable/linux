@@ -38,6 +38,9 @@
 #define IMX_DDR_TYPE_LPDDR3		2
 #define IMX_MMDC_DDR_TYPE_LPDDR3	3
 
+#define IMX_LPDDR2_1CH_MODE            0
+#define IMX_LPDDR2_2CH_MODE            1
+
 #ifndef __ASSEMBLY__
 extern unsigned int __mxc_cpu_type;
 
@@ -103,6 +106,11 @@ static inline bool cpu_is_imx6(void)
 static inline bool cpu_is_imx7d(void)
 {
 	return __mxc_cpu_type == MXC_CPU_IMX7D;
+}
+
+static inline bool cpu_is_imx7ulp(void)
+{
+	return __mxc_cpu_type == MXC_CPU_IMX7ULP;
 }
 
 struct cpu_op {
