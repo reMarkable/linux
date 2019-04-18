@@ -177,7 +177,6 @@ struct fmac_ulp {
 };
 
 struct brcmf_sdio_dev {
-	struct sdio_func *func0;
 	struct sdio_func *func1;
 	struct sdio_func *func2;
 	u32 sbwad;			/* Save backplane window address */
