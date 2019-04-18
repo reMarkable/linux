@@ -14,6 +14,8 @@
 
 DEFINE_SPINLOCK(imx_ccm_lock);
 
+bool uart_from_osc;
+
 void imx_unregister_clocks(struct clk *clks[], unsigned int count)
 {
 	unsigned int i;
@@ -169,3 +171,10 @@ static int __init imx_clk_disable_uart(void)
 	return 0;
 }
 late_initcall_sync(imx_clk_disable_uart);
+
+static int __init setup_uart_clk(char *uart_rate)
+{
+       uart_from_osc = true;
+       return 1;
+}
+__setup("uart_from_osc", setup_uart_clk);
