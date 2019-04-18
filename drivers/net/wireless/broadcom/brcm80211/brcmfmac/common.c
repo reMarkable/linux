@@ -352,8 +352,6 @@ int brcmf_c_preinit_dcmds(struct brcmf_if *ifp)
 	if (err)
 		brcmf_info("Add unicast filter error (%d)\n", err);
 
-	/* do bus specific preinit here */
-	err = brcmf_bus_preinit(ifp->drvr->bus_if);
 done:
 	return err;
 }
