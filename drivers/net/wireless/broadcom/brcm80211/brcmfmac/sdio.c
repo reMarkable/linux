@@ -2776,7 +2776,8 @@ static void brcmf_sdio_dpc(struct brcmf_sdio *bus)
 	if (intstatus & I_HMB_HOST_INT) {
 		intstatus &= ~I_HMB_HOST_INT;
 		intstatus |= brcmf_sdio_hostmail(bus);
-		if (brcmf_sdio_ulp_pre_redownload_check(bus))
+		if ((sdiod->func1->device != SDIO_DEVICE_ID_BROADCOM_4339) &&
+		    brcmf_sdio_ulp_pre_redownload_check(bus))
 			brcmf_sdio_ulp_reinit_fw(bus);
 	}
 
@@ -3687,7 +3688,8 @@ static int brcmf_sdio_bus_preinit(struct device *dev)
 		goto done;
 
 	/* initialize SHM address from firmware for DS1 */
-	if (!bus->sdiodev->ulp)
+	if ((sdiodev->func1->device != SDIO_DEVICE_ID_BROADCOM_4339) &&
+	    !bus->sdiodev->ulp)
 		brcmf_sdio_ulp_preinit(dev);
 
 	bus->tx_hdrlen = SDPCM_HWHDR_LEN + SDPCM_SWHDR_LEN;
