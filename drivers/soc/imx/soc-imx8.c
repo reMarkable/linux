@@ -3,6 +3,7 @@
  * Copyright 2019 NXP.
  */
 
+#include <linux/arm-smccc.h>
 #include <linux/init.h>
 #include <linux/io.h>
 #include <linux/of_address.h>
@@ -10,6 +11,8 @@
 #include <linux/sys_soc.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
+
+#include <soc/imx/src.h>
 
 #define REV_B1				0x21
 
@@ -198,3 +201,28 @@ free_soc:
 	return ret;
 }
 device_initcall(imx8_soc_init);
+
+#define FSL_SIP_SRC                    0xc2000005
+#define FSL_SIP_SRC_M4_START           0x00
+#define FSL_SIP_SRC_M4_STARTED         0x01
+
+/* To indicate M4 enabled or not on i.MX8MQ */
+static bool m4_is_enabled;
+bool imx_src_is_m4_enabled(void)
+{
+	return m4_is_enabled;
+}
+
+int check_m4_enabled(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(FSL_SIP_SRC, FSL_SIP_SRC_M4_STARTED, 0,
+		      0, 0, 0, 0, 0, &res);
+		      m4_is_enabled = !!res.a0;
+
+	if (m4_is_enabled)
+		printk("M4 is started\n");
+
+	return 0;
+}
