@@ -143,7 +143,15 @@ adma_subsys: bus@59000000 {
 		clocks = <&adma_lpcg IMX_ADMA_LPCG_UART1_IPG_CLK>,
 			 <&adma_lpcg IMX_ADMA_LPCG_UART1_BAUD_CLK>;
 		clock-names = "ipg", "baud";
-		power-domains = <&pd IMX_SC_R_UART_1>;
+		assigned-clocks = <&clk IMX_ADMA_UART1_CLK>;
+		assigned-clock-rates = <80000000>;
+		power-domains = <&pd IMX_SC_R_UART_1>,
+				<&pd IMX_SC_R_DMA_2_CH10>,
+				<&pd IMX_SC_R_DMA_2_CH11>;
+		power-domain-names = "uart", "rxdma", "txdma";
+		dma-names = "tx","rx";
+		dmas = <&edma2 11 0 0>,
+			<&edma2 10 0 1>;
 		status = "disabled";
 	};
 
