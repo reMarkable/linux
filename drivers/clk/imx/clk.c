@@ -161,6 +161,9 @@ void imx_register_uart_clocks(struct clk ** const clks[])
 
 static int __init imx_clk_disable_uart(void)
 {
+	if (imx_src_is_m4_enabled())
+		return 0;
+
 	if (imx_keep_uart_clocks && imx_uart_clocks) {
 		int i;
 
