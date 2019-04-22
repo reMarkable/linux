@@ -2,7 +2,7 @@
 //
 // Device Tree Include file for Layerscape-LX2160A family SoC.
 //
-// Copyright 2018 NXP
+// Copyright 2018-2019 NXP
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -500,7 +500,7 @@
 			status = "disabled";
 		};
 
-		pcs_mdio1: mdio@0x8c07000 {
+		pcs_mdio1: mdio@8c07000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c07000 0x0 0x1000>;
 			device_type = "mdio";
@@ -510,7 +510,7 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio2: mdio@0x8c0b000 {
+		pcs_mdio2: mdio@8c0b000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c0b000 0x0 0x1000>;
 			device_type = "mdio";
@@ -520,7 +520,7 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio3: mdio@0x8c0f000 {
+		pcs_mdio3: mdio@8c0f000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c0f000 0x0 0x1000>;
 			device_type = "mdio";
@@ -530,7 +530,7 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio4: mdio@0x8c13000 {
+		pcs_mdio4: mdio@8c13000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c13000 0x0 0x1000>;
 			device_type = "mdio";
@@ -540,7 +540,7 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio5: mdio@0x8c17000 {
+		pcs_mdio5: mdio@8c17000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c17000 0x0 0x1000>;
 			device_type = "mdio";
@@ -550,7 +550,7 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio6: mdio@0x8c1b000 {
+		pcs_mdio6: mdio@8c1b000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c1b000 0x0 0x1000>;
 			device_type = "mdio";
@@ -560,7 +560,7 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio7: mdio@0x8c1f000 {
+		pcs_mdio7: mdio@8c1f000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c1f000 0x0 0x1000>;
 			device_type = "mdio";
@@ -570,7 +570,7 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio8: mdio@0x8c23000 {
+		pcs_mdio8: mdio@8c23000 {
 			compatible = "fsl,fman-memac-mdio";
 			reg = <0x0 0x8c23000 0x0 0x1000>;
 			device_type = "mdio";
