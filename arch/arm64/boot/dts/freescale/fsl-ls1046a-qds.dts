@@ -3,7 +3,7 @@
  * Device Tree Include file for Freescale Layerscape-1046A family SoC.
  *
  * Copyright 2016 Freescale Semiconductor, Inc.
- * Copyright 2018 NXP
+ * Copyright 2018-2019 NXP
  *
  * Shaohui Xie <Shaohui.Xie@nxp.com>
  */
@@ -26,19 +26,19 @@
 		serial2 = &duart2;
 		serial3 = &duart3;
 
-		emi1_slot1 = &ls1046mdio_s1;
-		emi1_slot2 = &ls1046mdio_s2;
-		emi1_slot4 = &ls1046mdio_s4;
+		emi1-slot1 = &ls1046mdio_s1;
+		emi1-slot2 = &ls1046mdio_s2;
+		emi1-slot4 = &ls1046mdio_s4;
 
-		sgmii_s1_p1 = &sgmii_phy_s1_p1;
-		sgmii_s1_p2 = &sgmii_phy_s1_p2;
-		sgmii_s1_p3 = &sgmii_phy_s1_p3;
-		sgmii_s1_p4 = &sgmii_phy_s1_p4;
-		sgmii_s4_p1 = &sgmii_phy_s4_p1;
-		qsgmii_s2_p1 = &qsgmii_phy_s2_p1;
-		qsgmii_s2_p2 = &qsgmii_phy_s2_p2;
-		qsgmii_s2_p3 = &qsgmii_phy_s2_p3;
-		qsgmii_s2_p4 = &qsgmii_phy_s2_p4;
+		sgmii-s1-p1 = &sgmii_phy_s1_p1;
+		sgmii-s1-p2 = &sgmii_phy_s1_p2;
+		sgmii-s1-p3 = &sgmii_phy_s1_p3;
+		sgmii-s1-p4 = &sgmii_phy_s1_p4;
+		sgmii-s4-p1 = &sgmii_phy_s4_p1;
+		qsgmii-s2-p1 = &qsgmii_phy_s2_p1;
+		qsgmii-s2-p2 = &qsgmii_phy_s2_p2;
+		qsgmii-s2-p3 = &qsgmii_phy_s2_p3;
+		qsgmii-s2-p4 = &qsgmii_phy_s2_p4;
 	};
 
 	chosen {

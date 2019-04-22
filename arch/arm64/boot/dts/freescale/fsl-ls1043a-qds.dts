@@ -3,7 +3,7 @@
  * Device Tree Include file for Freescale Layerscape-1043A family SoC.
  *
  * Copyright 2014-2015 Freescale Semiconductor, Inc.
- * Copyright 2018 NXP
+ * Copyright 2018-2019 NXP
  *
  * Mingkai Hu <Mingkai.hu@freescale.com>
  */
@@ -24,22 +24,22 @@
 		serial1 = &duart1;
 		serial2 = &duart2;
 		serial3 = &duart3;
-		sgmii_riser_s1_p1 = &sgmii_phy_s1_p1;
-		sgmii_riser_s2_p1 = &sgmii_phy_s2_p1;
-		sgmii_riser_s3_p1 = &sgmii_phy_s3_p1;
-		sgmii_riser_s4_p1 = &sgmii_phy_s4_p1;
-		qsgmii_s1_p1 = &qsgmii_phy_s1_p1;
-		qsgmii_s1_p2 = &qsgmii_phy_s1_p2;
-		qsgmii_s1_p3 = &qsgmii_phy_s1_p3;
-		qsgmii_s1_p4 = &qsgmii_phy_s1_p4;
-		qsgmii_s2_p1 = &qsgmii_phy_s2_p1;
-		qsgmii_s2_p2 = &qsgmii_phy_s2_p2;
-		qsgmii_s2_p3 = &qsgmii_phy_s2_p3;
-		qsgmii_s2_p4 = &qsgmii_phy_s2_p4;
-		emi1_slot1 = &ls1043mdio_s1;
-		emi1_slot2 = &ls1043mdio_s2;
-		emi1_slot3 = &ls1043mdio_s3;
-		emi1_slot4 = &ls1043mdio_s4;
+		sgmii-riser-s1-p1 = &sgmii_phy_s1_p1;
+		sgmii-riser-s2-p1 = &sgmii_phy_s2_p1;
+		sgmii-riser-s3-p1 = &sgmii_phy_s3_p1;
+		sgmii-riser-s4-p1 = &sgmii_phy_s4_p1;
+		qsgmii-s1-p1 = &qsgmii_phy_s1_p1;
+		qsgmii-s1-p2 = &qsgmii_phy_s1_p2;
+		qsgmii-s1-p3 = &qsgmii_phy_s1_p3;
+		qsgmii-s1-p4 = &qsgmii_phy_s1_p4;
+		qsgmii-s2-p1 = &qsgmii_phy_s2_p1;
+		qsgmii-s2-p2 = &qsgmii_phy_s2_p2;
+		qsgmii-s2-p3 = &qsgmii_phy_s2_p3;
+		qsgmii-s2-p4 = &qsgmii_phy_s2_p4;
+		emi1-slot1 = &ls1043mdio_s1;
+		emi1-slot2 = &ls1043mdio_s2;
+		emi1-slot3 = &ls1043mdio_s3;
+		emi1-slot4 = &ls1043mdio_s4;
 	};
 
 	chosen {
