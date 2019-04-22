@@ -50,7 +50,7 @@ struct imx_priv {
 	int mic_active_low;
 	bool amic_mono;
 	bool dmic_mono;
-	struct snd_soc_codec *codec;
+	struct snd_soc_component *component;
 	struct platform_device *pdev;
 	struct snd_pcm_substream *first_stream;
 	struct snd_pcm_substream *second_stream;
@@ -113,11 +113,11 @@ static int hpjack_status_check(void *data)
 
 	if (hp_status != priv->hp_active_low) {
 		snprintf(buf, 32, "STATE=%d", 2);
-		snd_soc_dapm_disable_pin(snd_soc_codec_get_dapm(priv->codec), "Ext Spk");
+		snd_soc_dapm_disable_pin(snd_soc_component_get_dapm(priv->component), "Ext Spk");
 		ret = imx_hp_jack_gpio.report;
 	} else {
 		snprintf(buf, 32, "STATE=%d", 0);
-		snd_soc_dapm_enable_pin(snd_soc_codec_get_dapm(priv->codec), "Ext Spk");
+		snd_soc_dapm_enable_pin(snd_soc_component_get_dapm(priv->component), "Ext Spk");
 		ret = 0;
 	}
 
@@ -144,10 +144,11 @@ static int micjack_status_check(void *data)
 
 	if ((mic_status != priv->mic_active_low && priv->amic_mono)
 		|| (mic_status == priv->mic_active_low && priv->dmic_mono))
-		snd_soc_update_bits(priv->codec, WM8962_THREED1,
+		snd_soc_component_update_bits(priv->component, WM8962_THREED1,
 				WM8962_ADC_MONOMIX_MASK, WM8962_ADC_MONOMIX);
+
 	else
-		snd_soc_update_bits(priv->codec, WM8962_THREED1,
+		snd_soc_component_update_bits(priv->component, WM8962_THREED1,
 				WM8962_ADC_MONOMIX_MASK, 0);
 
 	buf = kmalloc(32, GFP_ATOMIC);
@@ -158,11 +159,11 @@ static int micjack_status_check(void *data)
 
 	if (mic_status != priv->mic_active_low) {
 		snprintf(buf, 32, "STATE=%d", 2);
-		snd_soc_dapm_disable_pin(snd_soc_codec_get_dapm(priv->codec), "DMIC");
+		snd_soc_dapm_disable_pin(snd_soc_component_get_dapm(priv->component), "DMIC");
 		ret = imx_mic_jack_gpio.report;
 	} else {
 		snprintf(buf, 32, "STATE=%d", 0);
-		snd_soc_dapm_enable_pin(snd_soc_codec_get_dapm(priv->codec), "DMIC");
+		snd_soc_dapm_enable_pin(snd_soc_component_get_dapm(priv->component), "DMIC");
 		ret = 0;
 	}
 
@@ -438,10 +439,9 @@ static int imx_wm8962_gpio_init(struct snd_soc_card *card)
 	struct snd_soc_pcm_runtime *rtd = list_first_entry(
 		&card->rtd_list, struct snd_soc_pcm_runtime, list);
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
-	struct snd_soc_codec *codec = codec_dai->codec;
 	struct imx_priv *priv = &card_priv;
 
-	priv->codec = codec;
+	priv->component = codec_dai->component;
 
 	if (gpio_is_valid(priv->hp_gpio)) {
 		imx_hp_jack_gpio.gpio = priv->hp_gpio;
@@ -468,7 +468,7 @@ static int imx_wm8962_gpio_init(struct snd_soc_card *card)
 		 * Permanent set monomix bit if only one microphone
 		 * is present on the board while it needs monomix.
 		 */
-		snd_soc_update_bits(priv->codec, WM8962_THREED1,
+		snd_soc_component_update_bits(priv->component, WM8962_THREED1,
 				WM8962_ADC_MONOMIX_MASK, WM8962_ADC_MONOMIX);
 	}
 
