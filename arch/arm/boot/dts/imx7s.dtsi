@@ -53,19 +53,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		idle-states {
-			entry-method = "psci";
-
-			cpu_sleep_wait: cpu-sleep-wait {
-				compatible = "arm,idle-state";
-				arm,psci-suspend-param = <0x0010000>;
-				local-timer-stop;
-				entry-latency-us = <100>;
-				exit-latency-us = <50>;
-				min-residency-us = <1000>;
-			};
-		};
-
 		cpu0: cpu@0 {
 			compatible = "arm,cortex-a7";
 			device_type = "cpu";
@@ -73,7 +60,6 @@
 			clock-frequency = <792000000>;
 			clock-latency = <61036>; /* two CLK32 periods */
 			clocks = <&clks IMX7D_CLK_ARM>;
-			cpu-idle-states = <&cpu_sleep_wait>;
 		};
 	};
 
@@ -156,15 +142,6 @@
 			<&tempmon_temp_grade>;
 		nvmem-cell-names = "calib", "temp_grade";
 		clocks = <&clks IMX7D_PLL_SYS_MAIN_CLK>;
-	};
-
-	timer {
-		compatible = "arm,armv7-timer";
-		interrupt-parent = <&intc>;
-		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>;
 	};
 
 	soc {
@@ -314,6 +291,17 @@
 			      <0x31002000 0x2000>,
 			      <0x31004000 0x2000>,
 			      <0x31006000 0x2000>;
+		};
+
+		timer {
+			compatible = "arm,armv7-timer";
+			arm,cpu-registers-not-fw-configured;
+			interrupt-parent = <&intc>;
+			interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+				     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+				     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+				     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
+			clock-frequency = <8000000>;
 		};
 
 		aips1: aips-bus@30000000 {
@@ -628,7 +616,7 @@
 			};
 
 			src: src@30390000 {
-				compatible = "fsl,imx7d-src", "syscon";
+				compatible = "fsl,imx7d-src", "fsl,imx51-src", "syscon";
 				reg = <0x30390000 0x10000>;
 				interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
 				#reset-cells = <1>;
@@ -641,6 +629,7 @@
 				interrupts = <GIC_SPI 87 IRQ_TYPE_LEVEL_HIGH>;
 				#interrupt-cells = <3>;
 				interrupt-parent = <&intc>;
+				fsl,mf-mix-wakeup-irq = <0x54010000 0xc00 0x0 0x1040640>;
 				#power-domain-cells = <1>;
 
 				pgc {
