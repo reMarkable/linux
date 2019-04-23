@@ -84,6 +84,7 @@ static void SetupSgmiiInternalPhy(t_Memac *p_Memac, uint8_t phyAddr)
 {
     uint16_t    tmpReg16;
     e_EnetMode  enetMode;
+    bool autoneg_disabled = p_Memac->enetMode == e_ENET_MODE_SGMII_2500;
 
      /* In case the higher MACs are used (i.e. the MACs that should support 10G),
         speed=10000 is provided for SGMII ports. Temporary modify enet mode
@@ -92,8 +93,9 @@ static void SetupSgmiiInternalPhy(t_Memac *p_Memac, uint8_t phyAddr)
 
     /* SGMII mode + AN enable */
     tmpReg16 = PHY_SGMII_IF_MODE_AN | PHY_SGMII_IF_MODE_SGMII;
-    if ((p_Memac->enetMode) == e_ENET_MODE_SGMII_2500)
-        tmpReg16 = PHY_SGMII_CR_PHY_RESET | PHY_SGMII_IF_SPEED_GIGABIT | PHY_SGMII_IF_MODE_SGMII;
+    /* unless SGMII 2500 where AN needs to be disabled  */
+    if (autoneg_disabled)
+        tmpReg16 = PHY_SGMII_IF_SPEED_GIGABIT | PHY_SGMII_IF_MODE_SGMII;
 
     p_Memac->enetMode = MAKE_ENET_MODE(ENET_INTERFACE_FROM_MODE(p_Memac->enetMode), e_ENET_SPEED_1000);
     MEMAC_MII_WritePhyReg(p_Memac, phyAddr, 0x14, tmpReg16);
@@ -116,8 +118,12 @@ static void SetupSgmiiInternalPhy(t_Memac *p_Memac, uint8_t phyAddr)
     MEMAC_MII_WritePhyReg(p_Memac, phyAddr, 0x13, 0x0007);
     MEMAC_MII_WritePhyReg(p_Memac, phyAddr, 0x12, 0xa120);
 
-    /* Restart AN */
-    tmpReg16 = PHY_SGMII_CR_DEF_VAL | PHY_SGMII_CR_RESET_AN;
+    if (!autoneg_disabled)
+        /* Restart AN */
+        tmpReg16 = PHY_SGMII_CR_DEF_VAL | PHY_SGMII_CR_RESET_AN;
+    else
+        /* Disable AN */
+        tmpReg16 = PHY_SGMII_CR_DEF_VAL & ~PHY_SGMII_CR_AN_EN;
     MEMAC_MII_WritePhyReg(p_Memac, phyAddr, 0x0, tmpReg16);
 
     /* Restore original enet mode */

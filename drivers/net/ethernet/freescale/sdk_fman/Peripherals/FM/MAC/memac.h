@@ -93,6 +93,7 @@ typedef struct
 #define PHY_SGMII_CR_PHY_RESET          0x8000
 #define PHY_SGMII_CR_RESET_AN           0x0200
 #define PHY_SGMII_CR_DEF_VAL            0x1140
+#define PHY_SGMII_CR_AN_EN              0x1000
 #define PHY_SGMII_DEV_ABILITY_SGMII     0x4001
 #define PHY_SGMII_DEV_ABILITY_1000X     0x01A0
 #define PHY_SGMII_IF_SPEED_GIGABIT	0x0008
