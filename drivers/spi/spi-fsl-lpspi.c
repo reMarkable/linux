@@ -845,6 +845,11 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 	u32 temp;
 	bool is_slave;
 
+	if (!np && !lpspi_platform_info) {
+		dev_err(&pdev->dev, "can't get the platform data\n");
+		return -EINVAL;
+	}
+
 	is_slave = of_property_read_bool((&pdev->dev)->of_node, "spi-slave");
 	if (is_slave)
 		controller = spi_alloc_slave(&pdev->dev,
