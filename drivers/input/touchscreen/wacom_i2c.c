@@ -15,6 +15,7 @@
 #include <linux/gpio.h>
 #include <linux/of.h>
 #include <asm/unaligned.h>
+#include <linux/kernel.h>
 
 #define WACOM_CMD_QUERY0	0x04
 #define WACOM_CMD_QUERY1	0x00
@@ -72,11 +73,16 @@ static int wacom_query_device(struct i2c_client *client,
 		},
 	};
 
+	printk("[---- SBA ----] Sending cmd1, cmd2 and data over I2C ..\n");
 	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
-	if (ret < 0)
+	if (ret < 0) {
+		printk("[---- SBA ----] i2c_transfer returned with errorcode %d\n", ret);
 		return ret;
-	if (ret != ARRAY_SIZE(msgs))
+	}
+	if (ret != ARRAY_SIZE(msgs)) {
+		printk("[---- SBA ----] i2c_transfer returned with unexpected return value %2\n", msgs);
 		return -EIO;
+	}
 
 	features->x_max = get_unaligned_le16(&data[3]);
 	features->y_max = get_unaligned_le16(&data[5]);
@@ -175,16 +181,28 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	struct wacom_features features = { 0 };
 	int error;
 
+	printk("[---- SBA ----] wacom_i2c_probe enter\n");
+	printk("[---- SBA ----] Stack trace:\n");
+    dump_stack();
+    printk("[---- SBA ----] client->addr: 0x%02X\n", client->addr);
+    printk("[---- SBA ----] client->irq: %d\n", client->irq);
+    printk("[---- SBA ----] client->name: %s\n", client->name);
+
+
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "i2c_check_functionality error\n");
 		return -EIO;
 	}
 
+    printk("[---- SBA ----] Querying device ..\n");
 	error = wacom_query_device(client, &features);
 	if (error)
 		return error;
 
+	printk("[---- SBA ----] Allocating memory to hold device info..\n");
 	wac_i2c = kzalloc(sizeof(*wac_i2c), GFP_KERNEL);
+
+	printk("[---- SBA ----] Allocating input device in input subsystem..\n");
 	input = input_allocate_device();
 	if (!wac_i2c || !input) {
 		error = -ENOMEM;
@@ -194,6 +212,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	wac_i2c->client = client;
 	wac_i2c->input = input;
 
+	printk("[---- SBA ----] Registering information for wacom device as new input..\n");
 	input->name = "Wacom I2C Digitizer";
 	input->id.bustype = BUS_I2C;
 	input->id.vendor = 0x56a;
@@ -221,6 +240,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 
 	input_set_drvdata(input, wac_i2c);
 
+	printk("[---- SBA ----] Requesting threaded irq (client->irq=%d) ..\n", client->irq);
 	error = request_threaded_irq(client->irq, NULL, wacom_i2c_irq,
 				     IRQF_TRIGGER_LOW | IRQF_ONESHOT,
 				     "wacom_i2c", wac_i2c);
@@ -231,8 +251,10 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	}
 
 	/* Disable the IRQ, we'll enable it in wac_i2c_open() */
+    printk("[---- SBA ----] Disabling IRQ for now (to be enabled in wac_i2c_open) ..\n");
 	disable_irq(client->irq);
 
+	printk("[---- SBA ----] Register wacom input device ..\n");
 	error = input_register_device(wac_i2c->input);
 	if (error) {
 		dev_err(&client->dev,
@@ -240,6 +262,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 		goto err_free_irq;
 	}
 
+	printk("[---- SBA ----] Set wacom device data in i2c client structure ..\n");
 	i2c_set_clientdata(client, wac_i2c);
 	return 0;
 
@@ -249,6 +272,7 @@ err_free_mem:
 	input_free_device(input);
 	kfree(wac_i2c);
 
+	printk("[---- SBA ----] wacom_i2c_probe exit\n");
 	return error;
 }
 
