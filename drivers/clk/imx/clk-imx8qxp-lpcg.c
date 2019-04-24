@@ -280,6 +280,19 @@ static const struct imx8qxp_ss_lpcg imx8qxp_ss_csi1 = {
 	.num_max = IMX_CSI_LPCG_CSI1_CLK_END,
 };
 
+static const struct imx8qxp_lpcg_data imx8qxp_lpcg_pi[] = {
+	{ IMX_PI_LPCG_PI0_PIXEL_CLK, "pi_lpcg_pi0_pixel_clk", "pi_per_div_clk", 0, PI_PI0_PIXEL_LPCG, 0, 0, },
+	{ IMX_PI_LPCG_PI0_IPG_CLK, "pi_lpcg_pi0_ipg_clk", "pi_per_div_clk", 0, PI_PI0_IPG_LPCG, 16, 0, },
+	{ IMX_PI_LPCG_PI0_MISC_CLK, "pi_lpcg_pi0_misc_clk", "pi_mclk_div_clk", 0, PI_PI0_MISC_LPCG, 0, 0, },
+};
+
+static const struct imx8qxp_ss_lpcg imx8qxp_ss_pi = {
+	.lpcg = imx8qxp_lpcg_pi,
+	.num_lpcg = ARRAY_SIZE(imx8qxp_lpcg_pi),
+	.num_max = IMX_PI_LPCG_CLK_END,
+};
+
+
 static const struct imx8qxp_lpcg_data imx8qxp_lpcg_dc[] = {
 	{ IMX_DC0_LPCG_PRG0_RTRAM_CLK, "dc0_lpcg_prg0_rtram_clk", "dc_axi_ext_clk_root", 0, 0x20, 0, 0, },
 	{ IMX_DC0_LPCG_PRG0_APB_CLK, "dc0_lpcg_prg0_apb_clk", "dc_cfg_clk_root", 0, 0x20, 16, 0, },
@@ -413,6 +426,7 @@ static const struct of_device_id imx8qxp_lpcg_match[] = {
 	{ .compatible = "fsl,imx8qxp-lpcg-img",  &imx8qxp_ss_img, },
 	{ .compatible = "fsl,imx8qxp-lpcg-csi0",  &imx8qxp_ss_csi0, },
 	{ .compatible = "fsl,imx8qxp-lpcg-csi1",  &imx8qxp_ss_csi1, },
+	{ .compatible = "fsl,imx8qxp-lpcg-pi",  &imx8qxp_ss_pi, },
 	{ .compatible = "fsl,imx8qxp-lpcg-dc",   &imx8qxp_ss_dc, },
 	{ .compatible = "fsl,imx8qxp-lpcg-mipi0",  &imx8qxp_ss_mipi0, },
 	{ .compatible = "fsl,imx8qxp-lpcg-mipi1",  &imx8qxp_ss_mipi1, },

@@ -25,6 +25,14 @@ static const char *sdhc0_sels[] = {
 	"dummy",
 };
 
+static const char *pll0_sels[] = {
+	"dummy",
+	"pi_dpll_clk",
+	"dummy",
+	"dummy",
+	"dummy",
+};
+
 static int imx8qxp_clk_probe(struct platform_device *pdev)
 {
 	struct device_node *ccm_node = pdev->dev.of_node;
@@ -172,6 +180,11 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	clks[IMX_CSI1_ESC_CLK]		= imx_clk_scu("mipi_csi1_esc_clk",  IMX_SC_R_CSI_1, IMX_SC_PM_CLK_MISC);
 	clks[IMX_CSI1_I2C0_CLK]		= imx_clk_scu("mipi_csi1_i2c0_clk", IMX_SC_R_CSI_1_I2C_0, IMX_SC_PM_CLK_PER);
 	clks[IMX_CSI1_PWM0_CLK]		= imx_clk_scu("mipi_csi1_pwm0_clk", IMX_SC_R_CSI_1_PWM_0, IMX_SC_PM_CLK_PER);
+
+	/* Parallel Interface SS */
+	clks[IMX_PARALLEL_DPLL_CLK]	= imx_clk_scu("pi_dpll_clk", IMX_SC_R_PI_0_PLL, IMX_SC_PM_CLK_PLL);
+	clks[IMX_PARALLEL_PER_DIV_CLK]	= imx_clk_scu2("pi_per_div_clk", pll0_sels, ARRAY_SIZE(pll0_sels), IMX_SC_R_PI_0, IMX_SC_PM_CLK_PER);
+	clks[IMX_PARALLEL_MCLK_DIV_CLK]	= imx_clk_scu("pi_mclk_div_clk", IMX_SC_R_PI_0, IMX_SC_PM_CLK_MISC0);
 
 	/* GPU SS */
 	clks[IMX_GPU0_CORE_CLK]		= imx_clk_scu("gpu_core0_clk",	 IMX_SC_R_GPU_0_PID0, IMX_SC_PM_CLK_PER);
