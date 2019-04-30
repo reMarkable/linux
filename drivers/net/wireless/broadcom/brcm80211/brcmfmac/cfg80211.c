@@ -5035,7 +5035,7 @@ static int brcmf_cfg80211_get_channel(struct wiphy *wiphy,
 
 	err = brcmf_fil_iovar_int_get(netdev_priv(ndev), "chanspec", &chanspec);
 	if (err) {
-		bphy_err(drvr, "chanspec failed (%d)\n", err);
+		brcmf_dbg(TRACE, "chanspec failed (%d)\n", err);
 		return err;
 	}
 
