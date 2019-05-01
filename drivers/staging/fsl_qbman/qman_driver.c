@@ -459,14 +459,15 @@ static struct qm_portal_config * __init parse_pcfg(struct device_node *node)
                                 pcfg->addr_phys[DPA_PORTAL_CI].start,
                                 resource_size(&pcfg->addr_phys[DPA_PORTAL_CI]));
 #else
-	pcfg->addr_virt[DPA_PORTAL_CE] = ioremap_prot(
-				pcfg->addr_phys[DPA_PORTAL_CE].start,
-				(unsigned long)len,
-				0);
-	pcfg->addr_virt[DPA_PORTAL_CI] = ioremap_prot(
-				pcfg->addr_phys[DPA_PORTAL_CI].start,
-				resource_size(&pcfg->addr_phys[DPA_PORTAL_CI]),
-				_PAGE_GUARDED | _PAGE_NO_CACHE);
+
+	pcfg->addr_virt[DPA_PORTAL_CE] =
+		memremap(pcfg->addr_phys[DPA_PORTAL_CE].start,
+			 (unsigned long)len, MEMREMAP_WB);
+
+	pcfg->addr_virt[DPA_PORTAL_CI] =
+		ioremap(pcfg->addr_phys[DPA_PORTAL_CI].start,
+			resource_size(&pcfg->addr_phys[DPA_PORTAL_CI]));
+
 #endif
 	return pcfg;
 err:
