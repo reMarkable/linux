@@ -260,7 +260,7 @@
 		dcfg: dcfg@1ee0000 {
 			compatible = "fsl,ls1012a-dcfg",
 				     "syscon";
-			reg = <0x0 0x1ee0000 0x0 0x10000>;
+			reg = <0x0 0x1ee0000 0x0 0x1000>;
 			big-endian;
 		};
 
@@ -317,13 +317,23 @@
 			#thermal-sensor-cells = <1>;
 		};
 
+		ftm0: ftm0@29d0000 {
+			compatible = "fsl,ftm-alarm";
+			reg = <0x0 0x29d0000 0x0 0x10000>,
+			      <0x0 0x1ee2140 0x0 0x4>;
+			reg-names = "ftm", "FlexTimer1";
+			interrupts = <0 86 0x4>;
+			big-endian;
+		};
+
 		i2c0: i2c@2180000 {
-			compatible = "fsl,vf610-i2c";
+			compatible = "fsl,vf610-i2c", "fsl,ls1012a-vf610-i2c";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x0 0x2180000 0x0 0x10000>;
 			interrupts = <0 56 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&clockgen 4 3>;
+			scl-gpios = <&gpio0 13 0>;
 			status = "disabled";
 		};
 
@@ -393,6 +403,20 @@
 			interrupts = <0 83 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&clockgen 4 0>;
 			big-endian;
+		};
+
+		qspi: spi@1550000 {
+			compatible = "fsl,ls1012a-qspi", "fsl,ls1021a-qspi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x0 0x1550000 0x0 0x10000>,
+				<0x0 0x40000000 0x0 0x10000000>;
+			reg-names = "QuadSPI", "QuadSPI-memory";
+			interrupts = <0 99 IRQ_TYPE_LEVEL_HIGH>;
+			clock-names = "qspi_en", "qspi";
+			clocks = <&clockgen 4 0>, <&clockgen 4 0>;
+			big-endian;
+			status = "disabled";
 		};
 
 		sai1: sai@2b50000 {
@@ -498,6 +522,46 @@
 					<0000 0 0 3 &gic 0 112 IRQ_TYPE_LEVEL_HIGH>,
 					<0000 0 0 4 &gic 0 113 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
+		};
+
+		rcpm: rcpm@1ee2000 {
+			compatible = "fsl,ls1012a-rcpm", "fsl,qoriq-rcpm-2.1";
+			reg = <0x0 0x1ee2000 0x0 0x1000>;
+			fsl,#rcpm-wakeup-cells = <1>;
+		};
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		pfe_reserved: packetbuffer@83400000 {
+			reg = <0 0x83400000 0 0xc00000>;
+		};
+	};
+
+	pfe: pfe@04000000 {
+		compatible = "fsl,pfe";
+		reg =   <0x0 0x04000000 0x0 0xc00000>,	/* AXI 16M */
+			<0x0 0x83400000 0x0 0xc00000>;  /* PFE DDR 12M */
+		reg-names = "pfe", "pfe-ddr";
+		fsl,pfe-num-interfaces = <0x2>;
+		interrupts = <0 172 0x4>,    /* HIF interrupt */
+			     <0 173 0x4>,    /*HIF_NOCPY interrupt */
+			     <0 174 0x4>;    /* WoL interrupt */
+		interrupt-names = "pfe_hif", "pfe_hif_nocpy", "pfe_wol";
+		memory-region = <&pfe_reserved>;
+		fsl,pfe-scfg = <&scfg 0>;
+		fsl,rcpm-wakeup = <&rcpm 0xf0000020>;
+		clocks = <&clockgen 4 0>;
+		clock-names = "pfe";
+
+		status = "okay";
+		pfe_mac0: ethernet@0 {
+		};
+
+		pfe_mac1: ethernet@1 {
 		};
 	};
 
