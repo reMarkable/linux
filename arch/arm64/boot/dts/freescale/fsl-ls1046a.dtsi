@@ -304,7 +304,7 @@
 
 		dcfg: dcfg@1ee0000 {
 			compatible = "fsl,ls1046a-dcfg", "syscon";
-			reg = <0x0 0x1ee0000 0x0 0x10000>;
+			reg = <0x0 0x1ee0000 0x0 0x1000>;
 			big-endian;
 		};
 
@@ -376,7 +376,7 @@
 		};
 
 		i2c0: i2c@2180000 {
-			compatible = "fsl,vf610-i2c";
+			compatible = "fsl,vf610-i2c", "fsl,ls1046a-vf610-i2c";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x0 0x2180000 0x0 0x10000>;
@@ -385,6 +385,7 @@
 			dmas = <&edma0 1 39>,
 			       <&edma0 1 38>;
 			dma-names = "tx", "rx";
+			scl-gpios = <&gpio3 12 0>;
 			status = "disabled";
 		};
 
@@ -409,12 +410,13 @@
 		};
 
 		i2c3: i2c@21b0000 {
-			compatible = "fsl,vf610-i2c";
+			compatible = "fsl,vf610-i2c", "fsl,ls1046a-vf610-i2c";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x0 0x21b0000 0x0 0x10000>;
 			interrupts = <GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&clockgen 4 1>;
+			scl-gpios = <&gpio3 12 0>;
 			status = "disabled";
 		};
 
@@ -544,6 +546,15 @@
 			status = "disabled";
 		};
 
+		ftm0: ftm0@29d0000 {
+			compatible = "fsl,ftm-alarm";
+			reg = <0x0 0x29d0000 0x0 0x10000>,
+			      <0x0 0x1ee2140 0x0 0x4>;
+			reg-names = "ftm", "FlexTimer1";
+			interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
+			big-endian;
+		};
+
 		wdog0: watchdog@2ad0000 {
 			compatible = "fsl,imx21-wdt";
 			reg = <0x0 0x2ad0000 0x0 0x10000>;
@@ -576,6 +587,8 @@
 			snps,quirk-frame-length-adjustment = <0x20>;
 			snps,dis_rxdet_inp3_quirk;
 			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+			usb3-lpm-capable;
+			snps,dis-u1u2-when-u3-quirk;
 		};
 
 		usb1: usb@3000000 {
@@ -586,6 +599,8 @@
 			snps,quirk-frame-length-adjustment = <0x20>;
 			snps,dis_rxdet_inp3_quirk;
 			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+			usb3-lpm-capable;
+			snps,dis-u1u2-when-u3-quirk;
 		};
 
 		usb2: usb@3100000 {
@@ -596,6 +611,8 @@
 			snps,quirk-frame-length-adjustment = <0x20>;
 			snps,dis_rxdet_inp3_quirk;
 			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+			usb3-lpm-capable;
+			snps,dis-u1u2-when-u3-quirk;
 		};
 
 		sata: sata@3200000 {
@@ -635,6 +652,11 @@
 				     <GIC_SPI 155 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 156 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		serdes1: serdes@1ea0000 {
+			reg = <0x0 0x1ea0000 0 0x00002000>;
+			compatible = "fsl,serdes-10g";
 		};
 
 		pcie@3400000 {

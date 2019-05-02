@@ -100,6 +100,7 @@
 
 &qspi {
 	status = "okay";
+	fsl,qspi-has-second-chip;
 
 	qflash0: flash@0 {
 		compatible = "spansion,m25p80";
