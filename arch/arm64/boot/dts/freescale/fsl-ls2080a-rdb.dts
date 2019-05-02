@@ -23,3 +23,83 @@
 		stdout-path = "serial1:115200n8";
 	};
 };
+
+&emdio1 {
+	status = "disabled";
+	/* CS4340 PHYs */
+	mdio1_phy1: emdio1_phy@1 {
+		reg = <0x10>;
+		phy-connection-type = "xfi";
+	};
+	mdio1_phy2: emdio1_phy@2 {
+		reg = <0x11>;
+		phy-connection-type = "xfi";
+	};
+	mdio1_phy3: emdio1_phy@3 {
+		reg = <0x12>;
+		phy-connection-type = "xfi";
+	};
+	mdio1_phy4: emdio1_phy@4 {
+		reg = <0x13>;
+		phy-connection-type = "xfi";
+	};
+};
+
+&emdio2 {
+	/* AQR405 PHYs */
+	mdio2_phy1: emdio2_phy@1 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		interrupts = <0 1 0x4>; /* Level high type */
+		reg = <0x0>;
+		phy-connection-type = "xfi";
+	};
+	mdio2_phy2: emdio2_phy@2 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		interrupts = <0 2 0x4>; /* Level high type */
+		reg = <0x1>;
+		phy-connection-type = "xfi";
+	};
+	mdio2_phy3: emdio2_phy@3 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		interrupts = <0 4 0x4>; /* Level high type */
+		reg = <0x2>;
+		phy-connection-type = "xfi";
+	};
+	mdio2_phy4: emdio2_phy@4 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		interrupts = <0 5 0x4>; /* Level high type */
+		reg = <0x3>;
+		phy-connection-type = "xfi";
+	};
+};
+
+/* Update DPMAC connections to external PHYs, under the assumption of
+ * SerDes 0x2a_0x41. This is currently the only SerDes supported on the board.
+ */
+/* Leave Cortina nodes commented out until driver is integrated
+ *&dpmac1 {
+ *	phy-handle = <&mdio1_phy1>;
+ *};
+ *&dpmac2 {
+ *	phy-handle = <&mdio1_phy2>;
+ *};
+ *&dpmac3 {
+ *	phy-handle = <&mdio1_phy3>;
+ *};
+ *&dpmac4 {
+ *	phy-handle = <&mdio1_phy4>;
+ *};
+ */
+
+&dpmac5 {
+	phy-handle = <&mdio2_phy1>;
+};
+&dpmac6 {
+	phy-handle = <&mdio2_phy2>;
+};
+&dpmac7 {
+	phy-handle = <&mdio2_phy3>;
+};
+&dpmac8 {
+	phy-handle = <&mdio2_phy4>;
+};
