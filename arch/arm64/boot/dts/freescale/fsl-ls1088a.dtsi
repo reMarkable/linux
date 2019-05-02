@@ -185,6 +185,19 @@
 		clock-output-names = "sysclk";
 	};
 
+	rstcr: syscon@1e60000 {
+		compatible = "fsl,ls1088a-rstcr", "syscon";
+		reg = <0x0 0x1e60000 0x0 0x4>;
+	};
+
+	reboot {
+		compatible = "syscon-reboot";
+		regmap = <&rstcr>;
+		offset = <0x0>;
+		mask = <0x02>;
+	};
+
+
 	soc {
 		compatible = "simple-bus";
 		#address-cells = <2>;
@@ -203,6 +216,11 @@
 			compatible = "fsl,ls1088a-dcfg", "syscon";
 			reg = <0x0 0x1e00000 0x0 0x10000>;
 			little-endian;
+		};
+
+		serdes1: serdes@1ea0000 {
+				reg = <0x0 0x1ea0000 0 0x00002000>;
+				compatible = "fsl,serdes-10g";
 		};
 
 		tmu: tmu@1f80000 {
@@ -325,6 +343,72 @@
 			#interrupt-cells = <2>;
 		};
 
+		/* TODO: WRIOP (CCSR?) */
+		emdio1: mdio@0x8B96000 { /* WRIOP0: 0x8B8_0000,
+					  * E-MDIO1: 0x1_6000
+					  */
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8B96000 0x0 0x1000>;
+			device_type = "mdio";
+			little-endian;	/* force the driver in LE mode */
+
+			/* Not necessary on the QDS, but needed on the RDB */
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		emdio2: mdio@0x8B97000 { /* WRIOP0: 0x8B8_0000,
+					  * E-MDIO2: 0x1_7000
+					  */
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8B97000 0x0 0x1000>;
+			device_type = "mdio";
+			little-endian;	/* force the driver in LE mode */
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		pcs_mdio1: mdio@0x8c07000 {
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8c07000 0x0 0x1000>;
+			device_type = "mdio";
+			little-endian;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		pcs_mdio2: mdio@0x8c0b000 {
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8c0b000 0x0 0x1000>;
+			device_type = "mdio";
+			little-endian;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		pcs_mdio3: mdio@0x8c0f000 {
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8c0f000 0x0 0x1000>;
+			device_type = "mdio";
+			little-endian;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		pcs_mdio4: mdio@0x8c13000 {
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8c13000 0x0 0x1000>;
+			device_type = "mdio";
+			little-endian;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
 		ifc: ifc@2240000 {
 			compatible = "fsl,ifc", "simple-bus";
 			reg = <0x0 0x2240000 0x0 0x20000>;
@@ -335,13 +419,20 @@
 			status = "disabled";
 		};
 
+		ftm0: ftm0@2800000 {
+			compatible = "fsl,ftm-alarm";
+			reg = <0x0 0x2800000 0x0 0x10000>;
+			interrupts = <0 44 4>;
+		};
+
 		i2c0: i2c@2000000 {
-			compatible = "fsl,vf610-i2c";
+			compatible = "fsl,vf610-i2c", "fsl,ls1088a-vf610-i2c";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x0 0x2000000 0x0 0x10000>;
 			interrupts = <0 34 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&clockgen 4 7>;
+			scl-gpios = <&gpio3 30 0>;
 			status = "disabled";
 		};
 
@@ -405,6 +496,7 @@
 			dr_mode = "host";
 			snps,quirk-frame-length-adjustment = <0x20>;
 			snps,dis_rxdet_inp3_quirk;
+			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 			status = "disabled";
 		};
 
@@ -417,6 +509,17 @@
 			clocks = <&clockgen 4 3>;
 			dma-coherent;
 			status = "disabled";
+		};
+		qspi: spi@20c0000 {
+			compatible = "fsl,ls2080a-qspi", "fsl,ls1088a-qspi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x0 0x20c0000 0x0 0x10000>,
+				<0x0 0x20000000 0x0 0x10000000>;
+			reg-names = "QuadSPI", "QuadSPI-memory";
+			interrupts = <0 25 0x4>; /* Level high type */
+			clocks = <&clockgen 4 3>, <&clockgen 4 3>;
+			clock-names = "qspi_en", "qspi";
 		};
 
 		crypto: crypto@8000000 {
@@ -474,6 +577,7 @@
 			ranges = <0x81000000 0x0 0x00000000 0x20 0x00010000 0x0 0x00010000   /* downstream I/O */
 				  0x82000000 0x0 0x40000000 0x20 0x40000000 0x0 0x40000000>; /* non-prefetchable memory */
 			msi-parent = <&its>;
+			iommu-map = <0 &smmu 0 1>;	/* This is fixed-up by u-boot */
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
 			interrupt-map = <0000 0 0 1 &gic 0 0 0 109 IRQ_TYPE_LEVEL_HIGH>,
@@ -499,6 +603,7 @@
 			ranges = <0x81000000 0x0 0x00000000 0x28 0x00010000 0x0 0x00010000   /* downstream I/O */
 				  0x82000000 0x0 0x40000000 0x28 0x40000000 0x0 0x40000000>; /* non-prefetchable memory */
 			msi-parent = <&its>;
+			iommu-map = <0 &smmu 0 1>;	/* This is fixed-up by u-boot */
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
 			interrupt-map = <0000 0 0 1 &gic 0 0 0 114 IRQ_TYPE_LEVEL_HIGH>,
@@ -524,6 +629,7 @@
 			ranges = <0x81000000 0x0 0x00000000 0x30 0x00010000 0x0 0x00010000   /* downstream I/O */
 				  0x82000000 0x0 0x40000000 0x30 0x40000000 0x0 0x40000000>; /* non-prefetchable memory */
 			msi-parent = <&its>;
+			iommu-map = <0 &smmu 0 1>;	/* This is fixed-up by u-boot */
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
 			interrupt-map = <0000 0 0 1 &gic 0 0 0 119 IRQ_TYPE_LEVEL_HIGH>,
