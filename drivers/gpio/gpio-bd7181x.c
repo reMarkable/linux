@@ -40,7 +40,7 @@ static struct gpio_chip bd7181xgpo_chip;
  */
 static int bd7181xgpo_get(struct gpio_chip *chip, unsigned offset)
 {
-	struct bd7181x *bd7181x = dev_get_drvdata(chip->dev->parent);
+	struct bd7181x *bd7181x = dev_get_drvdata(chip->parent);
 	int ret = 0;
 
 	ret = bd7181x_reg_read(bd7181x, BD7181X_REG_GPO);
@@ -72,7 +72,7 @@ static int bd7181xgpo_direction_out(struct gpio_chip *chip, unsigned offset,
  */
 static void bd7181xgpo_set(struct gpio_chip *chip, unsigned offset, int value)
 {
-	struct bd7181x *bd7181x = dev_get_drvdata(chip->dev->parent);
+	struct bd7181x *bd7181x = dev_get_drvdata(chip->parent);
 	int ret;
 	u8 gpoctl;
 
@@ -155,11 +155,11 @@ static int gpo_bd7181x_probe(struct platform_device *pdev)
 
 	bd7181xgpo_chip.ngpio = 2;	/* bd71815/bd71817 have 2 GPO */
 
-	bd7181xgpo_chip.dev = &pdev->dev;
+	bd7181xgpo_chip.parent = &pdev->dev;
 
 	ret = gpiochip_add(&bd7181xgpo_chip);
 	if (ret < 0) {
-		dev_err(&pdev->dev, "could not register gpiochip, %d\n", ret);
+		dev_err(&pdev->dev, "Could not register gpiochip, %d\n", ret);
 		bd7181xgpo_chip.ngpio = 0;
 		return ret;
 	}
@@ -178,7 +178,8 @@ static int gpo_bd7181x_probe(struct platform_device *pdev)
  */
 static int gpo_bd7181x_remove(struct platform_device *pdev)
 {
-	return gpiochip_remove(&bd7181xgpo_chip);
+	gpiochip_remove(&bd7181xgpo_chip);
+	return 0;
 }
 
 /* Note:  this hardware lives inside an I2C-based multi-function device. */
