@@ -143,7 +143,7 @@
 };
 
 &cpu0 {
-	arm-supply = <&sw1a_reg>;
+	arm-supply = <&buck1_reg>;
 };
 
 &clks {
@@ -220,96 +220,6 @@
 		reset-gpio = <&gpio1 0 1>;
 		enable-gpio = <&gpio1 6 1>;
 	};
-
-	pmic: pfuze3000@08 {
-		compatible = "fsl,pfuze3000";
-		reg = <0x08>;
-
-		regulators {
-			sw1a_reg: sw1a {
-				regulator-min-microvolt = <700000>;
-				regulator-max-microvolt = <3300000>;
-				regulator-boot-on;
-				regulator-always-on;
-				regulator-ramp-delay = <6250>;
-			};
-
-			/* use sw1c_reg to align with pfuze100/pfuze200 */
-			sw1c_reg: sw1b {
-				regulator-min-microvolt = <700000>;
-				regulator-max-microvolt = <1475000>;
-				regulator-boot-on;
-				regulator-always-on;
-				regulator-ramp-delay = <6250>;
-			};
-
-			sw2_reg: sw2 {
-				regulator-min-microvolt = <1500000>;
-				regulator-max-microvolt = <1850000>;
-				regulator-boot-on;
-				regulator-always-on;
-			};
-
-			sw3a_reg: sw3 {
-				regulator-min-microvolt = <900000>;
-				regulator-max-microvolt = <1650000>;
-				regulator-boot-on;
-				regulator-always-on;
-			};
-
-			swbst_reg: swbst {
-				regulator-min-microvolt = <5000000>;
-				regulator-max-microvolt = <5150000>;
-			};
-
-			snvs_reg: vsnvs {
-				regulator-min-microvolt = <1000000>;
-				regulator-max-microvolt = <3000000>;
-				regulator-boot-on;
-				regulator-always-on;
-			};
-
-			vref_reg: vrefddr {
-				regulator-boot-on;
-				regulator-always-on;
-			};
-
-			vgen1_reg: vldo1 {
-				regulator-min-microvolt = <1800000>;
-				regulator-max-microvolt = <3300000>;
-				regulator-always-on;
-			};
-
-			vgen2_reg: vldo2 {
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <1550000>;
-			};
-
-			vgen3_reg: vccsd {
-				regulator-min-microvolt = <2850000>;
-				regulator-max-microvolt = <3300000>;
-				regulator-always-on;
-			};
-
-			vgen4_reg: v33 {
-				regulator-min-microvolt = <2850000>;
-				regulator-max-microvolt = <3300000>;
-				regulator-always-on;
-			};
-
-			vgen5_reg: vldo3 {
-				regulator-min-microvolt = <1800000>;
-				regulator-max-microvolt = <3300000>;
-				regulator-always-on;
-			};
-
-			vgen6_reg: vldo4 {
-				regulator-min-microvolt = <2800000>;
-				regulator-max-microvolt = <2800000>;
-				regulator-always-on;
-			};
-		};
-	};
 };
 
 &i2c2 {
@@ -317,6 +227,202 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
+
+	pmic: bd7181x@4b {
+		reg = <0x4b>;
+		compatible = "rohm,bd71815";
+		/* PMIC_INT_B GPIO6_IO16 */
+		gpio_intr = <&gpio6 16 0>;
+
+		bd7181x,pmic-buck1-uses-i2c-dvs;
+		bd7181x,pmic-buck1-dvs-voltage = <1150000>, <950000>; /* VDD_ARM */
+		bd7181x,pmic-buck2-uses-i2c-dvs;
+		bd7181x,pmic-buck2-dvs-voltage = <1150000>, <950000>; /* VDD_SOC */
+		
+		gpo {
+			rohm,mode = <0x30>;	/* 0b0011_0000 all gpos with cmos output mode */
+		};
+
+		regulators {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			buck1_reg: regulator@0 {
+				reg = <0>;
+				regulator-compatible = "buck1";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <2000000>;
+				regulator-boot-on;
+				regulator-always-on;
+				regulator-ramp-delay = <1250>;
+			};
+
+			buck2_reg: regulator@1 {
+				reg = <1>;
+				regulator-compatible = "buck2";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <2000000>;
+				regulator-boot-on;
+				regulator-always-on;
+				regulator-ramp-delay = <1250>;
+			};
+
+			buck3_reg: regulator@2 {
+				reg = <2>;
+				regulator-compatible = "buck3";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <2700000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			buck4_reg: regulator@3 {
+				reg = <3>;
+				regulator-compatible = "buck4";
+				regulator-min-microvolt = <1100000>;
+				regulator-max-microvolt = <1850000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			buck5_reg: regulator@4 {
+				reg = <4>;
+				regulator-compatible = "buck5";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo1_reg: regulator@5 {
+				reg = <5>;
+				regulator-compatible = "ldo1";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo2_reg: regulator@6 {
+				reg = <6>;
+				regulator-compatible = "ldo2";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo3_reg: regulator@7 {
+				reg = <7>;
+				regulator-compatible = "ldo3";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo4_reg: regulator@8 {
+				reg = <8>;
+				regulator-compatible = "ldo4";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			ldo5_reg: regulator@9 {
+				reg = <9>;
+				regulator-compatible = "ldo5";
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			dvref_reg: regulator@10 {
+				reg = <10>;
+				regulator-compatible = "dvref";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			lpsr_reg: regulator@11 {
+				reg = <11>;
+				regulator-compatible = "lpsr";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			wled_reg: regulator@12 {
+				reg = <12>;
+				regulator-compatible = "wled";
+				regulator-min-microamp = <10>;
+				regulator-max-microamp = <25000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+		};
+		regulator-virtuals {
+			compatible = "simple-bus";
+
+			virt-buck1 {
+				compatible = "regulator-virtual";
+				virtual-supply = "buck1";
+			};
+			virt-buck2 {
+				compatible = "regulator-virtual";
+				virtual-supply = "buck2";
+			};
+			virt-buck3 {
+				compatible = "regulator-virtual";
+				virtual-supply = "buck3";
+			};
+			virt-buck4 {
+				compatible = "regulator-virtual";
+				virtual-supply = "buck4";
+			};
+			virt-buck5 {
+				compatible = "regulator-virtual";
+				virtual-supply = "buck5";
+			};
+			virt-ldo1 {
+				compatible = "regulator-virtual";
+				virtual-supply = "ldo1";
+			};
+			virt-ldo2 {
+				compatible = "regulator-virtual";
+				virtual-supply = "ldo2";
+			};
+			virt-ldo3 {
+				compatible = "regulator-virtual";
+				virtual-supply = "ldo3";
+			};
+			virt-ldo4 {
+				compatible = "regulator-virtual";
+				virtual-supply = "ldo4";
+			};
+			virt-ldo5 {
+				compatible = "regulator-virtual";
+				virtual-supply = "ldo5";
+			};
+			user-dvref {
+				compatible = "userspace_consumer";
+				uc-name = "dvref";
+				suck-supply = "dvref";
+			};
+			user-lpsr {
+				compatible = "userspace_consumer";
+				uc-name = "lpsr";
+				suck-supply = "lpsr";
+			};
+
+			virt-wled {
+				compatible = "regulator-virtual";
+				virtual-supply = "wled";
+			};
+		};
+	};
+
 };
 
 &i2c3 {
