@@ -63,13 +63,6 @@
 		#reset-cells = <0>;
 	};
 
-    wacom_reset: wacom-reset {
-            compatible = "gpio-reset";
-            reset-gpios = <&gpio6 12 1>;
-            reset-delay-us = <100000>;
-            #reset-cells = <0>;
-    };
-
     spi4 {
         compatible = "spi-gpio";
         pinctrl-names = "default";
@@ -217,6 +210,17 @@
 	pinctrl-0 = <&pinctrl_i2c1>;
 	status = "okay";
 
+	digitizer: wacom-i2c@09 {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_wacom>;
+		compatible = "wacom,wacom-i2c";
+		reg = <0x09>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <1 2>;
+		reset-gpio = <&gpio1 0 1>;
+		enable-gpio = <&gpio1 6 1>;
+	};
+
 	pmic: pfuze3000@08 {
 		compatible = "fsl,pfuze3000";
 		reg = <0x08>;
@@ -320,17 +324,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
-
-    digitizer: wacom-i2c@09 {
-        pinctrl-names = "default";
-        pinctrl-0 = <&pinctrl_wacom>;
-        compatible = "wacom,wacom-i2c";
-        reg = <0x09>;
-        interrupt-parent = <&gpio6>;
-        interrupts = <13 2>;
-        /* resets = <&wacom_reset>;*/
-        reset-gpio = <&gpio6 12 1>;
-    };
 };
 
 &i2c4 {
@@ -465,11 +458,13 @@
 	status = "okay";
 };
 
+/*
 &wdog1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_wdog>;
 	fsl,ext-reset-output;
 };
+*/
 
 &iomuxc {
 	pinctrl-names = "default";
@@ -517,16 +512,17 @@
 			>;
 		};
 
-        pinctrl_wacom: wacomgrp {
-            fsl,pins = <
-                MX7D_PAD_SAI1_RX_DATA__GPIO6_IO12          0x00000014 /* WACOM RESET */
-                MX7D_PAD_SAI1_TX_DATA__GPIO6_IO15          0x00000014 /* WACOM INT */
-                MX7D_PAD_SAI2_RX_DATA__GPIO6_IO21          0x00000014 /* RSVD IN */
-                MX7D_PAD_SAI2_TX_BCLK__GPIO6_IO20          0x00000014 /* RSVD OUT */
-                MX7D_PAD_SAI2_TX_DATA__GPIO6_IO22          0x00000014 /* PDCTB */
-                MX7D_PAD_SAI2_TX_SYNC__GPIO6_IO19          0x00000014 /* FWE */
-            >;
-        };
+		pinctrl_wacom: wacomgrp {
+			fsl,pins = <
+				MX7D_PAD_LPSR_GPIO1_IO00__GPIO1_IO0		0x00000074 /* WACOM RESET */
+				MX7D_PAD_LPSR_GPIO1_IO01__GPIO1_IO1		0x00000014 /* WACOM INT */
+				MX7D_PAD_LPSR_GPIO1_IO02__GPIO1_IO2		0x00000014 /* RSVD IN */
+				MX7D_PAD_LPSR_GPIO1_IO03__GPIO1_IO3		0x00000014 /* RSVD OUT */
+				MX7D_PAD_LPSR_GPIO1_IO04__GPIO1_IO4		0x00000014 /* PDCTB */
+				MX7D_PAD_LPSR_GPIO1_IO05__GPIO1_IO5		0x00000014 /* FWE */
+				MX7D_PAD_LPSR_GPIO1_IO06__GPIO1_IO6		0x00000014 /* WACOM PWR ENABLE */
+			>;
+		};
 
 		pinctrl_i2c1: i2c1grp {
 			fsl,pins = <
@@ -743,7 +739,7 @@
 		};
 	};
 };
-
+/*
 &iomuxc_lpsr {
 	pinctrl_wdog: wdoggrp {
 		fsl,pins = <
@@ -757,3 +753,4 @@
 		>;
 	};
 };
+*/

@@ -643,6 +643,7 @@ dtb-$(CONFIG_SOC_IMX7D) += \
 	imx7d-12x12-lpddr3-arm2-mqs.dtb \
 	imx7d-12x12-lpddr3-arm2-pcie.dtb \
 	imx7d-19x19-lpddr2-arm2.dtb \
+	zero-sugar.dtb \
 	imx7-test-image.dtb \
 	imx7-test-image_stripped.dtb
 dtb-$(CONFIG_SOC_IMX7ULP) += \
