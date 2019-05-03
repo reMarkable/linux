@@ -1928,6 +1928,14 @@ config MFD_ROHM_BD718XX
 	  NXP i.MX8. It contains 8 BUCK outputs and 7 LDOs, voltage monitoring
 	  and emergency shut down as well as 32,768KHz clock output.
 
+config MFD_BD7181X
+	bool "BD71815/BD71817 Power Management chip"
+	depends on I2C=y
+	select MFD_CORE
+	help
+	  if you say yes here you get support for the BD71815/BD71817
+	  Power Management chips.
+
 config MFD_ROHM_BD70528
 	tristate "ROHM BD70528 Power Management IC"
 	depends on I2C=y

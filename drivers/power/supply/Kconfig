@@ -44,6 +44,12 @@ config APM_POWER
 	  Say Y here to enable support APM status emulation using
 	  battery class devices.
 
+config BD7181X_POWER
+	tristate "ROHM BD71815/BD71817 Charger for Battery and Adapter Power"
+	depends on MFD_BD7181X
+	help
+	  Say Y to enable support for the BD71815/BD71817 charger.
+
 config GENERIC_ADC_BATTERY
 	tristate "Generic battery support using IIO"
 	depends on IIO

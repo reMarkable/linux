@@ -205,6 +205,12 @@ config REGULATOR_BD718XX
 	  This driver can also be built as a module. If so, the module
 	  will be called bd718x7-regulator.
 
+config REGULATOR_BD7181X
+	tristate "RoHM BD71815/BD71817 Power Regulator"
+	depends on MFD_BD7181X
+	help
+	  This driver supports BD71815/BD71817 voltage regulator chips.
+
 config REGULATOR_BD9571MWV
 	tristate "ROHM BD9571MWV Regulators"
 	depends on MFD_BD9571MWV
