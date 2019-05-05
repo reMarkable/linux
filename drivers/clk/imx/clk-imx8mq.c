@@ -12,6 +12,7 @@
 #include <linux/of_address.h>
 #include <linux/types.h>
 #include <linux/platform_device.h>
+#include <soc/imx/soc.h>
 
 #include "clk.h"
 
@@ -286,6 +287,8 @@ static int imx8mq_clocks_probe(struct platform_device *pdev)
 	struct device_node *np = dev->of_node;
 	void __iomem *base;
 	int err;
+
+	check_m4_enabled();
 
 	clks[IMX8MQ_CLK_DUMMY] = imx_clk_fixed("dummy", 0);
 	clks[IMX8MQ_CLK_32K] = of_clk_get_by_name(np, "ckil");
