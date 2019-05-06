@@ -812,7 +812,7 @@ int qman_set_sdest(u16 channel, unsigned int cpu_idx)
 
 	if (!qman_have_ccsr())
 		return -ENODEV;
-	if ((qman_ip_rev & 0xFF00) == QMAN_REV31) {
+	if ((qman_ip_rev & 0xFFFF) == QMAN_REV31) {
 		/* LS1043A - only one L2 cache */
 		cpu_idx = 0;
 	}
