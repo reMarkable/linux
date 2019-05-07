@@ -322,7 +322,7 @@
 };
 
 &usb3_phy0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_dwc3_0 {
@@ -331,7 +331,7 @@
 	srp-disable;
 	adp-disable;
 	usb-role-switch;
-	status = "okay";
+	status = "disabled";
 
 	port {
 		usb3_drd_sw: endpoint {
@@ -341,12 +341,12 @@
 };
 
 &usb3_phy1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_dwc3_1 {
 	dr_mode = "host";
-	status = "okay";
+	status = "disabled";
 };
 
 &qspi0 {
