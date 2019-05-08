@@ -2,7 +2,7 @@
 //
 // Device Tree file for LX2160AQDS
 //
-// Copyright 2018 NXP
+// Copyright 2018-2019 NXP
 
 /dts-v1/;
 
@@ -153,6 +153,14 @@
 			#size-cells = <0>;
 		};
 	};
+};
+
+&can0 {
+	status = "okay";
+};
+
+&can1 {
+	status = "okay";
 };
 
 &crypto {
