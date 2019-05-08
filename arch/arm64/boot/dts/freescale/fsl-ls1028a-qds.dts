@@ -2,7 +2,7 @@
 /*
  * Device Tree file for NXP LS1028A QDS Board.
  *
- * Copyright 2018 NXP
+ * Copyright 2018-2019 NXP
  *
  * Harninder Rai <harninder.rai@nxp.com>
  *
@@ -105,6 +105,14 @@
 			};
 		};
 	};
+};
+
+&can0 {
+	status = "okay";
+};
+
+&can1 {
+	status = "okay";
 };
 
 &duart0 {
