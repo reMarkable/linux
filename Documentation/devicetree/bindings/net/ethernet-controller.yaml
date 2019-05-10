@@ -34,6 +34,15 @@ properties:
       to the device by the boot program is different from the
       local-mac-address property.
 
+  nvmem-mac-address:
+    allOf:
+      - $ref: /schemas/types.yaml#definitions/uint8-array
+      - minItems: 6
+        maxItems: 6
+    description:
+      Specifies the MAC address that was read from nvmem-cells and dynamically
+      add the property in device node;
+
   max-frame-size:
     $ref: /schemas/types.yaml#definitions/uint32
     description:
@@ -53,6 +62,11 @@ properties:
 
   nvmem-cells-names:
     const: mac-address
+
+  nvmem_macaddr_swap:
+    $ref: /schemas/types.yaml#/definitions/flag
+    description:
+      swap bytes order for the 6 bytes of MAC address
 
   phy-connection-type:
     description:
