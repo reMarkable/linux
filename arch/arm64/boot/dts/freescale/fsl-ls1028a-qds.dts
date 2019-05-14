@@ -222,6 +222,21 @@
 	phy-connection-type = "rgmii-id";
 };
 
+&fspi {
+	status = "okay";
+	mt35xu02g: flash@0 {
+		compatible = "spansion,m25p80";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		m25p,fast-read;
+		spi-max-frequency = <20000000>;
+		reg = <0>;
+		/* The following setting enables 1-1-8 (CMD-ADDR-DATA) mode */
+		spi-rx-bus-width = <8>; /* 8 SPI Rx lines */
+		spi-tx-bus-width = <1>; /* 1 SPI Tx line */
+	};
+};
+
 &sai1 {
 	status = "okay";
 };
