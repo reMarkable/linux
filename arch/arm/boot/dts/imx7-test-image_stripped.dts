@@ -520,7 +520,7 @@
         pinctrl_wacom: wacomgrp {
             fsl,pins = <
                 MX7D_PAD_SAI1_RX_DATA__GPIO6_IO12          0x00000014 /* WACOM RESET */
-                MX7D_PAD_SAI1_TX_DATA__GPIO6_IO15          0x00000014 /* WACOM INT */
+                MX7D_PAD_SAI1_TX_BCLK__GPIO6_IO13          0x00000074 /* WACOM INT */
                 MX7D_PAD_SAI2_RX_DATA__GPIO6_IO21          0x00000014 /* RSVD IN */
                 MX7D_PAD_SAI2_TX_BCLK__GPIO6_IO20          0x00000014 /* RSVD OUT */
                 MX7D_PAD_SAI2_TX_DATA__GPIO6_IO22          0x00000014 /* PDCTB */
