@@ -330,6 +330,84 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
+
+	tsc@24 {
+		status = "disabled";
+		compatible = "cy,cyttsp5_i2c_adapter";
+		reg = <0x24>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <14 2>;
+		cy,adapter_id = "cyttsp5_i2c_adapter";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_touch>;
+
+		cy,core {
+			cy,name = "cyttsp5_core";
+
+			cy,irq_gpio = <&gpio1 14 0>;
+			cy,rst_gpio = <&gpio1 13 0>;
+			cy,hid_desc_register = <1>;
+			/* CY_CORE_FLAG_RESTORE_PARAMETERS */
+			cy,flags = <4>;
+			/* CY_CORE_EWG_NONE */
+			cy,easy_wakeup_gesture = <0>;
+			cy,btn_keys = <172 /* KEY_HOMEPAGE */
+				/* previously was KEY_HOME, new Android versions use KEY_HOMEPAGE */
+				139 /* KEY_MENU */
+				158 /* KEY_BACK */
+				217 /* KEY_SEARCH */
+				114 /* KEY_VOLUMEDOWN */
+				115 /* KEY_VOLUMEUP */
+				212 /* KEY_CAMERA */
+				116>; /* KEY_POWER */
+			cy,btn_keys-tag = <0>;
+
+			cy,mt {
+				cy,name = "cyttsp5_mt";
+
+				cy,inp_dev_name = "cyttsp5_mt";
+				cy,flags = <0>;
+				cy,abs =
+					/* ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0 */
+					<0x35 0 880 0 0
+					/* ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0 */
+					0x36 0 1280 0 0
+					/* ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0 */
+					0x3a 0 255 0 0
+					/* CY_IGNORE_VALUE, CY_ABS_MIN_W, CY_ABS_MAX_W, 0, 0 */
+					0xffff 0 255 0 0
+					/* ABS_MT_TRACKING_ID, CY_ABS_MIN_T, CY_ABS_MAX_T, 0, 0 */
+					0x39 0 15 0 0
+					/* ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0 */
+					0x30 0 255 0 0
+					/* ABS_MT_TOUCH_MINOR, 0, 255, 0, 0 */
+					0x31 0 255 0 0
+					/* ABS_MT_ORIENTATION, -127, 127, 0, 0 */
+					0x34 0xffffff81 127 0 0
+					/* ABS_MT_TOOL_TYPE, 0, MT_TOOL_MAX, 0, 0 */
+					0x37 0 1 0 0
+					/* ABS_DISTANCE, 0, 255, 0, 0 */
+					0x19 0 255 0 0>;
+
+				cy,vkeys_x = <720>;
+				cy,vkeys_y = <1280>;
+
+				cy,virtual_keys = /* KeyCode CenterX CenterY Width Height */
+					/* KEY_BACK */
+					<158 1360 90 160 180
+					/* KEY_MENU */
+					139 1360 270 160 180
+					/* KEY_HOMEPAGE */
+					172 1360 450 160 180
+					/* KEY SEARCH */
+					217 1360 630 160 180>;
+			};
+		};
+	};
+
+
+
+
 };
 
 &i2c4 {
@@ -475,6 +553,15 @@
 				MX7D_PAD_ECSPI2_MOSI__GPIO4_IO21	0x14
 			>;
 		};*/
+
+		pinctrl_touch: touchgrp {
+			fsl,pins = <
+				/* CYTTSP interrupt */
+				MX7D_PAD_GPIO1_IO14__GPIO1_IO14		0x17000
+				/* CYTTSP reset */
+				MX7D_PAD_GPIO1_IO13__GPIO1_IO13		0x110b0
+			>;
+		};
 
 		pinctrl_wacom: wacomgrp {
 			fsl,pins = <
