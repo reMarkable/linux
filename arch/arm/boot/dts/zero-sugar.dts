@@ -417,10 +417,10 @@
 	status = "okay";
 };
 
-/*&lcdif {
+&lcdif {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lcdif>;
-	enable-gpio = <&extended_io 7 GPIO_ACTIVE_LOW>;
+	/* TODO: enable-gpio = <&extended_io 7 GPIO_ACTIVE_LOW>; */
 	display = <&display0>;
 	status = "okay";
 
@@ -444,11 +444,11 @@
 				hsync-active = <0>;
 				vsync-active = <0>;
 				de-active = <1>;
-				pixelclk-active = <0>;
+				pixelclk-active = <1>;
 			};
 		};
 	};
-};*/
+};
 
 &sdma {
 	status = "okay";
