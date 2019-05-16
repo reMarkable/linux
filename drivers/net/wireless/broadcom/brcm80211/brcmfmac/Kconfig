@@ -1,6 +1,7 @@
 config BRCMFMAC
 	tristate "Broadcom FullMAC WLAN driver"
 	depends on CFG80211
+	select WIRELESS_EXT
 	select BRCMUTIL
 	help
 	  This module adds support for wireless adapters based on Broadcom
