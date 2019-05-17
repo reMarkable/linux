@@ -492,27 +492,32 @@
 	status = "disabled";
 };
 
-/*&usdhc2 {
+&usdhc2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
 	pinctrl-0 = <&pinctrl_usdhc2 &pinctrl_wifi>;
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz &pinctrl_wifi>;
 	pinctrl-2 = <&pinctrl_usdhc2_200mhz &pinctrl_wifi>;
-	wakeup-source;
-	keep-power-in-suspend;
+	/*mmc-pwrseq = <&wifi_pwrseq>;*/
+	bus-width = <4>;
+	/* enable-sdio-wakeup; */
 	non-removable;
-	mmc-pwrseq = <&usdhc2_pwrseq>;
-	fsl,tuning-step = <2>;
-	pm-ignore-notify;
+	disable-wp;
+	wifi-host;
+	/* keep-power-in-suspend; */
 	cap-power-off-card;
 	status = "okay";
 
 	brcmf: bcrmf@1 {
 		reg = <1>;
 		compatible = "brcm,bcm4329-fmac";
+		interrupt-parent = <&gpio1>;
+		interrupts = <8 IRQ_TYPE_NONE>;
+		interrupt-names = "host-wake";
+		/*resets = <&wifi_reset>;*/
 	};
-};*/
+};
 
 &usdhc3 {
 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
@@ -538,11 +543,6 @@
 	pinctrl-names = "default";
 
 	imx7d-sdb {
-		/*pinctrl_brcm_reg: brcmreggrp {
-			fsl,pins = <
-				MX7D_PAD_ECSPI2_MOSI__GPIO4_IO21	0x14
-			>;
-		};*/
 
 		pinctrl_touch: touchgrp {
 			fsl,pins = <
@@ -722,11 +722,16 @@
 			>;
 		};
 
-		/*pinctrl_wifi: wifigrp {
+		pinctrl_wifi: wifigrp {
 			fsl,pins = <
-				MX7D_PAD_ECSPI2_SCLK__GPIO4_IO20	0x19
+				/* WiFi Reg On */
+				MX7D_PAD_SD2_CD_B__GPIO5_IO9		0x00000014
+				/* WiFi Host Wake */
+				MX7D_PAD_GPIO1_IO08__GPIO1_IO8		0x00000014
+				/* WiFi Sleep 32k */
+				MX7D_PAD_SD1_WP__GPIO5_IO1		0x00000014
 			>;
-		};*/
+		};
 	};
 };
 
