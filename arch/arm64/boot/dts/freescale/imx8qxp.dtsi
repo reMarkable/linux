@@ -215,7 +215,7 @@
 
 		tsens: thermal-sensor {
 			compatible = "fsl,imx8qxp-sc-thermal";
-			tsens-num = <1>;
+			tsens-num = <2>;
 			#thermal-sensor-cells = <1>;
 		};
 	};
