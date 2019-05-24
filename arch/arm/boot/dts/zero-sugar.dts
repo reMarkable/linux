@@ -332,7 +332,7 @@
 	status = "okay";
 
 	tsc@24 {
-		status = "disabled";
+		status = "okay";
 		compatible = "cy,cyttsp5_i2c_adapter";
 		reg = <0x24>;
 		interrupt-parent = <&gpio1>;
@@ -404,10 +404,6 @@
 			};
 		};
 	};
-
-
-
-
 };
 
 &i2c4 {
