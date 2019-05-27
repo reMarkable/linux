@@ -161,8 +161,8 @@ drm_plane_state_to_uvbaseaddr(struct drm_plane_state *state)
 	cma_obj = drm_fb_cma_get_gem_obj(fb, 1);
 	BUG_ON(!cma_obj);
 
-	x /= drm_format_horz_chroma_subsampling(fb->format->format);
-	y /= drm_format_vert_chroma_subsampling(fb->format->format);
+	x /= fb->format->hsub;
+	y /= fb->format->vsub;
 
 	if (fb->flags & DRM_MODE_FB_INTERLACED)
 		y /= 2;
@@ -254,14 +254,14 @@ static int dpu_plane_atomic_check(struct drm_plane *plane,
 	}
 
 	/* pixel/line count and position parameters check */
-	if (drm_format_horz_chroma_subsampling(fb->format->format) == 2) {
+	if (fb->format->hsub == 2) {
 		if ((src_w % 2) || (src_x % 2)) {
 			DRM_DEBUG_KMS("[PLANE:%d:%s] bad uv width or xoffset\n",
 					plane->base.id, plane->name);
 			return -EINVAL;
 		}
 	}
-	if (drm_format_vert_chroma_subsampling(fb->format->format) == 2) {
+	if (fb->format->vsub == 2) {
 		if (src_h % (fb_is_interlaced ? 4 : 2)) {
 			DRM_DEBUG_KMS("[PLANE:%d:%s] bad uv height\n",
 					plane->base.id, plane->name);
