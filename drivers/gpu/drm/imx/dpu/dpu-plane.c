@@ -147,7 +147,7 @@ drm_plane_state_to_baseaddr(struct drm_plane_state *state)
 		y /= 2;
 
 	return cma_obj->paddr + fb->offsets[0] + fb->pitches[0] * y +
-	       drm_format_plane_cpp(fb->format->format, 0) * x;
+	       fb->format->cpp[0] * x;
 }
 
 static inline dma_addr_t
@@ -168,7 +168,7 @@ drm_plane_state_to_uvbaseaddr(struct drm_plane_state *state)
 		y /= 2;
 
 	return cma_obj->paddr + fb->offsets[1] + fb->pitches[1] * y +
-	       drm_format_plane_cpp(fb->format->format, 1) * x;
+	       fb->format->cpp[1] * x;
 }
 
 static int dpu_plane_atomic_check(struct drm_plane *plane,
@@ -293,7 +293,7 @@ static int dpu_plane_atomic_check(struct drm_plane *plane,
 		bpp = 8;
 		break;
 	default:
-		bpp = drm_format_plane_cpp(fb->format->format, 0) * 8;
+		bpp = fb->format->cpp[0] * 8;
 		break;
 	}
 	if (((bpp == 32) && (baseaddr & 0x3)) ||
@@ -413,7 +413,7 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 		bpp = 8;
 		break;
 	default:
-		bpp = drm_format_plane_cpp(fb->format->format, 0) * 8;
+		bpp = fb->format->cpp[0] * 8;
 		break;
 	}
 
