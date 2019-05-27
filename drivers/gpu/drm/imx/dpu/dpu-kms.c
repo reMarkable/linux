@@ -20,7 +20,7 @@
 #include <video/dpu.h>
 #include "dpu-crtc.h"
 #include "dpu-plane.h"
-#include "imx-drm.h"
+#include "../imx-drm.h"
 
 static struct drm_plane_state **
 dpu_atomic_alloc_tmp_planes_per_crtc(struct drm_device *dev)
