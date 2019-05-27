@@ -17,7 +17,7 @@
 
 #include <video/dpu.h>
 #include "dpu-plane.h"
-#include "imx-drm.h"
+#include "../imx-drm.h"
 
 struct dpu_crtc {
 	struct device		*dev;

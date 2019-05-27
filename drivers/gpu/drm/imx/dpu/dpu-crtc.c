@@ -29,7 +29,7 @@
 #include "dpu-crtc.h"
 #include "dpu-kms.h"
 #include "dpu-plane.h"
-#include "imx-drm.h"
+#include "../imx-drm.h"
 
 static inline struct dpu_plane_state **
 alloc_dpu_plane_states(struct dpu_crtc *dpu_crtc)

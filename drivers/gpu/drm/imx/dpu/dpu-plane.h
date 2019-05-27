@@ -16,7 +16,7 @@
 #define __DPU_PLANE_H__
 
 #include <video/dpu.h>
-#include "imx-drm.h"
+#include "../imx-drm.h"
 
 #define MAX_DPU_PLANE_GRP	(MAX_CRTC / 2)
 
