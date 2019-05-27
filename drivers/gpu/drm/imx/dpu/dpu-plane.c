@@ -310,7 +310,7 @@ static int dpu_plane_atomic_check(struct drm_plane *plane,
 	}
 
 	/* UV base address alignment check, assuming 16bpp */
-	if (drm_format_num_planes(fb->format->format) > 1) {
+	if (fb->format->num_planes > 1) {
 		uv_baseaddr = drm_plane_state_to_uvbaseaddr(state);
 		if (uv_baseaddr & 0x1) {
 			DRM_DEBUG_KMS("[PLANE:%d:%s] bad uv baddr alignment\n",

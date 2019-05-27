@@ -141,7 +141,7 @@ dpu_atomic_assign_plane_source_per_crtc(struct drm_plane_state **states, int n)
 		dpstate = to_dpu_plane_state(states[i]);
 		dplane = to_dpu_plane(states[i]->plane);
 		fb = states[i]->fb;
-		num_planes = drm_format_num_planes(fb->format->format);
+		num_planes = fb->format->num_planes;
 		fmt_is_yuv = drm_format_is_yuv(fb->format->format);
 		grp = dplane->grp;
 
@@ -444,7 +444,7 @@ static int dpu_drm_atomic_check(struct drm_device *dev,
 			grp_id = dpu_plane->grp->id;
 			active_plane[grp_id]++;
 
-			if (drm_format_num_planes(fb->format->format) > 1)
+			if (fb->format->num_planes > 1)
 				active_plane_fetcheco[grp_id]++;
 
 			if (plane_state->src_w >> 16 != plane_state->crtc_w)
