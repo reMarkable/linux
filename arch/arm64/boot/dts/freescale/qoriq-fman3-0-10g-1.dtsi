@@ -22,7 +22,7 @@ fman@1a00000 {
 		fsl,qman-channel-id = <0x801>;
 	};
 
-	mac10: ethernet@f2000 {
+	ethernet@f2000 {
 		cell-index = <0x9>;
 		compatible = "fsl,fman-memac";
 		reg = <0xf2000 0x1000>;
@@ -30,7 +30,7 @@ fman@1a00000 {
 		pcsphy-handle = <&pcsphy7>;
 	};
 
-	mdio10: mdio@f3000 {
+	mdio@f3000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "fsl,fman-memac-mdio", "fsl,fman-xmdio";

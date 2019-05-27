@@ -183,12 +183,6 @@
 			little-endian;
 		};
 
-		serdes1: serdes@1ea0000 {
-				compatible = "fsl,serdes-10g";
-				reg = <0x0 0x1ea0000 0 0x00002000>;
-				little-endian;
-		};
-
 		tmu: tmu@1f80000 {
 			compatible = "fsl,qoriq-tmu";
 			reg = <0x0 0x1f80000 0x0 0x10000>;
@@ -330,46 +324,6 @@
 			reg = <0x0 0x8B97000 0x0 0x1000>;
 			device_type = "mdio";
 			little-endian;	/* force the driver in LE mode */
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio1: mdio@8c07000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c07000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio2: mdio@8c0b000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c0b000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio3: mdio@8c0f000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c0f000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio4: mdio@8c13000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c13000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
 
 			#address-cells = <1>;
 			#size-cells = <0>;

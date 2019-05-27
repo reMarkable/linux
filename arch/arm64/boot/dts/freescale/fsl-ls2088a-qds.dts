@@ -71,64 +71,6 @@
 	};
 };
 
-&pcs_mdio1 {
-		pcs_phy1: ethernet-phy@0 {
-		backplane-mode = "10gbase-kr";
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <0x0>;
-		fsl,lane-handle = <&serdes1>;
-		fsl,lane-reg = <0x9C0 0x40>;/* lane H */
-	};
-};
-
-&pcs_mdio2 {
-		pcs_phy2: ethernet-phy@0 {
-		backplane-mode = "10gbase-kr";
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <0x0>;
-		fsl,lane-handle = <&serdes1>;
-		fsl,lane-reg = <0x980 0x40>;/* lane G */
-	};
-};
-
-&pcs_mdio3 {
-		pcs_phy3: ethernet-phy@0 {
-		backplane-mode = "10gbase-kr";
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <0x0>;
-		fsl,lane-handle = <&serdes1>;
-		fsl,lane-reg = <0x940 0x40>;/* lane F */
-	};
-};
-
-&pcs_mdio4 {
-		pcs_phy4: ethernet-phy@0 {
-		backplane-mode = "10gbase-kr";
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <0x0>;
-		fsl,lane-handle = <&serdes1>;
-		fsl,lane-reg = <0x900 0x40>;/* lane E */
-	};
-};
-
-/* Update DPMAC connections to backplane PHYs, under SerDes 0x2a_0xXX.
- * &dpmac1 {
- *	phy-handle = <&pcs_phy1>;
- * };
- *
- * &dpmac2 {
- *	phy-handle = <&pcs_phy2>;
- * };
- *
- * &dpmac3 {
- *	phy-handle = <&pcs_phy3>;
- * };
- *
- * &dpmac4 {
- *	phy-handle = <&pcs_phy4>;
- * };
- */
-
 /* Update DPMAC connections to external PHYs, under SerDes 0x2a_0x49. */
 &dpmac9 {
 	phy-handle = <&mdio0_phy12>;

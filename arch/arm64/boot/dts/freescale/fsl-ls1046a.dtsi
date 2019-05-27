@@ -679,11 +679,6 @@
 				     <GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
-		serdes1: serdes@1ea0000 {
-			reg = <0x0 0x1ea0000 0 0x00002000>;
-			compatible = "fsl,serdes-10g";
-		};
-
 		pcie@3400000 {
 			compatible = "fsl,ls1046a-pcie";
 			reg = <0x00 0x03400000 0x0 0x00100000   /* controller registers */

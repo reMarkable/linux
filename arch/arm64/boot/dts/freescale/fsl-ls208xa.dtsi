@@ -550,90 +550,6 @@
 			#size-cells = <0>;
 		};
 
-		pcs_mdio1: mdio@8c07000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c07000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio2: mdio@8c0b000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c0b000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio3: mdio@8c0f000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c0f000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio4: mdio@8c13000 {
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c13000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio5: mdio@8c17000 {
-			status = "disabled";
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c17000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio6: mdio@8c1b000 {
-			status = "disabled";
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c1b000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio7: mdio@8c1f000 {
-			status = "disabled";
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c1f000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		pcs_mdio8: mdio@8c23000 {
-			status = "disabled";
-			compatible = "fsl,fman-memac-mdio";
-			reg = <0x0 0x8c23000 0x0 0x1000>;
-			device_type = "mdio";
-			little-endian;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
 		i2c0: i2c@2000000 {
 			status = "disabled";
 			compatible = "fsl,vf610-i2c", "fsl,ls208xa-vf610-i2c";
@@ -833,12 +749,6 @@
 			snps,dis_rxdet_inp3_quirk;
 			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 			snps,host-vbus-glitches;
-		};
-
-		serdes1: serdes@1ea0000 {
-				compatible = "fsl,serdes-10g";
-				reg = <0x0 0x1ea0000 0 0x00002000>;
-				little-endian;
 		};
 
 		ccn@4000000 {

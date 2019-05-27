@@ -100,36 +100,6 @@ pcie@3600000 {
 	compatible = "fsl,fman", "simple-bus";
 };
 
-&mdio9 {
-	pcsphy6: ethernet-phy@0 {
-		backplane-mode = "10gbase-kr";
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <0x0>;
-		fsl,lane-handle = <&serdes1>;
-		fsl,lane-reg = <0x8C0 0x40>;   /* lane D */
-	};
-};
-
-&mdio10 {
-	pcsphy7: ethernet-phy@0 {
-		backplane-mode = "10gbase-kr";
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <0x0>;
-		fsl,lane-handle = <&serdes1>;
-		fsl,lane-reg = <0x880 0x40>;   /* lane C */
-	};
-};
-
-/* Update MAC connections to backplane PHYs
- * &mac9 {
- *	phy-handle = <&pcsphy6>;
- *};
- *
- *&mac10 {
- *	phy-handle = <&pcsphy7>;
- *};
-*/
-
 &clockgen {
 	dma-coherent;
 };
@@ -295,10 +265,6 @@ pcie@3600000 {
 };
 
 &ptp_timer0 {
-	dma-coherent;
-};
-
-&serdes1 {
 	dma-coherent;
 };
 
