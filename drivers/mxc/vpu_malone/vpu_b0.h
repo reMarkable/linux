@@ -27,9 +27,9 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-fh.h>
 #include <media/videobuf2-v4l2.h>
-#include <soc/imx8/sc/svc/irq/api.h>
-#include <soc/imx8/sc/ipc.h>
-#include <soc/imx8/sc/sci.h>
+//#include <soc/imx8/sc/svc/irq/api.h>
+//#include <soc/imx8/sc/ipc.h>
+//#include <soc/imx8/sc/sci.h>
 #include <linux/mx8_mu.h>
 #include <media/v4l2-event.h>
 #include <linux/kfifo.h>
@@ -223,6 +223,7 @@ struct queue_data {
 	unsigned long process_count;
 	unsigned long beginning;
 	bool enable;
+	struct vpu_ctx *ctx;
 };
 
 struct print_buf_desc {
@@ -259,7 +260,7 @@ struct vpu_dev {
 	struct work_struct msg_work;
 	unsigned long instance_mask;
 	unsigned long hang_mask; //this is used to deal with hang issue to reset firmware
-	sc_ipc_t mu_ipcHandle;
+	//sc_ipc_t mu_ipcHandle;
 	struct clk *vpu_clk;
 	void __iomem *mu_base_virtaddr;
 	unsigned int vpu_mu_id;
@@ -277,6 +278,9 @@ struct vpu_dev {
 	struct dentry *debugfs_fwlog;
 
 	struct print_buf_desc *print_buf;
+	struct device *pd_vpu;
+	struct device *pd_dec;
+	struct device *pd_mu;
 };
 
 struct vpu_statistic {

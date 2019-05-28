@@ -33,6 +33,7 @@
 #include <linux/platform_data/dma-imx.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
+#include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
 #include <linux/mx8_mu.h>
 #include <linux/uaccess.h>
@@ -701,6 +702,7 @@ void check_fuse_value(struct vpu_dev *dev,
 		struct vpu_v4l2_fmt *pformat_table,
 		uint32_t table_size)
 {
+#if 0
 	u_int32 fuse;
 	u_int32 val;
 	u_int32 i;
@@ -724,7 +726,7 @@ void check_fuse_value(struct vpu_dev *dev,
 			pformat_table[i].disable = 1;
 		vpu_dbg(LVL_WARN, "All decoder disabled\n");
 	}
-
+#endif
 }
 
 static int v4l2_ioctl_s_fmt(struct file *file,
@@ -846,7 +848,7 @@ static int vpu_dec_queue_qbuf(struct queue_data *queue,
 
 	down(&queue->drv_q_lock);
 	if (queue->vb2_q_inited)
-		ret = vb2_qbuf(&queue->vb2_q, buf);
+		ret = vb2_qbuf(&queue->vb2_q, queue->ctx->dev->v4l2_dev.mdev, buf);
 	if (!ret)
 		queue->qbuf_count++;
 	up(&queue->drv_q_lock);
@@ -1483,6 +1485,7 @@ static int vpu_dec_v4l2_ioctl_g_selection(struct file *file, void *fh,
 	return 0;
 }
 
+#if 0
 static int v4l2_ioctl_g_crop(struct file *file,
 		void *fh,
 		struct v4l2_crop *cr
@@ -1504,6 +1507,7 @@ static int v4l2_ioctl_g_crop(struct file *file,
 
 	return ret;
 }
+#endif
 
 static int v4l2_ioctl_decoder_cmd(struct file *file,
 		void *fh,
@@ -1725,7 +1729,7 @@ static const struct v4l2_ioctl_ops v4l2_decoder_ioctl_ops = {
 	.vidioc_g_parm			= vpu_dec_v4l2_ioctl_g_parm,
 	.vidioc_s_parm			= vpu_dec_v4l2_ioctl_s_parm,
 	.vidioc_expbuf                  = v4l2_ioctl_expbuf,
-	.vidioc_g_crop                  = v4l2_ioctl_g_crop,
+//	.vidioc_g_crop                  = v4l2_ioctl_g_crop,
 	.vidioc_g_selection		= vpu_dec_v4l2_ioctl_g_selection,
 	.vidioc_decoder_cmd             = v4l2_ioctl_decoder_cmd,
 	.vidioc_subscribe_event         = v4l2_ioctl_subscribe_event,
@@ -4102,9 +4106,11 @@ static void init_queue_data(struct vpu_ctx *ctx)
 {
 	init_vb2_queue(&ctx->q_data[V4L2_SRC], V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE, ctx);
 	ctx->q_data[V4L2_SRC].type = V4L2_SRC;
+	ctx->q_data[V4L2_SRC].ctx = ctx;
 	sema_init(&ctx->q_data[V4L2_SRC].drv_q_lock, 1);
 	init_vb2_queue(&ctx->q_data[V4L2_DST], V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, ctx);
 	ctx->q_data[V4L2_DST].type = V4L2_DST;
+	ctx->q_data[V4L2_DST].ctx = ctx;
 	sema_init(&ctx->q_data[V4L2_DST].drv_q_lock, 1);
 }
 
@@ -5229,12 +5235,54 @@ static int vpu_probe(struct platform_device *pdev)
 	struct vpu_dev *dev;
 	struct resource *res;
 	struct device_node *np = pdev->dev.of_node;
-	unsigned int mu_id;
+	//unsigned int mu_id;
 	int ret;
+	struct device_link *link;
 
 	dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
 	if (!dev)
 		return -ENOMEM;
+
+	dev->pd_vpu = dev_pm_domain_attach_by_name(&pdev->dev, "vpu");
+	if (IS_ERR(dev->pd_vpu)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to get vpu power domain \n", __func__);
+		ret = PTR_ERR(dev->pd_vpu);
+		goto err_put_dev;
+	}
+	dev->pd_dec = dev_pm_domain_attach_by_name(&pdev->dev, "vpudec");
+	if (IS_ERR(dev->pd_dec)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to get vpu dec power domain \n", __func__);
+		ret = PTR_ERR(dev->pd_dec);
+		goto err_put_dev;
+	}
+	dev->pd_mu = dev_pm_domain_attach_by_name(&pdev->dev, "vpumu0");
+	if (IS_ERR(dev->pd_mu)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to get vpu mu0 power domain \n", __func__);
+		ret = PTR_ERR(dev->pd_mu);
+		goto err_put_dev;
+	}
+
+	link = device_link_add(&pdev->dev, dev->pd_vpu,
+		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+	if (IS_ERR(link)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to link vpu power domain \n", __func__);
+		ret = PTR_ERR(link);
+		goto err_put_dev;
+	}
+	link = device_link_add(&pdev->dev, dev->pd_dec,
+		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+	if (IS_ERR(link)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to link vpu dec power domain \n", __func__);
+		ret = PTR_ERR(link);
+		goto err_put_dev;
+	}
+	link = device_link_add(&pdev->dev, dev->pd_mu,
+		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+	if (IS_ERR(link)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to link vpu mu0 power domain \n", __func__);
+		ret = PTR_ERR(link);
+		goto err_put_dev;
+	}
 
 	dev->plat_dev = pdev;
 	dev->generic_dev = get_device(&pdev->dev);
@@ -5267,6 +5315,7 @@ static int vpu_probe(struct platform_device *pdev)
 		goto err_unreg_v4l2;
 	}
 
+#if 0
 	if (!dev->mu_ipcHandle) {
 		ret = sc_ipc_getMuID(&mu_id);
 		if (ret) {
@@ -5280,6 +5329,7 @@ static int vpu_probe(struct platform_device *pdev)
 			goto err_rm_vdev;
 		}
 	}
+#endif
 
 	dev->workqueue = alloc_workqueue("vpu", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
 	if (!dev->workqueue) {
@@ -5290,10 +5340,11 @@ static int vpu_probe(struct platform_device *pdev)
 
 	INIT_WORK(&dev->msg_work, vpu_msg_run_work);
 
-	check_fuse_value(dev, formats_compressed_dec, ARRAY_SIZE(formats_compressed_dec));
-	vpu_enable_hw(dev);
 	pm_runtime_enable(&pdev->dev);
 	pm_runtime_get_sync(&pdev->dev);
+
+	check_fuse_value(dev, formats_compressed_dec, ARRAY_SIZE(formats_compressed_dec));
+	vpu_enable_hw(dev);
 
 	ret = init_vpudev_parameters(dev);
 	if (ret) {
@@ -5326,6 +5377,7 @@ err_put_dev:
 		dev->generic_dev = NULL;
 	}
 
+	devm_kfree(&pdev->dev, dev);
 	return ret;
 }
 
