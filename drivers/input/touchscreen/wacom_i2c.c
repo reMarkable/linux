@@ -25,13 +25,7 @@
 #include <linux/reset.h>
 #include <linux/delay.h>
 
-#define WACOM_CMD_QUERY0	0x04
-#define WACOM_CMD_QUERY1	0x00
-#define WACOM_CMD_QUERY2	0x33
-#define WACOM_CMD_QUERY3	0x02
-#define WACOM_CMD_THROW0	0x05
-#define WACOM_CMD_THROW1	0x00
-#define WACOM_QUERY_SIZE	22
+#define WACOM_MAX_DATA_SIZE     20
 
 struct wacom_features {
 	int x_max;
@@ -47,42 +41,90 @@ struct wacom_features {
 struct wacom_i2c {
 	struct i2c_client *client;
 	struct input_dev *input;
-	u8 data[WACOM_QUERY_SIZE];
+	u8 data[WACOM_MAX_DATA_SIZE];
 	bool prox;
 	int tool;
 };
+
+//#define GPIO_TEST_LED   174
 
 static int wacom_query_device(struct i2c_client *client,
 			      struct wacom_features *features)
 {
 	int ret;
-	u8 cmd1[] = { WACOM_CMD_QUERY0, WACOM_CMD_QUERY1,
-			WACOM_CMD_QUERY2, WACOM_CMD_QUERY3 };
-	u8 cmd2[] = { WACOM_CMD_THROW0, WACOM_CMD_THROW1 };
-	u8 data[WACOM_QUERY_SIZE];
+	u8 data[WACOM_MAX_DATA_SIZE];
+    struct reset_control *rstc;
+
+    u8 set_sample_rate_cmd[] = {
+        0x04, // COMMAND_REGISTER LSB
+        0x00, // COMMAND_REGISTER MSB
+        0x3F, // Feature (0b0011) + ReportID: (0b1111) (sentinel value)
+        0x03, // Op-code: SET_REPORT
+        0x19, // Actual ReportID: (0b11001) (25 / 0x19)
+    };
+
+    u8 set_sample_rate_data[] = {
+        0x05, // DATA_REGISTER LSB
+        0x00, // DATA_REGISTER MSB
+        0x04, // LENGTH LSB
+        0x00, // LENGTH MSB
+        0x19, // ReportID (0x19 = Position Report Rate)
+        0x06, // Selected rate (1=240pps, 3=360pps (def), 5=480pps, 6=540pps)
+    };
+
+    u8 get_query_data_cmd[] = {
+        0x04, // COMMAND_REGISTER LSB
+        0x00, // COMMAND_REGISTER MSB
+        0x33, // Feature (0b0011) + ReportID: (0b0011) (3)
+        0x02, // Op-code: GET_REPORT
+    };
+    u8 read_data[] = {
+        0x05, // DATA_REGISTER LSB
+        0x00, // DATA_REGISTER MSB
+    };
+
 	struct i2c_msg msgs[] = {
+#if 0
+        // Request writing of feature, ReportID 24 / Position Report Rate
 		{
 			.addr = client->addr,
 			.flags = 0,
-			.len = sizeof(cmd1),
-			.buf = cmd1,
+			.len = sizeof(set_sample_rate_cmd),
+			.buf = set_sample_rate_cmd,
 		},
+        // Set sample rate data
 		{
 			.addr = client->addr,
 			.flags = 0,
-			.len = sizeof(cmd2),
-			.buf = cmd2,
+			.len = sizeof(set_sample_rate_data),
+			.buf = set_sample_rate_data,
 		},
+#endif
+        // Request reading of feature ReportID: 3 (Pen Query Data)
+		{
+			.addr = client->addr,
+			.flags = 0,
+			.len = sizeof(get_query_data_cmd),
+			.buf = get_query_data_cmd,
+		},
+        // Setup for reading data
+		{
+			.addr = client->addr,
+			.flags = 0,
+			.len = sizeof(read_data),
+			.buf = read_data,
+		},
+        // Read 20 bytes
 		{
 			.addr = client->addr,
 			.flags = I2C_M_RD,
-			.len = sizeof(data),
+			.len = 20,
 			.buf = data,
 		},
 	};
 
     printk("[---- SBA ----] Asserting/deasserting WACOM reset ..\n");
-    struct reset_control *rstc = devm_reset_control_get_optional_exclusive(&client->dev, NULL);
+    rstc = devm_reset_control_get_optional_exclusive(&client->dev, NULL);
     if (IS_ERR(rstc)) {
         printk("[---- SBA ----] Failed to get reset control while trying to reset WACOM device before init !\n");
     }
@@ -124,19 +166,57 @@ static int wacom_query_device(struct i2c_client *client,
 
 static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 {
+#if 0
+    static unsigned count = 0;
+    static int turnoff = 0;
+
+    if (count++ > 500) {
+        count = 0;
+        if (turnoff) {
+            gpio_set_value(GPIO_TEST_LED, 1);
+            turnoff = 0;
+        } else {
+            gpio_set_value(GPIO_TEST_LED, 0);
+            turnoff = 1;
+        }
+        //printk("lol\n");
+    }
+#endif
+
 	struct wacom_i2c *wac_i2c = dev_id;
 	struct input_dev *input = wac_i2c->input;
 	u8 *data = wac_i2c->data;
-	unsigned int x, y, pressure;
+	unsigned int x, y, z, pressure;
 	unsigned char tip, f1, f2, eraser, distance;
 	short tilt_x, tilt_y;
 	int error;
 
+    //gpio_set_value(GPIO_TEST_LED, 1);
+#if 1
 	error = i2c_master_recv(wac_i2c->client,
-				wac_i2c->data, sizeof(wac_i2c->data));
+				wac_i2c->data, 17);
+#else
+    const struct i2c_client *client = wac_i2c->client;
+	struct i2c_adapter *adap = client->adapter;
+	struct i2c_msg msg;
+	msg.addr = client->addr;
+	msg.flags = client->flags & I2C_M_TEN;
+	msg.flags |= I2C_M_RD;
+	msg.len = 15;
+	msg.buf = wac_i2c->data;
+	error = __i2c_transfer(adap, &msg, 1);
+#endif
+
+    //gpio_set_value(GPIO_TEST_LED, 0);
+
 	if (error < 0)
 		goto out;
 
+    //TODO: Check ReportID (CP Pen = 2, Chinonome Refill = 26)
+
+    // data[0] == Length LSB
+    // data[1] == Length MSB
+    // data[2] == ReportID (2)
 	tip = data[3] & 0x01;
 	eraser = data[3] & 0x04;
 	f1 = data[3] & 0x02;
@@ -146,9 +226,21 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	pressure = le16_to_cpup((__le16 *)&data[8]);
 	distance = data[10];
 
-	/* Signed */
+	// Tilt (signed)
 	tilt_x = le16_to_cpup((__le16 *)&data[11]);
 	tilt_y = le16_to_cpup((__le16 *)&data[13]);
+
+    // Hover height
+    //z = le16_to_cpup((__le16 *)&data[15]);
+
+    // Toggle GPIO 174:
+#if 0
+    if (x > 10484) {
+        gpio_set_value(GPIO_TEST_LED, 1);
+    } else {
+        gpio_set_value(GPIO_TEST_LED, 0);
+    }
+#endif
 
 	if (!wac_i2c->prox)
 		wac_i2c->tool = (data[3] & 0x0c) ?
@@ -162,6 +254,7 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	input_report_key(input, BTN_STYLUS2, f2);
 	input_report_abs(input, ABS_X, x);
 	input_report_abs(input, ABS_Y, y);
+	//input_report_abs(input, ABS_Z, z);
 	input_report_abs(input, ABS_PRESSURE, pressure);
 	input_report_abs(input, ABS_DISTANCE, distance);
 	input_report_abs(input, ABS_TILT_X, tilt_x);
@@ -196,7 +289,13 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	struct wacom_i2c *wac_i2c;
 	struct input_dev *input;
 	struct wacom_features features = { 0 };
+    struct device_node *np;
 	int error;
+    unsigned int flags, ret, reset_gpio;
+
+    // Setup GPIO_TEST_LED
+//    gpio_request(GPIO_TEST_LED, "test_led");
+//    gpio_direction_output(GPIO_TEST_LED, 0);
 
 	printk("[---- SBA ----] wacom_i2c_probe enter\n");
 	printk("[---- SBA ----] Stack trace:\n");
@@ -205,16 +304,14 @@ static int wacom_i2c_probe(struct i2c_client *client,
     printk("[---- SBA ----] client->irq: %d\n", client->irq);
     printk("[---- SBA ----] client->name: %s\n", client->name);
 
-
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "i2c_check_functionality error\n");
 		return -EIO;
 	}
 
 	printk("[---- SBA ----] Reading reset-gpio config if present..\n");
-    struct device_node *np = client->dev.of_node;
-    unsigned int flags;
-	unsigned int reset_gpio = of_get_named_gpio_flags(np, "reset-gpio", 0, &flags);
+    np = client->dev.of_node;
+	reset_gpio = of_get_named_gpio_flags(np, "reset-gpio", 0, &flags);
     if (reset_gpio == -EPROBE_DEFER) {
         printk("[---- SBA ----] of_get_named_gpio_flags returned EPROBE_DEFER, ignoring reset-gpio..\n");
     } else if (!gpio_is_valid(reset_gpio)) {
@@ -223,7 +320,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
     }
 
     printk("[---- SBA ----] Requesting gpio %d ..\n", reset_gpio);
-    unsigned int ret = devm_gpio_request_one(&client->dev, reset_gpio, flags, NULL);
+    ret = devm_gpio_request_one(&client->dev, reset_gpio, flags, NULL);
     if (ret < 0) {
         printk("[---- SBA ----] Failed to request gpio %d: %d\n", reset_gpio, ret);
     }
