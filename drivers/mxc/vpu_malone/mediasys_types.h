@@ -76,6 +76,7 @@ typedef unsigned int BOOL;
 #define VID_API_COMMAND_LIMIT    64
 #define VID_API_MESSAGE_LIMIT    256
 #define MSG_WORD_LENGTH 3
+#define MEDIA_PLAYER_SKIPPED_FRAME_ID 0x555
 
 #define API_CMD_AVAILABLE            0x0
 #define API_CMD_INCOMPLETE           0x1
@@ -186,44 +187,45 @@ typedef enum {
 
 typedef enum {
 	/* Non-Stream Specific messages    */
-	VID_API_EVENT_NULL            = 0x00,
-	VID_API_EVENT_RESET_DONE      = 0x01,
-	VID_API_EVENT_SEQ_HDR_FOUND   = 0x02,
-	VID_API_EVENT_PIC_HDR_FOUND   = 0x03,
-	VID_API_EVENT_PIC_DECODED     = 0x04,
-	VID_API_EVENT_FIFO_LOW        = 0x05,
-	VID_API_EVENT_FIFO_HIGH       = 0x06,
-	VID_API_EVENT_FIFO_EMPTY      = 0x07,
-	VID_API_EVENT_FIFO_FULL       = 0x08,
-	VID_API_EVENT_BS_ERROR        = 0x09,
-	VID_API_EVENT_UDATA_FIFO_UPTD = 0x0A,
-	VID_API_EVENT_RES_CHANGE      = 0x0B,
-	VID_API_EVENT_FIFO_OVF        = 0x0C,
-	VID_API_EVENT_CHUNK_DECODED   = 0x0D,
-	VID_API_EVENT_REQ_FRAME_BUFF  = 0x10,
-	VID_API_EVENT_FRAME_BUFF_RDY  = 0x11,
-	VID_API_EVENT_REL_FRAME_BUFF  = 0x12,
-	VID_API_EVENT_STR_BUF_RST     = 0x13,
-	VID_API_EVENT_RET_PING        = 0x14,      /* Temp here - rationalise debug events at bottom */
-	VID_API_EVENT_QMETER          = 0x15,
-	VID_API_EVENT_STR_FMT_CHANGE  = 0x16,
-	VID_API_EVENT_FIRMWARE_XCPT   = 0x17,
-	VID_API_EVENT_START_DONE      = 0x18,
-	VID_API_EVENT_STOPPED         = 0x19,
-	VID_API_EVENT_ABORT_DONE      = 0x1A,
-	VID_API_EVENT_FINISHED        = 0x1B,
-	VID_API_EVENT_DBG_STAT_UPDATE = 0x1C,
-	VID_API_EVENT_DBG_LOG_STARTED = 0x1D,
-	VID_API_EVENT_DBG_LOG_STOPPED = 0x1E,
-	VID_API_EVENT_DBG_LOG_UPDATED = 0x1F,
-	VID_API_EVENT_DBG_MSG_DEC     = 0x20,
-	VID_API_EVENT_DEC_SC_ERR      = 0x21,
-	VID_API_EVENT_CQ_FIFO_DUMP    = 0x22,
-	VID_API_EVENT_DBG_FIFO_DUMP   = 0x23,
-	VID_API_EVENT_DEC_CHECK_RES   = 0x24,
-	VID_API_EVENT_DEC_CFG_INFO    = 0x25,
-	VID_API_EVENT_SNAPSHOT_DONE   = 0x40,
-	VID_API_EVENT_INVALID         = 0xFF
+	VID_API_EVENT_NULL			= 0x00,
+	VID_API_EVENT_RESET_DONE		= 0x01,
+	VID_API_EVENT_SEQ_HDR_FOUND		= 0x02,
+	VID_API_EVENT_PIC_HDR_FOUND		= 0x03,
+	VID_API_EVENT_PIC_DECODED		= 0x04,
+	VID_API_EVENT_FIFO_LOW			= 0x05,
+	VID_API_EVENT_FIFO_HIGH			= 0x06,
+	VID_API_EVENT_FIFO_EMPTY		= 0x07,
+	VID_API_EVENT_FIFO_FULL			= 0x08,
+	VID_API_EVENT_BS_ERROR			= 0x09,
+	VID_API_EVENT_UDATA_FIFO_UPTD		= 0x0A,
+	VID_API_EVENT_RES_CHANGE		= 0x0B,
+	VID_API_EVENT_FIFO_OVF			= 0x0C,
+	VID_API_EVENT_CHUNK_DECODED		= 0x0D,
+	VID_API_EVENT_REQ_FRAME_BUFF		= 0x10,
+	VID_API_EVENT_FRAME_BUFF_RDY		= 0x11,
+	VID_API_EVENT_REL_FRAME_BUFF		= 0x12,
+	VID_API_EVENT_STR_BUF_RST		= 0x13,
+	VID_API_EVENT_RET_PING			= 0x14,
+	VID_API_EVENT_QMETER			= 0x15,
+	VID_API_EVENT_STR_FMT_CHANGE		= 0x16,
+	VID_API_EVENT_FIRMWARE_XCPT		= 0x17,
+	VID_API_EVENT_START_DONE		= 0x18,
+	VID_API_EVENT_STOPPED			= 0x19,
+	VID_API_EVENT_ABORT_DONE		= 0x1A,
+	VID_API_EVENT_FINISHED			= 0x1B,
+	VID_API_EVENT_DBG_STAT_UPDATE		= 0x1C,
+	VID_API_EVENT_DBG_LOG_STARTED		= 0x1D,
+	VID_API_EVENT_DBG_LOG_STOPPED		= 0x1E,
+	VID_API_EVENT_DBG_LOG_UPDATED		= 0x1F,
+	VID_API_EVENT_DBG_MSG_DEC		= 0x20,
+	VID_API_EVENT_DEC_SC_ERR		= 0x21,
+	VID_API_EVENT_CQ_FIFO_DUMP		= 0x22,
+	VID_API_EVENT_DBG_FIFO_DUMP		= 0x23,
+	VID_API_EVENT_DEC_CHECK_RES		= 0x24,
+	VID_API_EVENT_DEC_CFG_INFO		= 0x25,
+	MEDIA_DEC_API_EVENT_UNSUPPORTED_STREAM	= 0x26,
+	VID_API_EVENT_SNAPSHOT_DONE		= 0x40,
+	VID_API_EVENT_INVALID			= 0xFF
 
 } TB_API_DEC_EVENT;
 
@@ -443,8 +445,8 @@ typedef struct {
 typedef struct {
 	u_int32	uDecStatusLogBase;
 	u_int32	uDecStatusLogSize;
-	u_int32 uDTVLogBase[VID_API_NUM_STREAMS];
-	u_int32 uDTVLogSize[VID_API_NUM_STREAMS];
+	u_int32 uDecStatusLogLevel;
+	u_int32   uReserved;
 
 } MediaIPFW_Video_DbgLogDesc;
 
@@ -476,6 +478,10 @@ typedef struct {
 	u_int32 uNumDPBFrms;
 	u_int32 uNumDFEAreas;
 	u_int32 uColorDesc;
+	u_int32 uTransferChars;
+	u_int32 uMatrixCoeffs;
+	u_int32 uVideoFullRangeFlag;
+	u_int32 uVUIPresent;
 	u_int32 uProgressive;
 	u_int32 uVerRes;
 	u_int32 uHorRes;
@@ -494,7 +500,7 @@ typedef struct {
 	u_int32 uBitDepthChroma;
 	u_int32 uMVCNumViews;
 	u_int32 uMVCViewList[VID_API_MAX_NUM_MVC_VIEWS];
-	u_int32 uFBCInUse;
+	u_int32 uActiveSeqTag;
 	u_int32 uFrameCropValid;
 	u_int32 uFrameCropLeftOffset;
 	u_int32 uFrameCropRightOffset;
@@ -520,6 +526,8 @@ typedef struct {
 	u_int32 stream_input_mode;
 	u_int32 stream_pic_input_count;
 	u_int32 stream_pic_parsed_count;
+	u_int32 stream_buffer_threshold;
+	u_int32 stream_pic_end_flag;
 } BUFFER_INFO_TYPE, *pBUFFER_INFO_TYPE;
 
 typedef struct {
@@ -664,11 +672,7 @@ typedef struct {
 	u_int32                                StreamConfig[VID_API_NUM_STREAMS];
 	MediaIPFW_Video_CodecParamTabDesc	   CodecParamTabDesc;                       /* TODO-KMC  should we just go ahead and remove the concept of tabdesc? It is basicaly a bad coding style used for pinkys anyway */
 	MediaIPFW_Video_JpegParamTabDesc       JpegParamTabDesc;
-#ifdef COREPLAY_API
-	pBUFFER_DESCRIPTOR_TYPE                pStreamBuffDesc[VID_API_NUM_STREAMS][VID_API_MAX_BUF_PER_STR];
-#else
 	u_int32                                pStreamBuffDesc[VID_API_NUM_STREAMS][VID_API_MAX_BUF_PER_STR];
-#endif
 	MediaIPFW_Video_SeqInfoBuffTabDesc     SeqInfoTabDesc;
 	MediaIPFW_Video_PicInfoBuffTabDesc     PicInfoTabDesc;
 	MediaIPFW_Video_GopInfoBuffTabDesc     GopInfoTabDesc;
