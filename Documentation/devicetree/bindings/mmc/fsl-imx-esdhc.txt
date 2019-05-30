@@ -19,6 +19,7 @@ Required properties:
 	       "fsl,imx7d-usdhc"
 	       "fsl,imx7ulp-usdhc"
 	       "fsl,imx8qxp-usdhc"
+	       "fsl,imx8mm-usdhc"
 
 Optional properties:
 - fsl,wp-controller : Indicate to use controller internal write protection
