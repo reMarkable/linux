@@ -13,6 +13,8 @@
 
 #include "vpu_encoder_b0.h"
 
+int vpu_enc_init_reserved_memory(struct vpu_enc_mem_info *info);
+void vpu_enc_release_reserved_memory(struct vpu_enc_mem_info *info);
 void vpu_enc_add_dma_size(struct vpu_attr *attr, unsigned long size);
 void vpu_enc_sub_dma_size(struct vpu_attr *attr, unsigned long size);
 int vpu_enc_alloc_dma_buffer(struct vpu_ctx *ctx, struct buffer_addr *buffer);

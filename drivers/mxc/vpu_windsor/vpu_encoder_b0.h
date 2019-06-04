@@ -27,9 +27,9 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-fh.h>
 #include <media/videobuf2-v4l2.h>
-//#include <soc/imx8/sc/svc/irq/api.h>
-//#include <soc/imx8/sc/ipc.h>
-//#include <soc/imx8/sc/sci.h>
+#include <soc/imx8/sc/svc/irq/api.h>
+#include <soc/imx8/sc/ipc.h>
+#include <soc/imx8/sc/sci.h>
 #include <linux/mx8_mu.h>
 #include <media/v4l2-event.h>
 #include "vpu_encoder_rpc.h"
@@ -174,7 +174,7 @@ struct vpu_v4l2_fmt {
 struct vb2_data_req {
 	struct list_head  list;
 	struct vb2_buffer *vb2_buf;
-	int id;
+	u_int32 sequence;
 	u_int32 buffer_flags;
 };
 
@@ -186,10 +186,7 @@ enum ENC_RW_FLAG {
 struct queue_data {
 	unsigned int width;
 	unsigned int height;
-	unsigned int bytesperline;
-	unsigned int sizeimage[3];
-	unsigned int fourcc;
-	unsigned int vdec_std;
+	unsigned int sizeimage[VB2_MAX_PLANES];
 	struct v4l2_rect rect;
 	int buf_type; // v4l2_buf_type
 	bool vb2_q_inited;
@@ -206,6 +203,7 @@ struct queue_data {
 	atomic64_t frame_count;
 	struct list_head frame_idle;
 	struct vpu_ctx *ctx;
+	char desc[64];
 };
 
 struct vpu_strip_info {
@@ -239,6 +237,7 @@ struct vpu_statistic {
 	} strip_sts;
 	bool fps_sts_enable;
 	struct vpu_fps_sts fps[VPU_FPS_STS_CNT];
+	unsigned long timestamp_overwrite;
 };
 
 struct vpu_attr {
@@ -260,6 +259,16 @@ struct vpu_attr {
 	bool created;
 };
 
+struct print_buf_desc {
+	u32 start_h_phy;
+	u32 start_h_vir;
+	u32 start_m;
+	u32 bytes;
+	u32 read;
+	u32 write;
+	char buffer[0];
+};
+
 struct core_device {
 	void *m0_p_fw_space_vir;
 	u_int32 m0_p_fw_space_phy;
@@ -270,6 +279,7 @@ struct core_device {
 	u32 rpc_buf_size;
 	u32 print_buf_size;
 	u32 rpc_actual_size;
+	struct print_buf_desc *print_buf;
 
 	struct mutex cmd_mutex;
 	bool fw_is_ready;
@@ -300,6 +310,23 @@ struct core_device {
 	struct device_attribute core_attr;
 	char name[64];
 	unsigned long reset_times;
+};
+
+struct vpu_enc_mem_item {
+	struct list_head list;
+	void *virt_addr;
+	unsigned long phy_addr;
+	unsigned long size;
+	unsigned long offset;
+};
+
+struct vpu_enc_mem_info {
+	void *virt_addr;
+	unsigned long phy_addr;
+	unsigned long size;
+	unsigned long bytesused;
+	struct list_head memorys;
+	spinlock_t lock;
 };
 
 struct vpu_dev {
@@ -334,9 +361,7 @@ struct vpu_dev {
 		u32 max;
 		u32 step;
 	} supported_fps;
-	struct device *pd_vpu;
-	struct device *pd_enc;
-	struct device *pd_mu;
+	struct vpu_enc_mem_info reserved_mem;
 };
 
 struct buffer_addr {
@@ -347,6 +372,8 @@ struct buffer_addr {
 
 enum {
 	VPU_ENC_STATUS_INITIALIZED,
+	VPU_ENC_STATUS_OUTPUT_READY = 18,
+	VPU_ENC_STATUS_DATA_READY = 19,
 	VPU_ENC_STATUS_SNAPSHOT = 20,
 	VPU_ENC_STATUS_FORCE_RELEASE = 21,
 	VPU_ENC_STATUS_EOS_SEND = 22,
@@ -391,14 +418,25 @@ struct vpu_ctx {
 
 	struct vpu_statistic sts;
 	unsigned int frozen_count;
+	u_int32 sequence;
+	s64 timestams[VPU_ENC_SEQ_CAPACITY];
 };
 
-#define LVL_DEBUG	4
-#define LVL_INFO	3
-#define LVL_IRQ		2
-#define LVL_ALL		1
-#define LVL_WARN	1
-#define LVL_ERR		0
+#define LVL_ERR		(1 << 0)
+#define LVL_WARN	(1 << 1)
+#define LVL_ALL		(1 << 2)
+#define LVL_IRQ		(1 << 3)
+#define LVL_INFO	(1 << 4)
+#define LVL_CMD		(1 << 5)
+#define LVL_EVT		(1 << 6)
+#define LVL_DEBUG	(1 << 7)
+#define LVL_CTRL	(1 << 8)
+#define LVL_RPC		(1 << 9)
+#define LVL_MSG		(1 << 10)
+#define LVL_MEM		(1 << 11)
+#define LVL_BUF		(1 << 12)
+#define LVL_FRAME	(1 << 13)
+#define LVL_FUNC	(1 << 16)
 
 #ifndef TAG
 #define TAG	"[VPU Encoder]\t "
@@ -406,14 +444,25 @@ struct vpu_ctx {
 
 #define vpu_dbg(level, fmt, arg...) \
 	do { \
-		if (vpu_dbg_level_encoder >= (level)) \
+		if ((vpu_dbg_level_encoder & (level)) || ((level) & LVL_ERR)) \
 			pr_info(TAG""fmt, ## arg); \
 	} while (0)
 
 #define vpu_err(fmt, arg...)	vpu_dbg(LVL_ERR, fmt, ##arg)
+#define vpu_log_func()		vpu_dbg(LVL_FUNC, "%s()\n", __func__)
 
 u32 cpu_phy_to_mu(struct core_device *dev, u32 addr);
 struct vpu_attr *get_vpu_ctx_attr(struct vpu_ctx *ctx);
 struct vpu_ctx *get_vpu_attr_ctx(struct vpu_attr *attr);
+
+#ifndef VPU_SAFE_RELEASE
+#define VPU_SAFE_RELEASE(p, func)	\
+	do {\
+		if (p) {\
+			func(p);\
+			p = NULL;\
+		} \
+	} while (0)
+#endif
 
 #endif

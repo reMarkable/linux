@@ -8,6 +8,7 @@
  *
  * Author Ming Qian<ming.qian@nxp.com>
  */
+#define TAG	"[VPU Encoder Msg]\t "
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/vmalloc.h>
@@ -32,7 +33,7 @@ static void free_event_msg(struct vpu_event_msg *msg)
 		return;
 
 	free_msg_ext_buffer(msg);
-	vfree(msg);
+	VPU_SAFE_RELEASE(msg, vfree);
 }
 
 static void set_msg_count(struct vpu_ctx *ctx, unsigned long count)
@@ -77,18 +78,19 @@ void cleanup_ctx_msg_queue(struct vpu_ctx *ctx)
 
 	WARN_ON(!ctx);
 
+	vpu_log_func();
 	mutex_lock(&ctx->instance_mutex);
 	list_for_each_entry_safe(msg, tmp, &ctx->msg_q, list) {
 		list_del_init(&msg->list);
-		vpu_dbg(LVL_WARN, "drop core[%d] ctx[%d] msg:[%d]\n",
+		vpu_dbg(LVL_MSG, "drop core[%d] ctx[%d] msg:[%d]\n",
 				ctx->core_dev->id, ctx->str_index, msg->msgid);
-		free_event_msg(msg);
+		VPU_SAFE_RELEASE(msg, free_event_msg);
 		dec_msg_count(ctx);
 	}
 
 	list_for_each_entry_safe(msg, tmp, &ctx->idle_q, list) {
 		list_del_init(&msg->list);
-		free_event_msg(msg);
+		VPU_SAFE_RELEASE(msg, free_event_msg);
 		dec_msg_count(ctx);
 	}
 	mutex_unlock(&ctx->instance_mutex);
@@ -116,6 +118,7 @@ int init_ctx_msg_queue(struct vpu_ctx *ctx)
 	if (!ctx)
 		return -EINVAL;
 
+	vpu_log_func();
 	mutex_lock(&ctx->instance_mutex);
 
 	set_msg_count(ctx, 0);
@@ -157,7 +160,7 @@ void put_idle_msg(struct vpu_ctx *ctx, struct vpu_event_msg *msg)
 
 	mutex_lock(&ctx->instance_mutex);
 	if (is_msg_count_full(ctx)) {
-		free_event_msg(msg);
+		VPU_SAFE_RELEASE(msg, free_event_msg);
 		dec_msg_count(ctx);
 	} else {
 		list_add_tail(&msg->list, &ctx->idle_q);
@@ -209,7 +212,7 @@ int alloc_msg_ext_buffer(struct vpu_event_msg *msg, u32 number)
 	msg->number = number;
 
 	atomic64_add(number, &total_ext_data);
-	vpu_dbg(LVL_DEBUG, "++++alloc %d msg ext data: %lld\n",
+	vpu_dbg(LVL_MSG, "++++alloc %d msg ext data: %lld\n",
 			number, get_total_ext_data_number());
 
 	return 0;
@@ -223,9 +226,8 @@ void free_msg_ext_buffer(struct vpu_event_msg *msg)
 		return;
 
 	atomic64_sub(msg->number, &total_ext_data);
-	vfree(msg->ext_data);
-	msg->ext_data = NULL;
-	vpu_dbg(LVL_DEBUG, "----free %d msg ext data: %lld\n",
+	VPU_SAFE_RELEASE(msg->ext_data, vfree);
+	vpu_dbg(LVL_MSG, "----free %d msg ext data: %lld\n",
 			msg->number, get_total_ext_data_number());
 }
 

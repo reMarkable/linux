@@ -13,6 +13,7 @@
  * Author Ming Qian<ming.qian@nxp.com>
  */
 
+#define TAG	"[VPU Encoder Ctrl]\t "
 #include <media/v4l2-ctrls.h>
 
 #include "vpu_encoder_b0.h"
@@ -47,16 +48,19 @@ static int set_h264_profile(struct v4l2_ctrl *ctrl)
 	mutex_lock(&ctx->instance_mutex);
 	switch (ctrl->val) {
 	case V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE:
+		vpu_dbg(LVL_CTRL, "set h264 profile baseline\n");
 		param->eProfile = MEDIAIP_ENC_PROF_H264_BP;
 		break;
 	case V4L2_MPEG_VIDEO_H264_PROFILE_MAIN:
+		vpu_dbg(LVL_CTRL, "set h264 profile main\n");
 		param->eProfile = MEDIAIP_ENC_PROF_H264_MP;
 		break;
 	case V4L2_MPEG_VIDEO_H264_PROFILE_HIGH:
+		vpu_dbg(LVL_CTRL, "set h264 profile high\n");
 		param->eProfile = MEDIAIP_ENC_PROF_H264_HP;
 		break;
 	default:
-		vpu_dbg(LVL_ERR, "not support H264 profile %d, set to main\n",
+		vpu_err("not support H264 profile %d, set to main\n",
 				ctrl->val);
 		param->eProfile = MEDIAIP_ENC_PROF_H264_MP;
 		break;
@@ -76,7 +80,8 @@ static int set_h264_level(struct v4l2_ctrl *ctrl)
 	param->uLevel = h264_level[ctrl->val];
 	mutex_unlock(&ctx->instance_mutex);
 
-	vpu_dbg(LVL_DEBUG, "set h264 level to %d\n", ctrl->val);
+	vpu_dbg(LVL_CTRL, "set h264 level to %d (%d)\n",
+			ctrl->val, h264_level[ctrl->val]);
 
 	return 0;
 }
@@ -90,14 +95,16 @@ static int set_bitrate_mode(struct v4l2_ctrl *ctrl)
 	mutex_lock(&ctx->instance_mutex);
 	switch (ctrl->val) {
 	case V4L2_MPEG_VIDEO_BITRATE_MODE_VBR:
+		vpu_dbg(LVL_CTRL, "set bitrate mode VBR\n");
 		param->eBitRateMode =
 				MEDIAIP_ENC_BITRATECONTROLMODE_CONSTANT_QP;
 		break;
 	case V4L2_MPEG_VIDEO_BITRATE_MODE_CBR:
+		vpu_dbg(LVL_CTRL, "set bitrate mode CBR\n");
 		param->eBitRateMode = MEDIAIP_ENC_BITRATECONTROLMODE_CBR;
 		break;
 	default:
-		vpu_dbg(LVL_ERR, "not support bitrate mode %d, set to cbr\n",
+		vpu_err("not support bitrate mode %d, set to cbr\n",
 				ctrl->val);
 		param->eBitRateMode = MEDIAIP_ENC_BITRATECONTROLMODE_CBR;
 		break;
@@ -113,6 +120,7 @@ static int set_bitrate(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "set bitrate %d\n", ctrl->val);
 	mutex_lock(&ctx->instance_mutex);
 	param->uTargetBitrate = ctrl->val / BITRATE_COEF;
 	if (param->uMaxBitRate < param->uTargetBitrate)
@@ -128,6 +136,7 @@ static int set_bitrate_peak(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "set peak bitrate %d\n", ctrl->val);
 	mutex_lock(&ctx->instance_mutex);
 	param->uMaxBitRate = ctrl->val / BITRATE_COEF;
 	if (param->uTargetBitrate > param->uMaxBitRate)
@@ -143,6 +152,7 @@ static int set_gop_size(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "set gop size %d\n", ctrl->val);
 	mutex_lock(&ctx->instance_mutex);
 	param->uIFrameInterval = ctrl->val;
 	mutex_unlock(&ctx->instance_mutex);
@@ -156,6 +166,7 @@ static int set_i_period(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "set iframe interval %d\n", ctrl->val);
 	mutex_lock(&ctx->instance_mutex);
 	param->uIFrameInterval = ctrl->val;
 	mutex_unlock(&ctx->instance_mutex);
@@ -169,6 +180,7 @@ static int get_gop_size(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "get gop size\n");
 	ctrl->val = param->uIFrameInterval;
 
 	return 0;
@@ -180,6 +192,7 @@ static int set_b_frames(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "set bframes %d\n", ctrl->val);
 	mutex_lock(&ctx->instance_mutex);
 	param->uGopBLength = ctrl->val;
 	mutex_unlock(&ctx->instance_mutex);
@@ -193,6 +206,7 @@ static int set_qp(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "set qp %d\n", ctrl->val);
 	mutex_lock(&ctx->instance_mutex);
 	param->uInitSliceQP = ctrl->val;
 	mutex_unlock(&ctx->instance_mutex);
@@ -202,7 +216,7 @@ static int set_qp(struct v4l2_ctrl *ctrl)
 
 static int get_min_buffers_for_output(struct v4l2_ctrl *ctrl)
 {
-	vpu_dbg(LVL_DEBUG, "get min buffers for output\n");
+	vpu_dbg(LVL_CTRL, "get min buffers for output\n");
 
 	ctrl->val = MIN_BUFFER_COUNT;
 
@@ -215,6 +229,7 @@ static int set_display_re_ordering(struct v4l2_ctrl *ctrl)
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
 	pMEDIAIP_ENC_PARAM  param = &attr->param;
 
+	vpu_dbg(LVL_CTRL, "set lowlatencymode %d\n", ctrl->val);
 	mutex_lock(&ctx->instance_mutex);
 	if (ctrl->val)
 		param->uLowLatencyMode = 1;
@@ -229,6 +244,7 @@ static int set_force_key_frame(struct v4l2_ctrl *ctrl)
 {
 	struct vpu_ctx *ctx = v4l2_ctrl_to_ctx(ctrl);
 
+	vpu_dbg(LVL_CTRL, "force key frame\n");
 	set_bit(VPU_ENC_STATUS_KEY_FRAME, &ctx->status);
 
 	return 0;
@@ -248,7 +264,7 @@ static int add_ctrl_h264_profile(struct vpu_ctx *ctx)
 				      0xa,
 				      V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl h264 profile fail\n");
+		vpu_err("add ctrl h264 profile fail\n");
 		return -EINVAL;
 	}
 
@@ -269,7 +285,7 @@ static int add_ctrl_h264_level(struct vpu_ctx *ctx)
 				      0x0,
 				      V4L2_MPEG_VIDEO_H264_LEVEL_4_0);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl h264 level fail\n");
+		vpu_err("add ctrl h264 level fail\n");
 		return -EINVAL;
 	}
 
@@ -290,7 +306,7 @@ static int add_ctrl_bitrate_mode(struct vpu_ctx *ctx)
 				      0x0,
 				      V4L2_MPEG_VIDEO_BITRATE_MODE_VBR);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl bitrate mode fail\n");
+		vpu_err("add ctrl bitrate mode fail\n");
 		return -EINVAL;
 	}
 
@@ -312,7 +328,7 @@ static int add_ctrl_bitrate(struct vpu_ctx *ctx)
 				 BITRATE_COEF,
 				 BITRATE_DEFAULT_TARGET * BITRATE_COEF);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl bitrate fail\n");
+		vpu_err("add ctrl bitrate fail\n");
 		return -EINVAL;
 	}
 
@@ -334,7 +350,7 @@ static int add_ctrl_bitrate_peak(struct vpu_ctx *ctx)
 				 BITRATE_COEF,
 				 BITRATE_DEFAULT_PEAK * BITRATE_COEF);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl bitrate peak fail\n");
+		vpu_err("add ctrl bitrate peak fail\n");
 		return -EINVAL;
 	}
 
@@ -357,7 +373,7 @@ static int add_ctrl_gop_size(struct vpu_ctx *ctx)
 				 1,
 				 GOP_DEFAULT);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl gop size fail\n");
+		vpu_err("add ctrl gop size fail\n");
 		return -EINVAL;
 	}
 
@@ -384,7 +400,7 @@ static int add_ctrl_i_period(struct vpu_ctx *ctx)
 			GOP_DEFAULT);
 
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl i period fail\n");
+		vpu_err("add ctrl i period fail\n");
 		return -EINVAL;
 	}
 
@@ -410,7 +426,7 @@ static int add_ctrl_b_frames(struct vpu_ctx *ctx)
 			BFRAMES_DEFAULT);
 
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl b frames fail\n");
+		vpu_err("add ctrl b frames fail\n");
 		return -EINVAL;
 	}
 
@@ -432,7 +448,7 @@ static int add_ctrl_i_frame_qp(struct vpu_ctx *ctx)
 				 1,
 				 QP_DEFAULT);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl h264 I frame qp fail\n");
+		vpu_err("add ctrl h264 I frame qp fail\n");
 		return -EINVAL;
 	}
 
@@ -454,7 +470,7 @@ static int add_ctrl_p_frame_qp(struct vpu_ctx *ctx)
 				 1,
 				 QP_DEFAULT);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl h264 P frame qp fail\n");
+		vpu_err("add ctrl h264 P frame qp fail\n");
 		return -EINVAL;
 	}
 
@@ -476,7 +492,7 @@ static int add_ctrl_b_frame_qp(struct vpu_ctx *ctx)
 				 1,
 				 QP_DEFAULT);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl h264 B frame qp fail\n");
+		vpu_err("add ctrl h264 B frame qp fail\n");
 		return -EINVAL;
 	}
 
@@ -498,7 +514,7 @@ static int add_ctrl_min_buffers_for_output(struct vpu_ctx *ctx)
 				 1,
 				 MIN_BUFFER_COUNT);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl min buffers for output fail\n");
+		vpu_err("add ctrl min buffers for output fail\n");
 		return -EINVAL;
 	}
 
@@ -519,7 +535,7 @@ static int add_ctrl_display_re_ordering(struct vpu_ctx *ctx)
 			V4L2_CID_MPEG_VIDEO_H264_ASO,
 			0, 1, 1, 1);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl display re ordering fail\n");
+		vpu_err("add ctrl display re ordering fail\n");
 		return -EINVAL;
 	}
 
@@ -538,7 +554,7 @@ static int add_ctrl_force_key_frame(struct vpu_ctx *ctx)
 			V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME,
 			0, 0, 0, 0);
 	if (!ctrl) {
-		vpu_dbg(LVL_ERR, "add ctrl force key frame fail\n");
+		vpu_err("add ctrl force key frame fail\n");
 		return -EINVAL;
 	}
 
@@ -567,10 +583,12 @@ static int vpu_enc_register_ctrls(struct vpu_ctx *ctx)
 
 int vpu_enc_setup_ctrls(struct vpu_ctx *ctx)
 {
+	vpu_log_func();
+
 	v4l2_ctrl_handler_init(&ctx->ctrl_handler, 11);
 	vpu_enc_register_ctrls(ctx);
 	if (ctx->ctrl_handler.error) {
-		vpu_dbg(LVL_ERR, "control initialization error (%d)\n",
+		vpu_err("control initialization error (%d)\n",
 			ctx->ctrl_handler.error);
 		return -EINVAL;
 	}
@@ -580,6 +598,8 @@ int vpu_enc_setup_ctrls(struct vpu_ctx *ctx)
 
 int vpu_enc_free_ctrls(struct vpu_ctx *ctx)
 {
+	vpu_log_func();
+
 	if (ctx->ctrl_inited) {
 		v4l2_ctrl_handler_free(&ctx->ctrl_handler);
 		ctx->ctrl_inited = false;
