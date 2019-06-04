@@ -27,9 +27,9 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-fh.h>
 #include <media/videobuf2-v4l2.h>
-#include <soc/imx8/sc/svc/irq/api.h>
-#include <soc/imx8/sc/ipc.h>
-#include <soc/imx8/sc/sci.h>
+//#include <soc/imx8/sc/svc/irq/api.h>
+//#include <soc/imx8/sc/ipc.h>
+//#include <soc/imx8/sc/sci.h>
 #include <linux/mx8_mu.h>
 #include <media/v4l2-event.h>
 #include "vpu_encoder_rpc.h"
@@ -362,6 +362,9 @@ struct vpu_dev {
 		u32 step;
 	} supported_fps;
 	struct vpu_enc_mem_info reserved_mem;
+	struct device *pd_vpu;
+	struct device *pd_enc;
+	struct device *pd_mu;
 };
 
 struct buffer_addr {

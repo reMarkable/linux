@@ -34,6 +34,7 @@
 #include <linux/platform_data/dma-imx.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
+#include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
 #include <linux/mx8_mu.h>
 #include <linux/uaccess.h>
@@ -48,7 +49,7 @@
 #include <media/videobuf2-dma-contig.h>
 #include <media/videobuf2-vmalloc.h>
 
-#include <soc/imx8/sc/ipc.h>
+//#include <soc/imx8/sc/ipc.h>
 #include "vpu_encoder_b0.h"
 #include "vpu_encoder_ctrl.h"
 #include "vpu_encoder_config.h"
@@ -892,7 +893,7 @@ static int vpu_enc_queue_qbuf(struct queue_data *queue,
 
 	down(&queue->drv_q_lock);
 	if (queue->vb2_q_inited)
-		ret = vb2_qbuf(&queue->vb2_q, buf);
+		ret = vb2_qbuf(&queue->vb2_q, queue->ctx->dev->v4l2_dev.mdev, buf);
 	up(&queue->drv_q_lock);
 
 	return ret;
@@ -1338,6 +1339,7 @@ static int vpu_enc_v4l2_ioctl_s_selection(struct file *file, void *fh,
 	return 0;
 }
 
+#if 0
 static int vpu_enc_v4l2_ioctl_g_crop(struct file *file, void *fh,
 				struct v4l2_crop *cr)
 {
@@ -1373,6 +1375,7 @@ static int vpu_enc_v4l2_ioctl_s_crop(struct file *file, void *fh,
 	vpu_log_func();
 	return vpu_enc_v4l2_ioctl_s_selection(file, fh, &s);
 }
+#endif
 
 static int response_stop_stream(struct vpu_ctx *ctx)
 {
@@ -1593,8 +1596,8 @@ static const struct v4l2_ioctl_ops vpu_enc_v4l2_ioctl_ops = {
 	.vidioc_g_parm			= vpu_enc_v4l2_ioctl_g_parm,
 	.vidioc_s_parm			= vpu_enc_v4l2_ioctl_s_parm,
 	.vidioc_expbuf                  = vpu_enc_v4l2_ioctl_expbuf,
-	.vidioc_g_crop                  = vpu_enc_v4l2_ioctl_g_crop,
-	.vidioc_s_crop			= vpu_enc_v4l2_ioctl_s_crop,
+//	.vidioc_g_crop                  = vpu_enc_v4l2_ioctl_g_crop,
+//	.vidioc_s_crop			= vpu_enc_v4l2_ioctl_s_crop,
 	.vidioc_g_selection		= vpu_enc_v4l2_ioctl_g_selection,
 	.vidioc_s_selection		= vpu_enc_v4l2_ioctl_s_selection,
 	.vidioc_encoder_cmd             = vpu_enc_v4l2_ioctl_encoder_cmd,
@@ -2453,7 +2456,7 @@ static int inc_frame(struct queue_data *queue)
 	list_add_tail(&frame->list, &queue->frame_idle);
 	atomic64_inc(&queue->frame_count);
 
-	vpu_dbg(LVL_DEBUG, "++ frame : %ld\n",
+	vpu_dbg(LVL_DEBUG, "++ frame : %lld\n",
 			atomic64_read(&queue->frame_count));
 
 	return 0;
@@ -2467,7 +2470,7 @@ static void dec_frame(struct vpu_frame_info *frame)
 	if (frame->queue) {
 		atomic64_dec(&frame->queue->frame_count);
 
-		vpu_dbg(LVL_DEBUG, "-- frame : %ld\n",
+		vpu_dbg(LVL_DEBUG, "-- frame : %lld\n",
 				atomic64_read(&frame->queue->frame_count));
 	}
 	VPU_SAFE_RELEASE(frame, vfree);
@@ -3932,12 +3935,12 @@ static int show_v4l2_buf_status(struct vpu_ctx *ctx, char *buf, u32 size)
 			" %d:dequeued,", VB2_BUF_STATE_DEQUEUED);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:preparing,", VB2_BUF_STATE_PREPARING);
-	num += scnprintf(buf + num, PAGE_SIZE - num,
-			" %d:prepared,", VB2_BUF_STATE_PREPARED);
+//	num += scnprintf(buf + num, PAGE_SIZE - num,
+//			" %d:prepared,", VB2_BUF_STATE_PREPARED);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:queued,", VB2_BUF_STATE_QUEUED);
-	num += scnprintf(buf + num, PAGE_SIZE - num,
-			" %d:requeueing,", VB2_BUF_STATE_REQUEUEING);
+//	num += scnprintf(buf + num, PAGE_SIZE - num,
+//			" %d:requeueing,", VB2_BUF_STATE_REQUEUEING);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:active,", VB2_BUF_STATE_ACTIVE);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
@@ -3987,7 +3990,7 @@ static int show_instance_others(struct vpu_attr *attr, char *buf, u32 size)
 	}
 
 	num += scnprintf(buf + num, size - num,
-			"\ttotal dma size            :%ld\n",
+			"\ttotal dma size            :%lld\n",
 			atomic64_read(&attr->total_dma_size));
 	num += scnprintf(buf + num, size - num,
 			"\ttotal event msg obj count :%ld\n",
@@ -4000,7 +4003,7 @@ static int show_instance_others(struct vpu_attr *attr, char *buf, u32 size)
 	ctx = get_vpu_attr_ctx(attr);
 	if (ctx) {
 		num += scnprintf(buf + num, size - num,
-			"\ttotal frame obj count     :%ld\n",
+			"\ttotal frame obj count     :%lld\n",
 			atomic64_read(&ctx->q_data[V4L2_DST].frame_count));
 
 		if (test_bit(VPU_ENC_STATUS_HANG, &ctx->status))
@@ -4282,12 +4285,12 @@ static ssize_t show_buffer_info(struct device *dev,
 			" %d:dequeued,", VB2_BUF_STATE_DEQUEUED);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:preparing,", VB2_BUF_STATE_PREPARING);
-	num += scnprintf(buf + num, PAGE_SIZE - num,
-			" %d:prepared,", VB2_BUF_STATE_PREPARED);
+//	num += scnprintf(buf + num, PAGE_SIZE - num,
+//			" %d:prepared,", VB2_BUF_STATE_PREPARED);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:queued,", VB2_BUF_STATE_QUEUED);
-	num += scnprintf(buf + num, PAGE_SIZE - num,
-			" %d:requeueing,", VB2_BUF_STATE_REQUEUEING);
+//	num += scnprintf(buf + num, PAGE_SIZE - num,
+//			" %d:requeueing,", VB2_BUF_STATE_REQUEUEING);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			" %d:active,", VB2_BUF_STATE_ACTIVE);
 	num += scnprintf(buf + num, PAGE_SIZE - num,
@@ -5350,6 +5353,7 @@ static void init_vpu_enc_watchdog(struct vpu_dev *vdev)
 
 static int check_vpu_encoder_is_available(void)
 {
+#if 0
 	sc_ipc_t mu_ipc;
 	sc_ipc_id_t mu_id;
 	uint32_t fuse = 0xffff;
@@ -5381,7 +5385,7 @@ static int check_vpu_encoder_is_available(void)
 		vpu_err("----Error, VPU Encoder is disabled\n");
 		return -EINVAL;
 	}
-
+#endif
 	return 0;
 }
 
@@ -5394,6 +5398,7 @@ static int vpu_enc_probe(struct platform_device *pdev)
 	struct resource *res = NULL;
 	u_int32 i;
 	int ret;
+	struct device_link *link;
 
 	if (!np) {
 		vpu_err("error: %s of_node is NULL\n", __func__);
@@ -5413,14 +5418,57 @@ static int vpu_enc_probe(struct platform_device *pdev)
 	dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
 	if (!dev)
 		return -ENOMEM;
+
+	dev->pd_vpu = dev_pm_domain_attach_by_name(&pdev->dev, "vpu");
+	if (IS_ERR(dev->pd_vpu)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to get vpu power domain \n", __func__);
+		ret = PTR_ERR(dev->pd_vpu);
+		goto error_put_dev;
+	}
+	dev->pd_enc = dev_pm_domain_attach_by_name(&pdev->dev, "vpuenc");
+	if (IS_ERR(dev->pd_enc)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to get vpu enc power domain \n", __func__);
+		ret = PTR_ERR(dev->pd_enc);
+		goto error_put_dev;
+	}
+	dev->pd_mu = dev_pm_domain_attach_by_name(&pdev->dev, "vpumu1");
+	if (IS_ERR(dev->pd_mu)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to get vpu mu1 power domain \n", __func__);
+		ret = PTR_ERR(dev->pd_mu);
+		goto error_put_dev;
+	}
+
+	link = device_link_add(&pdev->dev, dev->pd_vpu,
+		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+	if (IS_ERR(link)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to link vpu power domain \n", __func__);
+		ret = PTR_ERR(link);
+		goto error_put_dev;
+	}
+	link = device_link_add(&pdev->dev, dev->pd_enc,
+		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+	if (IS_ERR(link)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to link vpu enc power domain \n", __func__);
+		ret = PTR_ERR(link);
+		goto error_put_dev;
+	}
+	link = device_link_add(&pdev->dev, dev->pd_mu,
+		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+	if (IS_ERR(link)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to link vpu mu1 power domain \n", __func__);
+		ret = PTR_ERR(link);
+		goto error_put_dev;
+	}
+
 	dev->plat_type = *(enum PLAT_TYPE *)dev_id->data;
 	dev->plat_dev = pdev;
 	dev->generic_dev = get_device(&pdev->dev);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	if (!res)
+	if (!res) {
+		ret = -EINVAL;
 		goto error_put_dev;
-
+	}
 	dev->reg_vpu_base = res->start;
 	dev->reg_vpu_size = resource_size(res);
 
@@ -5512,7 +5560,8 @@ error_put_dev:
 		put_device(dev->generic_dev);
 		dev->generic_dev = NULL;
 	}
-	return -EINVAL;
+	devm_kfree(&pdev->dev, dev);
+	return ret;
 }
 
 static int vpu_enc_remove(struct platform_device *pdev)
