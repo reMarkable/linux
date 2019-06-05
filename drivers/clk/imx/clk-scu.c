@@ -30,6 +30,30 @@ struct clk_scu {
 };
 
 /*
+ * struct clk_divider_gpr_scu - Description of one divider SCU clock
+ * @hw: the common clk_divider
+ * @rsrc_id: resource ID of this SCU clock
+ * @gpr_id: GPR ID index to control the divider
+ */
+struct clk_divider_gpr_scu {
+	struct clk_divider div;
+	u16 rsrc_id;
+	u8 gpr_id;
+};
+
+/*
+ * struct clk_mux_gpr_scu - Description of one multiplexer SCU clock
+ * @hw: the common clk_hw
+ * @rsrc_id: resource ID of this SCU clock
+ * @gpr_id: GPR ID index to control the divider
+ */
+struct clk_mux_gpr_scu {
+	struct clk_hw hw;
+	u16 rsrc_id;
+	u8 gpr_id;
+};
+
+/*
  * struct imx_sc_msg_req_set_clock_rate - clock set rate protocol
  * @hdr: SCU protocol header
  * @rate: rate to set
@@ -53,6 +77,8 @@ struct req_get_clock_rate {
 struct resp_get_clock_rate {
 	__le32 rate;
 };
+
+#define to_clk_mux_gpr_scu(_hw) container_of(_hw, struct clk_mux_gpr_scu, hw)
 
 /*
  * struct imx_sc_msg_get_clock_rate - clock get rate protocol
@@ -131,6 +157,169 @@ static inline struct clk_scu *to_clk_scu(struct clk_hw *hw)
 int imx_clk_scu_init(void)
 {
 	return imx_scu_get_handle(&ccm_ipc_handle);
+}
+
+static inline struct clk_divider_gpr_scu *to_clk_divider_scu(struct clk_hw *hw)
+{
+	struct clk_divider *div = container_of(hw, struct clk_divider, hw);
+
+	return container_of(div, struct clk_divider_gpr_scu, div);
+}
+
+static unsigned long clk_divider_gpr_scu_recalc_rate(struct clk_hw *hw,
+						 unsigned long parent_rate)
+{
+	struct clk_divider_gpr_scu *clk = to_clk_divider_scu(hw);
+	uint32_t val;
+	int err;
+	unsigned long rate = 0;
+
+	if (!ccm_ipc_handle)
+		return 0;
+
+	err = imx_sc_misc_get_control(ccm_ipc_handle, clk->rsrc_id,
+				      clk->gpr_id, &val);
+
+	rate  = (val) ? parent_rate / 2 : parent_rate;
+
+	return err ? 0 : rate;
+}
+
+static long clk_divider_gpr_scu_round_rate(struct clk_hw *hw, unsigned long rate,
+				       unsigned long *prate)
+{
+	if (rate < *prate)
+		rate = *prate / 2;
+	else
+		rate = *prate;
+
+	return rate;
+}
+
+static int clk_divider_gpr_scu_set_rate(struct clk_hw *hw, unsigned long rate,
+		unsigned long parent_rate)
+{
+	struct clk_divider_gpr_scu *clk = to_clk_divider_scu(hw);
+	uint32_t val;
+	int err;
+
+	if (!ccm_ipc_handle) {
+		return -EAGAIN;
+	}
+
+	val = (rate < parent_rate) ? 1 : 0;
+	err = imx_sc_misc_set_control(ccm_ipc_handle, clk->rsrc_id,
+				      clk->gpr_id, val);
+
+	return err ? -EINVAL : 0;
+}
+
+static struct clk_ops clk_divider_gpr_scu_ops = {
+	.recalc_rate = clk_divider_gpr_scu_recalc_rate,
+	.round_rate = clk_divider_gpr_scu_round_rate,
+	.set_rate = clk_divider_gpr_scu_set_rate,
+};
+
+struct clk_hw *imx_clk_divider_gpr_scu(const char *name, const char *parent_name,
+				       u32 rsrc_id, u8 gpr_id)
+{
+	struct clk_divider_gpr_scu *div;
+	struct clk_hw *hw;
+	struct clk_init_data init;
+	int ret;
+
+	div = kzalloc(sizeof(struct clk_divider_gpr_scu), GFP_KERNEL);
+	if (!div)
+		return ERR_PTR(-ENOMEM);
+
+	div->rsrc_id = rsrc_id;
+	div->gpr_id = gpr_id;
+
+	init.name = name;
+	init.ops = &clk_divider_gpr_scu_ops;
+	init.flags = 0;
+	init.parent_names = parent_name ? &parent_name : NULL;
+	init.num_parents = parent_name ? 1 : 0;
+
+	div->div.hw.init = &init;
+
+	hw = &div->div.hw;
+	ret = clk_hw_register(NULL, hw);
+	if (ret) {
+		kfree(div);
+		hw = ERR_PTR(ret);
+	}
+
+	return hw;
+}
+
+static u8 clk_mux_gpr_scu_get_parent(struct clk_hw *hw)
+{
+	struct clk_mux_gpr_scu *gpr_mux = to_clk_mux_gpr_scu(hw);
+	u32 val = 0;
+
+	if (!ccm_ipc_handle)
+		return 0;
+
+	imx_sc_misc_get_control(ccm_ipc_handle, gpr_mux->rsrc_id,
+				gpr_mux->gpr_id, &val);
+
+	return (u8)val;
+}
+
+static int clk_mux_gpr_scu_set_parent(struct clk_hw *hw, u8 index)
+{
+	struct clk_mux_gpr_scu *gpr_mux = to_clk_mux_gpr_scu(hw);
+
+	if (!ccm_ipc_handle)
+		return -1;
+
+	imx_sc_misc_set_control(ccm_ipc_handle,	gpr_mux->rsrc_id,
+				gpr_mux->gpr_id, index);
+
+	return 0;
+}
+
+static const struct clk_ops clk_mux_gpr_scu_ops = {
+	.get_parent = clk_mux_gpr_scu_get_parent,
+	.set_parent = clk_mux_gpr_scu_set_parent,
+};
+
+struct clk_hw *imx_clk_mux_gpr_scu(const char *name, const char **parents,
+				   int num_parents, u32 rsrc_id, u8 gpr_id)
+{
+	struct clk_mux_gpr_scu *gpr_scu_mux;
+	struct clk_hw *hw;
+	struct clk_init_data init;
+	int ret;
+
+	if (rsrc_id >= IMX_SC_R_LAST)
+		return NULL;
+
+	if (gpr_id >= IMX_SC_C_LAST)
+		return NULL;
+
+	gpr_scu_mux = kzalloc(sizeof(struct clk_mux_gpr_scu), GFP_KERNEL);
+	if (!gpr_scu_mux)
+		return ERR_PTR(-ENOMEM);
+
+	init.name = name;
+	init.ops = &clk_mux_gpr_scu_ops;
+	init.parent_names = parents;
+	init.num_parents = num_parents;
+
+	gpr_scu_mux->hw.init = &init;
+	gpr_scu_mux->rsrc_id = rsrc_id;
+	gpr_scu_mux->gpr_id = gpr_id;
+
+	hw = &gpr_scu_mux->hw;
+	ret = clk_hw_register(NULL, hw);
+	if (ret) {
+		kfree(gpr_scu_mux);
+		hw = ERR_PTR(ret);
+	}
+
+	return hw;
 }
 
 /*

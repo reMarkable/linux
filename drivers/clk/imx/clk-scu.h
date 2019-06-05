@@ -29,4 +29,11 @@ static inline struct clk_hw *imx_clk_scu2(const char *name, const char * const *
 struct clk_hw *imx_clk_lpcg_scu(const char *name, const char *parent_name,
 				unsigned long flags, void __iomem *reg,
 				u8 bit_idx, bool hw_gate);
+
+struct clk_hw *imx_clk_divider_gpr_scu(const char *name, const char *parent_name,
+				       u32 rsrc_id, u8 gpr_id);
+
+struct clk_hw *imx_clk_mux_gpr_scu(const char *name, const char **parents,
+				   int num_parents, u32 rsrc_id, u8 gpr_id);
+
 #endif
