@@ -107,9 +107,12 @@ conn_subsys: bus@5b000000 {
 			     <GIC_SPI 259 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&conn_lpcg IMX_CONN_LPCG_ENET0_IPG_CLK>,
 			 <&conn_lpcg IMX_CONN_LPCG_ENET0_AHB_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET0_TX_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET0_ROOT_CLK>;
+			 <&conn_lpcg IMX_CONN_LPCG_ENET0_RGMII_TXC_CLK>,
+			 <&conn_lpcg IMX_CONN_LPCG_ENET0_TIMER_CLK>;
 		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp";
+		assigned-clocks = <&clk IMX_CONN_ENET0_ROOT_CLK>,
+				  <&clk IMX_CONN_ENET0_REF_DIV>;
+		assigned-clock-rates = <250000000>, <125000000>;
 		fsl,num-tx-queues=<3>;
 		fsl,num-rx-queues=<3>;
 		power-domains = <&pd IMX_SC_R_ENET_0>;
@@ -125,9 +128,12 @@ conn_subsys: bus@5b000000 {
 				<GIC_SPI 263 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&conn_lpcg IMX_CONN_LPCG_ENET1_IPG_CLK>,
 			 <&conn_lpcg IMX_CONN_LPCG_ENET1_AHB_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET1_TX_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET1_ROOT_CLK>;
+			 <&conn_lpcg IMX_CONN_LPCG_ENET1_RGMII_TXC_CLK>,
+			 <&conn_lpcg IMX_CONN_LPCG_ENET1_TIMER_CLK>;
 		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp";
+		assigned-clocks = <&clk IMX_CONN_ENET1_ROOT_CLK>,
+				  <&clk IMX_CONN_ENET1_REF_DIV>;
+		assigned-clock-rates = <250000000>, <125000000>;
 		fsl,num-tx-queues=<3>;
 		fsl,num-rx-queues=<3>;
 		power-domains = <&pd IMX_SC_R_ENET_1>;
