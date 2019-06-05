@@ -2133,6 +2133,8 @@ static const struct regmap_config fsl_easrc_regmap_config = {
 	.cache_type = REGCACHE_RBTREE,
 };
 
+#include "fsl_easrc_m2m.c"
+
 void easrc_dump_firmware(struct fsl_easrc *easrc)
 {
 	struct device *dev = &easrc->pdev->dev;
@@ -2332,6 +2334,12 @@ static int fsl_easrc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	ret = fsl_easrc_m2m_init(easrc);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to init m2m device %d\n", ret);
+		return ret;
+	}
+
 	ret = of_property_read_string(np,
 				      "fsl,easrc-ram-script-name",
 				      &easrc->fw_name);
@@ -2445,6 +2453,8 @@ static int fsl_easrc_suspend(struct device *dev)
 	struct fsl_easrc *easrc = dev_get_drvdata(dev);
 	int ret;
 
+	fsl_easrc_m2m_suspend(easrc);
+
 	ret = pm_runtime_force_suspend(dev);
 
 	return ret;
@@ -2456,6 +2466,8 @@ static int fsl_easrc_resume(struct device *dev)
 	int ret;
 
 	ret = pm_runtime_force_resume(dev);
+
+	fsl_easrc_m2m_resume(easrc);
 
 	return ret;
 }
