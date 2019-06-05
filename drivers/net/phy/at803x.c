@@ -44,8 +44,13 @@
 #define AT803X_LOC_MAC_ADDR_0_15_OFFSET		0x804C
 #define AT803X_LOC_MAC_ADDR_16_31_OFFSET	0x804B
 #define AT803X_LOC_MAC_ADDR_32_47_OFFSET	0x804A
+#define AT803X_SMARTEEE_CTL3_OFFSET		0x805D
+#define AT803X_MMD_ACCESS_CONTROL		0x0D
+#define AT803X_MMD_ACCESS_CONTROL_DATA		0x0E
+#define AT803X_FUNC_DATA			0x4003
 #define AT803X_REG_CHIP_CONFIG			0x1f
 #define AT803X_BT_BX_REG_SEL			0x8000
+#define AT803X_SMARTEEE_DISABLED_VAL		0x1000
 
 #define AT803X_DEBUG_ADDR			0x1D
 #define AT803X_DEBUG_DATA			0x1E
@@ -64,10 +69,16 @@
 
 #define AT803X_LPI_EN				BIT(8)
 
+#define AT803X_DEBUG_REG_31			0x1f
+#define AT803X_VDDIO_1P8V_EN			0x8
+
 #define ATH8030_PHY_ID 0x004dd076
 #define ATH8031_PHY_ID 0x004dd074
 #define ATH8035_PHY_ID 0x004dd072
 #define AT803X_PHY_ID_MASK			0xffffffef
+
+#define AT803X_EEE_FEATURE_DISABLE		(1 << 1)
+#define AT803X_VDDIO_1P8V			(1 << 2)
 
 MODULE_DESCRIPTION("Atheros 803x PHY driver");
 MODULE_AUTHOR("Matus Ujhelyi");
@@ -75,6 +86,7 @@ MODULE_LICENSE("GPL");
 
 struct at803x_priv {
 	bool phy_reset:1;
+	u32 quirks;
 };
 
 struct at803x_context {
@@ -136,6 +148,39 @@ static int at803x_disable_tx_delay(struct phy_device *phydev)
 {
 	return at803x_debug_reg_mask(phydev, AT803X_DEBUG_REG_5,
 				     AT803X_DEBUG_TX_CLK_DLY_EN, 0);
+}
+
+static inline int at803x_set_vddio_1p8v(struct phy_device *phydev)
+{
+	return at803x_debug_reg_mask(phydev, AT803X_DEBUG_REG_31, 0,
+					AT803X_VDDIO_1P8V_EN);
+}
+
+static int at803x_disable_eee(struct phy_device *phydev)
+{
+	int ret;
+
+	ret = phy_write(phydev, AT803X_MMD_ACCESS_CONTROL,
+				  AT803X_DEVICE_ADDR);
+	if (ret < 0)
+		return ret;
+
+	ret = phy_write(phydev, AT803X_MMD_ACCESS_CONTROL_DATA,
+				  AT803X_SMARTEEE_CTL3_OFFSET);
+	if (ret < 0)
+		return ret;
+
+	ret = phy_write(phydev, AT803X_MMD_ACCESS_CONTROL,
+				  AT803X_FUNC_DATA);
+	if (ret < 0)
+		return ret;
+
+	ret = phy_write(phydev, AT803X_MMD_ACCESS_CONTROL_DATA,
+				  AT803X_SMARTEEE_DISABLED_VAL);
+	if (ret < 0)
+		return ret;
+
+	return 0;
 }
 
 /* save relevant PHY registers to private copy */
@@ -251,6 +296,12 @@ static int at803x_probe(struct phy_device *phydev)
 	if (!priv)
 		return -ENOMEM;
 
+	if (of_property_read_bool(dev->of_node, "at803x,eee-disabled"))
+		priv->quirks |= AT803X_EEE_FEATURE_DISABLE;
+
+	if (of_property_read_bool(dev->of_node, "at803x,vddio-1p8v"))
+		priv->quirks |= AT803X_VDDIO_1P8V;
+
 	phydev->priv = priv;
 
 	return 0;
@@ -272,6 +323,7 @@ static void at803x_enable_smart_eee(struct phy_device *phydev, int on)
 static int at803x_config_init(struct phy_device *phydev)
 {
 	int ret;
+	struct at803x_priv *priv = phydev->priv;
 
 
 #ifdef CONFIG_AT803X_PHY_SMART_EEE
@@ -298,6 +350,18 @@ static int at803x_config_init(struct phy_device *phydev)
 		ret = at803x_enable_tx_delay(phydev);
 	else
 		ret = at803x_disable_tx_delay(phydev);
+
+	if (priv->quirks & AT803X_VDDIO_1P8V) {
+		ret = at803x_set_vddio_1p8v(phydev);
+		if (ret < 0)
+			return ret;
+	}
+
+	if (priv->quirks & AT803X_EEE_FEATURE_DISABLE) {
+		ret = at803x_disable_eee(phydev);
+		if (ret < 0)
+			return ret;
+	}
 
 	return ret;
 }
