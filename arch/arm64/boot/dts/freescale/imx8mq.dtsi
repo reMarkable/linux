@@ -480,6 +480,10 @@
 				cpu_speed_grade: speed-grade@10 {
 					reg = <0x10 4>;
 				};
+
+				fec_mac_address: mac-address@640 {
+					reg = <0x90 6>;
+				};
 			};
 
 			anatop: syscon@30360000 {
@@ -945,6 +949,9 @@
 				              "enet_clk_ref", "enet_out";
 				fsl,num-tx-queues = <3>;
 				fsl,num-rx-queues = <3>;
+				nvmem-cells = <&fec_mac_address>;
+				nvmem-cell-names = "mac-address";
+				nvmem_macaddr_swap;
 				status = "disabled";
 			};
 		};
