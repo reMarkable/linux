@@ -546,7 +546,7 @@ static int v4l2_ioctl_querycap(struct file *file,
 	return 0;
 }
 
-static int v4l2_ioctl_enum_fmt_vid_cap_mplane(struct file *file,
+static int v4l2_ioctl_enum_fmt_vid_cap(struct file *file,
 		void *fh,
 		struct v4l2_fmtdesc *f
 		)
@@ -562,7 +562,7 @@ static int v4l2_ioctl_enum_fmt_vid_cap_mplane(struct file *file,
 	f->pixelformat = fmt->fourcc;
 	return 0;
 }
-static int v4l2_ioctl_enum_fmt_vid_out_mplane(struct file *file,
+static int v4l2_ioctl_enum_fmt_vid_out(struct file *file,
 		void *fh,
 		struct v4l2_fmtdesc *f
 		)
@@ -1718,8 +1718,8 @@ static int vpu_dec_v4l2_ioctl_s_parm(struct file *file, void *fh,
 
 static const struct v4l2_ioctl_ops v4l2_decoder_ioctl_ops = {
 	.vidioc_querycap                = v4l2_ioctl_querycap,
-	.vidioc_enum_fmt_vid_cap_mplane = v4l2_ioctl_enum_fmt_vid_cap_mplane,
-	.vidioc_enum_fmt_vid_out_mplane = v4l2_ioctl_enum_fmt_vid_out_mplane,
+	.vidioc_enum_fmt_vid_cap	= v4l2_ioctl_enum_fmt_vid_cap,
+	.vidioc_enum_fmt_vid_out	= v4l2_ioctl_enum_fmt_vid_out,
 	.vidioc_g_fmt_vid_cap_mplane    = v4l2_ioctl_g_fmt,
 	.vidioc_g_fmt_vid_out_mplane    = v4l2_ioctl_g_fmt,
 	.vidioc_try_fmt_vid_cap_mplane  = v4l2_ioctl_try_fmt,
