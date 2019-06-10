@@ -346,7 +346,7 @@ static int vpu_enc_v4l2_ioctl_querycap(struct file *file,
 	return 0;
 }
 
-static int vpu_enc_v4l2_ioctl_enum_fmt_vid_cap_mplane(struct file *file,
+static int vpu_enc_v4l2_ioctl_enum_fmt_vid_cap(struct file *file,
 		void *fh,
 		struct v4l2_fmtdesc *f)
 {
@@ -362,7 +362,7 @@ static int vpu_enc_v4l2_ioctl_enum_fmt_vid_cap_mplane(struct file *file,
 	f->flags |= V4L2_FMT_FLAG_COMPRESSED;
 	return 0;
 }
-static int vpu_enc_v4l2_ioctl_enum_fmt_vid_out_mplane(struct file *file,
+static int vpu_enc_v4l2_ioctl_enum_fmt_vid_out(struct file *file,
 		void *fh,
 		struct v4l2_fmtdesc *f)
 {
@@ -1583,8 +1583,8 @@ static int vpu_enc_v4l2_ioctl_streamoff(struct file *file,
 
 static const struct v4l2_ioctl_ops vpu_enc_v4l2_ioctl_ops = {
 	.vidioc_querycap                = vpu_enc_v4l2_ioctl_querycap,
-	.vidioc_enum_fmt_vid_cap_mplane = vpu_enc_v4l2_ioctl_enum_fmt_vid_cap_mplane,
-	.vidioc_enum_fmt_vid_out_mplane = vpu_enc_v4l2_ioctl_enum_fmt_vid_out_mplane,
+	.vidioc_enum_fmt_vid_cap = vpu_enc_v4l2_ioctl_enum_fmt_vid_cap,
+	.vidioc_enum_fmt_vid_out = vpu_enc_v4l2_ioctl_enum_fmt_vid_out,
 	.vidioc_enum_framesizes		= vpu_enc_v4l2_ioctl_enum_framesizes,
 	.vidioc_enum_frameintervals	= vpu_enc_v4l2_ioctl_enum_frameintervals,
 	.vidioc_g_fmt_vid_cap_mplane    = vpu_enc_v4l2_ioctl_g_fmt,
