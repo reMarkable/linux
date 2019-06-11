@@ -81,23 +81,12 @@
 		regulator-max-microvolt = <1800000>;
 	};
 
-	reg_sd1_vmmc: regulator-sd1-vmmc {
-		compatible = "regulator-fixed";
-		regulator-name = "VDD_SD1";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio5 2 GPIO_ACTIVE_HIGH>;
-		startup-delay-us = <200000>;
-		off-on-delay = <20000>;
-		enable-active-high;
-	};
-
-	/*usdhc2_pwrseq: usdhc2_pwrseq {
-		compatible = "mmc-pwrseq-simple";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_brcm_reg>;
-		reset-gpios = <&gpio4 21 GPIO_ACTIVE_LOW>;
-	};*/
+    wifi_pwrseq: wifi_pwrseq {
+        compatible = "mmc-pwrseq-simple";
+        reset-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
+        /*clocks = <&clks IMX6SL_CLK_OSC>;
+        clock-names = "ext_clock";*/
+    };
 };
 
 &cpu0 {
@@ -495,13 +484,13 @@
 &usdhc2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-names = "default", "state_100mhz";/*, "state_200mhz";*/
 	pinctrl-0 = <&pinctrl_usdhc2 &pinctrl_wifi>;
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz &pinctrl_wifi>;
-	pinctrl-2 = <&pinctrl_usdhc2_200mhz &pinctrl_wifi>;
-	/*mmc-pwrseq = <&wifi_pwrseq>;*/
+	/*pinctrl-2 = <&pinctrl_usdhc2_200mhz &pinctrl_wifi>;*/
+	mmc-pwrseq = <&wifi_pwrseq>;
 	bus-width = <4>;
-	/* enable-sdio-wakeup; */
+	enable-sdio-wakeup;
 	non-removable;
 	disable-wp;
 	wifi-host;
@@ -509,8 +498,8 @@
 	cap-power-off-card;
 	status = "okay";
 
-	brcmf: bcrmf@1 {
-		reg = <1>;
+	brcmf: bcrmf@0 {
+		reg = <0>;
 		compatible = "brcm,bcm4329-fmac";
 		interrupt-parent = <&gpio1>;
 		interrupts = <8 IRQ_TYPE_NONE>;
@@ -729,7 +718,7 @@
 				/* WiFi Host Wake */
 				MX7D_PAD_GPIO1_IO08__GPIO1_IO8		0x00000014
 				/* WiFi Sleep 32k */
-				MX7D_PAD_SD1_WP__CCM_CLKO2          0x00000014
+				/*MX7D_PAD_SD1_WP__CCM_CLKO2          0x00000014*/
 			>;
 		};
 	};
