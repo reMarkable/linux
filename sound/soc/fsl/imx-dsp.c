@@ -80,12 +80,19 @@ static const struct snd_soc_dapm_route imx_dsp_audio_map[] = {
 static int imx_dsp_audio_probe(struct platform_device *pdev)
 {
 	struct device_node *cpu_np=NULL, *codec_np=NULL, *platform_np=NULL;
+	struct snd_soc_dai_link_component *comp;
 	struct platform_device *cpu_pdev;
 	struct imx_dsp_audio_data *data;
 	int ret;
 
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data) {
+		ret = -ENOMEM;
+		goto fail;
+	}
+
+	comp = devm_kzalloc(&pdev->dev, 6 * sizeof(*comp), GFP_KERNEL);
+	if (!comp) {
 		ret = -ENOMEM;
 		goto fail;
 	}
@@ -118,13 +125,22 @@ static int imx_dsp_audio_probe(struct platform_device *pdev)
                 goto fail;
         }
 
+
+	data->dai[0].cpus          = &comp[0];
+	data->dai[0].codecs        = &comp[1];
+	data->dai[0].platforms     = &comp[2];
+
+	data->dai[0].num_cpus      = 1;
+	data->dai[0].num_codecs    = 1;
+	data->dai[0].num_platforms = 1;
+
 	data->dai[0].name = "dsp hifi fe";
 	data->dai[0].stream_name = "dsp hifi fe";
-	data->dai[0].codec_dai_name = "snd-soc-dummy-dai";
-	data->dai[0].codec_name = "snd-soc-dummy";
-	data->dai[0].cpu_dai_name = dev_name(&cpu_pdev->dev);
-	data->dai[0].cpu_of_node = cpu_np;
-	data->dai[0].platform_of_node = platform_np;
+	data->dai[0].codecs->dai_name = "snd-soc-dummy-dai";
+	data->dai[0].codecs->name = "snd-soc-dummy";
+	data->dai[0].cpus->dai_name = dev_name(&cpu_pdev->dev);
+	data->dai[0].cpus->of_node = cpu_np;
+	data->dai[0].platforms->of_node = platform_np;
 	data->dai[0].playback_only = true;
 	data->dai[0].capture_only = false;
 	data->dai[0].dpcm_playback = 1;
@@ -135,13 +151,21 @@ static int imx_dsp_audio_probe(struct platform_device *pdev)
 			    SND_SOC_DAIFMT_NB_NF |
 			    SND_SOC_DAIFMT_CBS_CFS;
 
+	data->dai[1].cpus          = &comp[3];
+	data->dai[1].codecs        = &comp[4];
+	data->dai[1].platforms     = &comp[5];
+
+	data->dai[1].num_cpus      = 1;
+	data->dai[1].num_codecs    = 1;
+	data->dai[1].num_platforms = 1;
+
 	data->dai[1].name = "dsp hifi be";
 	data->dai[1].stream_name = "dsp hifi be";
-	data->dai[1].codec_dai_name = "cs42888";
-	data->dai[1].codec_of_node = codec_np;
-	data->dai[1].cpu_dai_name = "snd-soc-dummy-dai";
-	data->dai[1].cpu_name = "snd-soc-dummy";
-	data->dai[1].platform_name = "snd-soc-dummy";
+	data->dai[1].codecs->dai_name = "cs42888";
+	data->dai[1].codecs->of_node = codec_np;
+	data->dai[1].cpus->dai_name = "snd-soc-dummy-dai";
+	data->dai[1].cpus->name = "snd-soc-dummy";
+	data->dai[1].platforms->name = "snd-soc-dummy";
 	data->dai[1].playback_only = true;
 	data->dai[1].capture_only = false;
 	data->dai[1].dpcm_playback = 1;
