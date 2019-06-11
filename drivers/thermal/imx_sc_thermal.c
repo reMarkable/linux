@@ -63,9 +63,15 @@ static int imx_sc_thermal_get_temp(void *data, int *temp)
 
 	ret = imx_scu_call_rpc(thermal_ipc_handle, &msg, true);
 	if (ret) {
-		pr_err("read temp sensor %d failed, ret %d\n",
-			sensor->resource_id, ret);
-		return ret;
+		/*
+		 * if the SS power domain is down, read temp will fail, so
+		 * we can print error once and return 0 directly.
+		 */
+		pr_err_once("read temp sensor %d failed, could be SS NOT powered up,\
+			     return 0 for this thermal zone, ret %d\n",
+			     sensor->resource_id, ret);
+		*temp = 0;
+		return 0;
 	}
 
 	*temp = msg.data.resp.celsius * 1000 + msg.data.resp.tenths * 100;
@@ -182,6 +188,7 @@ static int imx_sc_thermal_probe(struct platform_device *pdev)
 
 static const struct of_device_id imx_sc_thermal_table[] = {
 	{ .compatible = "fsl,imx8qxp-sc-thermal", },
+	{ .compatible = "fsl,imx8qm-sc-thermal", },
 	{}
 };
 MODULE_DEVICE_TABLE(of, imx_sc_thermal_table);
