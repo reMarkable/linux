@@ -218,6 +218,10 @@
 			compatible = "fsl,imx8qm-scu-pd", "fsl,scu-pd";
 			#power-domain-cells = <1>;
 		};
+
+		rtc: rtc {
+			compatible = "fsl,imx8qm-sc-rtc";
+		};
 	};
 
 	/* sorted in register address */
