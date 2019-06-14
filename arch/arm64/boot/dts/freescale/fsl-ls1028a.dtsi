@@ -744,7 +744,9 @@
 				  /* PF1: VF0-1 BAR0 - non-prefetchable memory */
 				  0x82000000 0x0 0x00000000  0x1 0xf8210000  0x0 0x020000
 				  /* PF1: VF0-1 BAR2 - prefetchable memory */
-				  0xc2000000 0x0 0x00000000  0x1 0xf8230000  0x0 0x020000>;
+				  0xc2000000 0x0 0x00000000  0x1 0xf8230000  0x0 0x020000
+				  /* BAR4 (PF5) - non-prefetchable memory */
+				  0x82000000 0x0 0x00000000  0x1 0xfc000000  0x0 0x400000>;
 
 			enetc_port0: ethernet@0,0 {
 				compatible = "fsl,enetc";
@@ -760,11 +762,65 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 			};
+			ethernet@0,2 {
+				compatible = "fsl,enetc";
+				reg = <0x000200 0 0 0 0>;
+				fixed-link {
+					speed = <1000>;
+					full-duplex;
+				};
+			};
 			ethernet@0,4 {
 				compatible = "fsl,enetc-ptp";
 				reg = <0x000400 0 0 0 0>;
 				clocks = <&clockgen 4 0>;
 				little-endian;
+			};
+			switch@0,5 {
+				compatible = "mscc,felix-switch";
+				reg = <0x000500 0 0 0 0>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					/* external ports */
+					switch_port0: port@0 {
+						reg = <0>;
+					};
+					switch_port1: port@1 {
+						reg = <1>;
+					};
+					switch_port2: port@2 {
+						reg = <2>;
+					};
+					switch_port3: port@3 {
+						reg = <3>;
+					};
+					/* internal to-cpu ports */
+					port@4 {
+						reg = <4>;
+						fixed-link {
+							speed = <1000>;
+							full-duplex;
+						};
+					};
+					port@5 {
+						reg = <5>;
+						fixed-link {
+							speed = <1000>;
+							full-duplex;
+						};
+					};
+				};
+			};
+			ethernet@0,6 {
+				compatible = "fsl,enetc";
+				reg = <0x000600 0 0 0 0>;
+				fixed-link {
+					speed = <1000>;
+					full-duplex;
+				};
 			};
 		};
 
