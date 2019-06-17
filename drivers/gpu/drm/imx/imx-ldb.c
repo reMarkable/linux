@@ -832,7 +832,7 @@ static struct devtype imx6q_ldb_devtype = {
 };
 
 static struct devtype imx8qm_ldb_devtype = {
-	.ctrl_reg = 0x0,
+	.ctrl_reg = 0x10e0,
 	.bus_mux = NULL,
 	.capable_10bit = true,
 	.visible_phy = true,
@@ -846,7 +846,7 @@ static struct devtype imx8qm_ldb_devtype = {
 };
 
 static struct devtype imx8qxp_ldb_devtype = {
-	.ctrl_reg = 0x0,
+	.ctrl_reg = 0x10e0,
 	.bus_mux = NULL,
 	.visible_phy = true,
 	.has_ch_sel = true,
