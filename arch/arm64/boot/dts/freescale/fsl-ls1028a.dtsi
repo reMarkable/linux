@@ -532,6 +532,16 @@
 			clock-names = "apb_pclk", "wdog_clk";
 		};
 
+		gpu@f0c0000 {
+			compatible = "fsl,ls1028a-gpu";
+			reg = <0x0 0x0f0c0000 0x0 0x10000>,
+				<0x0 0x80000000 0x0 0x80000000>,
+				<0x0 0x0 0x0 0x3000000>;
+			reg-names = "base", "phys_baseaddr",
+				"contiguous_mem";
+			interrupts = <GIC_SPI 220 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
 		sai1: audio-controller@f100000 {
 			#sound-dai-cells = <0>;
 			compatible = "fsl,vf610-sai";
