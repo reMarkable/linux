@@ -3637,6 +3637,7 @@ failed_clk_ahb:
 failed_clk_ipg:
 	fec_enet_clk_enable(ndev, false);
 failed_clk:
+	release_bus_freq(BUS_FREQ_HIGH);
 	if (of_phy_is_fixed_link(np))
 		of_phy_deregister_fixed_link(np);
 	of_node_put(phy_node);
