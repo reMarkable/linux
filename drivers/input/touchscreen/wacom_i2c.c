@@ -53,11 +53,19 @@
 #define POWER_ON            0x00
 #define POWER_SLEEP         0x01
 
-// Report ids
-#define WACOM_POSITION_RATE_REPORT  0x19
+// Input report ids
+#define WACOM_PEN_DATA_REPORT           2
+#define WACOM_SHINONOME_REPORT          26
 
+// Feature report ids
+#define WACOM_DEVICE_MODE_REPORT        2
+#define WACOM_QUERY_REPORT              3
+#define WACOM_PEN_INPUT_FORMAT_REPORT   9
+#define WACOM_POSITION_RATE_REPORT      25
+#define WACOM_ORIGIN_OFFSET_REPORT      22
+#define WACOM_SIDE_SWITCH_REPORT        21
 
-#define WACOM_MAX_DATA_SIZE     20
+#define WACOM_MAX_DATA_SIZE     22
 
 struct wacom_features {
 	int x_max;
@@ -76,6 +84,13 @@ struct wacom_i2c {
 	u8 data[WACOM_MAX_DATA_SIZE];
 	bool prox;
 	int tool;
+};
+
+u8 reset_cmd[] = {
+        WACOM_COMMAND_LSB,
+        WACOM_COMMAND_MSB,
+        0x00,
+        OPCODE_RESET,
 };
 
 u8 wakeup_cmd[] = {
@@ -102,15 +117,16 @@ static int wacom_query_device(struct i2c_client *client,
     struct reset_control *rstc;
 
     u8 get_query_data_cmd[] = {
-        0x04, // COMMAND_REGISTER LSB
-        0x00, // COMMAND_REGISTER MSB
-        0x33, // Feature (0b0011) + ReportID: (0b0011) (3)
-        0x02, // Op-code: GET_REPORT
+        WACOM_COMMAND_LSB,
+        WACOM_COMMAND_MSB,
+        REPORT_FEATURE | WACOM_QUERY_REPORT,
+        OPCODE_GET_REPORT,
+        WACOM_DATA_LSB,
+        WACOM_DATA_MSB,
     };
-    // TODO: No need for repeated start condition?
     u8 read_data[] = {
-        0x05, // DATA_REGISTER LSB
-        0x00, // DATA_REGISTER MSB
+        WACOM_DATA_LSB,
+        WACOM_DATA_MSB,
     };
 
 	struct i2c_msg msgs[] = {
@@ -121,6 +137,7 @@ static int wacom_query_device(struct i2c_client *client,
 			.len = sizeof(get_query_data_cmd),
 			.buf = get_query_data_cmd,
 		},
+#if 0
         // Setup for reading data
 		{
 			.addr = client->addr,
@@ -128,11 +145,12 @@ static int wacom_query_device(struct i2c_client *client,
 			.len = sizeof(read_data),
 			.buf = read_data,
 		},
-        // Read 20 bytes
+#endif
+        // Read 21 bytes
 		{
 			.addr = client->addr,
 			.flags = I2C_M_RD,
-			.len = 20,
+			.len = 21,
 			.buf = data,
 		},
 	};
@@ -178,6 +196,14 @@ static int wacom_query_device(struct i2c_client *client,
 		features->distance_max, features->distance_physical_max,
 		features->tilt_x_max, features->tilt_y_max);
 
+    printk("[WACOM] x_max:%d, y_max:%d, pressure:%d, fw:%d, "
+		"distance: %d, phys distance: %d"
+		"tilt_x_max: %d, tilt_y_max: %d\n",
+		features->x_max, features->y_max,
+		features->pressure_max, features->fw_version,
+		features->distance_max, features->distance_physical_max,
+		features->tilt_x_max, features->tilt_y_max);
+
 	return 0;
 }
 
@@ -207,7 +233,7 @@ static int wacom_setup_device(struct i2c_client *client)
         0x04, // LENGTH LSB
         0x00, // LENGTH MSB
         WACOM_POSITION_RATE_REPORT,
-        0x05, // Selected rate (1=240pps, 3=360pps (def), 5=480pps, 6=540pps)
+        0x06, // Selected rate (1=240pps, 3=360pps (def), 5=480pps, 6=540pps)
     };
 
 	struct i2c_msg msgs[] = {
@@ -237,6 +263,7 @@ static int wacom_setup_device(struct i2c_client *client)
 		},
 	};
 
+    // Write position rate report
 	printk("[---- SBA ----] Writing sample rate..\n");
 	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
 	if (ret < 0) {
@@ -248,6 +275,7 @@ static int wacom_setup_device(struct i2c_client *client)
 		return -EIO;
 	}
 
+    // Read position rate report
     printk("[---- SBA ----] Reading sample rate..\n");
 	ret = i2c_transfer(client->adapter, msgs_readback, ARRAY_SIZE(msgs_readback));
 	if (ret < 0) {
@@ -296,8 +324,10 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 
     //gpio_set_value(GPIO_TEST_LED, 0);
 
-	if (error < 0)
+	if (error < 0) {
+        //printk("[----- SBA -----] error = %d\n", error);
 		goto out;
+    }
 
     // data[0] == Length LSB
     // data[1] == Length MSB
@@ -311,7 +341,7 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	pressure = le16_to_cpup((__le16 *)&data[8]);
 
     // Shinonome Refill has a transducer index field:
-    if (data[2] == 26) {
+    if (data[2] == WACOM_SHINONOME_REPORT) {
         transducer = (data[3] >> 6);
     }
 
