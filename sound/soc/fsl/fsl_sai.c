@@ -1604,6 +1604,8 @@ static int fsl_sai_runtime_resume(struct device *dev)
 				PM_QOS_CPU_DMA_LATENCY, 0);
 
 	regcache_cache_only(sai->regmap, false);
+	regcache_mark_dirty(sai->regmap);
+
 	regmap_write(sai->regmap, FSL_SAI_TCSR(offset), FSL_SAI_CSR_SR);
 	regmap_write(sai->regmap, FSL_SAI_RCSR(offset), FSL_SAI_CSR_SR);
 	usleep_range(1000, 2000);
