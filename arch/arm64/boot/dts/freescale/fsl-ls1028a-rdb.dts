@@ -208,6 +208,45 @@
 	status = "disabled";
 };
 
+&enetc_mdio_pf3 {
+	qsgmii_phy1: ethernet-phy@4 {
+		reg = <0x10>;
+	};
+
+	qsgmii_phy2: ethernet-phy@5 {
+		reg = <0x11>;
+	};
+
+	qsgmii_phy3: ethernet-phy@6 {
+		reg = <0x12>;
+	};
+
+	qsgmii_phy4: ethernet-phy@7 {
+		reg = <0x13>;
+	};
+};
+
+/* l2switch ports */
+&switch_port0 {
+	phy-handle = <&qsgmii_phy1>;
+	phy-connection-type = "qsgmii";
+};
+
+&switch_port1 {
+	phy-handle = <&qsgmii_phy2>;
+	phy-connection-type = "qsgmii";
+};
+
+&switch_port2 {
+	phy-handle = <&qsgmii_phy3>;
+	phy-connection-type = "qsgmii";
+};
+
+&switch_port3 {
+	phy-handle = <&qsgmii_phy4>;
+	phy-connection-type = "qsgmii";
+};
+
 &sai4 {
 	status = "okay";
 };
