@@ -3,7 +3,8 @@
 Required properties:
 - compatible :
   - "fsl,imx6sx-mlb50" for MLB compatible with the one integrated on i.MX6SX soc
-  - "fsl,imx6q-mlb150" for MLB compatible with the one integrated on i.MX6Q and i.MX8 soc
+  - "fsl,imx6q-mlb150" for MLB compatible with the one integrated on i.MX6Q
+  - "fsl,imx8qxp-mlb150" for MLB compatible with the one integrated on i.MX8 soc
 - reg : address and length for mlb registers
 - interrupt-parent : core interrupt controller
 - interrupts : MLB Break/Error interrupt and ahb interrupt
