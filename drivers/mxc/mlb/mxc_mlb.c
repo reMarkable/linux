@@ -298,6 +298,12 @@ enum CLK_SPEED {
 enum MLB_INDEX {
 	IMX6Q_MLB = 0,
 	IMX6SX_MLB,
+	IMX8QXP_MLB,
+};
+
+struct imx_mlb_hwdata {
+	enum MLB_INDEX	devtype;
+	u32		quirk_flag;
 };
 
 struct mlb_ringbuf {
@@ -369,10 +375,9 @@ struct mlb_dev_info {
 struct mlb_data {
 	struct device *dev;
 	struct mlb_dev_info *devinfo;
-#ifdef CONFIG_ARCH_MXC_ARM64
+	const struct imx_mlb_hwdata *hwdata;
 	struct clk *ipg;
 	struct clk *hclk;
-#endif
 	struct clk *mlb;
 	struct cdev cdev;
 	struct class *class;	/* device class */
@@ -386,7 +391,6 @@ struct mlb_data {
 	int irq_ahb0;
 	int irq_ahb1;
 	int irq_mlb;
-	u32 quirk_flag;
 	bool use_iram;
 };
 
@@ -604,6 +608,11 @@ static void mlb150_dev_dump_hex(const u8 *buf, u32 len)
 			DUMP_PREFIX_OFFSET, 8, 1, buf, len, 0);
 }
 #endif
+
+static inline int mlb150_is_imx8qxp_mlb(struct mlb_data *drvdata)
+{
+	return drvdata->hwdata->devtype == IMX8QXP_MLB;
+}
 
 static inline void mlb150_dev_enable_ctr_write(u32 mdat0_bits_en,
 		u32 mdat1_bits_en, u32 mdat2_bits_en, u32 mdat3_bits_en)
@@ -1946,10 +1955,10 @@ static int mxc_mlb150_open(struct inode *inode, struct file *filp)
 		return -EBUSY;
 	}
 
-#ifdef CONFIG_ARCH_MXC_ARM64
-	clk_prepare_enable(drvdata->ipg);
-	clk_prepare_enable(drvdata->hclk);
-#endif
+	if (mlb150_is_imx8qxp_mlb(drvdata)) {
+		clk_prepare_enable(drvdata->ipg);
+		clk_prepare_enable(drvdata->hclk);
+	}
 	clk_prepare_enable(drvdata->mlb);
 
 	/* initial MLB module */
@@ -2041,10 +2050,10 @@ static int mxc_mlb150_release(struct inode *inode, struct file *filp)
 	atomic_set(&pdevinfo->on, 0);
 
 	clk_disable_unprepare(drvdata->mlb);
-#ifdef CONFIG_ARCH_MXC_ARM64
-	clk_disable_unprepare(drvdata->hclk);
-	clk_disable_unprepare(drvdata->ipg);
-#endif
+	if (mlb150_is_imx8qxp_mlb(drvdata)) {
+		clk_disable_unprepare(drvdata->hclk);
+		clk_disable_unprepare(drvdata->ipg);
+	}
 	/* decrease the open count */
 	atomic_set(&pdevinfo->opencnt, 0);
 
@@ -2158,7 +2167,8 @@ static long mxc_mlb150_ioctl(struct file *filp,
 			}
 
 			if ((fps > 1024) &&
-				!(drvdata->quirk_flag & MLB_QUIRK_MLB150)) {
+				!(drvdata->hwdata->quirk_flag &
+				MLB_QUIRK_MLB150)) {
 				pr_err("mxc_mlb150: not support fps %d\n", fps);
 				return -EINVAL;
 			}
@@ -2517,24 +2527,28 @@ static const struct file_operations mxc_mlb150_fops = {
 	.write = mxc_mlb150_write,
 };
 
-static struct platform_device_id imx_mlb150_devtype[] = {
-	{
-		.name = "imx6q-mlb150",
-		.driver_data = MLB_QUIRK_MLB150,
-	}, {
-		.name = "imx6sx-mlb50",
-		.driver_data = 0,
-	}, {
-		/* sentinel */
-	}
+static const struct imx_mlb_hwdata imx6q_mlb_hwdata = {
+	.devtype		= IMX6Q_MLB,
+	.quirk_flag		= MLB_QUIRK_MLB150,
 };
-MODULE_DEVICE_TABLE(platform, imx_mlb150_devtype);
+
+static const struct imx_mlb_hwdata imx6sx_mlb_hwdata = {
+	.devtype		= IMX6SX_MLB,
+	.quirk_flag		= 0,
+};
+
+static const struct imx_mlb_hwdata imx8qxp_mlb_hwdata = {
+	.devtype		= IMX8QXP_MLB,
+	.quirk_flag		= MLB_QUIRK_MLB150,
+};
 
 static const struct of_device_id mlb150_imx_dt_ids[] = {
 	{ .compatible = "fsl,imx6q-mlb150",
-		.data = &imx_mlb150_devtype[IMX6Q_MLB], },
+		.data = &imx6q_mlb_hwdata, },
 	{ .compatible = "fsl,imx6sx-mlb50",
-		.data = &imx_mlb150_devtype[IMX6SX_MLB], },
+		.data = &imx6sx_mlb_hwdata, },
+	{ .compatible = "fsl,imx8qxp-mlb150",
+		.data = &imx8qxp_mlb_hwdata, },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, mlb150_imx_dt_ids);
@@ -2560,7 +2574,7 @@ static int mxc_mlb150_probe(struct platform_device *pdev)
 	drvdata->dev = &pdev->dev;
 	of_id = of_match_device(mlb150_imx_dt_ids, &pdev->dev);
 	if (of_id)
-		pdev->id_entry = of_id->data;
+		drvdata->hwdata = of_id->data;
 	else
 		return -EINVAL;
 	/*
@@ -2605,8 +2619,6 @@ static int mxc_mlb150_probe(struct platform_device *pdev)
 			goto err_dev;
 		}
 	}
-
-	drvdata->quirk_flag = pdev->id_entry->driver_data;
 
 	/* ahb0 irq */
 	drvdata->irq_ahb0 = platform_get_irq(pdev,  1);
@@ -2674,21 +2686,21 @@ static int mxc_mlb150_probe(struct platform_device *pdev)
 	}
 #endif
 
-#ifdef CONFIG_ARCH_MXC_ARM64
-	drvdata->ipg = devm_clk_get(&pdev->dev, "ipg");
-	if (IS_ERR(drvdata->ipg)) {
-		dev_err(&pdev->dev, "unable to get mlb ipg clock\n");
-		ret = PTR_ERR(drvdata->ipg);
-		goto err_dev;
-	};
+	if (mlb150_is_imx8qxp_mlb(drvdata)) {
+		drvdata->ipg = devm_clk_get(&pdev->dev, "ipg");
+		if (IS_ERR(drvdata->ipg)) {
+			dev_err(&pdev->dev, "unable to get mlb ipg clock\n");
+			ret = PTR_ERR(drvdata->ipg);
+			goto err_dev;
+		}
 
-	drvdata->hclk = devm_clk_get(&pdev->dev, "hclk");
-	if (IS_ERR(drvdata->hclk)) {
-		dev_err(&pdev->dev, "unable to get mlb hclk clock\n");
-		ret = PTR_ERR(drvdata->hclk);
-		goto err_dev;
-	};
-#endif
+		drvdata->hclk = devm_clk_get(&pdev->dev, "hclk");
+		if (IS_ERR(drvdata->hclk)) {
+			dev_err(&pdev->dev, "unable to get mlb hclk clock\n");
+			ret = PTR_ERR(drvdata->hclk);
+			goto err_dev;
+		}
+	}
 
 	drvdata->mlb = devm_clk_get(&pdev->dev, "mlb");
 	if (IS_ERR(drvdata->mlb)) {
@@ -2792,7 +2804,6 @@ static struct platform_driver mxc_mlb150_driver = {
 	.remove = mxc_mlb150_remove,
 	.suspend = mxc_mlb150_suspend,
 	.resume = mxc_mlb150_resume,
-	.id_table = imx_mlb150_devtype,
 };
 
 static int __init mxc_mlb150_init(void)
