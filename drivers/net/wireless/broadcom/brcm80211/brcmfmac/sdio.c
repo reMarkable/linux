@@ -4468,23 +4468,6 @@ struct brcmf_sdio *brcmf_sdio_probe(struct brcmf_sdio_dev *sdiodev)
 
 	brcmf_dbg(TRACE, "Enter\n");
 
-	/*printk("[---- SBA ----] Trying to find 32K clock..\n");
-	struct clk *ext_32K_clk = devm_clk_get(sdiodev->dev, "32K_ext_wifi_clk");
-	if(IS_ERR_OR_NULL(ext_32K_clk)) {
-	    printk("[---- SBA ----] Failed to get 32K clock: %ld !\n", PTR_ERR(ext_32K_clk));
-	    goto fail;
-	}
-
-    printk("[---- SBA ----] Trying to enable 32K clock..\n");
-	ret = clk_prepare_enable(ext_32K_clk);
-	if(ret) {
-	    printk("[---- SBA ----] Failed to enable clock: %d\n", ret);
-	    goto fail:
-	}
-
-	printk("[---- SBA ----] 32K clock enabled, waiting a slight moment..\n");
-	usleep(1000);*/
-
 	/* Allocate private bus interface state */
 	bus = kzalloc(sizeof(struct brcmf_sdio), GFP_ATOMIC);
 	if (!bus)

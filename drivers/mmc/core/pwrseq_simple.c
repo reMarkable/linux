@@ -60,7 +60,7 @@ static void mmc_pwrseq_simple_pre_power_on(struct mmc_host *host)
 	struct mmc_pwrseq_simple *pwrseq = to_pwrseq_simple(host->pwrseq);
 
     printk("[---- SBA ----] mmc_pwrseq_simple_pre_power_on: Enter\n");
-    
+
 	if (!IS_ERR(pwrseq->ext_clk) && !pwrseq->clk_enabled) {
 		clk_prepare_enable(pwrseq->ext_clk);
 		pwrseq->clk_enabled = true;
@@ -86,7 +86,7 @@ static void mmc_pwrseq_simple_power_off(struct mmc_host *host)
 	struct mmc_pwrseq_simple *pwrseq = to_pwrseq_simple(host->pwrseq);
 
     printk("[---- SBA ----] mmc_pwrseq_simple_power_off: Enter\n");
-    
+
 	mmc_pwrseq_simple_set_gpios_value(pwrseq, 1);
 
 	if (pwrseq->power_off_delay_us)
