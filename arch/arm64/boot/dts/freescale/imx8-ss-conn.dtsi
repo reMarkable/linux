@@ -108,8 +108,9 @@ conn_subsys: bus@5b000000 {
 		clocks = <&conn_lpcg IMX_CONN_LPCG_ENET0_IPG_CLK>,
 			 <&conn_lpcg IMX_CONN_LPCG_ENET0_AHB_CLK>,
 			 <&conn_lpcg IMX_CONN_LPCG_ENET0_RGMII_TXC_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET0_TIMER_CLK>;
-		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp";
+			 <&conn_lpcg IMX_CONN_LPCG_ENET0_TIMER_CLK>,
+			 <&conn_lpcg IMX_CONN_LPCG_ENET0_TXC_SAMPLING_CLK>;
+		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp", "enet_2x_txclk";
 		assigned-clocks = <&clk IMX_CONN_ENET0_ROOT_CLK>,
 				  <&clk IMX_CONN_ENET0_REF_DIV>;
 		assigned-clock-rates = <250000000>, <125000000>;
@@ -129,8 +130,9 @@ conn_subsys: bus@5b000000 {
 		clocks = <&conn_lpcg IMX_CONN_LPCG_ENET1_IPG_CLK>,
 			 <&conn_lpcg IMX_CONN_LPCG_ENET1_AHB_CLK>,
 			 <&conn_lpcg IMX_CONN_LPCG_ENET1_RGMII_TXC_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET1_TIMER_CLK>;
-		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp";
+			 <&conn_lpcg IMX_CONN_LPCG_ENET1_TIMER_CLK>,
+			 <&conn_lpcg IMX_CONN_LPCG_ENET1_TXC_SAMPLING_CLK>;
+		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp", "enet_2x_txclk";
 		assigned-clocks = <&clk IMX_CONN_ENET1_ROOT_CLK>,
 				  <&clk IMX_CONN_ENET1_REF_DIV>;
 		assigned-clock-rates = <250000000>, <125000000>;
