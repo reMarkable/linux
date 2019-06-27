@@ -28,6 +28,7 @@
 		ethernet5 = &enet5;
 		ethernet6 = &enet6;
 		ethernet7 = &enet7;
+		rtc1 = &ftm_alarm0;
 	};
 
 	cpus {
@@ -560,15 +561,6 @@
 			status = "disabled";
 		};
 
-		ftm0: ftm0@29d0000 {
-			compatible = "fsl,ftm-alarm";
-			reg = <0x0 0x29d0000 0x0 0x10000>,
-			      <0x0 0x1ee2140 0x0 0x4>;
-			reg-names = "ftm", "FlexTimer1";
-			interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
-			big-endian;
-		};
-
 		wdog0: watchdog@2ad0000 {
 			compatible = "fsl,imx21-wdt";
 			reg = <0x0 0x2ad0000 0x0 0x10000>;
@@ -808,6 +800,20 @@
 			fsl,dma-queues = <2>;
 			status-sizes = <64>;
 			queue-sizes = <64 64>;
+			big-endian;
+		};
+
+		rcpm: rcpm@1ee208c {
+			compatible = "fsl,ls1046a-rcpm", "fsl,qoriq-rcpm-2.1+";
+			reg = <0x0 0x1ee208c 0x0 0x4>;
+			#fsl,rcpm-wakeup-cells = <1>;
+		};
+
+		ftm_alarm0: timer@29d0000 {
+			compatible = "fsl,ls1046a-ftm-alarm";
+			reg = <0x0 0x29d0000 0x0 0x10000>;
+			fsl,rcpm-wakeup = <&rcpm 0x20000>;
+			interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
 			big-endian;
 		};
 	};

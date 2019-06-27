@@ -23,6 +23,7 @@
 		rtic-c = &rtic_c;
 		rtic-d = &rtic_d;
 		sec-mon = &sec_mon;
+		rtc1 = &ftm_alarm0;
 	};
 
 	cpus {
@@ -289,14 +290,20 @@
 			#thermal-sensor-cells = <1>;
 		};
 
-		ftm0: ftm0@29d0000 {
-			compatible = "fsl,ftm-alarm";
-			reg = <0x0 0x29d0000 0x0 0x10000>,
-			      <0x0 0x1ee2140 0x0 0x4>;
-			reg-names = "ftm", "FlexTimer1";
+		rcpm: rcpm@1ee2140 {
+			compatible = "fsl,ls1012a-rcpm", "fsl,qoriq-rcpm-2.1+";
+			reg = <0x0 0x1ee2140 0x0 0x4>;
+			#fsl,rcpm-wakeup-cells = <1>;
+		};
+
+		ftm_alarm0: timer@29d0000 {
+			compatible = "fsl,ls1012a-ftm-alarm";
+			reg = <0x0 0x29d0000 0x0 0x10000>;
+			fsl,rcpm-wakeup = <&rcpm 0x20000>;
 			interrupts = <0 86 0x4>;
 			big-endian;
 		};
+
 
 		i2c0: i2c@2180000 {
 			compatible = "fsl,vf610-i2c", "fsl,ls1012a-vf610-i2c";
@@ -495,12 +502,6 @@
 					<0000 0 0 3 &gic 0 112 IRQ_TYPE_LEVEL_HIGH>,
 					<0000 0 0 4 &gic 0 113 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
-		};
-
-		rcpm: rcpm@1ee2000 {
-			compatible = "fsl,ls1012a-rcpm", "fsl,qoriq-rcpm-2.1";
-			reg = <0x0 0x1ee2000 0x0 0x1000>;
-			fsl,#rcpm-wakeup-cells = <1>;
 		};
 	};
 
