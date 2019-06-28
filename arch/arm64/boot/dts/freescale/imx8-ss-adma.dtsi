@@ -280,13 +280,16 @@ adma_subsys: bus@59000000 {
 		reg = <0x5a8e0000 0x10000>;
 		interrupts = <GIC_SPI 236 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
-		/* CAN0 clock and PD is shared among all CAN instances */
 		clocks = <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_CLK>,
 			 <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_PE_CLK>;
 		clock-names = "ipg", "per";
 		assigned-clocks = <&clk IMX_ADMA_CAN0_CLK>;
 		assigned-clock-rates = <40000000>;
-		power-domains = <&pd IMX_SC_R_CAN_1>;
+		/* CAN1 shares CAN0's clock, to enable CAN0's clock it has
+		 * to be powered on, so CAN1 depends on CAN0's power domain.
+		 */
+		power-domains = <&pd IMX_SC_R_CAN_1>, <&pd IMX_SC_R_CAN_0>;
+		power-domain-names = "can_pd", "can_aux_pd";
 		/* SLSlice[4] */
 		fsl,clk-source = <0>;
 		status = "disabled";
@@ -297,13 +300,16 @@ adma_subsys: bus@59000000 {
 		reg = <0x5a8f0000 0x10000>;
 		interrupts = <GIC_SPI 237 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
-		/* CAN0 clock and PD is shared among all CAN instances */
 		clocks = <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_CLK>,
 			 <&adma_lpcg IMX_ADMA_LPCG_CAN0_IPG_PE_CLK>;
 		clock-names = "ipg", "per";
 		assigned-clocks = <&clk IMX_ADMA_CAN0_CLK>;
 		assigned-clock-rates = <40000000>;
-		power-domains = <&pd IMX_SC_R_CAN_2>;
+		/* CAN2 shares CAN0's clock, to enable CAN0's clock it has
+		 * to be powered on, so CAN2 depends on CAN0's power domain.
+		 */
+		power-domains = <&pd IMX_SC_R_CAN_2>, <&pd IMX_SC_R_CAN_0>;
+		power-domain-names = "can_pd", "can_aux_pd";
 		/* SLSlice[4] */
 		fsl,clk-source = <0>;
 		status = "disabled";
