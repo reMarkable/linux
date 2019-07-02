@@ -39,7 +39,7 @@
  * memory entries in the /memory node. This function may be called
  * any time after initial_boot_param is set.
  */
-void __init of_fdt_limit_memory(int limit)
+void of_fdt_limit_memory(int limit)
 {
 	int memory;
 	int len;
@@ -111,6 +111,25 @@ static int of_fdt_is_compatible(const void *blob,
 	return 0;
 }
 
+/**
+ * of_fdt_is_big_endian - Return true if given node needs BE MMIO accesses
+ * @blob: A device tree blob
+ * @node: node to test
+ *
+ * Returns true if the node has a "big-endian" property, or if the kernel
+ * was compiled for BE *and* the node has a "native-endian" property.
+ * Returns false otherwise.
+ */
+bool of_fdt_is_big_endian(const void *blob, unsigned long node)
+{
+	if (fdt_getprop(blob, node, "big-endian", NULL))
+		return true;
+	if (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN) &&
+	    fdt_getprop(blob, node, "native-endian", NULL))
+		return true;
+	return false;
+}
+
 static bool of_fdt_device_is_available(const void *blob, unsigned long node)
 {
 	const char *status = fdt_getprop(blob, node, "status", NULL);
@@ -127,8 +146,8 @@ static bool of_fdt_device_is_available(const void *blob, unsigned long node)
 /**
  * of_fdt_match - Return true if node matches a list of compatible values
  */
-static int __init of_fdt_match(const void *blob, unsigned long node,
-			       const char *const *compat)
+int of_fdt_match(const void *blob, unsigned long node,
+                 const char *const *compat)
 {
 	unsigned int tmp, score = 0;
 
@@ -741,7 +760,7 @@ int __init of_scan_flat_dt_subnodes(unsigned long parent,
  * @return offset of the subnode, or -FDT_ERR_NOTFOUND if there is none
  */
 
-int __init of_get_flat_dt_subnode_by_name(unsigned long node, const char *uname)
+int of_get_flat_dt_subnode_by_name(unsigned long node, const char *uname)
 {
 	return fdt_subnode_offset(initial_boot_params, node, uname);
 }
@@ -752,6 +771,14 @@ int __init of_get_flat_dt_subnode_by_name(unsigned long node, const char *uname)
 unsigned long __init of_get_flat_dt_root(void)
 {
 	return 0;
+}
+
+/**
+ * of_get_flat_dt_size - Return the total size of the FDT
+ */
+int __init of_get_flat_dt_size(void)
+{
+	return fdt_totalsize(initial_boot_params);
 }
 
 /**
@@ -779,7 +806,7 @@ int __init of_flat_dt_is_compatible(unsigned long node, const char *compat)
 /**
  * of_flat_dt_match - Return true if node matches a list of compatible values
  */
-static int __init of_flat_dt_match(unsigned long node, const char *const *compat)
+int __init of_flat_dt_match(unsigned long node, const char *const *compat)
 {
 	return of_fdt_match(initial_boot_params, node, compat);
 }
