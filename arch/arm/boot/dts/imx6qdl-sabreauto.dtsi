@@ -295,8 +295,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_enet>;
 	phy-mode = "rgmii-id";
-	interrupts-extended = <&gpio1 6 IRQ_TYPE_LEVEL_HIGH>,
-			      <&intc 0 119 IRQ_TYPE_LEVEL_HIGH>;
 	fsl,err006687-workaround-present;
 	status = "okay";
 };
@@ -511,6 +509,11 @@
 				MX6QDL_PAD_RGMII_RD2__RGMII_RD2		0x1b030
 				MX6QDL_PAD_RGMII_RD3__RGMII_RD3		0x1b030
 				MX6QDL_PAD_RGMII_RX_CTL__RGMII_RX_CTL	0x1b030
+			>;
+		};
+
+		pinctrl_enet_irq: enetirqgrp {
+			fsl,pins = <
 				MX6QDL_PAD_GPIO_6__ENET_IRQ		0x000b1
 			>;
 		};
@@ -633,6 +636,14 @@
 		pinctrl_mma8451_int: mma8451intgrp {
 			fsl,pins = <
 				MX6QDL_PAD_EIM_BCLK__GPIO6_IO31		0xb0b1
+			>;
+		};
+
+		pinctrl_mlb: mlb {
+			fsl,pins = <
+				MX6QDL_PAD_ENET_TXD1__MLB_CLK 0x80000000
+				MX6QDL_PAD_GPIO_6__MLB_SIG    0x80000000
+				MX6QDL_PAD_GPIO_2__MLB_DATA   0x80000000
 			>;
 		};
 
@@ -797,6 +808,12 @@
 			};
 		};
 	};
+};
+
+&mlb {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_mlb>;
+	status = "okay";
 };
 
 &pwm3 {
