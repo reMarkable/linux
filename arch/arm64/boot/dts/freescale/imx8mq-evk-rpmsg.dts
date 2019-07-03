@@ -22,6 +22,12 @@
 			no-map;
 			reg = <0 0xb8000000 0 0x400000>;
 		};
+
+		rpmsg_dma_reserved:rpmsg_dma@0xb8400000 {
+			compatible = "shared-dma-pool";
+			no-map;
+			reg = <0 0xb8400000 0 0x100000>;
+		};
 	};
 };
 
@@ -46,6 +52,7 @@
 	 */
 	vdev-nums = <1>;
 	reg = <0x0 0xb8000000 0x0 0x10000>;
+	memory-region = <&rpmsg_dma_reserved>;
 	status = "okay";
 };
 
