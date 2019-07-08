@@ -382,6 +382,9 @@ struct bufdesc_ex {
 #define FEC_NAPI_IMASK	FEC_ENET_MII
 #define FEC_RX_DISABLED_IMASK (FEC_DEFAULT_IMASK & (~FEC_ENET_RXF))
 
+#define FEC_ENET_TXC_DLY	((uint)0x00010000)
+#define FEC_ENET_RXC_DLY	((uint)0x00020000)
+
 /* ENET interrupt coalescing macro define */
 #define FEC_ITR_CLK_SEL		(0x1 << 30)
 #define FEC_ITR_EN		(0x1 << 31)
@@ -520,6 +523,7 @@ struct fec_enet_private {
 	struct clk *clk_ref;
 	struct clk *clk_enet_out;
 	struct clk *clk_ptp;
+	struct clk *clk_2x_txclk;
 
 	bool ptp_clk_on;
 	struct mutex ptp_clk_mutex;
@@ -547,6 +551,8 @@ struct fec_enet_private {
 	uint	phy_speed;
 	phy_interface_t	phy_interface;
 	struct device_node *phy_node;
+	bool	rgmii_txc_dly;
+	bool	rgmii_rxc_dly;
 	int	link;
 	int	full_duplex;
 	int	speed;

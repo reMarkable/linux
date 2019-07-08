@@ -1091,6 +1091,13 @@ fec_restart(struct net_device *ndev)
 	if (fep->bufdesc_ex)
 		ecntl |= (1 << 4);
 
+	if (fep->quirks & FEC_QUIRK_DELAYED_CLKS_SUPPORT &&
+		fep->rgmii_txc_dly)
+		ecntl |= FEC_ENET_TXC_DLY;
+	if (fep->quirks & FEC_QUIRK_DELAYED_CLKS_SUPPORT &&
+		fep->rgmii_rxc_dly)
+		ecntl |= FEC_ENET_RXC_DLY;
+
 #ifndef CONFIG_M5272
 	/* Enable the MIB statistic event counters */
 	writel(0 << 31, fep->hwp + FEC_MIB_CTRLSTAT);
@@ -1944,6 +1951,10 @@ static int fec_enet_clk_enable(struct net_device *ndev, bool enable)
 		if (ret)
 			goto failed_clk_ref;
 
+		ret = clk_prepare_enable(fep->clk_2x_txclk);
+		if (ret)
+			goto failed_clk_2x_txclk;
+
 		phy_reset_after_clk_enable(ndev->phydev);
 	} else {
 		clk_disable_unprepare(fep->clk_enet_out);
@@ -1954,13 +1965,17 @@ static int fec_enet_clk_enable(struct net_device *ndev, bool enable)
 			mutex_unlock(&fep->ptp_clk_mutex);
 		}
 		clk_disable_unprepare(fep->clk_ref);
+		clk_disable_unprepare(fep->clk_2x_txclk);
 	}
 
 	return 0;
 
-failed_clk_ref:
+failed_clk_2x_txclk:
 	if (fep->clk_ref)
 		clk_disable_unprepare(fep->clk_ref);
+failed_clk_ref:
+	if (fep->clk_ptp)
+		clk_disable_unprepare(fep->clk_ptp);
 failed_clk_ptp:
 	if (fep->clk_enet_out)
 		clk_disable_unprepare(fep->clk_enet_out);
@@ -3578,6 +3593,12 @@ fec_probe(struct platform_device *pdev)
 	if (of_get_property(np, "fsl,magic-packet", NULL))
 		fep->wol_flag |= FEC_WOL_HAS_MAGIC_PACKET;
 
+	if (of_get_property(np, "fsl,rgmii_txc_dly", NULL))
+		fep->rgmii_txc_dly = true;
+
+	if (of_get_property(np, "fsl,rgmii_rxc_dly", NULL))
+		fep->rgmii_rxc_dly = true;
+
 	phy_node = of_parse_phandle(np, "phy-handle", 0);
 	if (!phy_node && of_phy_is_fixed_link(np)) {
 		ret = of_phy_register_fixed_link(np);
@@ -3630,6 +3651,11 @@ fec_probe(struct platform_device *pdev)
 	if (IS_ERR(fep->clk_ref))
 		fep->clk_ref = NULL;
 	fep->clk_ref_rate = clk_get_rate(fep->clk_ref);
+
+	/* clk_2x_txclk is optional, depends on board */
+	fep->clk_2x_txclk = devm_clk_get(&pdev->dev, "enet_2x_txclk");
+	if (IS_ERR(fep->clk_2x_txclk))
+		fep->clk_2x_txclk = NULL;
 
 	fep->bufdesc_ex = fep->quirks & FEC_QUIRK_HAS_BUFDESC_EX;
 	fep->clk_ptp = devm_clk_get(&pdev->dev, "ptp");
