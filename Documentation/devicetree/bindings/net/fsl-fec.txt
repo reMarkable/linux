@@ -5,6 +5,19 @@ Required properties:
 - reg : Address and length of the register set for the device
 - interrupts : Should contain fec interrupt
 - phy-mode : See ethernet.txt file in the same directory
+- clock-name: Should be the names of the clocks
+  - "ipg", for MAC ipg_clk_s, ipg_clk_mac_s that are for register accessing
+  - "ahb", for MAC ipg_clk, ipg_clk_mac that are bus clock
+  - "ptp"(option), for IEEE1588 timer clock that requires the clock
+  - "enet_clk_ref"(option), for MAC transmit/receiver reference clock like
+    RGMII TXC clock or RMII reference clock. It depends on board design,
+    the clock is required if RGMII TXC and RMII reference clock source from
+    SOC internal PLL.
+  - "enet_out"(option), output clock for external device, like supply clock
+    for PHY. The clock is required if PHY clock source from SOC.
+  - "enet_2x_txclk"(option), for RGMII sampleing clock which fixed at 250Mhz.
+    The clock is required if SOC RGMII enable clock delay.
+- clocks: Phandles to input clocks.
 
 Optional properties:
 - phy-supply : regulator that powers the Ethernet PHY.
@@ -34,6 +47,11 @@ Optional properties:
   tx/rx queues 1 and 2. "int0" will be used for queue 0 and ENET_MII interrupts.
   For imx6sx, "int0" handles all 3 queues and ENET_MII. "pps" is for the pulse
   per second interrupt associated with 1588 precision time protocol(PTP).
+
+- fsl,wakeup_irq : The property defines the wakeup irq index in enet irq source.
+- stop-mode : If present, indicates soc need to set gpr bit to request stop mode.
+- mii-exclusive: If present, each MAC has their exclusive MDIO bus in current board
+  design, otherwise multiple MACs share one MDIO bus to reduce Pins utilize.
 
 Optional subnodes:
 - mdio : specifies the mdio bus in the FEC, used as a container for phy nodes
