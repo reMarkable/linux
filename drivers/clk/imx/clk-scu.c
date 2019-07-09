@@ -54,6 +54,19 @@ struct clk_mux_gpr_scu {
 };
 
 /*
+ * struct clk_gate3_scu - Description of one gate SCU clock
+ * @hw: the common clk_hw
+ * @rsrc_id: resource ID of this SCU clock
+ * @gpr_id: GPR ID index to control the divider
+ */
+struct clk_gate3_scu {
+	struct clk_hw hw;
+	u16 rsrc_id;
+	u8 gpr_id;
+	bool invert;
+};
+
+/*
  * struct imx_sc_msg_req_set_clock_rate - clock set rate protocol
  * @hdr: SCU protocol header
  * @rate: rate to set
@@ -79,6 +92,7 @@ struct resp_get_clock_rate {
 };
 
 #define to_clk_mux_gpr_scu(_hw) container_of(_hw, struct clk_mux_gpr_scu, hw)
+#define to_clk_gate3_scu(_hw) container_of(_hw, struct clk_gate3_scu, hw)
 
 /*
  * struct imx_sc_msg_get_clock_rate - clock get rate protocol
@@ -316,6 +330,99 @@ struct clk_hw *imx_clk_mux_gpr_scu(const char *name, const char **parents,
 	ret = clk_hw_register(NULL, hw);
 	if (ret) {
 		kfree(gpr_scu_mux);
+		hw = ERR_PTR(ret);
+	}
+
+	return hw;
+}
+
+static int clk_gate3_scu_prepare(struct clk_hw *hw)
+{
+	struct clk_gate3_scu *gate = to_clk_gate3_scu(hw);
+	uint32_t val;
+
+	if (!ccm_ipc_handle)
+		return -1;
+
+	val = (gate->invert) ? 0 : 1;
+
+	return imx_sc_misc_set_control(ccm_ipc_handle, gate->rsrc_id,
+				       gate->gpr_id, val);
+}
+
+/* Write to the LPCG bits. */
+static void clk_gate3_scu_unprepare(struct clk_hw *hw)
+{
+	struct clk_gate3_scu *gate = to_clk_gate3_scu(hw);
+	uint32_t val;
+
+	if (!ccm_ipc_handle)
+		return;
+
+	val = (gate->invert) ? 1 : 0;
+	imx_sc_misc_set_control(ccm_ipc_handle, gate->rsrc_id,
+				gate->gpr_id, val);
+}
+
+static int clk_gate3_scu_is_prepared(struct clk_hw *hw)
+{
+	struct clk_gate3_scu *gate = to_clk_gate3_scu(hw);
+	uint32_t val;
+
+	if (!ccm_ipc_handle)
+		return -1;
+
+	imx_sc_misc_get_control(ccm_ipc_handle, gate->rsrc_id,
+				gate->gpr_id, &val);
+	val &= 1;
+
+	if (gate->invert)
+		return 1 - val;
+
+	return val;
+}
+
+static struct clk_ops clk_gate3_scu_ops = {
+	.prepare = clk_gate3_scu_prepare,
+	.unprepare = clk_gate3_scu_unprepare,
+	.is_prepared = clk_gate3_scu_is_prepared,
+};
+
+struct clk_hw *imx_clk_scu3(const char *name, const char *parent_name,
+			    u32 rsrc_id, u8 gpr_id, bool invert_flag)
+{
+	struct clk_gate3_scu *gate;
+	struct clk_hw *hw;
+	struct clk_init_data init;
+	int ret;
+
+	if (rsrc_id >= IMX_SC_R_LAST)
+		return NULL;
+
+	if (gpr_id >= IMX_SC_C_LAST)
+		return NULL;
+
+	gate = kzalloc(sizeof(struct clk_gate3_scu), GFP_KERNEL);
+	if (!gate)
+		return ERR_PTR(-ENOMEM);
+
+	/* struct clk_gate_scu assignments */
+	gate->rsrc_id = rsrc_id;
+	gate->gpr_id = gpr_id;
+	gate->invert = invert_flag;
+
+	init.name = name;
+	init.ops = &clk_gate3_scu_ops;
+	init.flags = 0;
+	init.parent_names = parent_name ? &parent_name : NULL;
+	init.num_parents = parent_name ? 1 : 0;
+
+	gate->hw.init = &init;
+
+	hw = &gate->hw;
+	ret = clk_hw_register(NULL, hw);
+	if (ret) {
+		kfree(gate);
 		hw = ERR_PTR(ret);
 	}
 
