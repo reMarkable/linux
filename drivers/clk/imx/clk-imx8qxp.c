@@ -142,11 +142,13 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	clks[IMX_CONN_ENET0_RGMII_TXC_SEL] = imx_clk_mux_gpr_scu("enet0_rgmii_txc_sel", enet0_rgmii_txc_sels, ARRAY_SIZE(enet0_rgmii_txc_sels), IMX_SC_R_ENET_0, IMX_SC_C_TXCLK);
 	clks[IMX_CONN_ENET0_BYPASS_CLK]	= imx_clk_scu("enet0_bypass_clk", IMX_SC_R_ENET_0, IMX_SC_PM_CLK_BYPASS);
 	clks[IMX_CONN_ENET0_RGMII_RX_CLK] = imx_clk_scu("enet0_rgmii_rx_clk", IMX_SC_R_ENET_0, IMX_SC_PM_CLK_MISC0);
+	clks[IMX_CONN_LPCG_ENET0_RMII_REF_50MHZ_CLK] = imx_clk_scu3("enet0_ref_50_clk", NULL, IMX_SC_R_ENET_0, IMX_SC_C_DISABLE_50, true);
 	clks[IMX_CONN_ENET1_ROOT_CLK]	= imx_clk_scu("enet1_root_clk", IMX_SC_R_ENET_1, IMX_SC_PM_CLK_PER);
 	clks[IMX_CONN_ENET1_REF_DIV]	= imx_clk_divider_gpr_scu("enet1_ref_div", "enet1_root_clk", IMX_SC_R_ENET_1, IMX_SC_C_CLKDIV);
 	clks[IMX_CONN_ENET1_RGMII_TXC_SEL] = imx_clk_mux_gpr_scu("enet1_rgmii_txc_sel", enet1_rgmii_txc_sels, ARRAY_SIZE(enet1_rgmii_txc_sels), IMX_SC_R_ENET_1, IMX_SC_C_TXCLK);
 	clks[IMX_CONN_ENET1_BYPASS_CLK]	= imx_clk_scu("enet1_bypass_clk", IMX_SC_R_ENET_1, IMX_SC_PM_CLK_BYPASS);
 	clks[IMX_CONN_ENET1_RGMII_RX_CLK] = imx_clk_scu("enet1_rgmii_rx_clk", IMX_SC_R_ENET_1, IMX_SC_PM_CLK_MISC0);
+	clks[IMX_CONN_LPCG_ENET1_RMII_REF_50MHZ_CLK] = imx_clk_scu3("enet1_ref_50_clk", NULL, IMX_SC_R_ENET_1, IMX_SC_C_DISABLE_50, true);
 	clks[IMX_CONN_GPMI_BCH_IO_CLK]	= imx_clk_scu("gpmi_io_clk", IMX_SC_R_NAND, IMX_SC_PM_CLK_MST_BUS);
 	clks[IMX_CONN_GPMI_BCH_CLK]	= imx_clk_scu("gpmi_bch_clk", IMX_SC_R_NAND, IMX_SC_PM_CLK_PER);
 	clks[IMX_CONN_USB2_ACLK]	= imx_clk_scu("usb3_aclk_div", IMX_SC_R_USB_2, IMX_SC_PM_CLK_PER);
