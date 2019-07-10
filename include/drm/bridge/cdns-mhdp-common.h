@@ -1,16 +1,32 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (C) Fuzhou Rockchip Electronics Co.Ltd
  * Author: Chris Zhong <zyw@rock-chips.com>
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
-#ifndef _CDN_DP_REG_H
-#define _CDN_DP_REG_H
+#ifndef CDNS_MHDP_COMMON_H_
+#define CDNS_MHDP_COMMON_H_
+
+#include <drm/bridge/cdns-mhdp-cbs.h>
+#include <drm/drm_bridge.h>
+#include <drm/drm_connector.h>
+#include <drm/drm_dp_helper.h>
+#include <drm/drm_dp_mst_helper.h>
 
 #include <linux/bitops.h>
 
 #define ADDR_IMEM		0x10000
 #define ADDR_DMEM		0x20000
+#define ADDR_PHY_AFE	0x80000
 
 /* APB CFG addr */
 #define APB_CTRL			0
@@ -78,6 +94,10 @@
 #define SOURCE_PIF_SW_RESET		0x30834
 
 /* bellow registers need access by mailbox */
+/* source phy comp */
+#define PHY_DATA_SEL			0x0818
+#define LANES_CONFIG			0x0814
+
 /* source car addr */
 #define SOURCE_HDTX_CAR			0x0900
 #define SOURCE_DPTX_CAR			0x0904
@@ -88,6 +108,17 @@
 #define SOURCE_AIF_CAR			0x091c
 #define SOURCE_CIPHER_CAR		0x0920
 #define SOURCE_CRYPTO_CAR		0x0924
+
+/* mhdp tx_top_comp */
+#define SCHEDULER_H_SIZE		0x1000
+#define SCHEDULER_V_SIZE		0x1004
+#define HDTX_SIGNAL_FRONT_WIDTH	0x100c
+#define HDTX_SIGNAL_SYNC_WIDTH	0x1010
+#define HDTX_SIGNAL_BACK_WIDTH	0x1014
+#define HDTX_CONTROLLER			0x1018
+#define HDTX_HPD				0x1020
+#define HDTX_CLOCK_REG_0		0x1024
+#define HDTX_CLOCK_REG_1		0x1028
 
 /* clock meters addr */
 #define CM_CTRL				0x0a00
@@ -308,18 +339,24 @@
 #define MB_SIZE_LSB_ID			3
 #define MB_DATA_ID			4
 
-#define MB_MODULE_ID_DP_TX		0x01
+#define MB_MODULE_ID_DP_TX			0x01
+#define MB_MODULE_ID_HDMI_TX		0x03
 #define MB_MODULE_ID_HDCP_TX		0x07
 #define MB_MODULE_ID_HDCP_RX		0x08
 #define MB_MODULE_ID_HDCP_GENERAL	0x09
-#define MB_MODULE_ID_GENERAL		0x0a
+#define MB_MODULE_ID_GENERAL		0x0A
 
 /* general opcode */
 #define GENERAL_MAIN_CONTROL            0x01
 #define GENERAL_TEST_ECHO               0x02
 #define GENERAL_BUS_SETTINGS            0x03
 #define GENERAL_TEST_ACCESS             0x04
+#define GENERAL_WRITE_REGISTER          0x05
+#define GENERAL_WRITE_FIELD             0x06
+#define GENERAL_READ_REGISTER           0x07
+#define GENERAL_GET_HPD_STATE           0x11
 
+/* DPTX opcode */
 #define DPTX_SET_POWER_MNG			0x00
 #define DPTX_SET_HOST_CAPABILITIES		0x01
 #define DPTX_GET_EDID				0x02
@@ -338,6 +375,18 @@
 #define DPTX_SET_LINK_BREAK_POINT		0x0f
 #define DPTX_FORCE_LANES			0x10
 #define DPTX_HPD_STATE				0x11
+#define DPTX_ADJUST_LT				0x12
+
+/* HDMI TX opcode */
+#define HDMI_TX_READ				0x00
+#define HDMI_TX_WRITE				0x01
+#define HDMI_TX_UPDATE_READ			0x02
+#define HDMI_TX_EDID				0x03
+#define HDMI_TX_EVENTS				0x04
+#define HDMI_TX_HPD_STATUS			0x05
+#define HDMI_TX_DEBUG_ECHO			0xAA
+#define HDMI_TX_TEST				0xBB
+#define HDMI_TX_EDID_INTERNAL		0xF0
 
 #define FW_STANDBY				0
 #define FW_ACTIVE				1
@@ -389,6 +438,34 @@
 #define TU_SIZE					30
 #define CDNS_DP_MAX_LINK_RATE			DP_LINK_BW_5_4
 
+#define F_HDMI_ENCODING(x) (((x) & ((1 << 2) - 1)) << 16)
+#define F_VIF_DATA_WIDTH(x) (((x) & ((1 << 2) - 1)) << 2)
+#define F_HDMI_MODE(x) (((x) & ((1 << 2) - 1)) << 0)
+#define F_GCP_EN(x) (((x) & ((1 << 1) - 1)) << 12)
+#define F_DATA_EN(x) (((x) & ((1 << 1) - 1)) << 15)
+#define F_HDMI2_PREAMBLE_EN(x) (((x) & ((1 << 1) - 1)) << 18)
+#define F_PIC_3D(x) (((x) & ((1 << 4) - 1)) << 7)
+#define F_BCH_EN(x) (((x) & ((1 << 1) - 1)) << 11)
+#define F_SOURCE_PHY_MHDP_SEL(x) (((x) & ((1 << 2) - 1)) << 3)
+#define F_HPD_VALID_WIDTH(x) (((x) & ((1 << 12) - 1)) << 0)
+#define F_HPD_GLITCH_WIDTH(x) (((x) & ((1 << 8) - 1)) << 12)
+#define F_HDMI2_CTRL_IL_MODE(x) (((x) & ((1 << 1) - 1)) << 19)
+#define F_SOURCE_PHY_LANE0_SWAP(x) (((x) & ((1 << 2) - 1)) << 0)
+#define F_SOURCE_PHY_LANE1_SWAP(x) (((x) & ((1 << 2) - 1)) << 2)
+#define F_SOURCE_PHY_LANE2_SWAP(x) (((x) & ((1 << 2) - 1)) << 4)
+#define F_SOURCE_PHY_LANE3_SWAP(x) (((x) & ((1 << 2) - 1)) << 6)
+#define F_SOURCE_PHY_COMB_BYPASS(x) (((x) & ((1 << 1) - 1)) << 21)
+#define F_SOURCE_PHY_20_10(x) (((x) & ((1 << 1) - 1)) << 22)
+#define F_PKT_ALLOC_ADDRESS(x) (((x) & ((1 << 4) - 1)) << 0)
+#define F_ACTIVE_IDLE_TYPE(x) (((x) & ((1 << 1) - 1)) << 17)
+#define F_FIFO1_FLUSH(x) (((x) & ((1 << 1) - 1)) << 0)
+#define F_PKT_ALLOC_WR_EN(x) (((x) & ((1 << 1) - 1)) << 0)
+#define F_DATA_WR(x) (x)
+#define F_WR_ADDR(x) (((x) & ((1 << 4) - 1)) << 0)
+#define F_HOST_WR(x) (((x) & ((1 << 1) - 1)) << 0)
+#define F_TYPE_VALID(x) (((x) & ((1 << 1) - 1)) << 16)
+#define F_PACKET_TYPE(x) (((x) & ((1 << 8) - 1)) << 8)
+
 /* audio */
 #define AUDIO_PACK_EN				BIT(8)
 #define SAMPLING_FREQ(x)			(((x) & 0xf) << 16)
@@ -415,6 +492,8 @@
 
 /* Reference cycles when using lane clock as reference */
 #define LANE_REF_CYC				0x8000
+
+#define HOTPLUG_DEBOUNCE_MS		200
 
 enum voltage_swing_level {
 	VOLTAGE_LEVEL_0,
@@ -455,6 +534,12 @@ enum audio_format {
 	AFMT_I2S = 0,
 	AFMT_SPDIF = 1,
 	AFMT_UNUSED,
+};
+
+enum {
+	MODE_DVI,
+	MODE_HDMI_1_4,
+	MODE_HDMI_2_0,
 };
 
 struct audio_info {
@@ -499,26 +584,69 @@ struct cdns_mhdp_sink {
 	u8	enhanced;
 };
 
+struct cdns_mhdp_bridge;
+struct cdns_mhdp_connector;
+
+struct cdns_mhdp_bridge {
+	struct cdns_mhdp_device *mhdp;
+	struct drm_bridge base;
+	int pbn;
+	int8_t stream_id;
+	struct cdns_mhdp_connector *connector;
+	bool is_active;
+};
+
+struct cdns_mhdp_connector {
+	struct drm_connector base;
+	bool is_mst_connector;
+	struct drm_dp_mst_port *port;
+	struct cdns_mhdp_bridge *bridge;
+};
+
 struct cdns_mhdp_device {
 	void __iomem		*regs;
 
 	struct device		*dev;
 
-	struct drm_dp_link	link;
-	struct drm_connector	connector;
+	struct cdns_mhdp_connector  connector;
 	struct clk		*spdif_clk;
 	struct reset_control	*spdif_rst;
 
-	struct drm_dp_aux	aux;
-	struct cdns_mhdp_host	host;
-	struct cdns_mhdp_sink	sink;
-	struct drm_bridge	bridge;
+	struct platform_device	*audio_pdev;
+	struct audio_info	audio_info;
+
+	struct cdns_mhdp_bridge	bridge;
 	struct phy		*phy;
-	void __iomem		*dbg_regs;
 
 	struct video_info	video_info;
 	struct drm_display_mode	mode;
 	unsigned int		fw_version;
+
+	struct drm_dp_mst_topology_mgr mst_mgr;
+	struct delayed_work hotplug_work;
+
+	bool link_up;
+	bool power_up;
+	bool plugged;
+
+	union {
+		struct _dp_data {
+			struct drm_dp_link	link;
+			struct drm_dp_aux	aux;
+			struct cdns_mhdp_host	host;
+			struct cdns_mhdp_sink	sink;
+			struct cdns_mhdp_mst_cbs cbs;
+			bool is_mst;
+			bool can_mst;
+			u32 lane_mapping;
+			u32 link_rate;
+			u32 num_lanes;
+		} dp;
+		struct _hdmi_data {
+			u32 char_rate;
+			u32 hdmi_type;
+		} hdmi;
+	};
 };
 
 void cdns_mhdp_clock_reset(struct cdns_mhdp_device *mhdp);
@@ -543,4 +671,34 @@ int cdns_mhdp_audio_stop(struct cdns_mhdp_device *mhdp,
 int cdns_mhdp_audio_mute(struct cdns_mhdp_device *mhdp, bool enable);
 int cdns_mhdp_audio_config(struct cdns_mhdp_device *mhdp,
 			   struct audio_info *audio);
-#endif /* _CDN_DP_REG_H */
+int cdns_mhdp_reg_read(struct cdns_mhdp_device *mhdp, u32 addr);
+int cdns_mhdp_reg_write(struct cdns_mhdp_device *mhdp, u32 addr, u32 val);
+int cdns_mhdp_reg_write_bit(struct cdns_mhdp_device *mhdp, u16 addr,
+			    u8 start_bit, u8 bits_no, u32 val);
+int cdns_mhdp_adjust_lt(struct cdns_mhdp_device *mhdp, u8 nlanes,
+			u16 udelay, u8 *lanes_data,
+			u8 *dpcd);
+
+int cdns_mhdp_read_hpd(struct cdns_mhdp_device *mhdp);
+u32 cdns_phy_reg_read(struct cdns_mhdp_device *mhdp, u32 addr);
+int cdns_phy_reg_write(struct cdns_mhdp_device *mhdp, u32 addr, u32 val);
+int cdns_mhdp_mailbox_send(struct cdns_mhdp_device *mhdp, u8 module_id,
+				  u8 opcode, u16 size, u8 *message);
+int cdns_mhdp_mailbox_read_receive(struct cdns_mhdp_device *mhdp,
+					  u8 *buff, u16 buff_size);
+int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
+					      u8 module_id, u8 opcode,
+					      u16 req_size);
+int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp);
+
+int cdns_hdmi_get_edid_block(void *data, u8 *edid, u32 block, size_t length);
+int cdns_hdmi_scdc_read(struct cdns_mhdp_device *mhdp, u8 addr, u8 *data);
+int cdns_hdmi_scdc_write(struct cdns_mhdp_device *mhdp, u8 addr, u8 value);
+int cdns_hdmi_ctrl_init(struct cdns_mhdp_device *mhdp, int protocol, u32 char_rate);
+int cdns_hdmi_mode_config(struct cdns_mhdp_device *mhdp, struct drm_display_mode *mode,
+				struct video_info *video_info);
+int cdns_hdmi_disable_gcp(struct cdns_mhdp_device *mhdp);
+int cdns_hdmi_enable_gcp(struct cdns_mhdp_device *mhdp);
+
+bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp);
+#endif /* CDNS_MHDP_COMMON_H_ */

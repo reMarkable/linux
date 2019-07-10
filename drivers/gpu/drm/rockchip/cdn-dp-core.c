@@ -25,7 +25,7 @@
 #include "rockchip_drm_vop.h"
 
 #define connector_to_dp(c) \
-		container_of(c, struct cdn_dp_device, mhdp.connector)
+		container_of(c, struct cdn_dp_device, mhdp.connector.base)
 
 #define encoder_to_dp(c) \
 		container_of(c, struct cdn_dp_device, encoder)
@@ -282,7 +282,7 @@ static int cdn_dp_connector_mode_valid(struct drm_connector *connector,
 {
 	struct cdn_dp_device *dp = connector_to_dp(connector);
 	struct drm_display_info *display_info =
-		&dp->mhdp.connector.display_info;
+		&dp->mhdp.connector.base.display_info;
 	u32 requested, actual, rate, sink_max, source_max = 0;
 	u8 lanes, bpc;
 
@@ -378,7 +378,7 @@ static int cdn_dp_get_sink_capability(struct cdn_dp_device *dp)
 	}
 
 	kfree(dp->edid);
-	dp->edid = drm_do_get_edid(&dp->mhdp.connector,
+	dp->edid = drm_do_get_edid(&dp->mhdp.connector.base,
 				   cdns_mhdp_get_edid_block, &dp->mhdp);
 	return 0;
 }
@@ -484,8 +484,8 @@ static int cdn_dp_disable(struct cdn_dp_device *dp)
 	cdns_mhdp_set_firmware_active(&dp->mhdp, false);
 	cdn_dp_clk_disable(dp);
 	dp->active = false;
-	dp->mhdp.link.rate = 0;
-	dp->mhdp.link.num_lanes = 0;
+	dp->mhdp.dp.link.rate = 0;
+	dp->mhdp.dp.link.num_lanes = 0;
 	if (!dp->connected) {
 		kfree(dp->edid);
 		dp->edid = NULL;
@@ -550,7 +550,7 @@ static void cdn_dp_encoder_mode_set(struct drm_encoder *encoder,
 {
 	struct cdn_dp_device *dp = encoder_to_dp(encoder);
 	struct drm_display_info *display_info =
-		&dp->mhdp.connector.display_info;
+		&dp->mhdp.connector.base.display_info;
 	struct video_info *video = &dp->mhdp.video_info;
 
 	switch (display_info->bpc) {
@@ -578,7 +578,7 @@ static bool cdn_dp_check_link_status(struct cdn_dp_device *dp)
 	struct cdn_dp_port *port = cdn_dp_connected_port(dp);
 	u8 sink_lanes = drm_dp_max_lane_count(dp->dpcd);
 
-	if (!port || !dp->mhdp.link.rate || !dp->mhdp.link.num_lanes)
+	if (!port || !dp->mhdp.dp.link.rate || !dp->mhdp.dp.link.num_lanes)
 		return false;
 
 	if (cdns_mhdp_dpcd_read(&dp->mhdp, DP_LANE0_1_STATUS, link_status,
@@ -807,7 +807,7 @@ static int cdn_dp_audio_hw_params(struct device *dev,  void *data,
 
 	ret = cdns_mhdp_audio_config(&dp->mhdp, &audio);
 	if (!ret)
-		dp->audio_info = audio;
+		dp->mhdp.audio_info = audio;
 
 out:
 	mutex_unlock(&dp->lock);
@@ -823,9 +823,9 @@ static void cdn_dp_audio_shutdown(struct device *dev, void *data)
 	if (!dp->active)
 		goto out;
 
-	ret = cdns_mhdp_audio_stop(&dp->mhdp, &dp->audio_info);
+	ret = cdns_mhdp_audio_stop(&dp->mhdp, &dp->mhdp.audio_info);
 	if (!ret)
-		dp->audio_info.format = AFMT_UNUSED;
+		dp->mhdp.audio_info.format = AFMT_UNUSED;
 out:
 	mutex_unlock(&dp->lock);
 }
@@ -854,8 +854,8 @@ static int cdn_dp_audio_get_eld(struct device *dev, void *data,
 {
 	struct cdn_dp_device *dp = dev_get_drvdata(dev);
 
-	memcpy(buf, dp->mhdp.connector.eld,
-	       min(sizeof(dp->mhdp.connector.eld), len));
+	memcpy(buf, dp->mhdp.connector.base.eld,
+	       min(sizeof(dp->mhdp.connector.base.eld), len));
 
 	return 0;
 }
@@ -877,11 +877,11 @@ static int cdn_dp_audio_codec_init(struct cdn_dp_device *dp,
 		.max_i2s_channels = 8,
 	};
 
-	dp->audio_pdev = platform_device_register_data(
-			 dev, HDMI_CODEC_DRV_NAME, PLATFORM_DEVID_AUTO,
-			 &codec_data, sizeof(codec_data));
+	dp->mhdp.audio_pdev = platform_device_register_data(
+			      dev, HDMI_CODEC_DRV_NAME, PLATFORM_DEVID_AUTO,
+			      &codec_data, sizeof(codec_data));
 
-	return PTR_ERR_OR_ZERO(dp->audio_pdev);
+	return PTR_ERR_OR_ZERO(dp->mhdp.audio_pdev);
 }
 
 static int cdn_dp_request_firmware(struct cdn_dp_device *dp)
@@ -927,7 +927,7 @@ static void cdn_dp_pd_event_work(struct work_struct *work)
 {
 	struct cdn_dp_device *dp = container_of(work, struct cdn_dp_device,
 						event_work);
-	struct drm_connector *connector = &dp->mhdp.connector;
+	struct drm_connector *connector = &dp->mhdp.connector.base;
 	enum drm_connector_status old_status;
 	struct device *dev = dp->mhdp.dev;
 
@@ -965,8 +965,8 @@ static void cdn_dp_pd_event_work(struct work_struct *work)
 
 	/* Enabled and connected with a sink, re-train if requested */
 	} else if (!cdn_dp_check_link_status(dp)) {
-		unsigned int rate = dp->mhdp.link.rate;
-		unsigned int lanes = dp->mhdp.link.num_lanes;
+		unsigned int rate = dp->mhdp.dp.link.rate;
+		unsigned int lanes = dp->mhdp.dp.link.num_lanes;
 		struct drm_display_mode *mode = &dp->mhdp.mode;
 
 		DRM_DEV_INFO(dev, "Connected with sink. Re-train link\n");
@@ -979,8 +979,8 @@ static void cdn_dp_pd_event_work(struct work_struct *work)
 
 		/* If training result is changed, update the video config */
 		if (mode->clock &&
-		    (rate != dp->mhdp.link.rate ||
-		     lanes != dp->mhdp.link.num_lanes)) {
+		    (rate != dp->mhdp.dp.link.rate ||
+		     lanes != dp->mhdp.dp.link.num_lanes)) {
 			ret = cdns_mhdp_config_video(&dp->mhdp);
 			if (ret) {
 				dp->connected = false;
@@ -1053,7 +1053,7 @@ static int cdn_dp_bind(struct device *dev, struct device *master, void *data)
 
 	drm_encoder_helper_add(encoder, &cdn_dp_encoder_helper_funcs);
 
-	connector = &dp->mhdp.connector;
+	connector = &dp->mhdp.connector.base;
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
 	connector->dpms = DRM_MODE_DPMS_OFF;
 
@@ -1104,7 +1104,7 @@ static void cdn_dp_unbind(struct device *dev, struct device *master, void *data)
 {
 	struct cdn_dp_device *dp = dev_get_drvdata(dev);
 	struct drm_encoder *encoder = &dp->encoder;
-	struct drm_connector *connector = &dp->mhdp.connector;
+	struct drm_connector *connector = &dp->mhdp.connector.base;
 
 	cancel_work_sync(&dp->event_work);
 	cdn_dp_encoder_disable(encoder);
@@ -1208,7 +1208,7 @@ static int cdn_dp_remove(struct platform_device *pdev)
 {
 	struct cdn_dp_device *dp = platform_get_drvdata(pdev);
 
-	platform_device_unregister(dp->audio_pdev);
+	platform_device_unregister(dp->mhdp.audio_pdev);
 	cdn_dp_suspend(dp->mhdp.dev);
 	component_del(&pdev->dev, &cdn_dp_component_ops);
 

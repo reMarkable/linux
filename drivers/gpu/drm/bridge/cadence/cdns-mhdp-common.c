@@ -1,18 +1,30 @@
-// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) Fuzhou Rockchip Electronics Co.Ltd
  * Author: Chris Zhong <zyw@rock-chips.com>
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/clk.h>
-#include <linux/device.h>
 #include <linux/delay.h>
+#include <linux/device.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
 #include <linux/reset.h>
 
-#include "cdn-dp-core.h"
-#include "cdn-dp-reg.h"
+#include <asm/unaligned.h>
+
+#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/drm_modes.h>
+#include <drm/drm_print.h>
 
 #define CDNS_DP_SPDIF_CLK		200000000
 #define FW_ALIVE_TIMEOUT_US		1000000
@@ -21,10 +33,27 @@
 #define LINK_TRAINING_RETRY_MS		20
 #define LINK_TRAINING_TIMEOUT_MS	500
 
+static inline u32 get_unaligned_be24(const void *p)
+{
+	const u8 *_p = p;
+
+	return _p[0] << 16 | _p[1] << 8 | _p[2];
+}
+
+static inline void put_unaligned_be24(u32 val, void *p)
+{
+	u8 *_p = p;
+
+	_p[0] = val >> 16;
+	_p[1] = val >> 8;
+	_p[2] = val;
+}
+
 void cdns_mhdp_set_fw_clk(struct cdns_mhdp_device *mhdp, unsigned long clk)
 {
 	writel(clk / 1000000, mhdp->regs + SW_CLK_H);
 }
+EXPORT_SYMBOL(cdns_mhdp_set_fw_clk);
 
 void cdns_mhdp_clock_reset(struct cdns_mhdp_device *mhdp)
 {
@@ -74,8 +103,9 @@ void cdns_mhdp_clock_reset(struct cdns_mhdp_device *mhdp)
 	/* enable Mailbox and PIF interrupt */
 	writel(0, mhdp->regs + APB_INT_MASK);
 }
+EXPORT_SYMBOL(cdns_mhdp_clock_reset);
 
-static int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
+int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
 {
 	int val, ret;
 
@@ -87,6 +117,7 @@ static int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
 
 	return readl(mhdp->regs + MAILBOX0_RD_DATA) & 0xff;
 }
+EXPORT_SYMBOL(cdns_mhdp_mailbox_read);
 
 static int cdp_dp_mailbox_write(struct cdns_mhdp_device *mhdp, u8 val)
 {
@@ -103,7 +134,7 @@ static int cdp_dp_mailbox_write(struct cdns_mhdp_device *mhdp, u8 val)
 	return 0;
 }
 
-static int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
+int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
 					      u8 module_id, u8 opcode,
 					      u16 req_size)
 {
@@ -120,7 +151,7 @@ static int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
 		header[i] = ret;
 	}
 
-	mbox_size = (header[2] << 8) | header[3];
+	mbox_size = get_unaligned_be16(header + 2);
 
 	if (opcode != header[0] || module_id != header[1] ||
 	    req_size != mbox_size) {
@@ -137,8 +168,9 @@ static int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
 
 	return 0;
 }
+EXPORT_SYMBOL(cdns_mhdp_mailbox_validate_receive);
 
-static int cdns_mhdp_mailbox_read_receive(struct cdns_mhdp_device *mhdp,
+int cdns_mhdp_mailbox_read_receive(struct cdns_mhdp_device *mhdp,
 					  u8 *buff, u16 buff_size)
 {
 	u32 i;
@@ -154,8 +186,9 @@ static int cdns_mhdp_mailbox_read_receive(struct cdns_mhdp_device *mhdp,
 
 	return 0;
 }
+EXPORT_SYMBOL(cdns_mhdp_mailbox_read_receive);
 
-static int cdns_mhdp_mailbox_send(struct cdns_mhdp_device *mhdp, u8 module_id,
+int cdns_mhdp_mailbox_send(struct cdns_mhdp_device *mhdp, u8 module_id,
 				  u8 opcode, u16 size, u8 *message)
 {
 	u8 header[4];
@@ -163,8 +196,7 @@ static int cdns_mhdp_mailbox_send(struct cdns_mhdp_device *mhdp, u8 module_id,
 
 	header[0] = opcode;
 	header[1] = module_id;
-	header[2] = (size >> 8) & 0xff;
-	header[3] = size & 0xff;
+	put_unaligned_be16(size, header + 2);
 
 	for (i = 0; i < 4; i++) {
 		ret = cdp_dp_mailbox_write(mhdp, header[i]);
@@ -180,38 +212,79 @@ static int cdns_mhdp_mailbox_send(struct cdns_mhdp_device *mhdp, u8 module_id,
 
 	return 0;
 }
+EXPORT_SYMBOL(cdns_mhdp_mailbox_send);
 
-static int cdns_mhdp_reg_write(struct cdns_mhdp_device *mhdp, u16 addr, u32 val)
+int cdns_mhdp_reg_read(struct cdns_mhdp_device *mhdp, u32 addr)
 {
-	u8 msg[6];
+	u8 msg[4], resp[8];
+	u32 val;
+	int ret;
 
-	msg[0] = (addr >> 8) & 0xff;
-	msg[1] = addr & 0xff;
-	msg[2] = (val >> 24) & 0xff;
-	msg[3] = (val >> 16) & 0xff;
-	msg[4] = (val >> 8) & 0xff;
-	msg[5] = val & 0xff;
-	return cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-				      DPTX_WRITE_REGISTER, sizeof(msg), msg);
+	if (addr == 0) {
+		ret = -EINVAL;
+		goto err_reg_read;
+	}
+
+	put_unaligned_be32(addr, msg);
+
+	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_GENERAL,
+				     GENERAL_READ_REGISTER,
+				     sizeof(msg), msg);
+	if (ret)
+		goto err_reg_read;
+
+	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_GENERAL,
+						 GENERAL_READ_REGISTER,
+						 sizeof(resp));
+	if (ret)
+		goto err_reg_read;
+
+	ret = cdns_mhdp_mailbox_read_receive(mhdp, resp, sizeof(resp));
+	if (ret)
+		goto err_reg_read;
+
+	/* Returned address value should be the same as requested */
+	if (memcmp(msg, resp, sizeof(msg))) {
+		ret = -EINVAL;
+		goto err_reg_read;
+	}
+
+	val = get_unaligned_be32(resp + 4);
+
+	return val;
+err_reg_read:
+	DRM_DEV_ERROR(mhdp->dev, "Failed to read register.\n");
+
+	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_reg_read);
 
-static int cdns_mhdp_reg_write_bit(struct cdns_mhdp_device *mhdp, u16 addr,
+int cdns_mhdp_reg_write(struct cdns_mhdp_device *mhdp, u32 addr, u32 val)
+{
+	u8 msg[8];
+
+	put_unaligned_be32(addr, msg);
+	put_unaligned_be32(val, msg + 4);
+
+	return cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_GENERAL,
+				      GENERAL_WRITE_REGISTER, sizeof(msg), msg);
+}
+EXPORT_SYMBOL(cdns_mhdp_reg_write);
+
+int cdns_mhdp_reg_write_bit(struct cdns_mhdp_device *mhdp, u16 addr,
 				   u8 start_bit, u8 bits_no, u32 val)
 {
 	u8 field[8];
 
-	field[0] = (addr >> 8) & 0xff;
-	field[1] = addr & 0xff;
+	put_unaligned_be16(addr, field);
 	field[2] = start_bit;
 	field[3] = bits_no;
-	field[4] = (val >> 24) & 0xff;
-	field[5] = (val >> 16) & 0xff;
-	field[6] = (val >> 8) & 0xff;
-	field[7] = val & 0xff;
+	put_unaligned_be32(val, field + 4);
 
 	return cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
 				      DPTX_WRITE_FIELD, sizeof(field), field);
 }
+EXPORT_SYMBOL(cdns_mhdp_reg_write_bit);
 
 int cdns_mhdp_dpcd_read(struct cdns_mhdp_device *mhdp,
 			u32 addr, u8 *data, u16 len)
@@ -219,11 +292,9 @@ int cdns_mhdp_dpcd_read(struct cdns_mhdp_device *mhdp,
 	u8 msg[5], reg[5];
 	int ret;
 
-	msg[0] = (len >> 8) & 0xff;
-	msg[1] = len & 0xff;
-	msg[2] = (addr >> 16) & 0xff;
-	msg[3] = (addr >> 8) & 0xff;
-	msg[4] = addr & 0xff;
+	put_unaligned_be16(len, msg);
+	put_unaligned_be24(addr, msg + 2);
+
 	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
 				     DPTX_READ_DPCD, sizeof(msg), msg);
 	if (ret)
@@ -244,18 +315,17 @@ int cdns_mhdp_dpcd_read(struct cdns_mhdp_device *mhdp,
 err_dpcd_read:
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_dpcd_read);
 
 int cdns_mhdp_dpcd_write(struct cdns_mhdp_device *mhdp, u32 addr, u8 value)
 {
 	u8 msg[6], reg[5];
 	int ret;
 
-	msg[0] = 0;
-	msg[1] = 1;
-	msg[2] = (addr >> 16) & 0xff;
-	msg[3] = (addr >> 8) & 0xff;
-	msg[4] = addr & 0xff;
+	put_unaligned_be16(1, msg);
+	put_unaligned_be24(addr, msg + 2);
 	msg[5] = value;
+
 	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
 				     DPTX_WRITE_DPCD, sizeof(msg), msg);
 	if (ret)
@@ -270,7 +340,7 @@ int cdns_mhdp_dpcd_write(struct cdns_mhdp_device *mhdp, u32 addr, u8 value)
 	if (ret)
 		goto err_dpcd_write;
 
-	if (addr != (reg[2] << 16 | reg[3] << 8 | reg[4]))
+	if (addr != get_unaligned_be24(reg + 2))
 		ret = -EINVAL;
 
 err_dpcd_write:
@@ -278,6 +348,7 @@ err_dpcd_write:
 		DRM_DEV_ERROR(mhdp->dev, "dpcd write failed: %d\n", ret);
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_dpcd_write);
 
 int cdns_mhdp_load_firmware(struct cdns_mhdp_device *mhdp, const u32 *i_mem,
 			    u32 i_size, const u32 *d_mem, u32 d_size)
@@ -320,6 +391,7 @@ int cdns_mhdp_load_firmware(struct cdns_mhdp_device *mhdp, const u32 *i_mem,
 
 	return 0;
 }
+EXPORT_SYMBOL(cdns_mhdp_load_firmware);
 
 int cdns_mhdp_set_firmware_active(struct cdns_mhdp_device *mhdp, bool enable)
 {
@@ -354,6 +426,7 @@ err_set_firmware_active:
 		DRM_DEV_ERROR(mhdp->dev, "set firmware active failed\n");
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_set_firmware_active);
 
 int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp, u8 lanes, bool flip)
 {
@@ -375,14 +448,16 @@ int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp, u8 lanes, bool flip)
 	if (ret)
 		goto err_set_host_cap;
 
-	ret = cdns_mhdp_reg_write(mhdp, DP_AUX_SWAP_INVERSION_CONTROL,
-				  AUX_HOST_INVERT);
+/* TODO Sandor */
+//	ret = cdns_mhdp_reg_write(mhdp, DP_AUX_SWAP_INVERSION_CONTROL,
+//				  AUX_HOST_INVERT);
 
 err_set_host_cap:
 	if (ret)
 		DRM_DEV_ERROR(mhdp->dev, "set host cap failed: %d\n", ret);
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_set_host_cap);
 
 int cdns_mhdp_event_config(struct cdns_mhdp_device *mhdp)
 {
@@ -400,11 +475,13 @@ int cdns_mhdp_event_config(struct cdns_mhdp_device *mhdp)
 
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_event_config);
 
 u32 cdns_mhdp_get_event(struct cdns_mhdp_device *mhdp)
 {
 	return readl(mhdp->regs + SW_EVENTS0);
 }
+EXPORT_SYMBOL(cdns_mhdp_get_event);
 
 int cdns_mhdp_get_hpd_status(struct cdns_mhdp_device *mhdp)
 {
@@ -432,6 +509,7 @@ err_get_hpd:
 	DRM_DEV_ERROR(mhdp->dev, "get hpd status failed: %d\n", ret);
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_get_hpd_status);
 
 int cdns_mhdp_get_edid_block(void *data, u8 *edid,
 			  unsigned int block, size_t length)
@@ -474,6 +552,7 @@ int cdns_mhdp_get_edid_block(void *data, u8 *edid,
 
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_get_edid_block);
 
 static int cdns_mhdp_training_start(struct cdns_mhdp_device *mhdp)
 {
@@ -525,14 +604,14 @@ static int cdns_mhdp_get_training_status(struct cdns_mhdp_device *mhdp)
 	u8 status[10];
 	int ret;
 
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX, DPTX_READ_LINK_STAT,
-				  0, NULL);
+	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
+				     DPTX_READ_LINK_STAT, 0, NULL);
 	if (ret)
 		goto err_get_training_status;
 
 	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_DP_TX,
-					      DPTX_READ_LINK_STAT,
-					      sizeof(status));
+						 DPTX_READ_LINK_STAT,
+						 sizeof(status));
 	if (ret)
 		goto err_get_training_status;
 
@@ -540,12 +619,13 @@ static int cdns_mhdp_get_training_status(struct cdns_mhdp_device *mhdp)
 	if (ret)
 		goto err_get_training_status;
 
-	mhdp->link.rate = drm_dp_bw_code_to_link_rate(status[0]);
-	mhdp->link.num_lanes = status[1];
+	mhdp->dp.link.rate = drm_dp_bw_code_to_link_rate(status[0]); 
+	mhdp->dp.link.num_lanes = status[1];
 
 err_get_training_status:
 	if (ret)
-		DRM_DEV_ERROR(mhdp->dev, "get training status failed: %d\n", ret);
+		DRM_DEV_ERROR(mhdp->dev, "get training status failed: %d\n",
+			      ret);
 	return ret;
 }
 
@@ -555,20 +635,23 @@ int cdns_mhdp_train_link(struct cdns_mhdp_device *mhdp)
 
 	ret = cdns_mhdp_training_start(mhdp);
 	if (ret) {
-		DRM_DEV_ERROR(mhdp->dev, "Failed to start training %d\n", ret);
+		DRM_DEV_ERROR(mhdp->dev, "Failed to start training %d\n",
+			      ret);
 		return ret;
 	}
 
 	ret = cdns_mhdp_get_training_status(mhdp);
 	if (ret) {
-		DRM_DEV_ERROR(mhdp->dev, "Failed to get training stat %d\n", ret);
+		DRM_DEV_ERROR(mhdp->dev, "Failed to get training stat %d\n",
+			      ret);
 		return ret;
 	}
 
-	DRM_DEV_DEBUG_KMS(mhdp->dev, "rate:0x%x, lanes:%d\n", mhdp->link.rate,
-			  mhdp->link.num_lanes);
+	DRM_DEV_DEBUG_KMS(mhdp->dev, "rate:0x%x, lanes:%d\n", mhdp->dp.link.rate,
+			  mhdp->dp.link.num_lanes);
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_train_link);
 
 int cdns_mhdp_set_video_status(struct cdns_mhdp_device *mhdp, int active)
 {
@@ -577,16 +660,17 @@ int cdns_mhdp_set_video_status(struct cdns_mhdp_device *mhdp, int active)
 
 	msg = !!active;
 
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX, DPTX_SET_VIDEO,
-				  sizeof(msg), &msg);
+	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
+				     DPTX_SET_VIDEO, sizeof(msg), &msg);
 	if (ret)
 		DRM_DEV_ERROR(mhdp->dev, "set video status failed: %d\n", ret);
 
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_set_video_status);
 
 static int cdns_mhdp_get_msa_misc(struct video_info *video,
-			       struct drm_display_mode *mode)
+				  struct drm_display_mode *mode)
 {
 	u32 msa_misc;
 	u8 val[2] = {0};
@@ -644,7 +728,7 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 	bit_per_pix = (video->color_fmt == YCBCR_4_2_2) ?
 		      (video->color_depth * 2) : (video->color_depth * 3);
 
-	link_rate = mhdp->link.rate / 1000;
+	link_rate = mhdp->dp.link.rate / 1000;
 
 	ret = cdns_mhdp_reg_write(mhdp, BND_HSYNC2VSYNC, VIF_BYPASS_INTERLACE);
 	if (ret)
@@ -664,13 +748,13 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 	do {
 		tu_size_reg += 2;
 		symbol = tu_size_reg * mode->clock * bit_per_pix;
-		do_div(symbol, mhdp->link.num_lanes * link_rate * 8);
+		do_div(symbol, mhdp->dp.link.num_lanes * link_rate * 8);
 		rem = do_div(symbol, 1000);
 		if (tu_size_reg > 64) {
 			ret = -EINVAL;
 			DRM_DEV_ERROR(mhdp->dev,
 				      "tu error, clk:%d, lanes:%d, rate:%d\n",
-				      mode->clock, mhdp->link.num_lanes,
+				      mode->clock, mhdp->dp.link.num_lanes,
 				      link_rate);
 			goto err_config_video;
 		}
@@ -685,7 +769,7 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 
 	/* set the FIFO Buffer size */
 	val = div_u64(mode->clock * (symbol + 1), 1000) + link_rate;
-	val /= (mhdp->link.num_lanes * link_rate);
+	val /= (mhdp->dp.link.num_lanes * link_rate);
 	val = div_u64(8 * (symbol + 1), bit_per_pix) - val;
 	val += 2;
 	ret = cdns_mhdp_reg_write(mhdp, DP_VC_TABLE(15), val);
@@ -786,6 +870,7 @@ err_config_video:
 		DRM_DEV_ERROR(mhdp->dev, "config video failed: %d\n", ret);
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_config_video);
 
 int cdns_mhdp_audio_stop(struct cdns_mhdp_device *mhdp,
 			 struct audio_info *audio)
@@ -820,6 +905,7 @@ int cdns_mhdp_audio_stop(struct cdns_mhdp_device *mhdp,
 
 	return 0;
 }
+EXPORT_SYMBOL(cdns_mhdp_audio_stop);
 
 int cdns_mhdp_audio_mute(struct cdns_mhdp_device *mhdp, bool enable)
 {
@@ -831,6 +917,7 @@ int cdns_mhdp_audio_mute(struct cdns_mhdp_device *mhdp, bool enable)
 
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_audio_mute);
 
 static void cdns_mhdp_audio_config_i2s(struct cdns_mhdp_device *mhdp,
 				       struct audio_info *audio)
@@ -839,7 +926,7 @@ static void cdns_mhdp_audio_config_i2s(struct cdns_mhdp_device *mhdp,
 	u32 val;
 
 	if (audio->channels == 2) {
-		if (mhdp->link.num_lanes == 1)
+		if (mhdp->dp.link.num_lanes == 1)
 			sub_pckt_num = 2;
 		else
 			sub_pckt_num = 4;
@@ -966,3 +1053,113 @@ err_audio_config:
 		DRM_DEV_ERROR(mhdp->dev, "audio config failed: %d\n", ret);
 	return ret;
 }
+EXPORT_SYMBOL(cdns_mhdp_audio_config);
+
+int cdns_mhdp_adjust_lt(struct cdns_mhdp_device *mhdp,
+			u8 nlanes, u16 udelay, u8 *lanes_data, u8 *dpcd)
+{
+	u8 payload[7];
+	u8 hdr[5]; /* For DPCD read response header */
+	u32 addr;
+	u8 const nregs = 6; /* Registers 0x202-0x207 */
+	int ret;
+
+	if (nlanes != 4 && nlanes != 2 && nlanes != 1) {
+		DRM_DEV_ERROR(mhdp->dev, "invalid number of lanes: %d\n",
+			      nlanes);
+		ret = -EINVAL;
+		goto err_adjust_lt;
+	}
+
+	payload[0] = nlanes;
+	put_unaligned_be16(udelay, payload + 1);
+	memcpy(payload + 3, lanes_data, nlanes);
+
+	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
+				     DPTX_ADJUST_LT,
+				     sizeof(payload), payload);
+	if (ret)
+		goto err_adjust_lt;
+
+	/* Yes, read the DPCD read command response */
+	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_DP_TX,
+						 DPTX_READ_DPCD,
+						 sizeof(hdr) + nregs);
+	if (ret)
+		goto err_adjust_lt;
+
+	ret = cdns_mhdp_mailbox_read_receive(mhdp, hdr, sizeof(hdr));
+	if (ret)
+		goto err_adjust_lt;
+
+	addr = get_unaligned_be24(hdr + 2);
+	if (addr != DP_LANE0_1_STATUS)
+		goto err_adjust_lt;
+
+	ret = cdns_mhdp_mailbox_read_receive(mhdp, dpcd, nregs);
+
+err_adjust_lt:
+	if (ret)
+		DRM_DEV_ERROR(mhdp->dev, "Failed to adjust Link Training.\n");
+
+	return ret;
+}
+EXPORT_SYMBOL(cdns_mhdp_adjust_lt);
+
+int cdns_phy_reg_write(struct cdns_mhdp_device *mhdp, u32 addr, u32 val)
+{
+	return cdns_mhdp_reg_write(mhdp, ADDR_PHY_AFE + (addr << 2), val);
+}
+EXPORT_SYMBOL(cdns_phy_reg_write);
+
+u32 cdns_phy_reg_read(struct cdns_mhdp_device *mhdp, u32 addr)
+{
+	return cdns_mhdp_reg_read(mhdp, ADDR_PHY_AFE + (addr << 2));
+}
+EXPORT_SYMBOL(cdns_phy_reg_read);
+
+int cdns_mhdp_read_hpd(struct cdns_mhdp_device *mhdp)
+{
+	u8 status;
+	int ret;
+
+	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_GENERAL, GENERAL_GET_HPD_STATE,
+				  0, NULL);
+	if (ret)
+		goto err_get_hpd;
+
+	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_GENERAL,
+							GENERAL_GET_HPD_STATE, sizeof(status));
+	if (ret)
+		goto err_get_hpd;
+
+	ret = cdns_mhdp_mailbox_read_receive(mhdp, &status, sizeof(status));
+	if (ret)
+		goto err_get_hpd;
+
+	return status;
+
+err_get_hpd:
+	DRM_ERROR("read hpd  failed: %d\n", ret);
+	return ret;
+}
+EXPORT_SYMBOL(cdns_mhdp_read_hpd);
+
+bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp)
+{
+	u32  alive, newalive;
+	u8 retries_left = 10;
+
+	alive = readl(mhdp->regs + KEEP_ALIVE);
+
+	while (retries_left--) {
+		udelay(2);
+
+		newalive = readl(mhdp->regs + KEEP_ALIVE);
+		if (alive == newalive)
+			continue;
+		return true;
+	}
+	return false;
+}
+EXPORT_SYMBOL(cdns_mhdp_check_alive);
