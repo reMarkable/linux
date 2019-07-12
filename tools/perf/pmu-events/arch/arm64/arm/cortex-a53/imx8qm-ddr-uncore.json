@@ -1,0 +1,30 @@
+[
+    {
+	"PublicDescription": "Calculate bytes all masters read from DDR based on read-cycles event. DDR interface generates 2 up and 2 down edges in an internal clock cycle, can pass 4 beats of data. 4 bytes of each beat if DDR burst width is 32 bit.",
+	"BriefDescription": "imx8qm: bytes of all masters read from ddr0",
+	"MetricName": "imx8qm-ddr0-all-r",
+	"MetricExpr": "imx8_ddr0\\/read\\-cycles\\/ * 4 * 4",
+	"MetricGroup": "i.MX8QM_DDR_MON"
+    },
+    {
+	"PublicDescription": "Calculate bytes all masters wirte to DDR based on write-cycles event. DDR interface generates 2 up and 2 down edges in an internal clock cycle, can pass 4 beats of data. 4 bytes of each beat if DDR burst width is 32 bit.",
+	"BriefDescription": "imx8qm: bytes of all masters write to ddr0",
+	"MetricName": "imx8qm-ddr0-all-w",
+	"MetricExpr": "imx8_ddr0\\/write\\-cycles\\/ * 4 * 4",
+	"MetricGroup": "i.MX8QM_DDR_MON"
+    },
+    {
+	"PublicDescription": "Calculate bytes all masters read from DDR based on read-cycles event. DDR interface generates 2 up and 2 down edges in an internal clock cycle, can pass 4 beats of data. 4 bytes of each beat if DDR burst width is 32 bit.",
+	"BriefDescription": "imx8qm: bytes of all masters read from ddr1",
+	"MetricName": "imx8qm-ddr1-all-r",
+	"MetricExpr": "imx8_ddr1\\/read\\-cycles\\/ * 4 * 4",
+	"MetricGroup": "i.MX8QM_DDR_MON"
+    },
+    {
+	"PublicDescription": "Calculate bytes all masters wirte to DDR based on write-cycles event. DDR interface generates 2 up and 2 down edges in an internal clock cycle, can pass 4 beats of data. 4 bytes of each beat if DDR burst width is 32 bit.",
+	"BriefDescription": "imx8qm: bytes of all masters write to ddr1",
+	"MetricName": "imx8qm-ddr1-all-w",
+	"MetricExpr": "imx8_ddr1\\/write\\-cycles\\/ * 4 * 4",
+	"MetricGroup": "i.MX8QM_DDR_MON"
+    }
+]
