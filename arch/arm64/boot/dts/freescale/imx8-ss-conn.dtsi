@@ -68,9 +68,9 @@ conn_subsys: bus@5b000000 {
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 232 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b010000 0x10000>;
-		clocks = <&conn_lpcg IMX_CONN_LPCG_SDHC0_IPG_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_SDHC0_PER_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_SDHC0_HCLK>;
+		clocks = <&sdhc0_lpcg 1>,
+			 <&sdhc0_lpcg 0>,
+			 <&sdhc0_lpcg 2>;
 		clock-names = "ipg", "per", "ahb";
 		assigned-clocks = <&clk IMX_SC_R_SDHC_0 IMX_SC_PM_CLK_PER>;
 		assigned-clock-rates = <200000000>;
@@ -84,9 +84,9 @@ conn_subsys: bus@5b000000 {
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 233 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b020000 0x10000>;
-		clocks = <&conn_lpcg IMX_CONN_LPCG_SDHC1_IPG_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_SDHC1_PER_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_SDHC1_HCLK>;
+		clocks = <&sdhc1_lpcg 1>,
+			 <&sdhc1_lpcg 0>,
+			 <&sdhc1_lpcg 2>;
 		clock-names = "ipg", "per", "ahb";
 		assigned-clocks = <&clk IMX_SC_R_SDHC_1 IMX_SC_PM_CLK_PER>;
 		assigned-clock-rates = <200000000>;
@@ -100,9 +100,9 @@ conn_subsys: bus@5b000000 {
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 234 IRQ_TYPE_LEVEL_HIGH>;
 		reg = <0x5b030000 0x10000>;
-		clocks = <&conn_lpcg IMX_CONN_LPCG_SDHC2_IPG_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_SDHC2_PER_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_SDHC2_HCLK>;
+		clocks = <&sdhc2_lpcg 1>,
+			 <&sdhc2_lpcg 0>,
+			 <&sdhc2_lpcg 2>;
 		clock-names = "ipg", "per", "ahb";
 		assigned-clocks = <&clk IMX_SC_R_SDHC_2 IMX_SC_PM_CLK_PER>;
 		assigned-clock-rates = <200000000>;
@@ -118,11 +118,11 @@ conn_subsys: bus@5b000000 {
 			     <GIC_SPI 256 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 257 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 259 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&conn_lpcg IMX_CONN_LPCG_ENET0_IPG_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET0_AHB_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET0_RGMII_TXC_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET0_TIMER_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET0_TXC_SAMPLING_CLK>;
+		clocks = <&enet0_lpcg 4>,
+			 <&enet0_lpcg 2>,
+			 <&enet0_lpcg 3>,
+			 <&enet0_lpcg 0>,
+			 <&enet0_lpcg 1>;
 		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp", "enet_2x_txclk";
 		assigned-clocks = <&clk IMX_CONN_ENET0_ROOT_CLK>,
 				  <&clk IMX_CONN_ENET0_REF_DIV>;
@@ -139,11 +139,11 @@ conn_subsys: bus@5b000000 {
 				<GIC_SPI 260 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 261 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 263 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&conn_lpcg IMX_CONN_LPCG_ENET1_IPG_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET1_AHB_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET1_RGMII_TXC_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET1_TIMER_CLK>,
-			 <&conn_lpcg IMX_CONN_LPCG_ENET1_TXC_SAMPLING_CLK>;
+		clocks = <&enet1_lpcg 4>,
+			 <&enet1_lpcg 2>,
+			 <&enet1_lpcg 3>,
+			 <&enet1_lpcg 0>,
+			 <&enet1_lpcg 1>;
 		clock-names = "ipg", "ahb", "enet_clk_ref", "ptp", "enet_2x_txclk";
 		assigned-clocks = <&clk IMX_CONN_ENET1_ROOT_CLK>,
 				  <&clk IMX_CONN_ENET1_REF_DIV>;
@@ -155,12 +155,8 @@ conn_subsys: bus@5b000000 {
 	};
 
 	/* LPCG clocks */
-	conn_lpcg: clock-controller-legacy@5b200000 {
-		reg = <0x5b200000 0xb0000>;
-		#clock-cells = <1>;
-	};
-
 	sdhc0_lpcg: clock-controller@5b200000 {
+		compatible = "fsl,imx8qxp-lpcg";
 		reg = <0x5b200000 0x10000>;
 		#clock-cells = <1>;
 		clocks = <&clk IMX_SC_R_SDHC_0 IMX_SC_PM_CLK_PER>,
@@ -173,6 +169,7 @@ conn_subsys: bus@5b000000 {
 	};
 
 	sdhc1_lpcg: clock-controller@5b210000 {
+		compatible = "fsl,imx8qxp-lpcg";
 		reg = <0x5b210000 0x10000>;
 		#clock-cells = <1>;
 		clocks = <&clk IMX_SC_R_SDHC_1 IMX_SC_PM_CLK_PER>,
@@ -185,6 +182,7 @@ conn_subsys: bus@5b000000 {
 	};
 
 	sdhc2_lpcg: clock-controller@5b220000 {
+		compatible = "fsl,imx8qxp-lpcg";
 		reg = <0x5b220000 0x10000>;
 		#clock-cells = <1>;
 		clocks = <&clk IMX_SC_R_SDHC_2 IMX_SC_PM_CLK_PER>,
@@ -197,30 +195,34 @@ conn_subsys: bus@5b000000 {
 	};
 
 	enet0_lpcg: clock-controller@5b230000 {
+		compatible = "fsl,imx8qxp-lpcg";
 		reg = <0x5b230000 0x10000>;
 		#clock-cells = <1>;
 		clocks = <&clk IMX_SC_R_ENET_0 IMX_SC_PM_CLK_PER>,
 			 <&clk IMX_SC_R_ENET_0 IMX_SC_PM_CLK_PER>,
 			 <&conn_axi_clk>, <&conn_ipg_clk>, <&conn_ipg_clk>;
-		bit-offset = <0 4 8 16 20>;
-		clock-output-names = "enet0_ipg_root_clk",
-				     "enet0_tx_clk",
+		bit-offset = <0 4 8 12 16 20>;
+		clock-output-names = "enet0_timer_clk",
+				     "enet0_txc_sampling_clk",
 				     "enet0_ahb_clk",
+				     "enet0_rgmii_txc_clk",
 				     "enet0_ipg_clk",
 				     "enet0_ipg_s_clk";
 		power-domains = <&pd IMX_SC_R_ENET_0>;
 	};
 
 	enet1_lpcg: clock-controller@5b240000 {
+		compatible = "fsl,imx8qxp-lpcg";
 		reg = <0x5b240000 0x10000>;
 		#clock-cells = <1>;
 		clocks = <&clk IMX_SC_R_ENET_1 IMX_SC_PM_CLK_PER>,
 			 <&clk IMX_SC_R_ENET_1 IMX_SC_PM_CLK_PER>,
 			 <&conn_axi_clk>, <&conn_ipg_clk>, <&conn_ipg_clk>;
-		bit-offset = <0 4 8 16 20>;
-		clock-output-names = "enet1_ipg_root_clk",
-				     "enet1_tx_clk",
+		bit-offset = <0 4 8 12 16 20>;
+		clock-output-names = "enet1_timer_clk",
+				     "enet1_txc_sampling_clk",
 				     "enet1_ahb_clk",
+				     "enet1_rgmii_txc_clk",
 				     "enet1_ipg_clk",
 				     "enet1_ipg_s_clk";
 		power-domains = <&pd IMX_SC_R_ENET_1>;
