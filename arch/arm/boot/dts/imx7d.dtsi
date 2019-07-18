@@ -181,12 +181,7 @@
 		interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&clks IMX7D_MU_ROOT_CLK>;
 		clock-names = "mu";
-		status = "okay";
-	};
-
-	rpmsg: rpmsg{
-		compatible = "fsl,imx7d-rpmsg";
-		status = "disabled";
+		#mbox-cells = <2>;
 	};
 
 	sema4: sema4@30ac0000 {
@@ -292,6 +287,20 @@
 			 <&src IMX7_RESET_PCIE_CTRL_APPS_TURNOFF>;
 		reset-names = "pciephy", "apps", "turnoff";
 		fsl,imx7d-pcie-phy = <&pcie_phy>;
+		status = "disabled";
+	};
+
+	rpmsg: rpmsg{
+		compatible = "fsl,imx7d-rpmsg";
+		/* up to now, the following channels are used in imx rpmsg
+		 * - tx1/rx1: messages channel.
+		 * - general interrupt1: remote proc finish re-init rpmsg stack
+		 *   when A core is partition reset.
+		 */
+		mbox-names = "tx", "rx", "rxdb";
+		mboxes = <&mu 0 1
+			  &mu 1 1
+			  &mu 3 1>;
 		status = "disabled";
 	};
 };
