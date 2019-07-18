@@ -726,7 +726,6 @@
 			reg = <0x01 0xf0000000 0x0 0x100000>;
 			#address-cells = <3>;
 			#size-cells = <2>;
-			#interrupt-cells = <1>;
 			msi-parent = <&its>;
 			device_type = "pci";
 			bus-range = <0x0 0x0>;
@@ -779,6 +778,8 @@
 			switch@0,5 {
 				compatible = "mscc,felix-switch";
 				reg = <0x000500 0 0 0 0>;
+				/* IEP INT_B */
+				interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
 
 				ports {
 					#address-cells = <1>;
