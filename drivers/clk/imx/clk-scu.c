@@ -77,12 +77,12 @@ struct clk_mux_gpr_scu {
 };
 
 /*
- * struct clk_gate3_scu - Description of one gate SCU clock
+ * struct clk_gate_gpr_scu - Description of one gate SCU clock
  * @hw: the common clk_hw
  * @rsrc_id: resource ID of this SCU clock
  * @gpr_id: GPR ID index to control the divider
  */
-struct clk_gate3_scu {
+struct clk_gate_gpr_scu {
 	struct clk_hw hw;
 	u16 rsrc_id;
 	u8 gpr_id;
@@ -115,7 +115,7 @@ struct resp_get_clock_rate {
 };
 
 #define to_clk_mux_gpr_scu(_hw) container_of(_hw, struct clk_mux_gpr_scu, hw)
-#define to_clk_gate3_scu(_hw) container_of(_hw, struct clk_gate3_scu, hw)
+#define to_clk_gate_gpr_scu(_hw) container_of(_hw, struct clk_gate_gpr_scu, hw)
 
 /*
  * struct imx_sc_msg_get_clock_rate - clock get rate protocol
@@ -379,9 +379,9 @@ struct clk_hw *imx_clk_mux_gpr_scu(const char *name, const char **parents,
 	return hw;
 }
 
-static int clk_gate3_scu_prepare(struct clk_hw *hw)
+static int clk_gate_scu_gpr_prepare(struct clk_hw *hw)
 {
-	struct clk_gate3_scu *gate = to_clk_gate3_scu(hw);
+	struct clk_gate_gpr_scu *gate = to_clk_gate_gpr_scu(hw);
 	uint32_t val;
 
 	if (!ccm_ipc_handle)
@@ -394,9 +394,9 @@ static int clk_gate3_scu_prepare(struct clk_hw *hw)
 }
 
 /* Write to the LPCG bits. */
-static void clk_gate3_scu_unprepare(struct clk_hw *hw)
+static void clk_gate_scu_gpr_unprepare(struct clk_hw *hw)
 {
-	struct clk_gate3_scu *gate = to_clk_gate3_scu(hw);
+	struct clk_gate_gpr_scu *gate = to_clk_gate_gpr_scu(hw);
 	uint32_t val;
 
 	if (!ccm_ipc_handle)
@@ -407,9 +407,9 @@ static void clk_gate3_scu_unprepare(struct clk_hw *hw)
 				gate->gpr_id, val);
 }
 
-static int clk_gate3_scu_is_prepared(struct clk_hw *hw)
+static int clk_gate_scu_gpr_is_prepared(struct clk_hw *hw)
 {
-	struct clk_gate3_scu *gate = to_clk_gate3_scu(hw);
+	struct clk_gate_gpr_scu *gate = to_clk_gate_gpr_scu(hw);
 	uint32_t val;
 
 	if (!ccm_ipc_handle)
@@ -425,16 +425,16 @@ static int clk_gate3_scu_is_prepared(struct clk_hw *hw)
 	return val;
 }
 
-static struct clk_ops clk_gate3_scu_ops = {
-	.prepare = clk_gate3_scu_prepare,
-	.unprepare = clk_gate3_scu_unprepare,
-	.is_prepared = clk_gate3_scu_is_prepared,
+static struct clk_ops clk_gate_scu_gpr_ops = {
+	.prepare = clk_gate_scu_gpr_prepare,
+	.unprepare = clk_gate_scu_gpr_unprepare,
+	.is_prepared = clk_gate_scu_gpr_is_prepared,
 };
 
-struct clk_hw *imx_clk_scu3(const char *name, const char *parent_name,
-			    u32 rsrc_id, u8 gpr_id, bool invert_flag)
+struct clk_hw *imx_clk_gate_gpr_scu(const char *name, const char *parent_name,
+				    u32 rsrc_id, u8 gpr_id, bool invert_flag)
 {
-	struct clk_gate3_scu *gate;
+	struct clk_gate_gpr_scu *gate;
 	struct clk_hw *hw;
 	struct clk_init_data init;
 	int ret;
@@ -445,7 +445,7 @@ struct clk_hw *imx_clk_scu3(const char *name, const char *parent_name,
 	if (gpr_id >= IMX_SC_C_LAST)
 		return NULL;
 
-	gate = kzalloc(sizeof(struct clk_gate3_scu), GFP_KERNEL);
+	gate = kzalloc(sizeof(struct clk_gate_gpr_scu), GFP_KERNEL);
 	if (!gate)
 		return ERR_PTR(-ENOMEM);
 
@@ -455,7 +455,7 @@ struct clk_hw *imx_clk_scu3(const char *name, const char *parent_name,
 	gate->invert = invert_flag;
 
 	init.name = name;
-	init.ops = &clk_gate3_scu_ops;
+	init.ops = &clk_gate_scu_gpr_ops;
 	init.flags = 0;
 	init.parent_names = parent_name ? &parent_name : NULL;
 	init.num_parents = parent_name ? 1 : 0;

@@ -63,7 +63,7 @@ static inline struct clk_hw *imx_clk_lpcg_scu(const char *name, const char *pare
 				  bit_idx, hw_gate);
 }
 
-struct clk_hw *imx_clk_scu3(const char *name, const char *parent_name,
+struct clk_hw *imx_clk_gate_gpr_scu(const char *name, const char *parent_name,
 			    u32 rsrc_id, u8 gpr_id, bool invert_flag);
 
 struct clk_hw *imx_clk_divider_gpr_scu(const char *name, const char *parent_name,
