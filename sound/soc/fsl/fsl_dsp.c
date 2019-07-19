@@ -60,7 +60,6 @@
 #include <linux/compat.h>
 #endif
 #include <uapi/linux/mxc_dsp.h>
-#include <linux/firmware/imx/types.h>
 #include <linux/firmware/imx/svc/misc.h>
 #include <dt-bindings/firmware/imx/rsrc.h>
 
