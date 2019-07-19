@@ -10,6 +10,10 @@
 #include <linux/firmware/imx/sci.h>
 #include <linux/of.h>
 
+#define IMX_SCU_GPR_CLK_GATE	BIT(0)
+#define IMX_SCU_GPR_CLK_DIV	BIT(1)
+#define IMX_SCU_GPR_CLK_MUX	BIT(2)
+
 extern u32 clock_cells;
 extern struct list_head imx_scu_clks[];
 extern const struct dev_pm_ops imx_clk_lpcg_scu_pm_ops;
@@ -28,6 +32,10 @@ struct clk_hw *__imx_clk_scu(struct device *dev, const char *name,
 struct clk_hw *__imx_clk_lpcg_scu(struct device *dev, const char *name,
 				  const char *parent_name, unsigned long flags,
 				  void __iomem *reg, u8 bit_idx, bool hw_gate);
+
+struct clk_hw *__imx_clk_gpr_scu(const char *name, const char * const *parent_name,
+				 int num_parents, u32 rsrc_id, u8 gpr_id, u8 flags,
+				 bool invert);
 
 static inline struct clk_hw *imx_clk_scu(const char *name, u32 rsrc_id,
 					 u8 clk_type)
@@ -63,13 +71,24 @@ static inline struct clk_hw *imx_clk_lpcg_scu(const char *name, const char *pare
 				  bit_idx, hw_gate);
 }
 
-struct clk_hw *imx_clk_gate_gpr_scu(const char *name, const char *parent_name,
-			    u32 rsrc_id, u8 gpr_id, bool invert_flag);
+static inline struct clk_hw *imx_clk_gate_gpr_scu(const char *name, const char *parent_name,
+						  u32 rsrc_id, u8 gpr_id, bool invert)
+{
+	return __imx_clk_gpr_scu(name, &parent_name, 1, rsrc_id, gpr_id,
+				 IMX_SCU_GPR_CLK_GATE, invert);
+}
 
-struct clk_hw *imx_clk_divider_gpr_scu(const char *name, const char *parent_name,
-				       u32 rsrc_id, u8 gpr_id);
+static inline struct clk_hw *imx_clk_divider_gpr_scu(const char *name, const char *parent_name,
+						     u32 rsrc_id, u8 gpr_id)
+{
+	return __imx_clk_gpr_scu(name, &parent_name, 1, rsrc_id, gpr_id,
+				 IMX_SCU_GPR_CLK_DIV, 0);
+}
 
-struct clk_hw *imx_clk_mux_gpr_scu(const char *name, const char **parents,
-				   int num_parents, u32 rsrc_id, u8 gpr_id);
-
+static inline struct clk_hw *imx_clk_mux_gpr_scu(const char *name, const char * const *parent_names,
+						 int num_parents, u32 rsrc_id, u8 gpr_id)
+{
+	return __imx_clk_gpr_scu(name, parent_names, num_parents, rsrc_id,
+				 gpr_id, IMX_SCU_GPR_CLK_MUX, 0);
+}
 #endif
