@@ -736,6 +736,7 @@ struct clk_hw *__imx_clk_gpr_scu(const char *name, const char * const *parent_na
 				 int num_parents, u32 rsrc_id, u8 gpr_id, u8 flags,
 				 bool invert)
 {
+	struct imx_scu_clk_node *clk_node;
 	struct clk_gpr_scu *clk;
 	struct clk_hw *hw;
 	struct clk_init_data init;
@@ -750,6 +751,12 @@ struct clk_hw *__imx_clk_gpr_scu(const char *name, const char * const *parent_na
 	clk = kzalloc(sizeof(*clk), GFP_KERNEL);
 	if (!clk)
 		return ERR_PTR(-ENOMEM);
+
+	clk_node = kzalloc(sizeof(*clk_node), GFP_KERNEL);
+	if (!clk_node) {
+		kfree(clk);
+		return ERR_PTR(-ENOMEM);
+	};
 
 	/* struct clk_gate_scu assignments */
 	clk->rsrc_id = rsrc_id;
@@ -777,7 +784,12 @@ struct clk_hw *__imx_clk_gpr_scu(const char *name, const char * const *parent_na
 	ret = clk_hw_register(NULL, hw);
 	if (ret) {
 		kfree(clk);
+		kfree(clk_node);
 		hw = ERR_PTR(ret);
+	} else {
+		clk_node->hw = hw;
+		clk_node->clk_type = gpr_id;
+		list_add_tail(&clk_node->node, &imx_scu_clks[rsrc_id]);
 	}
 
 	return hw;
