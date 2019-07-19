@@ -19,8 +19,13 @@
 #include "rpmsg_internal.h"
 
 enum imx_rpmsg_variants {
-	IMX8MQ,
+	IMX8QM,
 	IMX8QXP,
+	IMX8MQ,
+	IMX8MM,
+	IMX7ULP,
+	IMX7D,
+	IMX6SX,
 };
 
 struct imx_virdev {
@@ -261,8 +266,13 @@ static struct virtio_config_ops imx_rpmsg_config_ops = {
 };
 
 static const struct of_device_id imx_rpmsg_dt_ids[] = {
-	{ .compatible = "fsl,imx8mq-rpmsg", .data = (void *)IMX8MQ, },
+	{ .compatible = "fsl,imx8qm-rpmsg", .data = (void *)IMX8QM, },
 	{ .compatible = "fsl,imx8qxp-rpmsg", .data = (void *)IMX8QXP, },
+	{ .compatible = "fsl,imx8mq-rpmsg", .data = (void *)IMX8MQ, },
+	{ .compatible = "fsl,imx8mm-rpmsg", .data = (void *)IMX8MM, },
+	{ .compatible = "fsl,imx7ulp-rpmsg", .data = (void *)IMX7ULP, },
+	{ .compatible = "fsl,imx7d-rpmsg", .data = (void *)IMX7D, },
+	{ .compatible = "fsl,imx6sx-rpmsg", .data = (void *)IMX6SX, },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, imx_rpmsg_dt_ids);
