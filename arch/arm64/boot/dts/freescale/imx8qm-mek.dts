@@ -13,7 +13,7 @@
 	compatible = "fsl,imx8qm-mek", "fsl,imx8qm";
 
 	chosen {
-		stdout-path = &adma_lpuart0;
+		stdout-path = &lpuart0;
 	};
 
 	cpus {
@@ -97,7 +97,7 @@
 	};
 };
 
-&adma_lpuart0 {
+&lpuart0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpuart0>;
 	status = "okay";
@@ -199,14 +199,6 @@
 	status = "okay";
 };
 
-&csi0_lpcg {
-	status = "okay";
-};
-
-&csi1_lpcg {
-	status = "okay";
-};
-
 &irqsteer_csi0 {
 	status = "okay";
 };
@@ -260,7 +252,7 @@
 		reg = <0x3c>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_mipi_csi0>;
-		clocks = <&clk IMX_24MHZ>;
+		clocks = <&xtal24m>;
 		clock-names = "xclk";
 		csi_id = <0>;
 		powerdown-gpios = <&lsio_gpio1 28 GPIO_ACTIVE_HIGH>;
@@ -292,7 +284,7 @@
 		reg = <0x3c>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_mipi_csi1>;
-		clocks = <&clk IMX_24MHZ>;
+		clocks = <&xtal24m>;
 		clock-names = "xclk";
 		csi_id = <0>;
 		powerdown-gpios = <&lsio_gpio1 31 GPIO_ACTIVE_HIGH>;
