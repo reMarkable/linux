@@ -1157,7 +1157,7 @@ static void fec_enet_ipg_stop_set(struct fec_enet_private *fep, bool enabled)
 	rsrc_id = idx ? IMX_SC_R_ENET_1 : IMX_SC_R_ENET_0;
 
 	val = enabled ? 1 : 0;
-	imx_sc_misc_set_control(fep->ipc_handle, rsrc_id, IMX_SC_IPG_STOP, val);
+	imx_sc_misc_set_control(fep->ipc_handle, rsrc_id, IMX_SC_C_IPG_STOP, val);
 }
 #else
 static int fec_enet_ipc_handle_init(struct fec_enet_private *fep)
