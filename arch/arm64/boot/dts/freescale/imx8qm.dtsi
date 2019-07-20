@@ -231,6 +231,11 @@
 			  &lsio_mu1 1 3
 			  &lsio_mu1 3 3>;
 
+		pd: imx8qx-pd {
+			compatible = "fsl,imx8qm-scu-pd", "fsl,scu-pd";
+			#power-domain-cells = <1>;
+		};
+
 		clk: clock-controller {
 			compatible = "fsl,imx8qm-clk", "fsl,scu-clk";
 			#clock-cells = <2>;
@@ -254,11 +259,6 @@
 			fec_mac1: mac@1c6 {
 				reg = <0x1c6 6>;
 			};
-		};
-
-		pd: imx8qx-pd {
-			compatible = "fsl,imx8qm-scu-pd", "fsl,scu-pd";
-			#power-domain-cells = <1>;
 		};
 
 		rtc: rtc {
@@ -378,3 +378,7 @@
 	#include "imx8-ss-hsio.dtsi"
 	#include "imx8-ss-img.dtsi"
 };
+
+#include "imx8qm-ss-dma.dtsi"
+#include "imx8qm-ss-conn.dtsi"
+#include "imx8qm-ss-lsio.dtsi"
