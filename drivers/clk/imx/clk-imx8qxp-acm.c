@@ -182,4 +182,8 @@ static struct platform_driver imx8qxp_acm_clk_driver = {
 	.probe = imx8qxp_acm_clk_probe,
 };
 
-builtin_platform_driver(imx8qxp_acm_clk_driver);
+static int __init imx8qxp_acm_init(void)
+{
+	return platform_driver_register(&imx8qxp_acm_clk_driver);
+}
+arch_initcall(imx8qxp_acm_init);
