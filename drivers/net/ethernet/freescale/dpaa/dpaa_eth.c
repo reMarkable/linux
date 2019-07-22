@@ -2189,6 +2189,15 @@ static struct sk_buff *dpaa_errata_a010022_prevent(struct sk_buff *skb,
 	}
 	skb_copy_header(nskb, skb);
 
+	/* Copy relevant timestamp info from the old skb to the new */
+	if (priv->tx_tstamp) {
+		skb_shinfo(nskb)->tx_flags = skb_shinfo(skb)->tx_flags;
+		skb_shinfo(nskb)->hwtstamps = skb_shinfo(skb)->hwtstamps;
+		skb_shinfo(nskb)->tskey = skb_shinfo(skb)->tskey;
+		if (skb->sk)
+			skb_set_owner_w(nskb, skb->sk);
+	}
+
 	/* We move the headroom when we align it so we have to reset the
 	 * network and transport header offsets relative to the new data
 	 * pointer. The checksum offload relies on these offsets.
