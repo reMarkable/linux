@@ -319,6 +319,20 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
+	adv_bridge: adv7535@3d {
+		compatible = "adi,adv7533";
+		reg = <0x3d>;
+		adi,addr-cec = <0x3b>;
+		adi,dsi-lanes = <4>;
+		status = "okay";
+
+		port {
+			adv7535_from_dsim: endpoint {
+				remote-endpoint = <&dsim_to_adv7535>;
+			};
+		};
+	};
+
 	ptn5110: tcpc@50 {
 		compatible = "nxp,ptn5110";
 		pinctrl-names = "default";
@@ -407,6 +421,13 @@
 			MX8MM_IOMUXC_I2C2_SCL_I2C2_SCL			0x400001c3
 			MX8MM_IOMUXC_I2C2_SDA_I2C2_SDA			0x400001c3
 		>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX8MM_IOMUXC_I2C2_SCL_I2C2_SCL                  0x400001c3
+			MX8MM_IOMUXC_I2C2_SDA_I2C2_SDA                  0x400001c3
+			>;
 	};
 
 	pinctrl_pmic: pmicirq {
@@ -556,5 +577,19 @@
 		fsl,pins = <
 			MX8MM_IOMUXC_GPIO1_IO02_WDOG1_WDOG_B	0xc6
 		>;
+	};
+};
+
+&lcdif {
+	status = "okay";
+};
+
+&mipi_dsi {
+	status = "okay";
+
+	port@1 {
+		dsim_to_adv7535: endpoint {
+			remote-endpoint = <&adv7535_from_dsim>;
+		};
 	};
 };
