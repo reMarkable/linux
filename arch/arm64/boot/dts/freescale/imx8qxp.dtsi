@@ -286,7 +286,6 @@
 
 	/* sorted in register address */
 	#include "imx8-ss-cm40.dtsi"
-	#include "imx8-ss-gpu0.dtsi"
 	#include "imx8-ss-vpu.dtsi"
 	#include "imx8-ss-dc.dtsi"
 	#include "imx8-ss-lvds.dtsi"
@@ -296,6 +295,7 @@
 	#include "imx8-ss-lsio.dtsi"
 	#include "imx8-ss-hsio.dtsi"
 	#include "imx8-ss-img.dtsi"
+	#include "imx8-ss-gpu0.dtsi"
 };
 
 #include "imx8qxp-ss-adma.dtsi"
