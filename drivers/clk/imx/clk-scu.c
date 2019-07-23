@@ -516,6 +516,11 @@ static int imx_clk_scu_probe(struct platform_device *pdev)
 int __maybe_unused imx_clk_scu_suspend(struct device *dev)
 {
 	struct clk_scu *clk = dev_get_drvdata(dev);
+	u32 rsrc_id = clk->rsrc_id;
+
+	if ((rsrc_id == IMX_SC_R_A35) || (rsrc_id == IMX_SC_R_A53) ||
+	    (rsrc_id == IMX_SC_R_A72))
+		return 0;
 
 	clk->rate = clk_hw_get_rate(&clk->hw);
 	clk->is_enabled = clk_hw_is_enabled(&clk->hw);
@@ -532,7 +537,12 @@ int __maybe_unused imx_clk_scu_suspend(struct device *dev)
 int __maybe_unused imx_clk_scu_resume(struct device *dev)
 {
 	struct clk_scu *clk = dev_get_drvdata(dev);
+	u32 rsrc_id = clk->rsrc_id;
 	int ret = 0;
+
+	if ((rsrc_id == IMX_SC_R_A35) || (rsrc_id == IMX_SC_R_A53) ||
+	    (rsrc_id == IMX_SC_R_A72))
+		return 0;
 
 	if (clk->rate) {
 		ret = clk_scu_set_rate(&clk->hw, clk->rate, 0);
