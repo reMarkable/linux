@@ -1845,7 +1845,7 @@ int pm_genpd_init(struct generic_pm_domain *genpd,
 			return ret;
 		}
 	} else if (!gov && genpd->state_count > 1) {
-		pr_warn("%s: no governor for states\n", genpd->name);
+		pr_debug("%s: no governor for states\n", genpd->name);
 	}
 
 	device_initialize(&genpd->dev);
