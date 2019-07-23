@@ -9,13 +9,14 @@
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
-#include "clk-scu.h"
-
 #include <dt-bindings/clock/imx8-clock.h>
 #include <dt-bindings/firmware/imx/rsrc.h>
+
+#include "clk-scu.h"
 
 static const char *sdhc0_sels[] = {
 	"dummy",
@@ -43,14 +44,22 @@ static const char *enet1_rgmii_txc_sels[] = {
 	"dummy",
 };
 
+static const struct of_device_id imx8qxp_match[] = {
+	{ .compatible = "fsl,scu-clk", },
+	{ .compatible = "fsl,imx8qxp-clk", &imx_clk_scu_rsrc_imx8qxp, },
+	{ /* sentinel */ }
+};
+
 static int imx8qxp_clk_probe(struct platform_device *pdev)
 {
+	const struct of_device_id *of_id =
+			of_match_device(imx8qxp_match, &pdev->dev);
 	struct device_node *ccm_node = pdev->dev.of_node;
 	struct clk_hw_onecell_data *clk_data;
 	struct clk_hw **clks;
 	int ret, i;
 
-	ret = imx_clk_scu_init(ccm_node);
+	ret = imx_clk_scu_init(ccm_node, of_id->data);
 	if (ret)
 		return ret;
 
@@ -222,12 +231,6 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 
 	return ret;
 }
-
-static const struct of_device_id imx8qxp_match[] = {
-	{ .compatible = "fsl,scu-clk", },
-	{ .compatible = "fsl,imx8qxp-clk", },
-	{ /* sentinel */ }
-};
 
 static struct platform_driver imx8qxp_clk_driver = {
 	.driver = {

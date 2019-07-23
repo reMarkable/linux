@@ -14,11 +14,17 @@
 #define IMX_SCU_GPR_CLK_DIV	BIT(1)
 #define IMX_SCU_GPR_CLK_MUX	BIT(2)
 
+struct imx_clk_scu_rsrc_table {
+	const u32 *rsrc;
+	u8 num;
+};
+
 extern u32 clock_cells;
 extern struct list_head imx_scu_clks[];
 extern const struct dev_pm_ops imx_clk_lpcg_scu_pm_ops;
+extern const struct imx_clk_scu_rsrc_table imx_clk_scu_rsrc_imx8qxp;
 
-int imx_clk_scu_init(struct device_node *np);
+int imx_clk_scu_init(struct device_node *np, const void *data);
 struct clk_hw *imx_scu_of_clk_src_get(struct of_phandle_args *clkspec,
 				      void *data);
 struct clk_hw *imx_clk_scu_alloc_dev(const char *name,

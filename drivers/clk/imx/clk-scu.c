@@ -6,6 +6,7 @@
 
 #include <dt-bindings/firmware/imx/rsrc.h>
 #include <linux/arm-smccc.h>
+#include <linux/bsearch.h>
 #include <linux/clk-provider.h>
 #include <linux/err.h>
 #include <linux/of_platform.h>
@@ -20,6 +21,7 @@
 #define IMX_SIP_SET_CPUFREQ		0x00
 
 static struct imx_sc_ipc *ccm_ipc_handle;
+static const struct imx_clk_scu_rsrc_table *rsrc_table;
 struct device_node *pd_np;
 u32 clock_cells;
 
@@ -168,7 +170,24 @@ static inline struct clk_scu *to_clk_scu(struct clk_hw *hw)
 	return container_of(hw, struct clk_scu, hw);
 }
 
-int imx_clk_scu_init(struct device_node *np)
+static int imx_scu_clk_search_cmp(const void *rsrc, const void *rsrc_p)
+{
+	return *(u32 *)rsrc - *(u32 *)rsrc_p;
+}
+
+bool imx_scu_clk_is_valid(u32 rsrc_id)
+{
+	void *p;
+
+	if (!rsrc_table)
+		return true;
+
+        p = bsearch(&rsrc_id, rsrc_table->rsrc, rsrc_table->num,
+		    sizeof(rsrc_table->rsrc[0]), imx_scu_clk_search_cmp);
+	return p != NULL;
+}
+
+int imx_clk_scu_init(struct device_node *np, const void *data)
 {
 	struct platform_device *pd_dev;
 	int ret, i;
@@ -188,6 +207,8 @@ int imx_clk_scu_init(struct device_node *np)
 		pd_dev = of_find_device_by_node(pd_np);
 		if (!pd_dev || !device_is_bound(&pd_dev->dev))
 			return -EPROBE_DEFER;
+
+		rsrc_table = data;
 	}
 
 	return 0;
@@ -604,6 +625,9 @@ struct clk_hw *imx_clk_scu_alloc_dev(const char *name,
 	struct platform_device *pdev;
 	int ret;
 
+	if (!imx_scu_clk_is_valid(rsrc_id))
+		return NULL;
+
 	pdev = platform_device_alloc(name, PLATFORM_DEVID_NONE);
 	if (!pdev) {
 		pr_err("%s: failed to allocate scu clk dev rsrc %d type %d\n",
@@ -758,6 +782,9 @@ struct clk_hw *__imx_clk_gpr_scu(const char *name, const char * const *parent_na
 
 	if (gpr_id >= IMX_SC_C_LAST)
 		return NULL;
+
+	if (!imx_scu_clk_is_valid(rsrc_id))
+		return ERR_PTR(-EINVAL);
 
 	clk = kzalloc(sizeof(*clk), GFP_KERNEL);
 	if (!clk)
