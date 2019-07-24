@@ -220,12 +220,12 @@
 
 &dpmac3 {
 	phy-handle = <&aquantia_phy1>;
-	phy-connection-type = "xgmii";
+	phy-connection-type = "usxgmii";
 };
 
 &dpmac4 {
 	phy-handle = <&aquantia_phy2>;
-	phy-connection-type = "xgmii";
+	phy-connection-type = "usxgmii";
 };
 
 &dpmac5 {
