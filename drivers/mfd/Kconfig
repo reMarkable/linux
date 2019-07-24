@@ -790,6 +790,16 @@ config MFD_MAX8998
 	  additional drivers must be enabled in order to use the functionality
 	  of the device.
 
+config MFD_MAX77818
+	bool "Maxim Semiconductor MAX77818 REGULATOR/CHARGER/FUEL-GAUGE Support"
+	depends on I2C=y
+	select MFD_CORE
+	select IRW_DOMAIN
+	help
+		Say yes here to add support for Maxime Semiconductor MAX77818 device.
+		The device has a regulator part, a charger part and a fuel-gauge part
+		which may be enabled as required (power management devices).
+
 config MFD_MT6397
 	tristate "MediaTek MT6397 PMIC Support"
 	select MFD_CORE

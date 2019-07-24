@@ -341,6 +341,13 @@ config BATTERY_MAX1721X
 	  Say Y here to enable support for the MAX17211/MAX17215 standalone
 	  battery gas-gauge.
 
+config BATTERY_MAX77818
+	tristate "Maxime MAX77818 Fuel Gauge"
+	depends on I2C
+	depends on MFD_MAX77818
+	help
+		Say Y yo enable support for Maxime MAX77818 battery fuel-gauge device (part of MAX77818 multi-function reg/chrg/fg device)
+
 config BATTERY_Z2
 	tristate "Z2 battery driver"
 	depends on I2C && MACH_ZIPIT2
@@ -514,6 +521,13 @@ config CHARGER_MAX8998
 	  Say Y to enable support for the battery charger control sysfs and
 	  platform data of MAX8998/LP3974 PMICs.
 
+config CHARGER_MAX77818
+	tristate "Maxime MAX77818 battery charger driver"
+	depends on I2C
+	depends on MFD_MAX77818
+	help
+		Say Y yo enable support for Maxime MAX77818 charger device (part of MAX77818 multi-function reg/chrg/fg device)
+
 config CHARGER_QCOM_SMBB
 	tristate "Qualcomm Switch-Mode Battery Charger and Boost"
 	depends on MFD_SPMI_PMIC || COMPILE_TEST
@@ -629,5 +643,4 @@ config CHARGER_RT9455
 	select REGMAP_I2C
 	help
 	  Say Y to enable support for Richtek RT9455 battery charger.
-
 endif # POWER_SUPPLY
