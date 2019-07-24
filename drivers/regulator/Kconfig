@@ -581,6 +581,13 @@ config REGULATOR_MAX77802
 	  Exynos5420/Exynos5800 SoCs to control various voltages.
 	  It includes support for control of voltage and ramp speed.
 
+config REGULATOR_MAX77818
+	tristate "Maxim MAX77818 voltage regulator"
+	depends on MFD_MAX77818
+	depends on I2C
+	help
+		Say y here to support the regulator found in the Maxime Semiconductor MAX77818 multi-function device
+
 config REGULATOR_MC13XXX_CORE
 	tristate
 
