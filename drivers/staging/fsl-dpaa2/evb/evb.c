@@ -532,8 +532,8 @@ static int evb_setlink(struct net_device *netdev,
 
 	attr = nlmsg_find_attr(nlh, sizeof(struct ifinfomsg), IFLA_AF_SPEC);
 	if (attr) {
-		err = nla_parse_nested(tb, IFLA_BRIDGE_MAX, attr,
-				       ifla_br_policy, NULL);
+		err = nla_parse_nested_deprecated(tb, IFLA_BRIDGE_MAX, attr,
+						  ifla_br_policy, NULL);
 		if (unlikely(err)) {
 			netdev_err(netdev,
 				   "nla_parse_nested for br_policy err %d\n",
@@ -596,7 +596,7 @@ static int __nla_put_port(struct sk_buff *skb, struct net_device *netdev)
 	struct nlattr	*nest;
 	int		err;
 
-	nest = nla_nest_start(skb, IFLA_PROTINFO | NLA_F_NESTED);
+	nest = nla_nest_start_noflag(skb, IFLA_PROTINFO | NLA_F_NESTED);
 	if (!nest) {
 		netdev_err(netdev, "nla_nest_start failed\n");
 		return -ENOMEM;
@@ -648,7 +648,7 @@ static int __nla_put_vlan(struct sk_buff *skb,  struct net_device *netdev)
 	u16			i;
 	int			err;
 
-	nest = nla_nest_start(skb, IFLA_AF_SPEC);
+	nest = nla_nest_start_noflag(skb, IFLA_AF_SPEC);
 	if (!nest) {
 		netdev_err(netdev, "nla_nest_start failed");
 		return -ENOMEM;
@@ -739,7 +739,8 @@ static int evb_dellink(struct net_device *netdev,
 	if (!spec)
 		return 0;
 
-	err = nla_parse_nested(tb, IFLA_BRIDGE_MAX, spec, ifla_br_policy, NULL);
+	err = nla_parse_nested_deprecated(tb, IFLA_BRIDGE_MAX, spec,
+					  ifla_br_policy, NULL);
 	if (unlikely(err))
 		return err;
 
