@@ -47,6 +47,7 @@ static const char *enet1_rgmii_txc_sels[] = {
 static const struct of_device_id imx8qxp_match[] = {
 	{ .compatible = "fsl,scu-clk", },
 	{ .compatible = "fsl,imx8qxp-clk", &imx_clk_scu_rsrc_imx8qxp, },
+	{ .compatible = "fsl,imx8qm-clk", &imx_clk_scu_rsrc_imx8qm, },
 	{ /* sentinel */ }
 };
 
