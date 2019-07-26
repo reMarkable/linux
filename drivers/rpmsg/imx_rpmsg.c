@@ -329,8 +329,11 @@ static void rpmsg_work_handler(struct work_struct *work)
 	spin_lock_irqsave(&rpdev->mu_lock, flags);
 	/* handle all incoming mu message */
 	while (CIRC_CNT(cb->head, cb->tail, PAGE_SIZE)) {
+		message = cb->buf[cb->tail];
+		message |= (cb->buf[cb->tail + 1] << 8);
+		message |= (cb->buf[cb->tail + 2] << 16);
+		message |= (cb->buf[cb->tail + 3] << 24);
 		spin_unlock_irqrestore(&rpdev->mu_lock, flags);
-		message = (u32) cb->buf[cb->tail];
 		virdev = rpdev->ivdev[(message >> 16) / 2];
 
 		dev_dbg(dev, "%s msg: 0x%x\n", __func__, message);
@@ -406,41 +409,27 @@ static void imx_rpmsg_rx_callback(struct mbox_client *c, void *msg)
 
 	spin_lock_irqsave(&rpdev->mu_lock, flags);
 	buf_space = CIRC_SPACE(cb->head, cb->tail, PAGE_SIZE);
-	spin_unlock_irqrestore(&rpdev->mu_lock, flags);
 	if (unlikely(!buf_space)) {
 		dev_err(c->dev, "RPMSG RX overflow!\n");
+		spin_unlock_irqrestore(&rpdev->mu_lock, flags);
 		return;
 	}
-	spin_lock_irqsave(&rpdev->mu_lock, flags);
-	cb->buf[cb->head] = *data;
+	cb->buf[cb->head] = (u32) *data;
+	cb->buf[cb->head + 1] = (u32) *data >> 8;
+	cb->buf[cb->head + 2] = (u32) *data >> 16;
+	cb->buf[cb->head + 3] = (u32) *data >> 24;
 	cb->head = CIRC_ADD(cb->head, PAGE_SIZE, 4);
 	spin_unlock_irqrestore(&rpdev->mu_lock, flags);
 
 	schedule_delayed_work(&(rpdev->rpmsg_work), 0);
 }
 
-static int imx_rpmsg_probe(struct platform_device *pdev)
+static int imx_rpmsg_xtr_channel_init(struct imx_rpmsg_vproc *rpdev)
 {
-	int j, ret = 0;
-	char *buf;
+	struct platform_device *pdev = rpdev->pdev;
 	struct device *dev = &pdev->dev;
-	struct device_node *np = pdev->dev.of_node;
-	struct imx_rpmsg_vproc *rpdev;
 	struct mbox_client *cl;
-
-	buf = devm_kzalloc(dev, PAGE_SIZE, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	rpdev = devm_kzalloc(dev, sizeof(*rpdev), GFP_KERNEL);
-	if (!rpdev)
-		return -ENOMEM;
-
-	rpdev->proc_nb.notifier_call = imx_rpmsg_partition_notify;
-	rpdev->variant = (enum imx_rpmsg_variants)of_device_get_match_data(dev);
-	rpdev->rx_buffer.buf = buf;
-	rpdev->rx_buffer.head = 0;
-	rpdev->rx_buffer.tail = 0;
+	int ret = 0;
 
 	cl = &rpdev->cl;
 	cl->dev = dev;
@@ -452,13 +441,56 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
 	rpdev->tx_ch = mbox_request_channel_byname(cl, "tx");
 	if (IS_ERR(rpdev->tx_ch)) {
 		ret = PTR_ERR(rpdev->tx_ch);
-		goto err_chl;
+		dev_err(cl->dev, "failed to request mbox tx chan, ret %d\n",
+			ret);
+		goto err_out;
 	}
 	rpdev->rx_ch = mbox_request_channel_byname(cl, "rx");
 	if (IS_ERR(rpdev->rx_ch)) {
 		ret = PTR_ERR(rpdev->rx_ch);
-		goto err_chl;
+		dev_err(cl->dev, "failed to request mbox rx chan, ret %d\n",
+			ret);
+		goto err_out;
 	}
+
+	return ret;
+
+err_out:
+	if (!IS_ERR(rpdev->tx_ch))
+		mbox_free_channel(rpdev->tx_ch);
+	if (!IS_ERR(rpdev->rx_ch))
+		mbox_free_channel(rpdev->rx_ch);
+
+	return ret;
+}
+
+static int imx_rpmsg_probe(struct platform_device *pdev)
+{
+	int j, ret = 0;
+	char *buf;
+	struct device *dev = &pdev->dev;
+	struct device_node *np = pdev->dev.of_node;
+	struct imx_rpmsg_vproc *rpdev;
+
+	buf = devm_kzalloc(dev, PAGE_SIZE, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	rpdev = devm_kzalloc(dev, sizeof(*rpdev), GFP_KERNEL);
+	if (!rpdev)
+		return -ENOMEM;
+
+	rpdev->pdev = pdev;
+	rpdev->proc_nb.notifier_call = imx_rpmsg_partition_notify;
+	rpdev->variant = (enum imx_rpmsg_variants)of_device_get_match_data(dev);
+	rpdev->rx_buffer.buf = buf;
+	rpdev->rx_buffer.head = 0;
+	rpdev->rx_buffer.tail = 0;
+
+	/* Initialize the RX/TX channels. */
+	ret = imx_rpmsg_xtr_channel_init(rpdev);
+	if (ret)
+		return ret;
 
 	spin_lock_init(&rpdev->mu_lock);
 	INIT_DELAYED_WORK(&(rpdev->rpmsg_work), rpmsg_work_handler);
@@ -492,7 +524,6 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
 			 rpdev->ivdev[j]->vring[1]);
 		rpdev->ivdev[j]->vdev.id.device = VIRTIO_ID_RPMSG;
 		rpdev->ivdev[j]->vdev.config = &imx_rpmsg_config_ops;
-		rpdev->pdev = pdev;
 		rpdev->ivdev[j]->vdev.dev.parent = &pdev->dev;
 		rpdev->ivdev[j]->vdev.dev.release = imx_rpmsg_vproc_release;
 		rpdev->ivdev[j]->base_vq_id = j * 2;
@@ -510,14 +541,14 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_out;
 
+	platform_set_drvdata(pdev, rpdev);
+
 	return ret;
 
 err_out:
 	if (rpdev->flags & SPECIFIC_DMA_POOL)
 		of_reserved_mem_device_release(dev);
 err_chl:
-	if (!IS_ERR(rpdev->rxdb_ch))
-		mbox_free_channel(rpdev->rxdb_ch);
 	if (!IS_ERR(rpdev->tx_ch))
 		mbox_free_channel(rpdev->tx_ch);
 	if (!IS_ERR(rpdev->rx_ch))
