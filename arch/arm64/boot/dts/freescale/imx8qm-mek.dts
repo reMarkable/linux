@@ -103,6 +103,24 @@
 	status = "okay";
 };
 
+&lpuart1 { /* BT */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_lpuart1>;
+	status = "okay";
+};
+
+&lpuart2 { /* Dbg console */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_lpuart2>;
+	status = "disabled";
+};
+
+&lpuart3 { /* MKbus */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_lpuart3>;
+	status = "disabled";
+};
+
 &fec1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_fec1>;
@@ -328,6 +346,29 @@
 		fsl,pins = <
 			IMX8QM_UART0_RX_DMA_UART0_RX				0x06000020
 			IMX8QM_UART0_TX_DMA_UART0_TX				0x06000020
+		>;
+	};
+
+	pinctrl_lpuart1: lpuart1grp {
+		fsl,pins = <
+			IMX8QM_UART1_RX_DMA_UART1_RX		0x06000020
+			IMX8QM_UART1_TX_DMA_UART1_TX		0x06000020
+			IMX8QM_UART1_CTS_B_DMA_UART1_CTS_B	0x06000020
+			IMX8QM_UART1_RTS_B_DMA_UART1_RTS_B	0x06000020
+		>;
+	};
+
+	pinctrl_lpuart2: lpuart2grp {
+		fsl,pins = <
+			IMX8QM_UART0_RTS_B_DMA_UART2_RX		0x06000020
+			IMX8QM_UART0_CTS_B_DMA_UART2_TX		0x06000020
+		>;
+	};
+
+	pinctrl_lpuart3: lpuart3grp {
+		fsl,pins = <
+			IMX8QM_M41_GPIO0_00_DMA_UART3_RX		0x06000020
+			IMX8QM_M41_GPIO0_01_DMA_UART3_TX		0x06000020
 		>;
 	};
 
