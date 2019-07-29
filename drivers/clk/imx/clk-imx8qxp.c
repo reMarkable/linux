@@ -91,6 +91,8 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	imx_clk_scu("spi2_clk",  IMX_SC_R_SPI_2, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("spi3_clk",  IMX_SC_R_SPI_3, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("can0_clk",  IMX_SC_R_CAN_0, IMX_SC_PM_CLK_PER);
+	imx_clk_scu("can1_clk",  IMX_SC_R_CAN_1, IMX_SC_PM_CLK_PER);
+	imx_clk_scu("can2_clk",  IMX_SC_R_CAN_2, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("i2c0_clk",  IMX_SC_R_I2C_0, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("i2c1_clk",  IMX_SC_R_I2C_1, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("i2c2_clk",  IMX_SC_R_I2C_2, IMX_SC_PM_CLK_PER);
