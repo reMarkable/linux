@@ -185,6 +185,9 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	 /* CM40 SS */
 	imx_clk_scu("cm40_i2c_div", IMX_SC_R_M4_0_I2C, IMX_SC_PM_CLK_PER);
 
+	 /* CM41 SS */
+	imx_clk_scu("cm41_i2c_div", IMX_SC_R_M4_1_I2C, IMX_SC_PM_CLK_PER);
+
 	return of_clk_add_hw_provider(ccm_node, imx_scu_of_clk_src_get, imx_scu_clks);
 }
 
