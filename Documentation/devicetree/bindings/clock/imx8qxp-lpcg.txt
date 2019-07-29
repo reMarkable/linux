@@ -25,24 +25,8 @@ Required properties:
 			as the clock bit-offset and hw-autogate property.
 - power-domains:	Should contain the power domain used by this clock.
 
-Legacy binding (DEPRECATED):
-- compatible:	Should be one of:
-		  "fsl,imx8qxp-lpcg-adma",
-		  "fsl,imx8qxp-lpcg-conn",
-		  "fsl,imx8qxp-lpcg-dc",
-		  "fsl,imx8qxp-lpcg-dsp",
-		  "fsl,imx8qxp-lpcg-gpu",
-		  "fsl,imx8qxp-lpcg-hsio",
-		  "fsl,imx8qxp-lpcg-img",
-		  "fsl,imx8qxp-lpcg-lsio",
-		  "fsl,imx8qxp-lpcg-vpu"
-- reg:		Address and length of the register set
-- #clock-cells:	Should be <1>
-
 The clock consumer should specify the desired clock by having the clock
 ID in its "clocks" phandle cell.
-See the full list of clock IDs from:
-include/dt-bindings/clock/imx8qxp-clock.h
 
 Examples:
 
