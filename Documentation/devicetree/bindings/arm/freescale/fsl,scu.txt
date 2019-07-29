@@ -89,19 +89,13 @@ Required properties:
 			  "fsl,imx8qm-clock"
 			  "fsl,imx8qxp-clock"
 			followed by "fsl,scu-clk"
-- #clock-cells:		Should be either
-			2: Contains the Resource and Clock ID value.
-			or
-			1: Contains the Clock ID value. (DEPRECATED)
+- #clock-cells:		Should be 2: Contains the Resource and Clock ID value.
 - clocks:		List of clock specifiers, must contain an entry for
 			each required entry in clock-names
 - clock-names:		Should include entries "xtal_32KHz", "xtal_24MHz"
 
 The clock consumer should specify the desired clock by having the clock
 ID in its "clocks" phandle cell.
-
-See the full list of clock IDs from:
-include/dt-bindings/clock/imx8qxp-clock.h
 
 Pinctrl bindings based on SCU Message Protocol
 ------------------------------------------------------------
