@@ -158,8 +158,6 @@ static int imx_drm_bind(struct device *dev)
 	if (ret)
 		goto err_kms;
 
-	dev_set_drvdata(dev, drm);
-
 	/* Now try and bind all our sub-components */
 	ret = component_bind_all(dev, drm);
 	if (ret)
@@ -184,6 +182,8 @@ static int imx_drm_bind(struct device *dev)
 		goto err_poll_fini;
 
 	drm_fbdev_generic_setup(drm, legacyfb_depth);
+
+	dev_set_drvdata(dev, drm);
 
 	return 0;
 
