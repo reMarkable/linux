@@ -41,8 +41,8 @@ dma_subsys: bus@5a000000 {
 		clocks = <&spi2_lpcg 0>,
 			 <&spi2_lpcg 1>;
 		clock-names = "per", "ipg";
-		assigned-clocks = <&clk IMX_SC_R_SPI_1 IMX_SC_PM_CLK_PER>;
-		assigned-clock-rates = <20000000>;
+		assigned-clocks = <&clk IMX_SC_R_SPI_2 IMX_SC_PM_CLK_PER>;
+		assigned-clock-rates = <60000000>;
 		power-domains = <&pd IMX_SC_R_SPI_2>;
 		status = "disabled";
 	};

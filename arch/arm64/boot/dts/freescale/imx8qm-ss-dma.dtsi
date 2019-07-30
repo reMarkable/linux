@@ -61,6 +61,10 @@
 	fsl,clk-source = <1>;
 };
 
+&lpspi2 {
+	compatible = "fsl,imx8qm-lpspi", "fsl,imx7ulp-spi";
+};
+
 &lpuart0 {
 	compatible = "fsl,imx8qm-lpuart", "fsl,imx8qxp-lpuart";
 };
