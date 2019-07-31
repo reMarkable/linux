@@ -4965,6 +4965,11 @@ static int create_vpu_video_device(struct vpu_dev *dev)
 	dev->pvpu_encoder_dev->release = video_device_release;
 	dev->pvpu_encoder_dev->vfl_dir = vpu_enc_v4l2_videodevice.vfl_dir;
 	dev->pvpu_encoder_dev->v4l2_dev = &dev->v4l2_dev;
+	dev->pvpu_encoder_dev->device_caps = V4L2_CAP_VIDEO_M2M_MPLANE |
+				V4L2_CAP_STREAMING |
+				V4L2_CAP_VIDEO_CAPTURE_MPLANE |
+				V4L2_CAP_VIDEO_OUTPUT_MPLANE;
+
 	video_set_drvdata(dev->pvpu_encoder_dev, dev);
 
 	ret = video_register_device(dev->pvpu_encoder_dev,
