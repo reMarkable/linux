@@ -653,7 +653,7 @@ static int bd7181x_buck12_dvs_init(struct bd7181x_pmic *pmic)
  @retval 0 success
  @retval negative fail
 */
-static __init int bd7181x_probe(struct platform_device *pdev)
+static int bd7181x_probe(struct platform_device *pdev)
 {
 	struct bd7181x_pmic *pmic;
 	struct bd7181x_board *pdata;
@@ -748,7 +748,7 @@ err:
  @param pdev bd7181x regulator platform device
  @return 0
 */
-static int __exit bd7181x_remove(struct platform_device *pdev)
+static int bd7181x_remove(struct platform_device *pdev)
 {
 	struct bd7181x_pmic *pmic = platform_get_drvdata(pdev);
 	int i;
