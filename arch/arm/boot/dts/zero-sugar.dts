@@ -90,7 +90,7 @@
 };
 
 &cpu0 {
-	arm-supply = <&buck1_reg>;
+	cpu-supply = <&buck1_reg>;
 };
 
 &clks {
