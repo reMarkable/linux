@@ -5164,6 +5164,7 @@ static int create_vpu_video_device(struct vpu_dev *dev)
 	dev->pvpu_decoder_dev->release = video_device_release;
 	dev->pvpu_decoder_dev->vfl_dir = v4l2_videodevice_decoder.vfl_dir;
 	dev->pvpu_decoder_dev->v4l2_dev = &dev->v4l2_dev;
+	dev->pvpu_decoder_dev->device_caps = V4L2_CAP_VIDEO_M2M_MPLANE | V4L2_CAP_STREAMING;
 
 	video_set_drvdata(dev->pvpu_decoder_dev, dev);
 
