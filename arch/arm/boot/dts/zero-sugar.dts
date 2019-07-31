@@ -130,15 +130,6 @@
 		/* PMIC_INT_B GPIO6_IO16 */
 		gpio_intr = <&gpio6 16 0>;
 
-		bd7181x,pmic-buck1-uses-i2c-dvs;
-		bd7181x,pmic-buck1-dvs-voltage = <1150000>, <950000>; /* VDD_ARM */
-		bd7181x,pmic-buck2-uses-i2c-dvs;
-		bd7181x,pmic-buck2-dvs-voltage = <1150000>, <950000>; /* VDD_SOC */
-
-		gpo {
-			rohm,mode = <0x30>;	/* 0b0011_0000 all gpos with cmos output mode */
-		};
-
 		regulators {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -256,65 +247,6 @@
 				regulator-max-microamp = <25000>;
 				regulator-boot-on;
 				regulator-always-on;
-			};
-		};
-		regulator-virtuals {
-			compatible = "simple-bus";
-
-			virt-buck1 {
-				compatible = "regulator-virtual";
-				virtual-supply = "buck1";
-			};
-			virt-buck2 {
-				compatible = "regulator-virtual";
-				virtual-supply = "buck2";
-			};
-			virt-buck3 {
-				compatible = "regulator-virtual";
-				virtual-supply = "buck3";
-			};
-			virt-buck4 {
-				compatible = "regulator-virtual";
-				virtual-supply = "buck4";
-			};
-			virt-buck5 {
-				compatible = "regulator-virtual";
-				virtual-supply = "buck5";
-			};
-			virt-ldo1 {
-				compatible = "regulator-virtual";
-				virtual-supply = "ldo1";
-			};
-			virt-ldo2 {
-				compatible = "regulator-virtual";
-				virtual-supply = "ldo2";
-			};
-			virt-ldo3 {
-				compatible = "regulator-virtual";
-				virtual-supply = "ldo3";
-			};
-			virt-ldo4 {
-				compatible = "regulator-virtual";
-				virtual-supply = "ldo4";
-			};
-			virt-ldo5 {
-				compatible = "regulator-virtual";
-				virtual-supply = "ldo5";
-			};
-			user-dvref {
-				compatible = "userspace_consumer";
-				uc-name = "dvref";
-				suck-supply = "dvref";
-			};
-			user-lpsr {
-				compatible = "userspace_consumer";
-				uc-name = "lpsr";
-				suck-supply = "lpsr";
-			};
-
-			virt-wled {
-				compatible = "regulator-virtual";
-				virtual-supply = "wled";
 			};
 		};
 	};
