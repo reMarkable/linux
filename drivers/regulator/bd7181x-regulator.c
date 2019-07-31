@@ -674,10 +674,6 @@ static int bd7181x_probe(struct platform_device *pdev)
 	pmic->mfd = bd7181x;
 	platform_set_drvdata(pdev, pmic);
 
-	bd7181x_clear_bits(pmic->mfd, BD7181X_REG_PWRCTRL, RESTARTEN); // Disable to go to ship-mode
-	bd7181x_clear_bits(pmic->mfd, BD7181X_REG_GPO, RESTARTEN); // Turn OFF the green LED
-	bd7181x_set_bits(pmic->mfd, BD7181X_REG_CHG_SET1, CHG_EN); // Enable charger
-
 	pdata = dev_get_platdata(bd7181x->dev);
 	if (!pdata && bd7181x->dev->of_node) {
 		bd7181x_parse_dt_reg_data(pdev,	&matches);
