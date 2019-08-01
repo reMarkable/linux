@@ -808,6 +808,7 @@
 					};
 					port@5 {
 						reg = <5>;
+						ethernet = <&enetc_port3>;
 						fixed-link {
 							speed = <1000>;
 							full-duplex;
@@ -815,7 +816,7 @@
 					};
 				};
 			};
-			ethernet@0,6 {
+			enetc_port3: ethernet@0,6 {
 				compatible = "fsl,enetc";
 				reg = <0x000600 0 0 0 0>;
 				fixed-link {
