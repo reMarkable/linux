@@ -1144,6 +1144,12 @@ static int mxsfb_pan_display(struct fb_var_screeninfo *var,
 		host->base + LCDC_CTRL1 + REG_SET);
 
 	ret = wait_for_completion_timeout(&host->flip_complete, HZ / 2);
+
+	/* Next frame will be the zero frame (last frame in buffer) by default. */
+	offset = fb_info->fix.line_length * (var->yres_virtual - var->yres);
+	writel(fb_info->fix.smem_start + offset,
+			host->base + host->devdata->next_buf);
+
 	if (!ret) {
 		dev_err(fb_info->device,
 			"mxs wait for pan flip timeout\n");
