@@ -689,10 +689,10 @@
 			msi-parent = <&its>;
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
-			interrupt-map = <0000 0 0 1 &gic GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>,
-					<0000 0 0 2 &gic GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>,
-					<0000 0 0 3 &gic GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>,
-					<0000 0 0 4 &gic GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-map = <0000 0 0 1 &gic 0 0 GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>,
+					<0000 0 0 2 &gic 0 0 GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>,
+					<0000 0 0 3 &gic 0 0 GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>,
+					<0000 0 0 4 &gic 0 0 GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
 		};
 
@@ -714,10 +714,10 @@
 			msi-parent = <&its>;
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
-			interrupt-map = <0000 0 0 1 &gic GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>,
-					<0000 0 0 2 &gic GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>,
-					<0000 0 0 3 &gic GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>,
-					<0000 0 0 4 &gic GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-map = <0000 0 0 1 &gic 0 0 GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>,
+					<0000 0 0 2 &gic 0 0 GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>,
+					<0000 0 0 3 &gic 0 0 GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>,
+					<0000 0 0 4 &gic 0 0 GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
 		};
 
