@@ -765,6 +765,13 @@
 		};
 	};
 
+	firmware {
+		optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
+		};
+	};
+
 	malidp0: display@f080000 {
 		compatible = "arm,mali-dp500";
 		reg = <0x0 0xf080000 0x0 0x10000>;
