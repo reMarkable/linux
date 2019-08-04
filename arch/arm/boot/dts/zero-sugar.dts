@@ -56,15 +56,6 @@
 		reg = <0x80000000 0x80000000>;
 	};
 
-	reg_usb_otg1_vbus: regulator-usb-otg1-vbus {
-		compatible = "regulator-fixed";
-		regulator-name = "usb_otg1_vbus";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		/*gpio = <&gpio1 5 GPIO_ACTIVE_HIGH>;
-		enable-active-high;*/
-	};
-
 	reg_usb_otg2_vbus: regulator-usb-otg2-vbus {
 		compatible = "regulator-fixed";
 		regulator-name = "usb_otg2_vbus";
@@ -249,52 +240,86 @@
 		};
 	};
 
-    max77818@66 {
-        compatible = "maxim,max77818";
-        #address-cells = <0>;
-		max77818,int-gpio = <&gpio6 22 GPIO_ACTIVE_HIGH>;
-        interrupt-parent = <&gpio6>;
-        interrupts = <22 2>;
-        interrupt-controller;
-        #interrupt-cells = <1>;
-        reg = <0x66>;
-        status = "ok";
-        regulator {
-			status = "okay";
+	max77818@66 {
+		compatible = "maxim,max77818";
+		#address-cells = <0>;
+		interrupt-parent = <&gpio6>;
+		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_max77818>;
+		reg = <0x66>;
 
-            SAFEOUT1 {
-                regulator-boot-on;
-                regulator-always-on;
-            };
-            /*SAFEOUT2 {
-                // TBD
-            };*/
-        };
-        charger {
-            compatible = "maxim,max77818-charger";
-            status = "okay";
+		regulators {
+			compatible = "maxim,max77818-regulator";
 
-            /* Charger */
-            fast_charge_timer = <0>; /* disable(0), hours */
-            fast_charge_current = <2800>; /* mA */
+			reg_safeout1: SAFEOUT1 {
+				regulator-name = "SAFEOUT1";
+			};
 
-            charge_termination_voltage = <4300>; /* mV */
+			SAFEOUT2 {
+				regulator-name = "SAFEOUT2";
+			};
+		};
+
+		max77818_chg: charger {
+			compatible = "maxim,max77818-charger";
+			fast_charge_timer = <0>; /* disable(0), hours */
+			fast_charge_current = <2800>; /* mA */
+			charge_termination_voltage = <4300>; /* mV */
 			vsys_min = <3400>; /* mV */
-
-            restart_threshold = <3400>; /* mV */
-
-            input_current_limit_chgin = <2800>; /* mA */
+			input_current_limit_chgin = <2800>; /* mA */
 			input_current_limit_wcin = <1260>; /* mA */
+			topoff_timer = <0>; /* min */
+			topoff_current = <200>; /* mA */
+		};
 
-            topoff_timer = <0>; /* min */
-            topoff_current = <200>; /* mA */
-        };
-        fuelgauge {
-            compatible = "maxim,max77818-fuelgauge";
-			status = "okay";
-            fuelgauge,fuel_alert_soc = <2>;
-        };
-    };
+		fuelgauge {
+			compatible = "maxim,max77818-fuelgauge";
+			power-supplies = <&max77818_chg>;
+			maxim,over-heat-temp = <600>; /* tenths of degree Celsius */
+			maxim,cold-temp = <(-200)>;
+			maxim,over-volt = <4400>; /* mV */
+			maxim,dead-volt = <3000>;
+			maxim,at-rate = /bits/ 16 <0x1900>;
+			maxim,design-cap = /bits/ 16 <0x1816>;
+			maxim,config = /bits/ 16 <0x0210>;
+			maxim,config2 = /bits/ 16 <0x0050>;
+			maxim,convgcfg = /bits/ 16 <0x2241>;
+			maxim,dpacc = /bits/ 16 <0x3200>;
+			maxim,dqacc = /bits/ 16 <0x0605>;
+			maxim,filter-cfg = /bits/ 16 <0xcea4>;
+			maxim,fullcapnom = /bits/ 16 <0x1816>;
+			maxim,fullcaprep = /bits/ 16 <0x1816>;
+			maxim,full-soc-threshold = /bits/ 16 <0x5f05>;
+			maxim,iavg-empty = /bits/ 16 <0x1345>;
+			maxim,ichg-term = /bits/ 16 <0x0180>;
+			maxim,learn-cfg = /bits/ 16 <0x2602>;
+			maxim,misc-cfg = /bits/ 16 <0x3870>;
+			maxim,qresidual00 = /bits/ 16 <0x1000>;
+			maxim,qresidual10 = /bits/ 16 <0x0880>;
+			maxim,qresidual20 = /bits/ 16 <0x0500>;
+			maxim,qresidual30 = /bits/ 16 <0x0480>;
+			maxim,rcomp0 = /bits/ 16 <0x003a>;
+			maxim,relax-cfg = /bits/ 16 <0x043c>;
+			maxim,smart-chg-cfg = /bits/ 16 <0x0010>;
+			maxim,tempco = /bits/ 16 <0x1728>;
+			maxim,v-empty = /bits/ 16 <0x9157>;
+			maxim,cell-model-data = /bits/ 16 <
+				0x9d10 0xab90 0xb710 0xb8f0
+				0xba90 0xbc10 0xbd10 0xbe00
+				0xbef0 0xbff0 0xc1b0 0xc490
+				0xc800 0xce40 0xd4c0 0xdb40
+				0x0020 0x0200 0x0c40 0x0d00
+				0x1120 0x1980 0x17b0 0x19f0
+				0x0df0 0x10f0 0x08f0 0x0810
+				0x0770 0x06f0 0x06a0 0x06a0
+				0x0200 0x0200 0x0200 0x0200
+				0x0200 0x0200 0x0200 0x0200
+				0x0200 0x0200 0x0200 0x0200
+				0x0200 0x0200 0x0200 0x0200
+			>;
+		};
+	};
 };
 
 &i2c3 {
@@ -449,7 +474,7 @@
 
 /*
 &usbotg1 {
-	vbus-supply = <&reg_usb_otg1_vbus>;
+	vbus-supply = <&reg_safeout1>;
 	srp-disable;
 	hnp-disable;
 	adp-disable;
@@ -591,6 +616,12 @@
 				MX7D_PAD_LCD_VSYNC__LCD_VSYNC		0x79
 				MX7D_PAD_LCD_HSYNC__LCD_HSYNC		0x79
 				MX7D_PAD_LCD_RESET__LCD_RESET		0x79
+			>;
+		};
+
+		pinctrl_max77818: max77818grp {
+			fsl,pins = <
+				MX7D_PAD_SAI2_TX_DATA__GPIO6_IO22	0x59
 			>;
 		};
 
