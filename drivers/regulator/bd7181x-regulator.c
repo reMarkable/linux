@@ -620,13 +620,14 @@ static int bd7181x_buck12_dvs_init(struct bd7181x_pmic *pmic)
 	u8 regh, regl;
 
 	for(i = 0; i < BD7181X_DVS_BUCK_NUM; i++, buck_dvs++) {
+		if (!buck_dvs->i2c_dvs_enable)
+			continue;
+
 		regh = BD7181X_REG_BUCK1_VOLT_H + i*0x2;
 		regl = BD7181X_REG_BUCK1_VOLT_L + i*0x2;
 		val = BUCK1_DVSSEL;
-		if(buck_dvs->i2c_dvs_enable) {
-			dev_info(pmic->dev, "Buck%d: I2C DVS Enabled !\n", i);
-			val &= ~BUCK1_STBY_DVS;
-		}
+		dev_info(pmic->dev, "Buck%d: I2C DVS Enabled !\n", i);
+		val &= ~BUCK1_STBY_DVS;
 		dev_info(pmic->dev, "Buck%d: DVS High-Low[%d - %d].\n", i, buck_dvs->voltage[0], buck_dvs->voltage[1]);
 		selector = regulator_map_voltage_iterate(pmic->rdev[i], buck_dvs->voltage[0], buck_dvs->voltage[0]);
 		if(selector < 0) {
