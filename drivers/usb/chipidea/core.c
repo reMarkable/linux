@@ -706,19 +706,20 @@ static int ci_get_platdata(struct device *dev,
 		printk("[---- SBA ----] extcon reference read from USB OTG config\n");
 
 		/* Each one of them is not mandatory */
-		ext_vbus = extcon_get_edev_by_phandle(dev, 0);
-		printk("[---- SBA ----] extcon vbus handle given: %s\n",
-			(PTR_ERR(ext_vbus) != -ENODEV) ? "YES" : "NO");
-
-		if (IS_ERR(ext_vbus) && PTR_ERR(ext_vbus) != -ENODEV)
-			return PTR_ERR(ext_vbus);
-
-		ext_id = extcon_get_edev_by_phandle(dev, 1);
+		/* SBA: Had to reorder VBUS/VID in order to read only VID and not VBUS */
+		ext_id = extcon_get_edev_by_phandle(dev, 0);
 		printk("[---- SBA ----] extcon id handle given: %s\n",
 			(PTR_ERR(ext_id) != -ENODEV) ? "YES" : "NO");
 
 		if (IS_ERR(ext_id) && PTR_ERR(ext_id) != -ENODEV)
 			return PTR_ERR(ext_id);
+
+		ext_vbus = extcon_get_edev_by_phandle(dev, 1);
+		printk("[---- SBA ----] extcon vbus handle given: %s\n",
+			(PTR_ERR(ext_vbus) != -ENODEV) ? "YES" : "NO");
+
+		if (IS_ERR(ext_vbus) && PTR_ERR(ext_vbus) != -ENODEV)
+			return PTR_ERR(ext_vbus);
 	}
 
 	cable = &platdata->vbus_extcon;
