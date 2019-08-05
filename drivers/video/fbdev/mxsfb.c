@@ -268,6 +268,8 @@ struct mxsfb_info {
 #ifdef CONFIG_FB_MXC_OVERLAY
 	struct mxsfb_layer overlay;
 #endif
+
+	bool prevent_frying_pan;
 };
 
 #define mxsfb_is_v3(host) (host->devdata->ipversion == 3)
@@ -1145,18 +1147,20 @@ static int mxsfb_pan_display(struct fb_var_screeninfo *var,
 
 	ret = wait_for_completion_timeout(&host->flip_complete, HZ / 2);
 
-	/* Next frame will be the zero frame (last frame in buffer) by default. */
-	offset = fb_info->fix.line_length * (var->yres_virtual - var->yres);
-	writel(fb_info->fix.smem_start + offset,
-			host->base + host->devdata->next_buf);
-
 	if (!ret) {
 		dev_err(fb_info->device,
 			"mxs wait for pan flip timeout\n");
-		return -ETIMEDOUT;
+		ret = -ETIMEDOUT;
 	}
 
-	return 0;
+	if (host->prevent_frying_pan) {
+		/* Next frame will be the zero frame (last frame in buffer) by default. */
+		offset = fb_info->fix.line_length * (var->yres_virtual - var->yres);
+		writel(fb_info->fix.smem_start + offset,
+				host->base + host->devdata->next_buf);
+	}
+
+	return ret;
 }
 
 static int mxsfb_mmap(struct fb_info *info, struct vm_area_struct *vma)
@@ -2331,6 +2335,10 @@ static int mxsfb_probe(struct platform_device *pdev)
 	}
 
 	mxsfb_overlay_init(host);
+
+	host->prevent_frying_pan = of_property_read_bool(pdev->dev.of_node, "prevent-frying-pan");
+	if (host->prevent_frying_pan)
+		dev_info(&pdev->dev, "Driver set to prevent frying pan mode\n");
 
 #ifndef CONFIG_FB_IMX64_DEBUG
 	console_lock();
