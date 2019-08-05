@@ -390,6 +390,7 @@
 	pinctrl-0 = <&pinctrl_lcdif>;
 	/* TODO: enable-gpio = <&extended_io 7 GPIO_ACTIVE_LOW>; */
 	display = <&display0>;
+	prevent-frying-pan;
 	status = "okay";
 
 	display0: display {
