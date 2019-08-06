@@ -1474,6 +1474,7 @@ static int sdhci_esdhc_imx_probe(struct platform_device *pdev)
 	struct cqhci_host *cq_host;
 	int err;
 	struct pltfm_imx_data *imx_data;
+	u32 status;
 
 	host = sdhci_pltfm_init(pdev, &sdhci_esdhc_imx_pdata,
 				sizeof(*imx_data));
@@ -1584,6 +1585,10 @@ static int sdhci_esdhc_imx_probe(struct platform_device *pdev)
 		err = cqhci_init(cq_host, host->mmc, false);
 		if (err)
 			goto disable_ahb_clk;
+
+		status = cqhci_readl(cq_host, CQHCI_IS);
+		cqhci_writel(cq_host, status, CQHCI_IS);
+		cqhci_writel(cq_host, CQHCI_HALT, CQHCI_CTL);
 	}
 
 	if (of_id)
