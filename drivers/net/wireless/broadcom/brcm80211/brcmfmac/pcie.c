@@ -2030,7 +2030,7 @@ static int brcmf_pcie_pm_enter_D3(struct device *dev)
 		retry--;
 	}
 	if (!retry && config->pm_state == BRCMF_CFG80211_PM_STATE_SUSPENDING)
-		brcmf_err("timed out wait for cfg80211 suspended\n");
+		brcmf_err(bus, "timed out wait for cfg80211 suspended\n");
 
 	brcmf_bus_change_state(bus, BRCMF_BUS_DOWN);
 
@@ -2040,16 +2040,27 @@ static int brcmf_pcie_pm_enter_D3(struct device *dev)
 	wait_event_timeout(devinfo->mbdata_resp_wait, devinfo->mbdata_completed,
 			   BRCMF_PCIE_MBDATA_TIMEOUT);
 	if (!devinfo->mbdata_completed) {
-		brcmf_err(bus, "Timeout on response for entering D3 substate\n");
-		brcmf_bus_change_state(bus, BRCMF_BUS_UP);
-		return -EIO;
+		struct brcmf_pcie_shared_info *shared;
+		u32 addr;
+		u32 dtoh_mb_data;
+
+		shared = &devinfo->shared;
+		addr = shared->dtoh_mb_data_addr;
+		dtoh_mb_data = brcmf_pcie_read_tcm32(devinfo, addr);
+
+		if (dtoh_mb_data & BRCMF_D2H_DEV_D3_ACK) {
+			brcmf_dbg(PCIE, "D2H_MB_DATA: D3 ACK\n");
+			devinfo->mbdata_completed = true;
+		}
+
+		if (!devinfo->mbdata_completed)
+			brcmf_err(bus, "Timeout on response for entering D3 substate\n");
 	}
 
 	devinfo->state = BRCMFMAC_PCIE_STATE_DOWN;
 
 	return 0;
 }
-
 
 static int brcmf_pcie_pm_leave_D3(struct device *dev)
 {
