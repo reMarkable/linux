@@ -113,8 +113,6 @@
 		reg = <0x09>;
 		interrupt-parent = <&gpio1>;
 		interrupts = <1 2>;
-		reset-gpio = <&gpio1 0 1>;
-		enable-gpio = <&gpio1 6 1>;
 	};
 };
 
