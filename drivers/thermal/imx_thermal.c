@@ -8,6 +8,7 @@
 #include <linux/cpu_cooling.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/device_cooling.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -91,6 +92,8 @@ enum imx_thermal_trip {
 #define TEMPMON_IMX6Q			1
 #define TEMPMON_IMX6SX			2
 #define TEMPMON_IMX7D			3
+
+#define IMX_TEMP_PASSIVE_COOL_DELTA	10000
 
 struct thermal_soc_data {
 	u32 version;
@@ -203,7 +206,7 @@ static struct thermal_soc_data thermal_imx7d_data = {
 struct imx_thermal_data {
 	struct cpufreq_policy *policy;
 	struct thermal_zone_device *tz;
-	struct thermal_cooling_device *cdev;
+	struct thermal_cooling_device *cdev[2];
 	enum thermal_device_mode mode;
 	struct regmap *tempmon;
 	u32 c1, c2; /* See formula in imx_init_calib() */
@@ -420,17 +423,40 @@ static int imx_set_trip_temp(struct thermal_zone_device *tz, int trip,
 {
 	struct imx_thermal_data *data = tz->devdata;
 
-	/* do not allow changing critical threshold */
-	if (trip == IMX_TRIP_CRITICAL)
-		return -EPERM;
-
 	/* do not allow passive to be set higher than critical */
 	if (temp < 0 || temp > data->temp_critical)
 		return -EINVAL;
 
-	data->temp_passive = temp;
+	if (trip == IMX_TRIP_CRITICAL) {
+		data->temp_critical = temp;
+		if (data->socdata->version == TEMPMON_IMX6SX)
+			imx_set_panic_temp(data, temp);
+	}
 
-	imx_set_alarm_temp(data, temp);
+	if (trip == IMX_TRIP_PASSIVE) {
+		if (temp > (data->temp_max - (1000 * 10)))
+			return -EINVAL;
+		data->temp_passive = temp;
+		imx_set_alarm_temp(data, temp);
+	}
+
+	return 0;
+}
+
+static int imx_get_trend(struct thermal_zone_device *tz,
+			 int trip, enum thermal_trend *trend)
+{
+	int ret;
+	int trip_temp;
+
+	ret = imx_get_trip_temp(tz, trip, &trip_temp);
+	if (ret < 0)
+		return ret;
+
+	if (tz->temperature >= (trip_temp - IMX_TEMP_PASSIVE_COOL_DELTA))
+		*trend = THERMAL_TREND_RAISE_FULL;
+	else
+		*trend = THERMAL_TREND_DROP_FULL;
 
 	return 0;
 }
@@ -480,6 +506,7 @@ static struct thermal_zone_device_ops imx_tz_ops = {
 	.get_trip_temp = imx_get_trip_temp,
 	.get_crit_temp = imx_get_crit_temp,
 	.set_trip_temp = imx_set_trip_temp,
+	.get_trend = imx_get_trend,
 };
 
 static int imx_init_calib(struct platform_device *pdev, u32 ocotp_ana1)
@@ -667,12 +694,23 @@ static int imx_thermal_register_legacy_cooling(struct imx_thermal_data *data)
 	np = of_get_cpu_node(data->policy->cpu, NULL);
 
 	if (!np || !of_find_property(np, "#cooling-cells", NULL)) {
-		data->cdev = cpufreq_cooling_register(data->policy);
-		if (IS_ERR(data->cdev)) {
-			ret = PTR_ERR(data->cdev);
+		data->cdev[0] = cpufreq_cooling_register(data->policy);
+		if (IS_ERR(data->cdev[0])) {
+			ret = PTR_ERR(data->cdev[0]);
 			cpufreq_cpu_put(data->policy);
 			return ret;
 		}
+	}
+
+	data->cdev[1] = devfreq_cooling_register();
+	if (IS_ERR(data->cdev[1])) {
+		ret = PTR_ERR(data->cdev[1]);
+		if (ret != -EPROBE_DEFER) {
+			pr_err("failed to register cpufreq cooling device: %d\n",
+				ret);
+			cpufreq_cooling_unregister(data->cdev[0]);
+		}
+		return ret;
 	}
 
 	return 0;
@@ -680,8 +718,9 @@ static int imx_thermal_register_legacy_cooling(struct imx_thermal_data *data)
 
 static void imx_thermal_unregister_legacy_cooling(struct imx_thermal_data *data)
 {
-	cpufreq_cooling_unregister(data->cdev);
+	cpufreq_cooling_unregister(data->cdev[0]);
 	cpufreq_cpu_put(data->policy);
+	devfreq_cooling_unregister(data->cdev[1]);
 }
 
 #else
@@ -805,7 +844,8 @@ static int imx_thermal_probe(struct platform_device *pdev)
 
 	data->tz = thermal_zone_device_register("imx_thermal_zone",
 						IMX_TRIP_NUM,
-						BIT(IMX_TRIP_PASSIVE), data,
+						BIT(IMX_TRIP_PASSIVE) | BIT(IMX_TRIP_CRITICAL),
+						data,
 						&imx_tz_ops, NULL,
 						IMX_PASSIVE_DELAY,
 						IMX_POLLING_DELAY);
@@ -872,8 +912,9 @@ static int imx_thermal_remove(struct platform_device *pdev)
 		clk_disable_unprepare(data->thermal_clk);
 
 	thermal_zone_device_unregister(data->tz);
-	cpufreq_cooling_unregister(data->cdev);
+	cpufreq_cooling_unregister(data->cdev[0]);
 	cpufreq_cpu_put(data->policy);
+	devfreq_cooling_unregister(data->cdev[1]);
 
 	return 0;
 }
