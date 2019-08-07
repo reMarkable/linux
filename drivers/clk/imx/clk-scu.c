@@ -594,7 +594,12 @@ static struct platform_driver imx_clk_scu_driver = {
 	},
 	.probe = imx_clk_scu_probe,
 };
-builtin_platform_driver(imx_clk_scu_driver);
+
+static int __init imx_clk_scu_driver_init(void)
+{
+	return platform_driver_register(&imx_clk_scu_driver);
+}
+subsys_initcall_sync(imx_clk_scu_driver_init);
 
 static int imx_clk_scu_attach_pd(struct device *dev, u32 rsrc_id)
 {
