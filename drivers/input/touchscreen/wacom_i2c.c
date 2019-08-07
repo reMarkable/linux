@@ -407,9 +407,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	struct wacom_i2c *wac_i2c;
 	struct input_dev *input;
 	struct wacom_features features = { 0 };
-    struct device_node *np;
 	int error;
-    unsigned int flags, ret, reset_gpio;
 
     // Setup GPIO_TEST_LED
 //    gpio_request(GPIO_TEST_LED, "test_led");
@@ -426,33 +424,6 @@ static int wacom_i2c_probe(struct i2c_client *client,
 		dev_err(&client->dev, "i2c_check_functionality error\n");
 		return -EIO;
 	}
-
-	printk("[---- SBA ----] Reading reset-gpio config if present..\n");
-    np = client->dev.of_node;
-	reset_gpio = of_get_named_gpio_flags(np, "reset-gpio", 0, &flags);
-    if (reset_gpio == -EPROBE_DEFER) {
-        printk("[---- SBA ----] of_get_named_gpio_flags returned EPROBE_DEFER, ignoring reset-gpio..\n");
-    } else if (!gpio_is_valid(reset_gpio)) {
-        printk("[---- SBA ----] reset-gpio found: %d\n", reset_gpio);
-        printk("[---- SBA ----] Invalid reset gpio: %d\n", reset_gpio);
-    }
-
-    printk("[---- SBA ----] Requesting gpio %d ..\n", reset_gpio);
-    ret = devm_gpio_request_one(&client->dev, reset_gpio, flags, NULL);
-    if (ret < 0) {
-        printk("[---- SBA ----] Failed to request gpio %d: %d\n", reset_gpio, ret);
-    }
-
-    printk("[---- SBA ----] Setting requested GPIO as output ..\n");
-    gpio_direction_output(reset_gpio, 1);
-    printk("[---- SBA ----] Trying to pull reset GPIO low ..\n");
-    gpio_set_value(reset_gpio, 0);
-    printk("[---- SBA ----] Waiting 500 us..\n");
-    udelay(500);
-    printk("[---- SBA ----] Trying to pull reset GPIO high ..\n");
-    gpio_set_value(reset_gpio, 1);
-    printk("[---- SBA ----] Waiting 500 us..\n");
-    udelay(500);
 
     printk("[---- SBA ----] Querying device ..\n");
 	error = wacom_query_device(client, &features);
