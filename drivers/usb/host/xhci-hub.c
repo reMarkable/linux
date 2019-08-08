@@ -1663,7 +1663,8 @@ static bool xhci_port_missing_cas_quirk(struct xhci_port *port)
 		return false;
 
 	if (((portsc & PORT_PLS_MASK) != XDEV_POLLING) &&
-	    ((portsc & PORT_PLS_MASK) != XDEV_COMP_MODE))
+	    ((portsc & PORT_PLS_MASK) != XDEV_COMP_MODE) &&
+	    ((portsc & PORT_PLS_MASK) != XDEV_RXDETECT))
 		return false;
 
 	/* clear wakeup/change bits, and do a warm port reset */
