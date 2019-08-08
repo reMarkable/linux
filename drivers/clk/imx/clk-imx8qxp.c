@@ -79,6 +79,7 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 
 	/* ARM core */
 	imx_clk_scu("a35_clk", IMX_SC_R_A35, IMX_SC_PM_CLK_CPU);
+	imx_clk_scu("a53_clk", IMX_SC_R_A53, IMX_SC_PM_CLK_CPU);
 
 	/* LSIO SS */
 	imx_clk_scu("pwm0_clk", IMX_SC_R_PWM_0, IMX_SC_PM_CLK_PER);
