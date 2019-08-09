@@ -46,6 +46,7 @@ static irqreturn_t fsl_edma_tx_handler(int irq, void *dev_id)
 
 			spin_lock(&fsl_chan->vchan.lock);
 			if (!fsl_chan->edesc->iscyclic) {
+				fsl_edma_get_realcnt(fsl_chan);
 				list_del(&fsl_chan->edesc->vdesc.node);
 				vchan_cookie_complete(&fsl_chan->edesc->vdesc);
 				fsl_chan->edesc = NULL;
