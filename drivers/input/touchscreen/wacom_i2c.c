@@ -87,66 +87,55 @@ struct wacom_i2c {
 };
 
 u8 reset_cmd[] = {
-        WACOM_COMMAND_LSB,
-        WACOM_COMMAND_MSB,
-        0x00,
-        OPCODE_RESET,
+		WACOM_COMMAND_LSB,
+		WACOM_COMMAND_MSB,
+		0x00,
+		OPCODE_RESET,
 };
 
 u8 wakeup_cmd[] = {
-        WACOM_COMMAND_LSB,
-        WACOM_COMMAND_MSB,
-        POWER_ON,
-        OPCODE_SET_POWER,
+		WACOM_COMMAND_LSB,
+		WACOM_COMMAND_MSB,
+		POWER_ON,
+		OPCODE_SET_POWER,
 };
 
 u8 sleep_cmd[] = {
-        WACOM_COMMAND_LSB,
-        WACOM_COMMAND_MSB,
-        POWER_SLEEP,
-        OPCODE_SET_POWER,
+		WACOM_COMMAND_LSB,
+		WACOM_COMMAND_MSB,
+		POWER_SLEEP,
+		OPCODE_SET_POWER,
 };
 
-//#define GPIO_TEST_LED   174
-
 static int wacom_query_device(struct i2c_client *client,
-			      struct wacom_features *features)
+				  struct wacom_features *features)
 {
 	int ret;
 	u8 data[WACOM_MAX_DATA_SIZE];
-    struct reset_control *rstc;
+	struct reset_control *rstc;
 
-    u8 get_query_data_cmd[] = {
-        WACOM_COMMAND_LSB,
-        WACOM_COMMAND_MSB,
-        REPORT_FEATURE | WACOM_QUERY_REPORT,
-        OPCODE_GET_REPORT,
-        WACOM_DATA_LSB,
-        WACOM_DATA_MSB,
-    };
-    u8 read_data[] = {
-        WACOM_DATA_LSB,
-        WACOM_DATA_MSB,
-    };
+	u8 get_query_data_cmd[] = {
+		WACOM_COMMAND_LSB,
+		WACOM_COMMAND_MSB,
+		REPORT_FEATURE | WACOM_QUERY_REPORT,
+		OPCODE_GET_REPORT,
+		WACOM_DATA_LSB,
+		WACOM_DATA_MSB,
+	};
+	u8 read_data[] = {
+		WACOM_DATA_LSB,
+		WACOM_DATA_MSB,
+	};
 
 	struct i2c_msg msgs[] = {
-        // Request reading of feature ReportID: 3 (Pen Query Data)
+		// Request reading of feature ReportID: 3 (Pen Query Data)
 		{
 			.addr = client->addr,
 			.flags = 0,
 			.len = sizeof(get_query_data_cmd),
 			.buf = get_query_data_cmd,
 		},
-#if 0
-        // Setup for reading data
-		{
-			.addr = client->addr,
-			.flags = 0,
-			.len = sizeof(read_data),
-			.buf = read_data,
-		},
-#endif
-        // Read 21 bytes
+		// Read 21 bytes
 		{
 			.addr = client->addr,
 			.flags = I2C_M_RD,
@@ -155,28 +144,21 @@ static int wacom_query_device(struct i2c_client *client,
 		},
 	};
 
+	rstc = devm_reset_control_get_optional_exclusive(&client->dev, NULL);
+	if (IS_ERR(rstc)) {
+		dev_err(&client->dev, "Failed to get reset control before init\n");
+	}
+	else {
+		reset_control_reset(rstc);
+	}
 
-    printk("[---- SBA ----] Asserting/deasserting WACOM reset ..\n");
-    rstc = devm_reset_control_get_optional_exclusive(&client->dev, NULL);
-    if (IS_ERR(rstc)) {
-        printk("[---- SBA ----] Failed to get reset control while trying to reset WACOM device before init !\n");
-    }
-    else {
-        reset_control_reset(rstc);
-    }
-
-	printk("[---- SBA ----] Sending cmd1, cmd2 and data over I2C ..\n");
 	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
 	if (ret < 0) {
-		printk("[---- SBA ----] i2c_transfer returned with errorcode %d\n", ret);
 		return ret;
 	}
 	if (ret != ARRAY_SIZE(msgs)) {
-		printk("[---- SBA ----] i2c_transfer returned with unexpected return value %d\n", ret);
 		return -EIO;
 	}
-
-    printk("[---- SBA ----] query report (%d) length: %d\n", data[2], data[0] + 256*data[1]);
 
 	features->x_max = get_unaligned_le16(&data[3]);
 	features->y_max = get_unaligned_le16(&data[5]);
@@ -196,14 +178,6 @@ static int wacom_query_device(struct i2c_client *client,
 		features->distance_max, features->distance_physical_max,
 		features->tilt_x_max, features->tilt_y_max);
 
-    printk("[WACOM] x_max:%d, y_max:%d, pressure:%d, fw:%d, "
-		"distance: %d, phys distance: %d"
-		"tilt_x_max: %d, tilt_y_max: %d\n",
-		features->x_max, features->y_max,
-		features->pressure_max, features->fw_version,
-		features->distance_max, features->distance_physical_max,
-		features->tilt_x_max, features->tilt_y_max);
-
 	return 0;
 }
 
@@ -212,32 +186,32 @@ static int wacom_setup_device(struct i2c_client *client)
 	int ret;
 	u8 data[WACOM_MAX_DATA_SIZE];
 
-    u8 get_sample_rate_cmd[] = {
-        WACOM_COMMAND_LSB,
-        WACOM_COMMAND_MSB,
-        REPORT_FEATURE | 0xF,
-        OPCODE_GET_REPORT,
-        WACOM_POSITION_RATE_REPORT,
-        WACOM_DATA_LSB,
-        WACOM_DATA_MSB,
-    };
+	u8 get_sample_rate_cmd[] = {
+		WACOM_COMMAND_LSB,
+		WACOM_COMMAND_MSB,
+		REPORT_FEATURE | 0xF,
+		OPCODE_GET_REPORT,
+		WACOM_POSITION_RATE_REPORT,
+		WACOM_DATA_LSB,
+		WACOM_DATA_MSB,
+	};
 
-    u8 set_sample_rate_cmd[] = {
-        WACOM_COMMAND_LSB,
-        WACOM_COMMAND_MSB,
-        REPORT_FEATURE | 0xF,
-        OPCODE_SET_REPORT,
-        WACOM_POSITION_RATE_REPORT,
-        WACOM_DATA_LSB,
-        WACOM_DATA_MSB,
-        0x04, // LENGTH LSB
-        0x00, // LENGTH MSB
-        WACOM_POSITION_RATE_REPORT,
-        0x06, // Selected rate (1=240pps, 3=360pps (def), 5=480pps, 6=540pps)
-    };
+	u8 set_sample_rate_cmd[] = {
+		WACOM_COMMAND_LSB,
+		WACOM_COMMAND_MSB,
+		REPORT_FEATURE | 0xF,
+		OPCODE_SET_REPORT,
+		WACOM_POSITION_RATE_REPORT,
+		WACOM_DATA_LSB,
+		WACOM_DATA_MSB,
+		0x04, // LENGTH LSB
+		0x00, // LENGTH MSB
+		WACOM_POSITION_RATE_REPORT,
+		0x06, // Selected rate (1=240pps, 3=360pps (def), 5=480pps, 6=540pps)
+	};
 
 	struct i2c_msg msgs[] = {
-        // Request writing of feature, ReportID 25 / Position Report Rate
+		// Request writing of feature, ReportID 25 / Position Report Rate
 		{
 			.addr = client->addr,
 			.flags = 0,
@@ -246,15 +220,15 @@ static int wacom_setup_device(struct i2c_client *client)
 		},
 	};
 
-    struct i2c_msg msgs_readback[] = {
-        // Request reading of feature, ReportID 25 / Position Report Rate
+	struct i2c_msg msgs_readback[] = {
+		// Request reading of feature, ReportID 25 / Position Report Rate
 		{
 			.addr = client->addr,
 			.flags = 0,
 			.len = sizeof(get_sample_rate_cmd),
 			.buf = get_sample_rate_cmd,
 		},
-        // Read 4 bytes
+		// Read 4 bytes
 		{
 			.addr = client->addr,
 			.flags = I2C_M_RD,
@@ -263,31 +237,24 @@ static int wacom_setup_device(struct i2c_client *client)
 		},
 	};
 
-    // Write position rate report
-	printk("[---- SBA ----] Writing sample rate..\n");
+	// Write position rate report
 	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
 	if (ret < 0) {
-		printk("[---- SBA ----] i2c_transfer returned with errorcode %d\n", ret);
 		return ret;
 	}
 	if (ret != ARRAY_SIZE(msgs)) {
-		printk("[---- SBA ----] i2c_transfer returned with unexpected return value %d\n", ret);
 		return -EIO;
 	}
 
-    // Read position rate report
-    printk("[---- SBA ----] Reading sample rate..\n");
+	// Read position rate report
 	ret = i2c_transfer(client->adapter, msgs_readback, ARRAY_SIZE(msgs_readback));
 	if (ret < 0) {
-		printk("[---- SBA ----] i2c_transfer returned with errorcode %d\n", ret);
 		return ret;
 	}
 	if (ret != ARRAY_SIZE(msgs_readback)) {
-		printk("[---- SBA ----] i2c_transfer returned with unexpected return value %d\n", ret);
 		return -EIO;
 	}
 
-    printk("[---- SBA ----] Rate report: %x %x %x %x ..\n", data[0], data[1], data[2], data[3]);
 
 	return 0;
 }
@@ -305,33 +272,15 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 
 // TODO: Should continue to read packets until DIGITIZER_INT is pulled high
 
-    //gpio_set_value(GPIO_TEST_LED, 1);
-#if 1
 	error = i2c_master_recv(wac_i2c->client,
 				wac_i2c->data, 17);
-#else
-    // Skip bus locking
-    const struct i2c_client *client = wac_i2c->client;
-	struct i2c_adapter *adap = client->adapter;
-	struct i2c_msg msg;
-	msg.addr = client->addr;
-	msg.flags = client->flags & I2C_M_TEN;
-	msg.flags |= I2C_M_RD;
-	msg.len = 17;
-	msg.buf = wac_i2c->data;
-	error = __i2c_transfer(adap, &msg, 1);
-#endif
-
-    //gpio_set_value(GPIO_TEST_LED, 0);
-
 	if (error < 0) {
-        //printk("[----- SBA -----] error = %d\n", error);
 		goto out;
-    }
+	}
 
-    // data[0] == Length LSB
-    // data[1] == Length MSB
-    // data[2] == ReportID (2 | 26)
+	// data[0] == Length LSB
+	// data[1] == Length MSB
+	// data[2] == ReportID (2 | 26)
 	tip = data[3] & 0x01;
 	eraser = data[3] & 0x04;
 	f1 = data[3] & 0x02;
@@ -340,26 +289,17 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	y = le16_to_cpup((__le16 *)&data[6]);
 	pressure = le16_to_cpup((__le16 *)&data[8]);
 
-    // Shinonome Refill has a transducer index field:
-    if (data[2] == WACOM_SHINONOME_REPORT) {
-        transducer = (data[3] >> 6);
-    }
+	// Shinonome Refill has a transducer index field:
+	if (data[2] == WACOM_SHINONOME_REPORT) {
+		transducer = (data[3] >> 6);
+	}
 
 	// Tilt (signed)
 	tilt_x = le16_to_cpup((__le16 *)&data[11]);
 	tilt_y = le16_to_cpup((__le16 *)&data[13]);
 
-    // Hover height
-    distance = le16_to_cpup((__le16 *)&data[15]);
-
-    // Toggle LED GPIO:
-#if 0
-    if (x > 10484) {
-        gpio_set_value(GPIO_TEST_LED, 1);
-    } else {
-        gpio_set_value(GPIO_TEST_LED, 0);
-    }
-#endif
+	// Hover height
+	distance = le16_to_cpup((__le16 *)&data[15]);
 
 	if (!wac_i2c->prox)
 		wac_i2c->tool = (data[3] & 0x0c) ?
@@ -402,43 +342,28 @@ static void wacom_i2c_close(struct input_dev *dev)
 }
 
 static int wacom_i2c_probe(struct i2c_client *client,
-				     const struct i2c_device_id *id)
+					 const struct i2c_device_id *id)
 {
 	struct wacom_i2c *wac_i2c;
 	struct input_dev *input;
 	struct wacom_features features = { 0 };
 	int error;
 
-    // Setup GPIO_TEST_LED
-//    gpio_request(GPIO_TEST_LED, "test_led");
-//    gpio_direction_output(GPIO_TEST_LED, 0);
-
-	printk("[---- SBA ----] wacom_i2c_probe enter\n");
-	printk("[---- SBA ----] Stack trace:\n");
-    dump_stack();
-    printk("[---- SBA ----] client->addr: 0x%02X\n", client->addr);
-    printk("[---- SBA ----] client->irq: %d\n", client->irq);
-    printk("[---- SBA ----] client->name: %s\n", client->name);
-
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "i2c_check_functionality error\n");
 		return -EIO;
 	}
 
-    printk("[---- SBA ----] Querying device ..\n");
 	error = wacom_query_device(client, &features);
 	if (error)
 		return error;
 
-    printk("[---- SBA ----] Setting up device ..\n");
 	error = wacom_setup_device(client);
 	if (error)
 		return error;
 
-	printk("[---- SBA ----] Allocating memory to hold device info..\n");
 	wac_i2c = kzalloc(sizeof(*wac_i2c), GFP_KERNEL);
 
-	printk("[---- SBA ----] Allocating input device in input subsystem..\n");
 	input = input_allocate_device();
 	if (!wac_i2c || !input) {
 		error = -ENOMEM;
@@ -448,7 +373,6 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	wac_i2c->client = client;
 	wac_i2c->input = input;
 
-	printk("[---- SBA ----] Registering information for wacom device as new input..\n");
 	input->name = "Wacom I2C Digitizer";
 	input->id.bustype = BUS_I2C;
 	input->id.vendor = 0x56a;
@@ -468,7 +392,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_X, 0, features.x_max, 0, 0);
 	input_set_abs_params(input, ABS_Y, 0, features.y_max, 0, 0);
 	input_set_abs_params(input, ABS_PRESSURE,
-			     0, features.pressure_max, 0, 0);
+				 0, features.pressure_max, 0, 0);
 
 	input_set_abs_params(input, ABS_DISTANCE, 0, features.distance_max, 0, 0);
 	input_set_abs_params(input, ABS_TILT_X, -features.tilt_x_max, features.tilt_x_max, 0, 0);
@@ -476,10 +400,9 @@ static int wacom_i2c_probe(struct i2c_client *client,
 
 	input_set_drvdata(input, wac_i2c);
 
-	printk("[---- SBA ----] Requesting threaded irq (client->irq=%d) ..\n", client->irq);
 	error = request_threaded_irq(client->irq, NULL, wacom_i2c_irq,
-				     IRQF_TRIGGER_LOW | IRQF_ONESHOT,
-				     "wacom_i2c", wac_i2c);
+					 IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+					 "wacom_i2c", wac_i2c);
 	if (error) {
 		dev_err(&client->dev,
 			"Failed to enable IRQ, error: %d\n", error);
@@ -487,10 +410,8 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	}
 
 	/* Disable the IRQ, we'll enable it in wac_i2c_open() */
-    printk("[---- SBA ----] Disabling IRQ for now (to be enabled in wac_i2c_open) ..\n");
 	disable_irq(client->irq);
 
-	printk("[---- SBA ----] Register wacom input device ..\n");
 	error = input_register_device(wac_i2c->input);
 	if (error) {
 		dev_err(&client->dev,
@@ -498,7 +419,6 @@ static int wacom_i2c_probe(struct i2c_client *client,
 		goto err_free_irq;
 	}
 
-	printk("[---- SBA ----] Set wacom device data in i2c client structure ..\n");
 	i2c_set_clientdata(client, wac_i2c);
 	return 0;
 
@@ -508,7 +428,6 @@ err_free_mem:
 	input_free_device(input);
 	kfree(wac_i2c);
 
-	printk("[---- SBA ----] wacom_i2c_probe exit\n");
 	return error;
 }
 
