@@ -74,7 +74,8 @@ static int cdns3_ep0_delegate_req(struct cdns3_device *priv_dev,
 
 	spin_unlock(&priv_dev->lock);
 	priv_dev->setup_pending = 1;
-	if (priv_dev->gadget_driver && priv_dev->gadget_driver->setup)
+	if (priv_dev->gadget_driver && priv_dev->gadget_driver->setup
+			&& get_gadget_data(&priv_dev->gadget))
 		ret = priv_dev->gadget_driver->setup(&priv_dev->gadget,
 				ctrl_req);
 	priv_dev->setup_pending = 0;
