@@ -16,7 +16,7 @@
 #include "cpuidle.h"
 #include "hardware.h"
 
-static void __init imx6sl_fec_init(void)
+static void __init imx6sl_fec_clk_init(void)
 {
 	struct regmap *gpr;
 
@@ -30,6 +30,12 @@ static void __init imx6sl_fec_init(void)
 	} else {
 		pr_err("failed to find fsl,imx6sl-iomux-gpr regmap\n");
 	}
+}
+
+static inline void imx6sl_fec_init(void)
+{
+	imx6sl_fec_clk_init();
+	imx6_enet_mac_init("fsl,imx6sl-fec", "fsl,imx6sl-ocotp");
 }
 
 static void __init imx6sl_init_late(void)
