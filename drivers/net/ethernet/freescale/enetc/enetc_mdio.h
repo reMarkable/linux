@@ -2,10 +2,10 @@
 /* Copyright 2019 NXP */
 
 #include <linux/phy.h>
-#include "enetc_pf.h"
 
 struct enetc_mdio_priv {
 	struct enetc_hw *hw;
+	int mdio_base;
 };
 
 int enetc_mdio_write(struct mii_bus *bus, int phy_id, int regnum, u16 value);

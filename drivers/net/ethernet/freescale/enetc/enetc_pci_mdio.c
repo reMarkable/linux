@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /* Copyright 2019 NXP */
 #include <linux/of_mdio.h>
+#include "enetc_pf.h"
 #include "enetc_mdio.h"
 
 #define ENETC_MDIO_DEV_ID	0xee01
@@ -31,6 +32,7 @@ static int enetc_pci_mdio_probe(struct pci_dev *pdev,
 	bus->parent = dev;
 	mdio_priv = bus->priv;
 	mdio_priv->hw = hw;
+	mdio_priv->mdio_base = ENETC_EMDIO_BASE;
 	snprintf(bus->id, MII_BUS_ID_SIZE, "%s", dev_name(dev));
 
 	pcie_flr(pdev);
