@@ -754,6 +754,7 @@ static int enetc_of_get_phy(struct enetc_ndev_priv *priv)
 	struct enetc_pf *pf = enetc_si_priv(priv->si);
 	struct device_node *np = priv->dev->of_node;
 	struct device_node *mdio_np;
+	int phy_mode;
 	int err;
 
 	if (!np) {
@@ -787,17 +788,11 @@ static int enetc_of_get_phy(struct enetc_ndev_priv *priv)
 		}
 	}
 
-	priv->if_mode = of_get_phy_mode(np);
-	if ((int)priv->if_mode < 0) {
-		dev_err(priv->dev, "missing phy type\n");
-		of_node_put(priv->phy_node);
-		if (of_phy_is_fixed_link(np))
-			of_phy_deregister_fixed_link(np);
-		else
-			enetc_mdio_remove(pf);
-
-		return -EINVAL;
-	}
+	phy_mode = of_get_phy_mode(np);
+	if (phy_mode < 0)
+		priv->if_mode = PHY_INTERFACE_MODE_NA; /* fixed link */
+	else
+		priv->if_mode = phy_mode;
 
 	return 0;
 }
