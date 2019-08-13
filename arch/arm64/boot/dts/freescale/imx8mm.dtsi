@@ -998,6 +998,7 @@
 				assigned-clock-rate = <594000000>, <500000000>, <200000000>;
 				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
 				lcdif-gpr = <&dispmix_gpr>;
+				power-domains = <&dispmix_pd>;
 				status = "disabled";
 
 				lcdif_disp0: port@0 {
@@ -1024,6 +1025,7 @@
 				assigned-clock-rates = <266000000>, <594000000>;
 				interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
 				dsi-gpr = <&dispmix_gpr>;
+				power-domains = <&mipi_pd>;
 				status = "disabled";
 
 				port@0 {
