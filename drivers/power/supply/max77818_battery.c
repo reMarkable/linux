@@ -938,7 +938,12 @@ static int max77818_resume(struct device *dev)
 
 	disable_irq_wake(chip->irq);
 	enable_irq(chip->irq);
-	/* re-program the SOC threshold to 1% change */
+
+	/*
+	 * As in suspend state, very likely we may have already missed the
+	 * recent 1% SOC change. So we need to reprogram a new SOC threshold.
+	 * Otherwise, we are unable to get the next interrupt.
+	 */
 	max77818_set_soc_threshold(chip, 1);
 
 	return 0;
