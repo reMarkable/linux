@@ -145,6 +145,33 @@
         status = "okay";
 };
 
+&qspi1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_qspi1_1>;
+	status = "okay";
+	ddrsmp=<2>;
+
+	flash0: n25q256a@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <29000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+		reg = <0>;
+	};
+
+	flash1: n25q256a@2 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <29000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+		reg = <2>;
+	};
+};
+
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
@@ -287,6 +314,23 @@
 	pinctrl_led: ledgrp {
 		fsl,pins = <
 			MX6SX_PAD_CSI_PIXCLK__GPIO1_IO_24 0x17059
+		>;
+	};
+
+	pinctrl_qspi1_1: qspi1grp_1 {
+		fsl,pins = <
+			MX6SX_PAD_QSPI1A_DATA0__QSPI1_A_DATA_0  0x70a1
+			MX6SX_PAD_QSPI1A_DATA1__QSPI1_A_DATA_1  0x70a1
+			MX6SX_PAD_QSPI1A_DATA2__QSPI1_A_DATA_2  0x70a1
+			MX6SX_PAD_QSPI1A_DATA3__QSPI1_A_DATA_3  0x70a1
+			MX6SX_PAD_QSPI1A_SCLK__QSPI1_A_SCLK     0x70a1
+			MX6SX_PAD_QSPI1A_SS0_B__QSPI1_A_SS0_B   0x70a1
+			MX6SX_PAD_QSPI1B_DATA0__QSPI1_B_DATA_0  0x70a1
+			MX6SX_PAD_QSPI1B_DATA1__QSPI1_B_DATA_1  0x70a1
+			MX6SX_PAD_QSPI1B_DATA2__QSPI1_B_DATA_2  0x70a1
+			MX6SX_PAD_QSPI1B_DATA3__QSPI1_B_DATA_3  0x70a1
+			MX6SX_PAD_QSPI1B_SCLK__QSPI1_B_SCLK     0x70a1
+			MX6SX_PAD_QSPI1B_SS0_B__QSPI1_B_SS0_B   0x70a1
 		>;
 	};
 
