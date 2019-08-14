@@ -807,6 +807,61 @@ static void enetc_of_put_phy(struct enetc_ndev_priv *priv)
 		of_node_put(priv->phy_node);
 }
 
+static void enetc_configure_sgmii(struct mii_bus *imdio)
+{
+	/* Set to SGMII mode, use AN */
+	imdio->write(imdio, 0, ENETC_PCS_IF_MODE,
+		     ENETC_PCS_IF_MODE_SGMII_AN);
+
+	/* Dev ability - SGMII */
+	imdio->write(imdio, 0, ENETC_PCS_DEV_ABILITY,
+		     ENETC_PCS_DEV_ABILITY_SGMII);
+
+	/* Adjust link timer for SGMII */
+	imdio->write(imdio, 0, ENETC_PCS_LINK_TIMER1,
+		     ENETC_PCS_LINK_TIMER1_VAL);
+	imdio->write(imdio, 0, ENETC_PCS_LINK_TIMER2,
+		     ENETC_PCS_LINK_TIMER2_VAL);
+
+	/* restart PCS AN */
+	imdio->write(imdio, 0, ENETC_PCS_CR,
+		     ENETC_PCS_CR_RESET_AN | ENETC_PCS_CR_DEF_VAL);
+}
+
+static void enetc_configure_sxgmii(struct mii_bus *imdio)
+{
+	/* Dev ability - SXGMII */
+	imdio->write(imdio, 0, MII_ADDR_C45 | (MDIO_MMD_VEND2 << 16) |
+		     ENETC_PCS_DEV_ABILITY, ENETC_PCS_DEV_ABILITY_SXGMII);
+
+	/* Restart PCS AN */
+	imdio->write(imdio, 0, MII_ADDR_C45 | (MDIO_MMD_VEND2 << 16) |
+		     ENETC_PCS_CR,
+		     ENETC_PCS_CR_LANE_RESET | ENETC_PCS_CR_RESET_AN);
+}
+
+static int enetc_configure_serdes(struct enetc_ndev_priv *priv)
+{
+	struct enetc_pf *pf = enetc_si_priv(priv->si);
+	int err;
+
+	if (priv->if_mode != PHY_INTERFACE_MODE_SGMII &&
+	    priv->if_mode != PHY_INTERFACE_MODE_XGMII)
+		return 0;
+
+	err = enetc_imdio_init(pf);
+	if (err)
+		return err;
+
+	if (priv->if_mode == PHY_INTERFACE_MODE_SGMII)
+		enetc_configure_sgmii(pf->imdio);
+
+	if (priv->if_mode == PHY_INTERFACE_MODE_XGMII)
+		enetc_configure_sxgmii(pf->imdio);
+
+	return 0;
+}
+
 static int enetc_pf_probe(struct pci_dev *pdev,
 			  const struct pci_device_id *ent)
 {
@@ -870,6 +925,10 @@ static int enetc_pf_probe(struct pci_dev *pdev,
 	err = enetc_of_get_phy(priv);
 	if (err)
 		dev_warn(&pdev->dev, "Fallback to PHY-less operation\n");
+
+	err = enetc_configure_serdes(priv);
+	if (err)
+		dev_warn(&pdev->dev, "Attempted serdes config but failed\n");
 
 	err = register_netdev(ndev);
 	if (err)
