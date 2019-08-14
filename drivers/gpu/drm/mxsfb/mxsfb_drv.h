@@ -32,6 +32,8 @@ struct mxsfb_drm_private {
 	struct drm_connector		*connector;
 	struct drm_panel		*panel;
 	struct drm_bridge		*bridge;
+
+	u32				max_bw;
 };
 
 int mxsfb_setup_crtc(struct drm_device *dev);
