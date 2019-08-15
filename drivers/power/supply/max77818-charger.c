@@ -640,23 +640,6 @@ static int max77818_charger_set_property(struct power_supply *psy,
 		ret = max77818_charger_set_charge_current(chg,
 						chg->fast_charge_current);
 		break;
-	case POWER_SUPPLY_PROP_CURRENT_NOW:
-		/* val->intval - uA */
-		ret = max77818_charger_set_charge_current(chg,
-						val->intval / 1000);
-		if (ret)
-			goto out;
-
-		chg->fast_charge_current = val->intval / 1000;
-		break;
-	case POWER_SUPPLY_PROP_CURRENT_MAX:
-		ret = max77818_charger_set_chgin_current_limit(chg,
-						val->intval / 1000);
-		if (ret)
-			goto out;
-
-		chg->input_current_limit_chgin = val->intval / 1000;
-		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		if (val->intval == POWER_SUPPLY_MODE_CHARGER) {
 			chg->charger_mode = val->intval;
@@ -684,8 +667,6 @@ static int max77818_charger_property_is_writeable(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
-	case POWER_SUPPLY_PROP_CURRENT_NOW:
-	case POWER_SUPPLY_PROP_CURRENT_MAX:
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		return 1;
 	default:
