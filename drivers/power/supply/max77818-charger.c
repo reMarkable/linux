@@ -464,6 +464,9 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 
 	val = val << ffs(BIT_CHG_RSTRT) | tmpval << ffs(BIT_FCHGTIME);
 
+	/* Enable Low Battery Prequalification Mode */
+	val |= BIT_PQEN;
+
 	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_01,
 				 BIT_CHG_RSTRT | BIT_FCHGTIME, val);
 	if (ret) {
