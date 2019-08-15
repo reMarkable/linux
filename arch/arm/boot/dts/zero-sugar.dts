@@ -56,15 +56,6 @@
 		reg = <0x80000000 0x80000000>;
 	};
 
-	reg_usb_otg2_vbus: regulator-usb-otg2-vbus {
-		compatible = "regulator-fixed";
-		regulator-name = "usb_otg2_vbus";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		/*gpio = <&gpio1 7 GPIO_ACTIVE_HIGH>;
-		enable-active-high;*/
-	};
-
 	reg_vref_1v8: regulator-vref-1v8 {
 		compatible = "regulator-fixed";
 		regulator-name = "vref-1v8";
@@ -78,6 +69,18 @@
         clocks = <&clks IMX7D_CLKO2_ROOT_DIV>;
 		clock-names = "32K_ext_wifi_clk";
     };
+
+	otgcontrol: otgcontrol1 {
+		pinctrl-names = "default", "one_wire_uart_tx", "one_wire_uart_rx";
+		pinctrl-0 = <&pinctrl_one_wire_gpio>;
+		pinctrl-1 = <&pinctrl_one_wire_uart6_tx>;
+		pinctrl-2 = <&pinctrl_one_wire_uart6_rx>;
+		compatible = "rm-otgcontrol";
+		/* vbus-supply =<&max77818_chg>; */
+		vbus-supply-name = "max77818-charger";
+		one-wire-tty-name = "ttymxc5";
+		one-wire-gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
+		};
 };
 
 &cpu0 {
@@ -470,21 +473,26 @@
 	status = "okay";
 };
 
-/*
+&uart6 {
+	/* Pinctrl is defined under 'otgcontrol' driver, which will switch the pinmuxing as required */
+	assigned-clocks = <&clks IMX7D_UART6_ROOT_SRC>;
+	assigned-clock-parents = <&clks IMX7D_OSC_24M_CLK>;
+	status = "okay";
+};
+
 &usbotg1 {
-	vbus-supply = <&reg_safeout1>;
+	flip-extcon-order;
+	extcon = <&otgcontrol>;
 	srp-disable;
 	hnp-disable;
-	adp-disable;
-	status = "disabled";
-};*/
+	dp-disable;
+	status = "okay";
+};
 
 &usbotg2 {
-	vbus-supply = <&reg_usb_otg2_vbus>;
 	srp-disable;
 	hnp-disable;
 	asp-disable;
-	/*dr_mode = "device";*/
 	status = "okay";
 };
 
@@ -732,6 +740,27 @@
 		pinctrl_wdog: wdoggrp {
 			fsl,pins = <
 				MX7D_PAD_ENET1_COL__WDOG1_WDOG_ANY	0x74
+			>;
+		};
+
+		pinctrl_one_wire_gpio: one_wire_gpio_grp {
+			fsl,pins = <
+				MX7D_PAD_EPDC_DATA08__GPIO2_IO8                                 0x00000074
+				MX7D_PAD_EPDC_DATA09__GPIO2_IO9                                 0x00000004
+			>;
+		};
+
+		pinctrl_one_wire_uart6_tx: one_wire_uart6_tx_grp {
+			fsl,pins = <
+				MX7D_PAD_EPDC_DATA08__GPIO2_IO8                                 0x00000004
+				MX7D_PAD_EPDC_DATA09__UART6_DCE_TX                              0x00000004
+			>;
+		};
+
+		pinctrl_one_wire_uart6_rx: one_wire_uart6_rx_grp {
+			fsl,pins = <
+				MX7D_PAD_EPDC_DATA08__UART6_DCE_RX                              0x00000004
+				MX7D_PAD_EPDC_DATA09__GPIO2_IO9                                 0x00000004
 			>;
 		};
 	};
