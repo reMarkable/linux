@@ -154,6 +154,35 @@ conn_subsys: bus@5b000000 {
 		status = "disabled";
 	};
 
+	usb3phynop1: usb3-phy {
+		compatible = "usb-nop-xceiv";
+		clocks = <&usb3_lpcg 4>;
+		clock-names = "main_clk";
+		power-domains = <&pd IMX_SC_R_USB_2_PHY>;
+		status = "disabled";
+	};
+
+	usbotg3: usb3@5b110000 {
+		compatible = "Cadence,usb3";
+		reg = <0x5B110000 0x10000>,
+			<0x5B130000 0x10000>,
+			<0x5B140000 0x10000>,
+			<0x5B160000 0x40000>,
+			<0x5B120000 0x10000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SPI 271 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&usb3_lpcg 1>,
+			 <&usb3_lpcg 0>,
+			 <&usb3_lpcg 5>,
+			 <&usb3_lpcg 2>,
+			 <&usb3_lpcg 3>;
+		clock-names = "usb3_lpm_clk", "usb3_bus_clk", "usb3_aclk",
+			"usb3_ipg_clk", "usb3_core_pclk";
+		power-domains = <&pd IMX_SC_R_USB_2>;
+		cdns3,usbphy = <&usb3phynop1>;
+		status = "disabled";
+	};
+
 	/* LPCG clocks */
 	sdhc0_lpcg: clock-controller@5b200000 {
 		compatible = "fsl,imx8qxp-lpcg";
@@ -243,5 +272,25 @@ conn_subsys: bus@5b000000 {
 		clock-output-names = "usboh3_ahb_clk",
 				     "usboh3_phy_ipg_clk";
 		power-domains = <&pd IMX_SC_R_USB_0_PHY>;
+	};
+
+	usb3_lpcg: clock-controller@5b280000 {
+		compatible = "fsl,imx8qxp-lpcg";
+		reg = <0x5b280000 0x10000>;
+		#clock-cells = <1>;
+		bit-offset = <0 4 16 20 24 28>;
+		clocks = <&clk IMX_SC_R_USB_2 IMX_SC_PM_CLK_PER>,
+			 <&clk IMX_SC_R_USB_2 IMX_SC_PM_CLK_MISC>,
+			 <&conn_ipg_clk>,
+			 <&conn_ipg_clk>,
+			 <&conn_ipg_clk>,
+			 <&clk IMX_SC_R_USB_2 IMX_SC_PM_CLK_MST_BUS>;
+		clock-output-names = "usb3_app_clk",
+				     "usb3_lpm_clk",
+				     "usb3_ipg_clk",
+				     "usb3_core_pclk",
+				     "usb3_phy_clk",
+				     "usb3_aclk";
+		power-domains = <&pd IMX_SC_R_USB_2_PHY>;
 	};
 };
