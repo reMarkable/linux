@@ -804,22 +804,22 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 
 	if (of_property_read_u32(np, "fast_charge_timer",
 				 &chg->fast_charge_timer))
-		chg->fast_charge_timer = 0; // disable
+		chg->fast_charge_timer = 4; // 4 hours
 
 	if (of_property_read_u32(np, "fast_charge_current",
 				 &chg->fast_charge_current))
-		chg->fast_charge_current = 500; // 500mA
+		chg->fast_charge_current = 450; // 450mA
 
 	if (of_property_read_u32(np, "charge_termination_voltage",
 				 &chg->termination_voltage))
-		chg->termination_voltage = 4350; // 4350mV
+		chg->termination_voltage = 4200; // 4200mV
 
 	if (of_property_read_u32(np, "topoff_timer", &chg->topoff_timer))
 		chg->topoff_timer = 30; // 30 min
 
 	if (of_property_read_u32(np, "topoff_current",
 				 &chg->topoff_current))
-		chg->topoff_current = 200; // 200mA
+		chg->topoff_current = 150; // 150mA
 
 	if (of_property_read_u32(np, "restart_threshold",
 				 &chg->restart_threshold))
