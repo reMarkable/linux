@@ -183,7 +183,6 @@ int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 
 void otgcontrol_uninit_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 {
-	printk("%s: Enter\n", __func__);
 	printk("%s: Decrementing kobject refcount\n", __func__);
 	if((otgc_data->kobject != NULL) && !IS_ERR(otgc_data->kobject)) {
 		kobject_put(otgc_data->kobject);

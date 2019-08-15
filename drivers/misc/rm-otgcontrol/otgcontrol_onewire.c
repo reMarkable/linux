@@ -60,7 +60,10 @@ int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 
 void otgcontrol_uninit_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 {
-	devm_pinctrl_put(otgc_data->one_wire_pinctrl);
+	if ((otgc_data->one_wire_pinctrl != NULL) && !IS_ERR(otgc_data->one_wire_pinctrl)) {
+		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
+		otgc_data->one_wire_pinctrl = NULL;
+	}
 }
 
 int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data, int state)
