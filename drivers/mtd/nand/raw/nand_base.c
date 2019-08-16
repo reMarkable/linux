@@ -930,7 +930,8 @@ static int nand_init_data_interface(struct nand_chip *chip)
 		modes = GENMASK(chip->onfi_timing_mode_default, 0);
 	}
 
-	for (mode = fls(modes) - 1; mode >= 0; mode--) {
+	/* for (mode = fls(modes) - 1; mode >= 0; mode--) { */
+	for (mode = 1; mode >= 0; mode--) {
 		ret = onfi_fill_data_interface(chip, NAND_SDR_IFACE, mode);
 		if (ret)
 			continue;
