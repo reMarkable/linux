@@ -173,7 +173,8 @@ int otgcontrol_init_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 
 void otgcontrol_uninit_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 {
-	printk("%s: PLEASE IMPLEMENT PROPER IRQ UN-INIT !\n", __func__);
+	printk("%s: Freeing irq\n", __func__);
+	devm_free_irq(otgc_data->dev, otgc_data->one_wire_gpio_irq, otgc_data);
 }
 
 void otgcontrol_activate_gpio_irq(struct rm_otgcontrol_data *otgc_data)
