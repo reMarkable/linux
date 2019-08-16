@@ -76,8 +76,7 @@
 		pinctrl-1 = <&pinctrl_one_wire_uart6_tx>;
 		pinctrl-2 = <&pinctrl_one_wire_uart6_rx>;
 		compatible = "rm-otgcontrol";
-		/* vbus-supply =<&max77818_chg>; */
-		vbus-supply-name = "max77818-charger";
+		vbus-supply =<&max77818_chg>;
 		one-wire-tty-name = "ttymxc5";
 		one-wire-gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
 		};
