@@ -70,6 +70,7 @@ enum pf1550_status {
 
 struct pf1550_regulator_info {
 	struct rpmsg_device *rpdev;
+	bool is_ready;
 	struct device *dev;
 	struct pf1550_regulator_rpmsg *msg;
 	struct completion cmd_complete;
@@ -333,6 +334,8 @@ static int rpmsg_regulator_probe(struct rpmsg_device *rpdev)
 	init_completion(&pf1550_info.cmd_complete);
 	mutex_init(&pf1550_info.lock);
 
+	pf1550_info.is_ready = true;
+
 	dev_info(&rpdev->dev, "new channel: 0x%x -> 0x%x!\n",
 			rpdev->src, rpdev->dst);
 	return 0;
@@ -449,6 +452,9 @@ static int pf1550_regulator_probe(struct platform_device *pdev)
 
 	if (!np)
 		return -ENODEV;
+
+	if (!pf1550_info.is_ready)
+		return -EPROBE_DEFER;
 
 	config.dev = &pdev->dev;
 	config.driver_data = &pf1550_info;
