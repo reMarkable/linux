@@ -591,7 +591,11 @@ static int max77818_charger_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = chg->present;
+		if (chg->status == POWER_SUPPLY_STATUS_CHARGING ||
+		    chg->status == POWER_SUPPLY_STATUS_FULL)
+			val->intval = 1;
+		else
+			val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 		val->intval = chg->health;
