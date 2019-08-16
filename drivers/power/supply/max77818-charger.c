@@ -73,7 +73,7 @@
 #define BIT_MODE_BUCK			BIT(2)
 #define BIT_MODE_OTG			BIT(1)
 #define BIT_MODE_CHARGER		BIT(0)
-#define MODE_OTG_BUCK_BOOST		0x0E
+#define MODE_OTG_BUCK_BOOST		0x0F
 #define MODE_CHARGER_BUCK		0x05
 
 #define REG_CHG_CNFG_01			0xB8
