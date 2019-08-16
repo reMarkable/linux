@@ -666,32 +666,6 @@ static int max77818_charger_property_is_writeable(struct power_supply *psy,
 	}
 }
 
-static int max77818_charger_exit_dev(struct max77818_charger *chg)
-{
-	int ret;
-
-	ret = max77818_charger_set_enable(chg, false);
-	if (ret) {
-		dev_err(chg->dev, "failed to disable charger: %d\n", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int max77818_charger_init_dev(struct max77818_charger *chg)
-{
-	int ret;
-
-	ret = max77818_charger_set_enable(chg, true);
-	if (ret) {
-		dev_err(chg->dev, "failed to enable charger: %d\n", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
 static void max77818_do_irq(struct max77818_charger *chg)
 {
 	struct device *dev = chg->dev;
@@ -704,31 +678,21 @@ static void max77818_do_irq(struct max77818_charger *chg)
 		chg_input = max77818_charger_chgin_present(chg);
 		wc_input = max77818_charger_wcin_present(chg);
 
-		if (!wc_input) {
-			/* init/exit if only CHGIN is present */
-			if (chg_input)
-				max77818_charger_init_dev(chg);
-			else
-				max77818_charger_exit_dev(chg);
-		}
-
 		dev_info(dev, "CHGIN input %s\n", chg_input ? "inserted" :
 							      "removed");
+		/* if CHGIN is the only present charger */
+		if (!wc_input)
+			max77818_charger_set_enable(chg, chg_input ? 1 : 0);
 		break;
 	case CHG_INT_WCIN_I:
 		chg_input = max77818_charger_chgin_present(chg);
 		wc_input = max77818_charger_wcin_present(chg);
 
-		if (!chg_input) {
-			/* init/exit if only WCIN is present */
-			if (wc_input)
-				max77818_charger_init_dev(chg);
-			else
-				max77818_charger_exit_dev(chg);
-		}
-
 		dev_info(dev, "WCIN input %s\n", wc_input ? "inserted" :
 							    "removed");
+		/* if WCIN is the only present charger */
+		if (!chg_input)
+			max77818_charger_set_enable(chg, wc_input ? 1 : 0);
 		break;
 	default:
 		break;
