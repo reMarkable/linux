@@ -356,14 +356,6 @@ static int max77818_charger_get_charge_current(struct max77818_charger *chg)
 	return get_current;
 }
 
-static inline int
-max77818_charger_set_charge_current(struct max77818_charger *chg,
-				    int fast_charging_current)
-{
-	return regmap_update_bits(chg->regmap, REG_CHG_CNFG_02, BIT_CHG_CC,
-				  fast_charging_current / 50);
-}
-
 static int max77818_charger_set_enable(struct max77818_charger *chg, int en)
 {
 	u8 mode;
@@ -403,8 +395,8 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	}
 
 	/* charge current (mA) */
-	ret = max77818_charger_set_charge_current(chg,
-					chg->fast_charge_current);
+	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_02, BIT_CHG_CC,
+				 chg->fast_charge_current / 50);
 	if (ret) {
 		dev_err(dev, "failed to set charge current: %d\n", ret);
 		return ret;
@@ -639,10 +631,6 @@ static int max77818_charger_set_property(struct power_supply *psy,
 		ret = max77818_charger_set_enable(chg, val->intval);
 		if (ret)
 			goto out;
-
-		/* apply charge current */
-		ret = max77818_charger_set_charge_current(chg,
-						chg->fast_charge_current);
 		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		if (val->intval == POWER_SUPPLY_MODE_CHARGER) {
@@ -685,12 +673,6 @@ static int max77818_charger_exit_dev(struct max77818_charger *chg)
 	ret = max77818_charger_set_enable(chg, false);
 	if (ret) {
 		dev_err(chg->dev, "failed to disable charger: %d\n", ret);
-		return ret;
-	}
-
-	ret = max77818_charger_set_charge_current(chg, chg->fast_charge_current);
-	if (ret) {
-		dev_err(chg->dev, "failed to set charge current: %d\n", ret);
 		return ret;
 	}
 
