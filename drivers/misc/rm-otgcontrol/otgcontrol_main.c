@@ -90,39 +90,42 @@ static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
 
 	printk("[---- SBA ----] %s: Enter\n", __func__);
 
-	if (of_find_property(np, "vbus-supply-name", NULL)) {
+	if (of_find_property(np, "vbus-supply", NULL)) {
+		printk("%s: Found vbus-supply property, trying to get get vbus powersupply by phandle\n", __func__);
+		pdata->vbus_supply = power_supply_get_by_phandle(np, "vbus-supply");
+		if (IS_ERR_OR_NULL(pdata->vbus_supply)) {
+			printk("[---- SBA ----] %s: vbus supply not ready, defering probe\n", __func__);
+			return -EPROBE_DEFER;
+		}
+	}
+	else if (of_find_property(np, "vbus-supply-name", NULL)) {
 		printk("[---- SBA ----] %s: Found vbus-supply-name property, trying to read it\n", __func__);
 		ret = of_property_read_string(np, "vbus-supply-name", &vbus_supply_name);
 		if (ret) {
 			printk("[---- SBA ----] %s: Failed to read property vbus-supply-name (code %d)\n", __func__, ret);
-			return ret;
+			return -EINVAL;
 		}
 
 		printk("[---- SBA ----] %s: Read vbus-supply-name: %s, trying to get reference to it\n", __func__, vbus_supply_name);
 		pdata->vbus_supply = power_supply_get_by_name(vbus_supply_name);
 		if (IS_ERR(pdata->vbus_supply)) {
-			dev_err(dev, "%s: Failed to get supply '%s'\n", __func__, vbus_supply_name);
-			return PTR_ERR(pdata->vbus_supply);
-		}
-
-		if (!pdata->vbus_supply) {
 			printk("[---- SBA ----] %s: vbus supply not ready, defering probe\n", __func__);
 			return -EPROBE_DEFER;
 		}
-
-		printk("[---- SBA ----] %s: Got pointer to vbus-supply\n", __func__);
 	}
 	else {
 		printk("[---- SBA ----] %s: Required vbus-supply-name property not given !\n", __func__);
 		return -EINVAL;
 	}
+	printk("[---- SBA ----] %s: Got pointer to vbus-supply\n", __func__);
+
 
 	if (of_find_property(np, "one-wire-tty-name", NULL)) {
 		printk("[---- SBA ----] %s: Found one-wire-tty-name property, trying to read it\n", __func__);
 		ret = of_property_read_string(np, "one-wire-tty-name", &otgc_data->one_wire_tty_name);
 		if (ret) {
 			printk("[---- SBA ----] %s: Failed to read property one-wire-tty-name (code %d)\n", __func__, ret);
-			return ret;
+			return -EINVAL;
 		}
 	}
 	else {
@@ -205,10 +208,10 @@ error_3:
 	otgcontrol_uninit_gpio_irq(otgc_data);
 
 error_2:
-	kfree(pdata);
+	devm_kfree(otgc_data->dev, pdata);
 
 error_1:
-	kfree(otgc_data);
+	devm_kfree(otgc_data->dev, otgc_data);
 
 	return ret;
 }
@@ -225,11 +228,17 @@ static int rm_otgcontrol_remove(struct platform_device *pdev)
 	printk("%s: Un-initializing extcon device\n", __func__);
 	otgcontrol_uninit_extcon(otgc_data);
 
+	printk("%s: Un-initializing one-wire pinctrl\n", __func__);
+	otgcontrol_uninit_one_wire_mux_state(otgc_data);
+
+	printk("%s: Un-initialize gpio irq\n", __func__);
+	otgcontrol_uninit_gpio_irq(otgc_data);
+
 	printk("%s: Freeing otgc->pdata\n", __func__);
-	kfree(otgc_data->pdata);
+	devm_kfree(&pdev->dev, otgc_data->pdata);
 
 	printk("%s: Freeing otgc\n", __func__);
-	kfree(otgc_data);
+	devm_kfree(&pdev->dev, otgc_data);
 
 	return 0;
 }
