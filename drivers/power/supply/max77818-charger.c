@@ -179,7 +179,8 @@ struct max77818_charger {
 	int chgin_irq;
 	int wcin_irq;
 	int chg_int;
-	int dtls[3];
+
+	u8 dtls[3];
 
 	int present;
 	int health;
