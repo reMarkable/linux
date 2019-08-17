@@ -637,11 +637,6 @@ static int max77818_charger_set_property(struct power_supply *psy,
 	mutex_lock(&chg->lock);
 
 	switch (psp) {
-	case POWER_SUPPLY_PROP_ONLINE:
-		ret = max77818_charger_set_enable(chg, val->intval);
-		if (ret)
-			goto out;
-		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		if (val->intval == POWER_SUPPLY_MODE_CHARGER ||
 		    val->intval == POWER_SUPPLY_MODE_OTG_SUPPLY) {
@@ -678,7 +673,6 @@ static int max77818_charger_property_is_writeable(struct power_supply *psy,
 {
 
 	switch (psp) {
-	case POWER_SUPPLY_PROP_ONLINE:
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		return 1;
 	default:
