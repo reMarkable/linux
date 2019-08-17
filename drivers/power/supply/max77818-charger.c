@@ -218,11 +218,12 @@ static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 	if (ret)
 		return false;
 
-	if ((chg_int_ok & BIT_CHGIN_OK) == BIT_CHGIN_OK) {
+	if (chg_int_ok & BIT_CHGIN_OK) {
 		return true;
 	} else {
 		/* check whether charging or not in the UVLO condition */
 		if (((chg->dtls[0] & BIT_CHGIN_DTLS) == 0) &&
+		    ((chg_int_ok & BIT_WCIN_OK) == 0) &&
 		    (((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CC) ||
 		     ((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CV))) {
 			return true;
@@ -241,11 +242,12 @@ static bool max77818_charger_wcin_present(struct max77818_charger *chg)
 	if (ret)
 		return false;
 
-	if ((chg_int_ok & BIT_WCIN_OK) == BIT_WCIN_OK) {
+	if (chg_int_ok & BIT_WCIN_OK) {
 		return true;
 	} else {
 		/* check whether charging or not in the UVLO condition */
 		if (((chg->dtls[0] & BIT_WCIN_DTLS) == 0) &&
+		    ((chg_int_ok & BIT_CHGIN_OK) == 0) &&
 		    (((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CC) ||
 		     ((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CV))) {
 			return true;
