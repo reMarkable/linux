@@ -361,25 +361,37 @@ static int max77818_charger_get_charge_current(struct max77818_charger *chg)
 static int max77818_charger_set_enable(struct max77818_charger *chg, int en)
 {
 	u8 mode;
+	int ret;
 
 	/* If enable = 0, just shut off charging/otg power */
-	if (!en)
-		return regmap_update_bits(chg->regmap, REG_CHG_CNFG_00,
-					  BIT_MODE, 0);
+	if (!en) {
+		mode = 0;
+		goto update_mode;
+	}
 
 	/*
 	 * Depending on configured mode, turn on charging or OTG
-	 * power - if input power is not present on CHGIN
+	 * power.
 	 */
-	if (chg->charger_mode == POWER_SUPPLY_MODE_CHARGER)
+	if (chg->charger_mode == POWER_SUPPLY_MODE_CHARGER) {
 		mode = MODE_CHARGER_BUCK;
-	else if (chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY)
-		mode = !max77818_charger_chgin_present(chg) ?
-					MODE_OTG_BUCK_BOOST : 0;
-	else
+	} else if (chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY) {
+		mode = MODE_OTG_BUCK_BOOST;
+	} else {
+		dev_err(chg->dev, "invalid charger_mode %d\n",
+			chg->charger_mode);
 		return -EINVAL;
+	}
 
-	return regmap_update_bits(chg->regmap, REG_CHG_CNFG_00, BIT_MODE, mode);
+update_mode:
+	dev_info(chg->dev, "set MODE bits to 0x%x", mode);
+	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_00, BIT_MODE, mode);
+	if (ret) {
+		dev_err(chg->dev, "failed to update MODE bits: %d\n", ret);
+		return ret;
+	}
+
+	return 0;
 }
 
 static int max77818_charger_initialize(struct max77818_charger *chg)
@@ -631,15 +643,25 @@ static int max77818_charger_set_property(struct power_supply *psy,
 			goto out;
 		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
-		if (val->intval == POWER_SUPPLY_MODE_CHARGER) {
-			chg->charger_mode = val->intval;
-		} else if (val->intval == POWER_SUPPLY_MODE_OTG_SUPPLY) {
+		if (val->intval == POWER_SUPPLY_MODE_CHARGER ||
+		    val->intval == POWER_SUPPLY_MODE_OTG_SUPPLY) {
 			chg->charger_mode = val->intval;
 		} else {
 			ret = -EINVAL;
 			goto out;
 		}
-		ret = max77818_charger_set_enable(chg, false);
+
+		/*
+		 * Disable charger, if we are going into Charger mode while
+		 * neither of chargers is present.  Otherwise, enable charger
+		 * per charger_mode setting.
+		 */
+		if (val->intval == POWER_SUPPLY_MODE_CHARGER &&
+		    !max77818_charger_chgin_present(chg) &&
+		    !max77818_charger_wcin_present(chg))
+			max77818_charger_set_enable(chg, 0);
+		else
+			max77818_charger_set_enable(chg, 1);
 		break;
 	default:
 		ret = -EINVAL;
@@ -673,21 +695,35 @@ static void max77818_do_irq(struct max77818_charger *chg)
 
 	switch (chg->chg_int) {
 	case CHG_INT_CHGIN_I:
+		/*
+		 * Ignore the interrupt in case of OTG mode, as we do not
+		 * want to actively manage charger on/off for OTG mode.
+		 */
+		if (chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY)
+			break;
+
 		chg_input = max77818_charger_chgin_present(chg);
 		wc_input = max77818_charger_wcin_present(chg);
 
-		dev_info(dev, "CHGIN input %s\n", chg_input ? "inserted" :
-							      "removed");
+		dev_dbg(dev, "CHGIN input %s\n", chg_input ? "inserted" :
+							     "removed");
 		/* if CHGIN is the only present charger */
 		if (!wc_input)
 			max77818_charger_set_enable(chg, chg_input ? 1 : 0);
 		break;
 	case CHG_INT_WCIN_I:
+		/*
+		 * Ignore the interrupt in case of OTG mode, as we do not
+		 * want to actively manage charger on/off for OTG mode.
+		 */
+		if (chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY)
+			break;
+
 		chg_input = max77818_charger_chgin_present(chg);
 		wc_input = max77818_charger_wcin_present(chg);
 
-		dev_info(dev, "WCIN input %s\n", wc_input ? "inserted" :
-							    "removed");
+		dev_dbg(dev, "WCIN input %s\n", wc_input ? "inserted" :
+							   "removed");
 		/* if WCIN is the only present charger */
 		if (!chg_input)
 			max77818_charger_set_enable(chg, wc_input ? 1 : 0);
