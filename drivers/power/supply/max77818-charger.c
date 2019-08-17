@@ -182,7 +182,6 @@ struct max77818_charger {
 
 	u8 dtls[3];
 
-	int present;
 	int health;
 	int status;
 	int charge_type;
@@ -538,19 +537,15 @@ static int max77818_charger_update(struct max77818_charger *chg)
 	chg->status = POWER_SUPPLY_STATUS_UNKNOWN;
 	chg->charge_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 
+	if (!max77818_charger_chgin_present(chg) &&
+	    !max77818_charger_wcin_present(chg)) {
+		/* no charger present */
+		return 0;
+	}
+
 	ret = regmap_read(chg->regmap, REG_CHG_DTLS_01, &dtls_01);
 	if (ret)
 		goto out;
-
-	chg->present = max77818_charger_chgin_present(chg) ||
-				max77818_charger_wcin_present(chg);
-	if (!chg->present) {
-		/* no charger present */
-		chg->health = POWER_SUPPLY_HEALTH_UNKNOWN;
-		chg->status = POWER_SUPPLY_STATUS_DISCHARGING;
-		chg->charge_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
-		goto out;
-	}
 
 	chg_dtls = dtls_01 & BIT_CHG_DTLS;
 
