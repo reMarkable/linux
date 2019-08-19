@@ -2623,6 +2623,8 @@ static int tcpm_src_attach(struct tcpm_port *port)
 	if (port->attached)
 		return 0;
 
+	tcpm_set_cc(port, tcpm_rp_cc(port));
+
 	ret = tcpm_set_polarity(port, polarity);
 	if (ret < 0)
 		return ret;
@@ -2743,6 +2745,8 @@ static int tcpm_snk_attach(struct tcpm_port *port)
 
 	if (port->attached)
 		return 0;
+
+	tcpm_set_cc(port, TYPEC_CC_RD);
 
 	ret = tcpm_set_polarity(port, port->cc2 != TYPEC_CC_OPEN ?
 				TYPEC_POLARITY_CC2 : TYPEC_POLARITY_CC1);
