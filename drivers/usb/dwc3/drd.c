@@ -508,7 +508,7 @@ static enum usb_role dwc3_usb_role_switch_get(struct device *dev)
 	return role;
 }
 
-static const struct usb_role_switch_desc dwc3_role_switch = {
+static struct usb_role_switch_desc dwc3_role_switch = {
 	.set = dwc3_usb_role_switch_set,
 	.get = dwc3_usb_role_switch_get,
 };
@@ -522,6 +522,7 @@ int dwc3_drd_init(struct dwc3 *dwc)
 		return PTR_ERR(dwc->edev);
 
 	if (device_property_read_bool(dwc->dev, "usb-role-switch")) {
+		dwc3_role_switch.fwnode = dev_fwnode(dwc->dev);
 		dwc->role_switch = usb_role_switch_register(dwc->dev,
 							    &dwc3_role_switch);
 		if (IS_ERR(dwc->role_switch))
