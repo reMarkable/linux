@@ -1,7 +1,7 @@
 #ifndef __OTGCONTROL_DR_MODE_H__
 #define __OTGCONTROL_DR_MODE_H__
 
-#include <linux/rm-otgcontrol.h>
+#include "otgcontrol.h"
 
 #define OTG1_DR_MODE__DEVICE	0
 #define OTG1_DR_MODE__HOST	1

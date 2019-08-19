@@ -8,12 +8,12 @@
  *
  */
 
+#include "otgcontrol.h"
 #include "otgcontrol_sysfs.h"
 #include "otgcontrol_fsm.h"
 #include "otgcontrol_dr_mode.h"
 #include "otgcontrol_onewire.h"
 
-#include <linux/rm-otgcontrol.h>
 #include <linux/kernel.h>
 #include <linux/version.h>
 #include <linux/module.h>

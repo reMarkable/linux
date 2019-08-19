@@ -1,7 +1,7 @@
 #ifndef __OTGCONTROL_FSM_H__
 #define __OTGCONTROL_FSM_H__
 
-#include <linux/rm-otgcontrol.h>
+#include "otgcontrol.h"
 
 int otgcontrol_init_fsm(struct rm_otgcontrol_data *otgc_data);
 int otgcontrol_handleInput(struct rm_otgcontrol_data *otgc_data,
