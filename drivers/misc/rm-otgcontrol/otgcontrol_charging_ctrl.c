@@ -27,19 +27,6 @@ int otgcontrol_change_otg_charge_mode(struct rm_otgcontrol_data *otgc_data,
 
 			return ret;
 		}
-
-		property_val.intval = 1;
-		ret = power_supply_set_property(otgc_data->pdata->vbus_supply,
-						POWER_SUPPLY_PROP_ONLINE,
-						&property_val);
-		if (ret < 0) {
-			dev_err(otgc_data->dev,
-				"%s: Failed to enable charging after "
-				"changing charger mode\n",
-				__func__);
-
-			return ret;
-		}
 		break;
 
 	case OTG1_CHARGERMODE_OTG:
@@ -55,18 +42,6 @@ int otgcontrol_change_otg_charge_mode(struct rm_otgcontrol_data *otgc_data,
 				"%s: Failed to set charger mode\n",
 				__func__);
 
-			return ret;
-		}
-
-		property_val.intval = 1;
-		ret = power_supply_set_property(otgc_data->pdata->vbus_supply,
-						POWER_SUPPLY_PROP_ONLINE,
-						&property_val);
-		if (ret < 0) {
-			dev_err(otgc_data->dev,
-				"%s: Failed to enable charging after changing "
-				"charger mode\n",
-				__func__);
 			return ret;
 		}
 		break;
