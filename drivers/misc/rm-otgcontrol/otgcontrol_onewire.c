@@ -364,13 +364,11 @@ int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data,
 				 char *device_name,
 				 char *text_to_send)
 {
-	// Create variables
 	struct file *f;
 	char buf[128];
 	mm_segment_t fs;
 	int i;
 
-	// Init the buffer with 0
 	for(i = 0;i < 128;i++)
 		buf[i] = 0;
 
@@ -386,20 +384,17 @@ int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data,
 		return -1;
 	}
 	else {
-		// Get current segment descriptor
 		dev_dbg(otgc_data->dev,
 			"%s: Getting current segment descriptor\n",
 			__func__);
 
 		fs = get_fs();
 
-		// Set segment descriptor associated to kernel space
 		dev_dbg(otgc_data->dev,
 			"%s: Setting segment descriptor\n",
 			__func__);
 		set_fs(KERNEL_DS);
 
-		//Write to the file
 		dev_dbg(otgc_data->dev,
 			"%s: Writing '%s' to file\n",
 			__func__,
@@ -409,9 +404,7 @@ int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data,
 			     text_to_send,
 			     strlen(text_to_send),
 			     &f->f_pos);
-//        f->f_op->write(f, text_to_send, strlen(text_to_send), &f->f_pos);
 
-		// Restore segment descriptor
 		dev_dbg(otgc_data->dev,
 			"%s: Restoring segment descriptor\n",
 			__func__);
@@ -429,7 +422,6 @@ int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data,
 
 int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char *device_name, char *buf, int maxlen)
 {
-	// Create variables
 	struct file *f;
 	mm_segment_t fs;
 	char newchar;
@@ -443,14 +435,12 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 		return -1;
 	}
 	else {
-		// Get current segment descriptor
 		dev_dbg(otgc_data->dev,
 			"%s: Getting current segment descriptor\n",
 			__func__);
 
 		fs = get_fs();
 
-		// Set segment descriptor associated to kernel space
 		dev_dbg(otgc_data->dev,
 			"%s: Setting segment descriptor\n",
 			__func__);
@@ -462,8 +452,6 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 			"%s: Starting read loop\n",
 			__func__);
 		do {
-			// Read the file
-//            f->f_op->read(f, &newchar, 1, &f->f_pos);
 			kernel_read(f,
 				    &newchar,
 				    1,
@@ -477,7 +465,6 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 			switch(state)
 			{
 			case 0:
-				// Wait :
 				if (newchar == ':') {
 					dev_dbg(otgc_data->dev,
 						"%s: SOF\n",
@@ -487,7 +474,6 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 				}
 				break;
 			default:
-				// Reading chars
 				if (newchar != '#') {
 					buf[pos++] = newchar;
 				}
@@ -498,7 +484,6 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 			"%s: Done\n",
 			__func__);
 
-		// Restore segment descriptor
 		dev_dbg(otgc_data->dev,
 			"%s: Restoring segment descriptor\n",
 			__func__);
