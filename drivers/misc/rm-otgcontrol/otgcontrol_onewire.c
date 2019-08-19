@@ -339,14 +339,21 @@ static void otgcontrol_gpio_irq_work(struct work_struct *work)
 		otgc_data->one_wire_gpio_state = cur_gpio_state;
 
 		if (otgc_data->one_wire_gpio_state ==
-				OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED)
+				OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED) {
+			SYNC_SET_FLAG(otgc_data->otg1_device_connected,
+				      &otgc_data->lock);
+
 			otgcontrol_handleInput(otgc_data,
 					       OTG1_EVENT__DEVICE_CONNECTED,
 					       NULL);
-		else
+		}
+		else {
+			SYNC_CLEAR_FLAG(otgc_data->otg1_device_connected,
+					&otgc_data->lock);
 			otgcontrol_handleInput(otgc_data,
 					       OTG1_EVENT__DEVICE_DISCONNECTED,
 					       NULL);
+		}
 	}
 
 	SYNC_CLEAR_FLAG(otgc_data->one_wire_gpio_irq_is_handling,
