@@ -382,32 +382,7 @@ static struct platform_driver rm_otgcontrol_driver = {
 	.remove = rm_otgcontrol_remove,
 };
 
-static int __init otgcontrol_init(void)
-{
-	int ret;
-
-	pr_debug("%s: Registering platform driver 'rm-otgcontrol'\n",
-		 __func__);
-
-	ret = platform_driver_register(&rm_otgcontrol_driver);
-	if (ret < 0)
-		pr_err("%s: Failed to register platform driver, code %d\n",
-		       __func__,
-		       ret);
-
-	return ret;
-}
-
-static void __exit otgcontrol_exit(void)
-{
-	pr_debug("%s: Unregistering platform driver 'rm-otgcontrol'\n",
-		 __func__);
-
-	platform_driver_unregister(&rm_otgcontrol_driver);
-}
-
-module_init(otgcontrol_init);
-module_exit(otgcontrol_exit);
+module_platform_driver(rm_otgcontrol_driver);
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("reMarkable OTG control driver, to enable authentication of "
