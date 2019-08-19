@@ -1,7 +1,7 @@
 #ifndef __OTGCONTROL_ONE_WIRE_H__
 #define __OTGCONTROL_ONE_WIRE_H__
 
-#include <linux/rm-otgcontrol.h>
+#include "otgcontrol.h"
 
 #include <linux/workqueue.h>
 #include <linux/interrupt.h>

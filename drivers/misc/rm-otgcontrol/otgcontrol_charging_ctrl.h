@@ -1,7 +1,7 @@
 #ifndef __OTGCONTROL_CHARGING_CTRL_H__
 #define __OTGCONTROL_CHARGING_CTRL_H__
 
-#include <linux/rm-otgcontrol.h>
+#include "otgcontrol.h"
 
 #define OTG1_CHARGERMODE_CHARGE	0
 #define OTG1_CHARGERMODE_OTG	1

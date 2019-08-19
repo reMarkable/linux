@@ -1,9 +1,9 @@
+#include "otgcontrol.h"
 #include "otgcontrol_fsm.h"
 #include "otgcontrol_onewire.h"
 #include "otgcontrol_charging_ctrl.h"
 #include "otgcontrol_dr_mode.h"
 
-#include <linux/rm-otgcontrol.h>
 #include <linux/errno.h>
 #include <linux/export.h>
 #include <linux/power_supply.h>
