@@ -59,7 +59,8 @@ static ssize_t attribute_show(struct kobject *kobj,
 		dev_dbg(otgc_data->dev,
 			"%s: Returning cur otg1_device_connected value (%d)\n",
 			__func__,
-			otgc_data->otg1_device_connected);
+			SYNC_GET_FLAG(otgc_data->otg1_device_connected,
+				      &otgc_data->lock));
 
 		var = otgc_data->otg1_device_connected;
 	}
@@ -96,12 +97,23 @@ static ssize_t attribute_show(struct kobject *kobj,
 
 		var = otgc_data->otg1_controllermode;
 	}
+	else if (strcmp(attr->attr.name, "otg1_pinctrlstate") == 0) {
+		otgc_data = to_otgcontrol_data(attr,
+					       otg1_pinctrlstate_attribute);
+		dev_dbg(otgc_data->dev,
+			"%s: Returning cur pinctrlstate (%d)\n",
+			__func__,
+			otgc_data->otg1_pinctrlstate);
+
+		var = otgc_data->otg1_pinctrlstate;
+	}
 	else {
 		dev_dbg(otgc_data->dev,
-			"%s: Invalid attribute name (%s)\n",
+			"%s: Invalid attribute name (%s), returning 0\n",
 			__func__,
 			attr->attr.name);
-		return -EINVAL;
+
+		var = 0;
 	}
 
 	return sprintf(buf, "%d\n", var);
