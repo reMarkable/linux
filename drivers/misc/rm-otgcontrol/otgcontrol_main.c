@@ -90,7 +90,6 @@ static int rm_otgcontrol_init(struct rm_otgcontrol_data *otgc_data)
 	return ret;
 }
 
-#ifdef CONFIG_OF
 static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
 {
 	struct device *dev = otgc_data->dev;
@@ -209,7 +208,6 @@ static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
 
 	return 0;
 }
-#endif
 
 static int rm_otgcontrol_probe(struct platform_device *pdev)
 {
@@ -255,7 +253,6 @@ static int rm_otgcontrol_probe(struct platform_device *pdev)
 	otgc_data->dev = &pdev->dev;
 	otgc_data->pdata = pdata;
 
-#if defined(CONFIG_OF)
 	dev_dbg(&pdev->dev,
 		"%s: Reading platform data from devicetree\n",
 		__func__);
@@ -269,13 +266,6 @@ static int rm_otgcontrol_probe(struct platform_device *pdev)
 			ret);
 		goto error_2;
 	}
-#else
-	dev_dbg(&pdev->dev,
-		"%s: Driver does not support non-dt configuration\n",
-		__func__);
-	ret = -ENOTSUP;
-	goto error_2;
-#endif
 
 	dev_dbg(&pdev->dev,
 		"%s: Setting otgc_data reference in pdev, and initiating\n",
@@ -369,13 +359,11 @@ static int rm_otgcontrol_resume(struct device *dev)
 #define rm_otgcontrol_resume NULL
 #endif
 
-#ifdef CONFIG_OF
 static struct of_device_id rm_otgcontrol_dt_ids[] = {
 	{ .compatible = "rm-otgcontrol" },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, rm_otgcontrol_dt_ids);
-#endif
 
 static SIMPLE_DEV_PM_OPS(rm_otgcontrol_pm_ops,
 			 rm_otgcontrol_suspend,
@@ -388,9 +376,7 @@ static struct platform_driver rm_otgcontrol_driver = {
 #ifdef CONFIG_PM
 		.pm = &rm_otgcontrol_pm_ops,
 #endif
-#ifdef CONFIG_OF
 		.of_match_table = rm_otgcontrol_dt_ids,
-#endif
 	},
 	.probe = rm_otgcontrol_probe,
 	.remove = rm_otgcontrol_remove,
