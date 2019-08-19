@@ -6,9 +6,35 @@
 #include <linux/mutex.h>
 #include <linux/extcon.h>
 
+#define SYNC_SET_FLAG(flag, lock) ( \
+	{ \
+		mutex_lock(lock); \
+		flag = true; \
+		mutex_unlock(lock); \
+	} \
+)
+
+#define SYNC_CLEAR_FLAG(flag, lock) ( \
+	{ \
+		mutex_lock(lock); \
+		flag = false; \
+		mutex_unlock(lock); \
+	} \
+)
+
+#define SYNC_GET_FLAG(flag, lock) ( \
+	{ \
+		bool state; \
+		mutex_lock(lock); \
+		state = flag; \
+		mutex_unlock(lock); \
+		state; \
+	} \
+)
+
 struct rm_otgcontrol_platform_data {
 	/* Reference to charger driver for OTG power control */
-	struct power_supply		*vbus_supply;
+	struct power_supply			*vbus_supply;
 
 	/* One-wire tty device and gpio config */
 	const char				*one_wire_tty_name;

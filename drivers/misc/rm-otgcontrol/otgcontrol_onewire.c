@@ -287,7 +287,8 @@ static irqreturn_t otgcontrol_gpio_irq_handler(int irq, void *data)
 {
 	struct rm_otgcontrol_data *otgc_data = (struct rm_otgcontrol_data*)data;
 
-	if (otgc_data->one_wire_gpio_irq_is_handling) {
+	if (SYNC_GET_FLAG(otgc_data->one_wire_gpio_irq_is_handling,
+			  &otgc_data->lock)) {
 		dev_dbg(otgc_data->dev,
 			"%s: Is already handling irq, ignoring this\n",
 			__func__);
@@ -299,7 +300,8 @@ static irqreturn_t otgcontrol_gpio_irq_handler(int irq, void *data)
 			__func__,
 			ONE_WIRE_GPIO_DEBOUNCE_MS);
 
-		otgc_data->one_wire_gpio_irq_is_handling = true;
+		SYNC_SET_FLAG(otgc_data->one_wire_gpio_irq_is_handling,
+			      &otgc_data->lock);
 
 		queue_delayed_work(system_power_efficient_wq,
 				   &otgc_data->one_wire_gpio_irq_work_queue,
@@ -347,11 +349,8 @@ static void otgcontrol_gpio_irq_work(struct work_struct *work)
 					       NULL);
 	}
 
-	dev_dbg(otgc_data->dev,
-		"%s: Resetting is-handling flag\n",
-		__func__);
-
-	otgc_data->one_wire_gpio_irq_is_handling = false;
+	SYNC_CLEAR_FLAG(otgc_data->one_wire_gpio_irq_is_handling,
+			&otgc_data->lock);
 }
 
 int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data,
