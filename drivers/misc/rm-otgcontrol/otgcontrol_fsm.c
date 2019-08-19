@@ -1385,9 +1385,12 @@ static int otgcontrol_do_device_connected_procedure(
 			"%s: Sending authentication challenge\n",
 			__func__);
 
-		/* sprintf(tty_device_name, "/dev/%s", otgc_data->one_wire_tty_name); */
+		sprintf(tty_device_name,
+			"/dev/%s",
+			otgc_data->pdata->one_wire_tty_name);
+
 		ret = otgcontrol_onewire_write_tty(otgc_data,
-						   "/dev/ttymxc5",
+						   tty_device_name,
 						   ":0001ff#");
 		if (ret < 0)
 		{
