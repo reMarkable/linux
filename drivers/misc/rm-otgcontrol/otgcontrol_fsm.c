@@ -194,7 +194,8 @@ static int otgcontrol_reset_fsm(struct rm_otgcontrol_data *otgc_data)
 		"%s: Checking if device is connected\n",
 		__func__);
 
-	if(otgcontrol_get_current_gpio_state(otgc_data) == 0) {
+	if(otgcontrol_get_current_gpio_state(otgc_data) ==
+			OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED) {
 		dev_dbg(otgc_data->dev,
 			"%s: Device is connected, "
 			"doing default authenticated device connection procedure",
@@ -232,8 +233,6 @@ int otgcontrol_handleInput(struct rm_otgcontrol_data *otgc_data,
 			   int signal,
 			   void* param)
 {
-	dev_dbg(otgc_data->dev, "%s: Enter\n", __func__);
-
 	switch(otgc_data->otg_controlstate)
 	{
 	case OTG1_STATE__MANUAL_CONTROL:
@@ -306,7 +305,6 @@ static int otgcontrol_handle_state_MANUAL_CONTROL(
 	case OTG1_EVENT__DEVICE_CONNECTED:
 	case OTG1_EVENT__DEVICE_DISCONNECTED:
 	case OTG1_EVENT__CHALLENGE_REPLY_RECEIVED:
-	case OTG1_EVENT__MODE_CHANGE_REQUESTED:
 	case OTG1_EVENT__MODE_CHANGE_CHALLENGE_REPLY:
 	case OTG1_EVENT__OTG_CHARGERMODE_CHANGE_REQUESTED:
 	case OTG1_EVENT__OTG_DR_MODE_CHANGE_REQUESTED:
@@ -315,6 +313,18 @@ static int otgcontrol_handle_state_MANUAL_CONTROL(
 			"%s: In manual control mode, \
 			no automatic action taken\n",
 			__func__);
+		break;
+
+	case OTG1_EVENT__MODE_CHANGE_REQUESTED:
+		dev_dbg(otgc_data->dev,
+			"%s: Controller-mode change requested\n",
+			__func__);
+
+		return otgcontrol_do_controller_mode_change_procedure(
+					otgc_data,
+					param);
+		break;
+
 	default:
 		dev_dbg(otgc_data->dev,
 			"%s: Unknown signal/event (%d), \
@@ -1145,12 +1155,26 @@ static int otgcontrol_do_controller_mode_change_procedure(
 	{
 	case OTG_MODE__MANUAL_CONTROL:
 	case OTG_MODE__USB_NO_AUTH:
+		dev_err(otgc_data->dev,
+			"%s: Change to manual or non-authenticated mode "
+			"requires authentication of calling application\n",
+			__func__);
+
 		return otgcontrol_do_authenticate_calling_application(
 					otgc_data,
 					mode_requested);
 		break;
+
 	default:
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
+		/* Invalid mode => authenticated mode */
+		dev_err(otgc_data->dev,
+			"%s: Invalid controller mode or authenticated mode "
+			"requested (%d), setting one-wire authenticated mode\n",
+			__func__,
+			mode_requested);
+
+		otgcontrol_do_set_controlmode(otgc_data,
+					      OTG_MODE__ONEWIRE_AUTH);
 		return 0;
 	}
 }
@@ -1159,23 +1183,39 @@ static int otgcontrol_do_authenticate_calling_application(
 		struct rm_otgcontrol_data *otgc_data,
 		int mode_requested)
 {
-	dev_dbg(otgc_data->dev,
-		"%s: SKIPPING CALLING APPLICATION AUTHENTICATION FOR NOW ..\n",
-		__func__);
-
 	switch(mode_requested)
 	{
 	case OTG_MODE__MANUAL_CONTROL:
-		otgc_data->otg_controlstate = OTG1_STATE__MANUAL_CONTROL;
-		break;
-	case OTG_MODE__ONEWIRE_AUTH:
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
-		break;
 	case OTG_MODE__USB_NO_AUTH:
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
+		/* NORMALLY, A CHALLENGE WOULD BE SENT TO CALLING APPLICATION */
+		/* IDEA:
+		 * SHOW CHALLENGE PROPERTY
+		 * WAIT FOR APPLICATION TO READ THIS
+		 * SHOW REPLY PROPERTY, TO BE PRESENT WHEN APPLICATION
+		 * HAS READ THE CHALLENGE
+		 * GET REPLY AND VERIFY
+		 * HIDE CHALLENGE/REPLY PROPERTIES
+		 *
+		 * FOR NOW, JUST CALL REPLY VERIFY ROUTINE, WHICH CURRENTLY
+		 * HAS NO VERIFICATION ALGORITHM IMPLEMENTED, AND
+		 * WILL DO A SIMPLE CONNECTION CHECK AND SET STATE ACCORDING
+		 * TO THE REQUESTED MODE AND THE CURRENT CONNECTION STATE
+		 */
+		dev_dbg(otgc_data->dev,
+			"%s: Authentication of calling application not"
+			"implemented, skipping\n",
+			__func__);
+
+		otgc_data->mode_requested = mode_requested;
+		otgcontrol_do_verify_application_challenge_reply(otgc_data,
+								 NULL);
 		break;
+
+	case OTG_MODE__ONEWIRE_AUTH:
 	default:
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
+		/* No authentication required to enable authenticated mode */
+		otgcontrol_do_set_controlmode(otgc_data,
+					      mode_requested);
 	}
 	return 0;
 }
@@ -1184,25 +1224,25 @@ static int otgcontrol_do_verify_application_challenge_reply(
 		struct rm_otgcontrol_data *otgc_data,
 		void *param)
 {
-	dev_dbg(otgc_data->dev,
-		"%s: For now, just take the challenge to be good and activate "
-		"requested state\n",
-		__func__);
-
 	switch(otgc_data->mode_requested)
 	{
 	case OTG_MODE__MANUAL_CONTROL:
-		otgc_data->otg_controlstate = OTG1_STATE__MANUAL_CONTROL;
+		otgcontrol_do_set_controlmode(otgc_data,
+					      otgc_data->mode_requested);
 		break;
-	case OTG_MODE__ONEWIRE_AUTH:
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
-		break;
+
 	case OTG_MODE__USB_NO_AUTH:
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
+		otgcontrol_do_set_controlmode(otgc_data,
+					      otgc_data->mode_requested);
 		break;
+
+	case OTG_MODE__ONEWIRE_AUTH:
 	default:
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
+		otgcontrol_do_set_controlmode(otgc_data,
+					      otgc_data->mode_requested);
+		break;
 	}
+
 	return 0;
 }
 
@@ -1232,28 +1272,57 @@ static int otgcontrol_do_set_controlmode(
 		struct rm_otgcontrol_data *otgc_data,
 		int mode)
 {
-	dev_dbg(otgc_data->dev,
-		"%s: Enter\n",
-		__func__);
-
 	switch(mode)
 	{
 	case OTG_MODE__MANUAL_CONTROL:
 		dev_dbg(otgc_data->dev,
 			"%s: setting MANUAL_CONTROL mode\n",
 			__func__);
+
+		otgc_data->otg_controlstate = OTG1_STATE__MANUAL_CONTROL;
+		otgc_data->otg1_controllermode = OTG_MODE__MANUAL_CONTROL;
 		break;
 
 	case OTG_MODE__ONEWIRE_AUTH:
-		dev_dbg(otgc_data->dev,
-			"%s: setting ONEWIRE_AUTH mode\n",
-			__func__);
+		if (otgcontrol_get_current_gpio_state(otgc_data) ==
+		    OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED) {
+			dev_dbg(otgc_data->dev,
+				"%s: Enabling ONE-WIRE AUTHENTICATED mode "
+				"(DEVICE CONNECTED)\n",
+				__func__);
+
+			otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_DEVICE_CONNECTED;
+		}
+		else {
+			dev_dbg(otgc_data->dev,
+				"%s: Enabling ONE-WIRE AUTHENTICATED mode "
+				"(DEVICE NOT CONNECTED)\n",
+				__func__);
+
+			otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
+		}
+		otgc_data->otg1_controllermode = OTG_MODE__ONEWIRE_AUTH;
 		break;
 
 	case OTG_MODE__USB_NO_AUTH:
-		dev_dbg(otgc_data->dev,
-			"%s: setting USB_NO_AUTH mode\n",
-			__func__);
+		if (otgcontrol_get_current_gpio_state(otgc_data) ==
+		    OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED) {
+			dev_dbg(otgc_data->dev,
+				"%s: Enabling ONE-WIRE NON-AUTHENTICATED mode "
+				"(DEVICE CONNECTED)\n",
+				__func__);
+
+			otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_DEVICE_CONNECTED;
+		}
+		else {
+			dev_dbg(otgc_data->dev,
+				"%s: Enabling ONE-WIRE NON-AUTHENTICATED mode "
+				"(DEVICE NOT CONNECTED)\n",
+				__func__);
+
+			otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_NOT_CONNECTED;
+		}
+		otgc_data->otg1_controllermode = OTG_MODE__USB_NO_AUTH;
 		break;
 
 	default:

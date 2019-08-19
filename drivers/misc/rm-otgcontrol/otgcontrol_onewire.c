@@ -426,7 +426,7 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 	struct file *f;
 	mm_segment_t fs;
 	char newchar;
-	int pos;
+	int pos, state;
 
 	f = filp_open(device_name, O_RDONLY, 0);
 	if(f == NULL) {
@@ -436,7 +436,6 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 		return -1;
 	}
 	else {
-
 		// Get current segment descriptor
 		dev_dbg(otgc_data->dev,
 			"%s: Getting current segment descriptor\n",
@@ -451,7 +450,7 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 		set_fs(KERNEL_DS);
 
 		pos = 0;
-		int state = 0;
+		state = 0;
 		dev_dbg(otgc_data->dev,
 			"%s: Starting read loop\n",
 			__func__);
