@@ -51,6 +51,8 @@ int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data)
 
 int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_data, int mode)
 {
+	int ret;
+
 	switch(mode)
 	{
 	case OTG1_DR_MODE__DEVICE:
@@ -58,10 +60,16 @@ int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_data, int mode)
 			"%s: Switching OTG1 DR mode -> DEVICE\n",
 			__func__);
 
-		return extcon_set_state_sync(otgc_data->extcon_dev,
-					     EXTCON_USB_HOST,
-					     false);
+		ret = extcon_set_state_sync(otgc_data->extcon_dev,
+					    EXTCON_USB_HOST,
+					    false);
+		if (ret < 0) {
+			dev_err(otgc_data->dev,
+				"%s: Failed to set OTG1 DR mode\n",
+				__func__);
 
+			return ret;
+		}
 		break;
 
 	case OTG1_DR_MODE__HOST:
@@ -69,21 +77,30 @@ int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_data, int mode)
 			"%s: Switching OTG1 DR mode -> HOST\n",
 			__func__);
 
-		return extcon_set_state_sync(otgc_data->extcon_dev,
-					     EXTCON_USB_HOST,
-					     true);
+		otgc_data->otg1_dr_mode = mode;
+		ret = extcon_set_state_sync(otgc_data->extcon_dev,
+					    EXTCON_USB_HOST,
+					    true);
+		if (ret < 0) {
+			dev_err(otgc_data->dev,
+				"%s: Failed to set OTG1 DR mode\n",
+				__func__);
 
+			return ret;
+		}
 		break;
 
 	default:
-		dev_dbg(otgc_data->dev,
+		dev_err(otgc_data->dev,
 			"%s: unable to switch OTG1 DR mode (unknown mode %d)\n",
 			__func__,
 			mode);
 
 		return -EINVAL;
 	}
-	return 0;
+
+	otgc_data->otg1_dr_mode = mode;
+	return ret;
 }
 
 int otgcontrol_get_dr_mode(struct rm_otgcontrol_data *otgc_data)
