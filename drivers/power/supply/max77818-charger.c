@@ -639,6 +639,7 @@ static int max77818_charger_set_property(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		if (val->intval == POWER_SUPPLY_MODE_CHARGER ||
+		    val->intval == POWER_SUPPLY_MODE_ALL_OFF ||
 		    val->intval == POWER_SUPPLY_MODE_OTG_SUPPLY) {
 			chg->charger_mode = val->intval;
 		} else {
@@ -647,13 +648,14 @@ static int max77818_charger_set_property(struct power_supply *psy,
 		}
 
 		/*
-		 * Disable charger, if we are going into Charger mode while
-		 * neither of chargers is present.  Otherwise, enable charger
-		 * per charger_mode setting.
+		 * Disable charger, if it's requested or we are going into
+		 * Charger mode while neither of chargers is present. Otherwise,
+		 * enable charger in Charger or OTG Supply mode.
 		 */
-		if (val->intval == POWER_SUPPLY_MODE_CHARGER &&
+		if ((val->intval == POWER_SUPPLY_MODE_CHARGER &&
 		    !max77818_charger_chgin_present(chg) &&
-		    !max77818_charger_wcin_present(chg))
+		    !max77818_charger_wcin_present(chg)) ||
+		    val->intval == POWER_SUPPLY_MODE_ALL_OFF)
 			max77818_charger_set_enable(chg, 0);
 		else
 			max77818_charger_set_enable(chg, 1);

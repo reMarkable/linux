@@ -74,7 +74,7 @@ static const char * const power_supply_scope_text[] = {
 };
 
 static const char * const power_supply_charger_mode_text[] = {
-	"Charger", "OTG Supply"
+	"Charger", "OTG Supply", "Off"
 };
 
 static ssize_t power_supply_show_property(struct device *dev,
