@@ -5,6 +5,7 @@
 
 #define OTG1_CHARGERMODE_CHARGE	0
 #define OTG1_CHARGERMODE_OTG	1
+#define OTG1_CHARGERMODE_OFF	2
 
 int otgcontrol_change_otg_charge_mode(struct rm_otgcontrol_data *otgc_data,
 				      int mode);
