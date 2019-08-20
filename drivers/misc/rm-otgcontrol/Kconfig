@@ -2,3 +2,10 @@ config RM_OTGCONTROL
 	tristate "reMarkable OTG control"
 	help
 		Add reMarkable OTG control module, required to control access to/from external equipment
+
+config RM_OTGCONTROL_DEBUG
+	bool	"reMarkable OTG control debug"
+	depends on RM_OTGCONTROL
+	help
+		"Enable extensive debug output (useful when debugging FSM type of errors to see what is going on)"
+
