@@ -90,7 +90,8 @@ enum {
 
 enum {
 	POWER_SUPPLY_MODE_CHARGER = 0,
-	POWER_SUPPLY_MODE_OTG_SUPPLY
+	POWER_SUPPLY_MODE_OTG_SUPPLY,
+	POWER_SUPPLY_MODE_ALL_OFF,
 };
 
 enum power_supply_property {
