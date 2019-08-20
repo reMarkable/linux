@@ -790,7 +790,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	if (!dsp_priv)
 		return -ENOMEM;
 
-	if (of_device_is_compatible(np, "fsl,imx8qxp-dsp"))
+	if (of_device_is_compatible(np, "fsl,imx8qxp-dsp-v1"))
 		dsp_priv->dsp_board_type = DSP_IMX8QXP_TYPE;
 	else
 		dsp_priv->dsp_board_type = DSP_IMX8QM_TYPE;
@@ -1150,8 +1150,8 @@ static const struct dev_pm_ops fsl_dsp_pm = {
 };
 
 static const struct of_device_id fsl_dsp_ids[] = {
-	{ .compatible = "fsl,imx8qxp-dsp", },
-	{ .compatible = "fsl,imx8qm-dsp", },
+	{ .compatible = "fsl,imx8qxp-dsp-v1", },
+	{ .compatible = "fsl,imx8qm-dsp-v1", },
 	{}
 };
 MODULE_DEVICE_TABLE(of, fsl_dsp_ids);
