@@ -47,7 +47,7 @@ int otgcontrol_change_otg_charge_mode(struct rm_otgcontrol_data *otgc_data,
 		break;
 
 	default:
-		dev_dbg(otgc_data->dev,
+		dev_err(otgc_data->dev,
 			"%s: Unable to set OTG1 chargermode (invalid mode %d)",
 			__func__, mode);
 		return -EINVAL;
