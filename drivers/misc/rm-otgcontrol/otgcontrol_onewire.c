@@ -88,15 +88,6 @@ int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 	return 0;
 }
 
-void otgcontrol_uninit_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
-{
-	if ((otgc_data->one_wire_pinctrl != NULL) &&
-	     !IS_ERR(otgc_data->one_wire_pinctrl)) {
-		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
-		otgc_data->one_wire_pinctrl = NULL;
-	}
-}
-
 int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
 					 int state)
 {
@@ -258,13 +249,7 @@ int otgcontrol_init_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 
 void otgcontrol_uninit_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 {
-	dev_dbg(otgc_data->dev,
-		"%s: Freeing irq\n",
-		__func__);
-
-	devm_free_irq(otgc_data->dev,
-		      otgc_data->pdata->one_wire_gpio_irq,
-		      otgc_data);
+	cancel_delayed_work_sync(&otgc_data->one_wire_gpio_irq_work_queue);
 }
 
 void otgcontrol_activate_gpio_irq(struct rm_otgcontrol_data *otgc_data)

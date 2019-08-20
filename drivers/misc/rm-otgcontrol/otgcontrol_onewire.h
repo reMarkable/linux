@@ -14,7 +14,6 @@
 #define OTG1_ONEWIRE_GPIO_STATE__DEVICE_NOT_CONNECTED	1
 
 int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data);
-void otgcontrol_uninit_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data);
 
 int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
 					 int newState);

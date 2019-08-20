@@ -264,7 +264,7 @@ static int rm_otgcontrol_probe(struct platform_device *pdev)
 			"code %d\n",
 			__func__,
 			ret);
-		goto error_2;
+		goto error_1;
 	}
 
 	dev_dbg(&pdev->dev,
@@ -278,7 +278,7 @@ static int rm_otgcontrol_probe(struct platform_device *pdev)
 			"code %d\n",
 			__func__,
 			ret);
-		goto error_3;
+		goto error_2;
 	}
 
 	platform_set_drvdata(pdev, otgc_data);
@@ -288,18 +288,12 @@ static int rm_otgcontrol_probe(struct platform_device *pdev)
 
 	return 0;
 
-error_3:
+error_2:
 	otgcontrol_uninit_sysfs_nodes(otgc_data);
-	otgcontrol_uninit_extcon(otgc_data);
-	otgcontrol_uninit_one_wire_mux_state(otgc_data);
 	otgcontrol_uninit_gpio_irq(otgc_data);
 
-error_2:
-	devm_kfree(otgc_data->dev, pdata);
-
 error_1:
-	devm_kfree(otgc_data->dev, otgc_data);
-
+	/* No need to do explicit calls to devm_kfree */
 	return ret;
 }
 
@@ -313,29 +307,9 @@ static int rm_otgcontrol_remove(struct platform_device *pdev)
 	otgcontrol_uninit_sysfs_nodes(otgc_data);
 
 	dev_dbg(otgc_data->dev,
-		"%s: Un-initializing extcon device\n",
-		__func__);
-	otgcontrol_uninit_extcon(otgc_data);
-
-	dev_dbg(otgc_data->dev,
-		"%s: Un-initializing one-wire pinctrl\n",
-		__func__);
-	otgcontrol_uninit_one_wire_mux_state(otgc_data);
-
-	dev_dbg(otgc_data->dev,
 		"%s: Un-initialize gpio irq\n",
 		__func__);
 	otgcontrol_uninit_gpio_irq(otgc_data);
-
-	dev_dbg(otgc_data->dev,
-		"%s: Freeing otgc->pdata\n",
-		__func__);
-	devm_kfree(&pdev->dev, otgc_data->pdata);
-
-	dev_dbg(otgc_data->dev,
-		"%s: Freeing otgc\n",
-		__func__);
-	devm_kfree(&pdev->dev, otgc_data);
 
 	return 0;
 }
