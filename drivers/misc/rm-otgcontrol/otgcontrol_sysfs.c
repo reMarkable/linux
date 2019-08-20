@@ -27,7 +27,7 @@ static struct attribute *control_attrs[CONTROL_GROUP_ATTRIBUTE_COUNT + 1] = {
 	NULL
 };
 
-struct attribute_group control_attr_group = {
+static struct attribute_group control_attr_group = {
 	.attrs = control_attrs,
 	.name = "control"
 };
@@ -40,7 +40,7 @@ struct attribute *status_attrs[STATUS_GROUP_ATTRIBUTE_COUNT + 1] = {
 	NULL
 };
 
-struct attribute_group status_attr_group = {
+static struct attribute_group status_attr_group = {
 	.attrs = status_attrs,
 	.name = "status"
 };
@@ -108,8 +108,7 @@ static ssize_t attribute_show(struct kobject *kobj,
 		var = otgc_data->otg1_pinctrlstate;
 	}
 	else {
-		dev_dbg(otgc_data->dev,
-			"%s: Invalid attribute name (%s), returning 0\n",
+		pr_err("%s: Invalid attribute name (%s), returning 0\n",
 			__func__,
 			attr->attr.name);
 
@@ -205,11 +204,7 @@ void otgcontrol_create_kobj_property(struct kobj_attribute *attr,
 int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 {
 	struct kobject *otgcontrol_kobj;
-	int retval;
-
-	dev_dbg(otgc_data->dev,
-		"%s: Creating control properties (R/W)\n",
-		__func__);
+	int ret;
 
 	otgcontrol_create_kobj_property(&otgc_data->otg1_dr_mode_attribute,
 					"otg1_dr_mode",
@@ -241,10 +236,6 @@ int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 	control_attrs[3] = &otgc_data->otg1_pinctrlstate_attribute.attr;
 	control_attrs[4] = NULL; /* NULL termination of the list */
 
-	dev_dbg(otgc_data->dev,
-		"%s: Creating status properties (R)\n",
-		__func__);
-
 	otgcontrol_create_kobj_property(&otgc_data->otg1_device_connected_attribute,
 					"otg1_device_connected",
 					S_IRUGO,
@@ -256,29 +247,44 @@ int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 
 	otgcontrol_kobj = kobject_create_and_add(SYSFS_NODE_NAME,
 						 SYSFS_PARENT_NODE);
-	if (!otgcontrol_kobj)
+	if (!otgcontrol_kobj) {
+		dev_err(otgc_data->dev,
+			"%s: Failed to create 'otgcontrol' kobject\n",
+			__func__);
 		return -ENOMEM;
-
-	/* Create the files associated with this kobject */
-	retval = sysfs_create_group(otgcontrol_kobj,
-				    &control_attr_group);
-
-	retval = sysfs_create_group(otgcontrol_kobj,
-				   &status_attr_group);
-	if (retval) {
-		otgc_data->kobject = otgcontrol_kobj;
 	}
 
+	ret = sysfs_create_group(otgcontrol_kobj,
+				 &control_attr_group);
+	if (ret != 0) {
+		dev_err(otgc_data->dev,
+			"%s: Failed to create 'control' attribute group\n",
+			__func__);
+		goto error_1;
+	}
+
+	ret = sysfs_create_group(otgcontrol_kobj,
+				 &status_attr_group);
+	if (ret != 0) {
+		dev_err(otgc_data->dev,
+			"%s: Failed to create 'status' attribute group\n",
+			__func__);
+		goto error_2;
+	}
+
+	otgc_data->kobject = otgcontrol_kobj;
+	return ret;
+
+error_2:
+	sysfs_remove_group(otgc_data->kobject, &control_attr_group);
+
+error_1:
 	kobject_put(otgc_data->kobject);
-	return retval;
+	return ret;
 }
 
 void otgcontrol_uninit_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 {
-	dev_dbg(otgc_data->dev,
-		"%s: Decrementing kobject refcount\n",
-		__func__);
-
 	if((otgc_data->kobject != NULL) && !IS_ERR(otgc_data->kobject)) {
 		sysfs_remove_group(otgc_data->kobject, &control_attr_group);
 		sysfs_remove_group(otgc_data->kobject, &status_attr_group);
