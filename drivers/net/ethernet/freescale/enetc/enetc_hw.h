@@ -321,8 +321,15 @@ struct enetc_hw {
 };
 
 /* general register accessors */
-#define enetc_rd_reg(reg)	ioread32((reg))
-#define enetc_wr_reg(reg, val)	iowrite32((val), (reg))
+#define enetc_rd_reg(reg)	enetc_rd_reg_wa((reg))
+#define enetc_wr_reg(reg, val)	enetc_wr_reg_wa((reg), (val))
+
+/* accessors for data-path, due to MDIO issue on LS1028 these should be called
+ * only under enetc_gregs per-cpu lock
+ */
+#define enetc_rd_reg_hot(reg)	ioread32((reg))
+#define enetc_wr_reg_hot(reg, val)	iowrite32((val), (reg))
+
 #ifdef ioread64
 #define enetc_rd_reg64(reg)	ioread64((reg))
 #else
@@ -341,12 +348,102 @@ static inline u64 enetc_rd_reg64(void __iomem *reg)
 }
 #endif
 
+extern DEFINE_PER_CPU(spinlock_t, enetc_gregs);
+
+static inline u32 enetc_rd_reg_wa(void *reg)
+{
+	unsigned long flags;
+	/* pointer to per-cpu ENETC lock for register access issue WA */
+	spinlock_t *lock;
+	u32 val;
+
+	lock = this_cpu_ptr(&enetc_gregs);
+	spin_lock_irqsave(lock, flags);
+	val = ioread32(reg);
+	spin_unlock_irqrestore(lock, flags);
+
+	return val;
+}
+
+static inline void enetc_wr_reg_wa(void *reg, u32 val)
+{
+	unsigned long flags;
+	/* pointer to per-cpu ENETC lock for register access issue WA */
+	spinlock_t *lock;
+
+	lock = this_cpu_ptr(&enetc_gregs);
+	spin_lock_irqsave(lock, flags);
+	iowrite32(val, reg);
+	spin_unlock_irqrestore(lock, flags);
+}
+
+/* NR_CPUS=256 in ARM64 defconfig and using it as array size triggers stack
+ * frame warnings for the functions below.  Use a custom define of 2 for now,
+ * LS1028 has just two cores.
+ */
+#define ENETC_NR_CPU_LOCKS	2
+
+static inline u32 enetc_rd_reg_wa_single(void *reg)
+{
+	u32 val;
+	int cpu;
+	/* per-cpu ENETC lock array for register access issue WA */
+	spinlock_t *lock[ENETC_NR_CPU_LOCKS];
+	unsigned long flags;
+
+	local_irq_save(flags);
+	preempt_disable();
+
+	for_each_online_cpu(cpu) {
+		lock[cpu] = per_cpu_ptr(&enetc_gregs, cpu);
+		spin_lock(lock[cpu]);
+	}
+
+	val = ioread32(reg);
+
+	for_each_online_cpu(cpu)
+		spin_unlock(lock[cpu]);
+	local_irq_restore(flags);
+
+	preempt_enable();
+
+	return val;
+}
+
+static inline void enetc_wr_reg_wa_single(void *reg, u32 val)
+{
+	int cpu;
+	/* per-cpu ENETC lock array for register access issue WA */
+	spinlock_t *lock[ENETC_NR_CPU_LOCKS];
+	unsigned long flags;
+
+	local_irq_save(flags);
+	preempt_disable();
+
+	for_each_online_cpu(cpu) {
+		lock[cpu] = per_cpu_ptr(&enetc_gregs, cpu);
+		spin_lock(lock[cpu]);
+	}
+
+	iowrite32(val, reg);
+
+	for_each_online_cpu(cpu)
+		spin_unlock(lock[cpu]);
+	local_irq_restore(flags);
+
+	preempt_enable();
+}
+
 #define enetc_rd(hw, off)		enetc_rd_reg((hw)->reg + (off))
 #define enetc_wr(hw, off, val)		enetc_wr_reg((hw)->reg + (off), val)
 #define enetc_rd64(hw, off)		enetc_rd_reg64((hw)->reg + (off))
 /* port register accessors - PF only */
-#define enetc_port_rd(hw, off)		enetc_rd_reg((hw)->port + (off))
-#define enetc_port_wr(hw, off, val)	enetc_wr_reg((hw)->port + (off), val)
+#define enetc_port_rd(hw, off)		enetc_rd_reg_wa((hw)->port + (off))
+#define enetc_port_wr(hw, off, val)	enetc_wr_reg_wa((hw)->port + (off), val)
+#define enetc_port_rd_single(hw, off)		enetc_rd_reg_wa_single(\
+							(hw)->port + (off))
+#define enetc_port_wr_single(hw, off, val)	enetc_wr_reg_wa_single(\
+							(hw)->port + (off), val)
 /* global register accessors - PF only */
 #define enetc_global_rd(hw, off)	enetc_rd_reg((hw)->global + (off))
 #define enetc_global_wr(hw, off, val)	enetc_wr_reg((hw)->global + (off), val)

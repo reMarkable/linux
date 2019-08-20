@@ -986,6 +986,9 @@ static void enetc_pf_remove(struct pci_dev *pdev)
 	enetc_pci_remove(pdev);
 }
 
+DEFINE_PER_CPU(spinlock_t, enetc_gregs);
+EXPORT_PER_CPU_SYMBOL(enetc_gregs);
+
 static const struct pci_device_id enetc_pf_id_table[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_FREESCALE, ENETC_DEV_ID_PF) },
 	{ 0, } /* End of table. */

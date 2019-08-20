@@ -16,13 +16,13 @@
 
 static inline u32 _enetc_mdio_rd(struct enetc_mdio_priv *mdio_priv, int off)
 {
-	return enetc_port_rd(mdio_priv->hw, mdio_priv->mdio_base + off);
+	return enetc_port_rd_single(mdio_priv->hw, mdio_priv->mdio_base + off);
 }
 
 static inline void _enetc_mdio_wr(struct enetc_mdio_priv *mdio_priv, int off,
 				  u32 val)
 {
-	enetc_port_wr(mdio_priv->hw, mdio_priv->mdio_base + off, val);
+	enetc_port_wr_single(mdio_priv->hw, mdio_priv->mdio_base + off, val);
 }
 
 #define enetc_mdio_rd(mdio_priv, off) \
