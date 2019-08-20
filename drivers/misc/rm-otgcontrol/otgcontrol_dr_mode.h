@@ -7,7 +7,6 @@
 #define OTG1_DR_MODE__HOST	1
 
 int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data);
-void otgcontrol_uninit_extcon(struct rm_otgcontrol_data *otgc_data);
 int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_dta, int mode);
 int otgcontrol_get_dr_mode(struct rm_otgcontrol_data *otgc_data);
 

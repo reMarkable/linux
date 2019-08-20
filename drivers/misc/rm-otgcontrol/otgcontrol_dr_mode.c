@@ -48,15 +48,6 @@ int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data)
 	return 0;
 }
 
-void otgcontrol_uninit_extcon(struct rm_otgcontrol_data *otgc_data)
-{
-	if ((otgc_data->extcon_dev != NULL) && !IS_ERR(otgc_data->extcon_dev)) {
-		devm_extcon_dev_unregister(otgc_data->dev, otgc_data->extcon_dev);
-		kfree(otgc_data->extcon_dev);
-		otgc_data->extcon_dev = NULL;
-	}
-}
-
 int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_data, int mode)
 {
 	switch(mode)
