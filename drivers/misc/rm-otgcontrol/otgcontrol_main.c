@@ -259,11 +259,19 @@ static int rm_otgcontrol_probe(struct platform_device *pdev)
 
 	ret = rm_otgcontrol_parse_dt(otgc_data);
 	if (ret < 0) {
-		dev_err(&pdev->dev,
-			"%s: Failed to load platform data from devicetree, "
-			"code %d\n",
-			__func__,
-			ret);
+		if (ret == -EPROBE_DEFER) {
+			dev_info(&pdev->dev,
+				 "%s: Defering probe due to charger driver not being"
+				 "loaded/available yet\n",
+				 __func__);
+		}
+		else {
+			dev_err(&pdev->dev,
+				"%s: Failed to load platform data from devicetree, "
+				"code %d\n",
+				__func__,
+				ret);
+		}
 		goto error_1;
 	}
 
