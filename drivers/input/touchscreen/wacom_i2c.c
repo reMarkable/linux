@@ -122,10 +122,6 @@ static int wacom_query_device(struct i2c_client *client,
 		WACOM_DATA_LSB,
 		WACOM_DATA_MSB,
 	};
-	u8 read_data[] = {
-		WACOM_DATA_LSB,
-		WACOM_DATA_MSB,
-	};
 
 	struct i2c_msg msgs[] = {
 		// Request reading of feature ReportID: 3 (Pen Query Data)
@@ -281,10 +277,10 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	// data[0] == Length LSB
 	// data[1] == Length MSB
 	// data[2] == ReportID (2 | 26)
-	tip = data[3] & 0x01;
-	eraser = data[3] & 0x04;
-	f1 = data[3] & 0x02;
-	f2 = data[3] & 0x10;
+	tip = data[3] & WACOM_TIP_SWITCH_bm;
+	eraser = data[3] & WACOM_ERASER_bm;
+	f1 = data[3] & WACOM_BARREL_SWITCH_bm;
+	f2 = data[3] & WACOM_INVERT_bm;
 	x = le16_to_cpup((__le16 *)&data[4]);
 	y = le16_to_cpup((__le16 *)&data[6]);
 	pressure = le16_to_cpup((__le16 *)&data[8]);
@@ -305,7 +301,7 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 		wac_i2c->tool = (data[3] & 0x0c) ?
 			BTN_TOOL_RUBBER : BTN_TOOL_PEN;
 
-	wac_i2c->prox = data[3] & 0x20;
+	wac_i2c->prox = (data[3] & 0x20) ? true : false;
 
 	input_report_key(input, BTN_TOUCH, tip || eraser);
 	input_report_key(input, wac_i2c->tool, wac_i2c->prox);
