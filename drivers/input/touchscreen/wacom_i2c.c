@@ -252,13 +252,12 @@ static int wacom_setup_device(struct i2c_client *client)
 
 static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 {
-
 	struct wacom_i2c *wac_i2c = dev_id;
 	struct input_dev *input = wac_i2c->input;
 	u8 *data = wac_i2c->data;
 	unsigned int x, y, pressure;
-	unsigned char tip, f1, f2, eraser, distance, transducer = 0;
-	short tilt_x, tilt_y;
+	unsigned char tip, f1, f2, eraser, transducer = 0;
+	short tilt_x, tilt_y, distance;
 	int error;
 
 // TODO: Should continue to read packets until DIGITIZER_INT is pulled high
