@@ -65,3 +65,7 @@ config FB_MXC_RK_PANEL_RK055IQH042
 config FB_MXC_MIPI_DSI_SAMSUNG
 	tristate "MXC MIPI_DSI_SAMSUNG"
 	depends on FB_MXS
+
+config FB_MXC_MIPI_DSI
+	tristate "MXC MIPI_DSI"
+	depends on FB_MXS
