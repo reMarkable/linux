@@ -24,6 +24,7 @@ static u32 share_count_sai3;
 static u32 share_count_nand;
 static u32 share_count_enet1;
 static u32 share_count_enet2;
+static u32 share_count_pxp;
 
 static const struct clk_div_table test_div_table[] = {
 	{ .val = 3, .div = 1, },
@@ -866,6 +867,8 @@ static void __init imx7d_clocks_init(struct device_node *ccm_node)
 	hws[IMX7D_USB_PHY1_CLK] = imx_clk_hw_gate4("usb_phy1_clk", "pll_usb1_main_clk", base + 0x46a0, 0);
 	hws[IMX7D_USB_PHY2_CLK] = imx_clk_hw_gate4("usb_phy2_clk", "pll_usb_main_clk", base + 0x46b0, 0);
 	hws[IMX7D_ADC_ROOT_CLK] = imx_clk_hw_gate4("adc_root_clk", "ipg_root_clk", base + 0x4200, 0);
+	hws[IMX7D_PXP_IPG_CLK] = imx_clk_hw_gate2_shared2("pxp_ipg_clk", "ipg_root_clk", base + 0x44c0, 0, &share_count_pxp);
+	hws[IMX7D_PXP_AXI_CLK] = imx_clk_hw_gate2_shared2("pxp_axi_clk", "main_axi_root_clk", base + 0x44c0, 0, &share_count_pxp);
 
 	hws[IMX7D_GPT_3M_CLK] = imx_clk_hw_fixed_factor("gpt_3m", "osc", 1, 8);
 
