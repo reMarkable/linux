@@ -586,12 +586,6 @@
 				fsl,sdma-ram-script-name = "imx/sdma/sdma-imx7d.bin";
 			};
 
-			pcie_phy: pcie-phy@302f0000 {
-				  compatible = "fsl,imx7d-pcie-phy";
-				  reg = <0x302f0000 0x10000>;
-				  status = "disabled";
-			};
-
 			iomuxc: pinctrl@30330000 {
 				compatible = "fsl,imx8mm-iomuxc";
 				reg = <0x30330000 0x10000>;
@@ -1088,6 +1082,10 @@
 				reg = <0x32e50200 0x200>;
 			};
 
+			pcie_phy: pcie-phy@32f00000 {
+				  compatible = "fsl,imx7d-pcie-phy";
+				  reg = <0x32f00000 0x10000>;
+			};
 		};
 
 		dma_apbh: dma-controller@33000000 {
