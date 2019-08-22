@@ -104,13 +104,6 @@
 		#clock-cells = <0>;
 	};
 
-	mpll: clock-mpll {
-		compatible = "fixed-clock";
-		clock-frequency = <480000000>;
-		clock-output-names = "mpll";
-		#clock-cells = <0>;
-	};
-
 	sram: sram@20000000 {
 		compatible = "fsl,lpm-sram";
 		reg = <0x1fffc000 0x4000>;
@@ -359,9 +352,9 @@
 			compatible = "fsl,imx7ulp-scg1";
 			reg = <0x403e0000 0x10000>;
 			clocks = <&rosc>, <&sosc>, <&sirc>,
-				 <&firc>, <&upll>, <&mpll>;
+				 <&firc>, <&upll>;
 			clock-names = "rosc", "sosc", "sirc",
-				      "firc", "upll", "mpll";
+				      "firc", "upll";
 			#clock-cells = <1>;
 		};
 
@@ -402,13 +395,12 @@
 				 <&scg1 IMX7ULP_CLK_APLL_PFD0>,
 				 <&scg1 IMX7ULP_CLK_UPLL>,
 				 <&scg1 IMX7ULP_CLK_SOSC_BUS_CLK>,
-				 <&scg1 IMX7ULP_CLK_MIPI_PLL>,
 				 <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>,
 				 <&scg1 IMX7ULP_CLK_ROSC>,
 				 <&scg1 IMX7ULP_CLK_SPLL_BUS_CLK>;
 			clock-names = "nic1_bus_clk", "nic1_clk", "ddr_clk",
 				      "apll_pfd2", "apll_pfd1", "apll_pfd0",
-				      "upll", "sosc_bus_clk", "mpll",
+				      "upll", "sosc_bus_clk",
 				      "firc_bus_clk", "rosc", "spll_bus_clk";
 			assigned-clocks = <&pcc2 IMX7ULP_CLK_LPTPM5>;
 			assigned-clock-parents = <&scg1 IMX7ULP_CLK_SOSC_BUS_CLK>;
@@ -440,13 +432,12 @@
 				 <&scg1 IMX7ULP_CLK_APLL_PFD0>,
 				 <&scg1 IMX7ULP_CLK_UPLL>,
 				 <&scg1 IMX7ULP_CLK_SOSC_BUS_CLK>,
-				 <&scg1 IMX7ULP_CLK_MIPI_PLL>,
 				 <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>,
 				 <&scg1 IMX7ULP_CLK_ROSC>,
 				 <&scg1 IMX7ULP_CLK_SPLL_BUS_CLK>;
 			clock-names = "nic1_bus_clk", "nic1_clk", "ddr_clk",
 				      "apll_pfd2", "apll_pfd1", "apll_pfd0",
-				      "upll", "sosc_bus_clk", "mpll",
+				      "upll", "sosc_bus_clk",
 				      "firc_bus_clk", "rosc", "spll_bus_clk";
 		};
 	};
