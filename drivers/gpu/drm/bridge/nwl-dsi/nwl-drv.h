@@ -1,0 +1,65 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+/*
+ * NWL MIPI DSI host driver
+ *
+ * Copyright (C) 2017 NXP
+ * Copyright (C) 2019 Purism SPC
+ */
+
+#ifndef __NWL_DRV_H__
+#define __NWL_DRV_H__
+
+#include <linux/mux/consumer.h>
+#include <linux/phy/phy.h>
+
+#include <drm/drm_bridge.h>
+#include <drm/drm_mipi_dsi.h>
+
+struct nwl_dsi_platform_data;
+
+/* i.MX8 NWL quirks */
+/* i.MX8MQ errata E11418 */
+#define E11418_HS_MODE_QUIRK	    BIT(0)
+/* Skip DSI bits in SRC on disable to avoid blank display on enable */
+#define SRC_RESET_QUIRK		    BIT(1)
+
+#define NWL_DSI_MAX_PLATFORM_CLOCKS 1
+struct nwl_dsi_plat_clk_config {
+	const char *id;
+	struct clk *clk;
+	bool present;
+};
+
+struct nwl_dsi {
+	struct drm_bridge bridge;
+	struct mipi_dsi_host dsi_host;
+	struct drm_bridge *panel_bridge;
+	struct device *dev;
+	struct phy *phy;
+	union phy_configure_opts phy_cfg;
+	unsigned int quirks;
+
+	struct regmap *regmap;
+	int irq;
+	struct reset_control *rstc;
+	struct mux_control *mux;
+
+	/* DSI clocks */
+	struct clk *phy_ref_clk;
+	struct clk *rx_esc_clk;
+	struct clk *tx_esc_clk;
+	/* Platform dependent clocks */
+	struct nwl_dsi_plat_clk_config clk_config[NWL_DSI_MAX_PLATFORM_CLOCKS];
+
+	/* dsi lanes */
+	u32 lanes;
+	enum mipi_dsi_pixel_format format;
+	struct drm_display_mode mode;
+	unsigned long dsi_mode_flags;
+
+	struct nwl_dsi_transfer *xfer;
+
+	const struct nwl_dsi_platform_data *pdata;
+};
+
+#endif /* __NWL_DRV_H__ */
