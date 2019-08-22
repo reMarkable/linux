@@ -58,7 +58,9 @@
 #define IMX8MQ_RESET_DDRC2_PRST			47	/* i.MX8MM does NOT support */
 #define IMX8MQ_RESET_DDRC2_CORE_RESET		48	/* i.MX8MM does NOT support */
 #define IMX8MQ_RESET_DDRC2_PHY_RESET		49	/* i.MX8MM does NOT support */
+#define IMX8MQ_RESET_PCIE_CTRL_APPS_CLK_REQ	50	/* i.MX8M PCIe CTL CLK REQ */
+#define IMX8MQ_RESET_PCIE2_CTRL_APPS_CLK_REQ	51	/* i.MX8M PCIe CTL CLK REQ */
 
-#define IMX8MQ_RESET_NUM			50
+#define IMX8MQ_RESET_NUM			52
 
 #endif
