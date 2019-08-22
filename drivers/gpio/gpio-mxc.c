@@ -764,7 +764,6 @@ static void mxc_gpio_save_regs(struct mxc_gpio_port *port)
 
 	port->gpio_saved_reg.icr1 = readl(port->base + GPIO_ICR1);
 	port->gpio_saved_reg.icr2 = readl(port->base + GPIO_ICR2);
-	port->gpio_saved_reg.imr = readl(port->base + GPIO_IMR);
 	port->gpio_saved_reg.gdir = readl(port->base + GPIO_GDIR);
 	port->gpio_saved_reg.edge_sel = readl(port->base + GPIO_EDGE_SEL);
 	port->gpio_saved_reg.dr = readl(port->base + GPIO_DR);
@@ -777,7 +776,6 @@ static void mxc_gpio_restore_regs(struct mxc_gpio_port *port)
 
 	writel(port->gpio_saved_reg.icr1, port->base + GPIO_ICR1);
 	writel(port->gpio_saved_reg.icr2, port->base + GPIO_ICR2);
-	writel(port->gpio_saved_reg.imr, port->base + GPIO_IMR);
 	writel(port->gpio_saved_reg.gdir, port->base + GPIO_GDIR);
 	writel(port->gpio_saved_reg.edge_sel, port->base + GPIO_EDGE_SEL);
 	writel(port->gpio_saved_reg.dr, port->base + GPIO_DR);
