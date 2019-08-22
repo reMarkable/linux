@@ -724,7 +724,6 @@ static void mxc_gpio_save_regs(struct mxc_gpio_port *port)
 	spin_lock_irqsave(&port->gc.bgpio_lock, flags);
 	port->saved_reg[0] = readl(port->base + GPIO_ICR1);
 	port->saved_reg[1] = readl(port->base + GPIO_ICR2);
-	port->saved_reg[2] = readl(port->base + GPIO_IMR);
 	port->saved_reg[3] = readl(port->base + GPIO_GDIR);
 	port->saved_reg[4] = readl(port->base + GPIO_EDGE_SEL);
 	port->saved_reg[5] = readl(port->base + GPIO_DR);
@@ -741,7 +740,6 @@ static void mxc_gpio_restore_regs(struct mxc_gpio_port *port)
 	spin_lock_irqsave(&port->gc.bgpio_lock, flags);
 	writel(port->saved_reg[0], port->base + GPIO_ICR1);
 	writel(port->saved_reg[1], port->base + GPIO_ICR2);
-	writel(port->saved_reg[2], port->base + GPIO_IMR);
 	writel(port->saved_reg[3], port->base + GPIO_GDIR);
 	writel(port->saved_reg[4], port->base + GPIO_EDGE_SEL);
 	writel(port->saved_reg[5], port->base + GPIO_DR);
