@@ -36,6 +36,9 @@
 
 #include "pcie-designware.h"
 
+#define IMX8MQ_PCIE_LINK_CAP_REG_OFFSET		0x7c
+#define IMX8MQ_PCIE_LINK_CAP_L1EL_64US		(BIT(18) | BIT(17))
+#define IMX8MQ_PCIE_L1SUB_CTRL1_REG_EN_MASK	0xf
 #define IMX8MQ_GPR_PCIE_REF_USE_PAD		BIT(9)
 #define IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN	BIT(10)
 #define IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE	BIT(11)
@@ -60,6 +63,7 @@ enum imx6_pcie_variants {
 #define IMX6_PCIE_FLAG_IMX6_SPEED_CHANGE	BIT(1)
 #define IMX6_PCIE_FLAG_SUPPORTS_SUSPEND		BIT(2)
 #define IMX6_PCIE_FLAG_IMX6_CPU_ADDR_FIXUP	BIT(3)
+#define IMX6_PCIE_FLAG_SUPPORTS_L1SS		BIT(4)
 
 struct imx6_pcie_drvdata {
 	enum imx6_pcie_variants variant;
@@ -86,6 +90,7 @@ struct imx6_pcie {
 	struct reset_control	*pciephy_reset;
 	struct reset_control	*apps_reset;
 	struct reset_control	*turnoff_reset;
+	struct reset_control	*clkreq_reset;
 	u32			tx_deemph_gen1;
 	u32			tx_deemph_gen2_3p5db;
 	u32			tx_deemph_gen2_6db;
@@ -911,6 +916,37 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 		reset_control_deassert(imx6_pcie->pciephy_reset);
 
 		imx8_pcie_wait_for_phy_pll_lock(imx6_pcie);
+		/*
+		 * Set the over ride low and enabled
+		 * make sure that REF_CLK is turned on.
+		 */
+		val = imx6_pcie_grp_offset(imx6_pcie);
+		regmap_update_bits(imx6_pcie->iomuxc_gpr, val,
+				   IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE,
+				   0);
+		regmap_update_bits(imx6_pcie->iomuxc_gpr, val,
+				   IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN,
+				   IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN);
+
+		if (imx6_pcie->drvdata->flags & IMX6_PCIE_FLAG_SUPPORTS_L1SS) {
+			/*
+			 * Configure the CLK_REQ# high, let the L1SS
+			 * automatically controlled by HW later.
+			 */
+			reset_control_deassert(imx6_pcie->clkreq_reset);
+			/*
+			 * Configure the L1 latency of rc to less than 64us
+			 * Otherwise, the L1/L1SUB wouldn't be enable by ASPM.
+			 */
+			dw_pcie_dbi_ro_wr_en(pci);
+			val = readl(pci->dbi_base + SZ_1M +
+					IMX8MQ_PCIE_LINK_CAP_REG_OFFSET);
+			val &= ~PCI_EXP_LNKCAP_L1EL;
+			val |= IMX8MQ_PCIE_LINK_CAP_L1EL_64US;
+			writel(val, pci->dbi_base + SZ_1M +
+					IMX8MQ_PCIE_LINK_CAP_REG_OFFSET);
+			dw_pcie_dbi_ro_wr_dis(pci);
+		}
 		break;
 	case IMX7D:
 		reset_control_deassert(imx6_pcie->pciephy_reset);
@@ -1796,6 +1832,12 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 		return PTR_ERR(imx6_pcie->turnoff_reset);
 	}
 
+	imx6_pcie->clkreq_reset = devm_reset_control_get_optional_exclusive(dev, "clkreq");
+	if (IS_ERR(imx6_pcie->clkreq_reset)) {
+		dev_err(dev, "Failed to get CLKREQ reset control\n");
+		return PTR_ERR(imx6_pcie->clkreq_reset);
+	}
+
 	/* Grab GPR config register range */
 	if (imx6_pcie->iomuxc_gpr == NULL) {
 		imx6_pcie->iomuxc_gpr =
@@ -1850,6 +1892,25 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
+	/*
+	 * If the L1SS is enabled, disable the over ride after link up.
+	 * Let the the CLK_REQ# controlled by HW L1SS automatically.
+	 */
+	if ((imx6_pcie->drvdata->flags & IMX6_PCIE_FLAG_SUPPORTS_L1SS) &&
+	    IS_ENABLED(CONFIG_PCIEASPM_POWER_SUPERSAVE)) {
+		switch (imx6_pcie->drvdata->variant) {
+		case IMX8MQ:
+		case IMX8MM:
+			regmap_update_bits(imx6_pcie->iomuxc_gpr,
+					   imx6_pcie_grp_offset(imx6_pcie),
+					   IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN,
+					   0);
+			break;
+		default:
+			break;
+		};
+	}
+
 	pci_imx_set_msi_en(&pci->pp);
 
 	return 0;
@@ -1887,9 +1948,11 @@ static const struct imx6_pcie_drvdata drvdata[] = {
 	},
 	[IMX8MQ] = {
 		.variant = IMX8MQ,
+		.flags = IMX6_PCIE_FLAG_SUPPORTS_L1SS,
 	},
 	[IMX8MM] = {
 		.variant = IMX8MM,
+		.flags = IMX6_PCIE_FLAG_SUPPORTS_L1SS,
 	},
 	[IMX8QM] = {
 		.variant = IMX8QM,
