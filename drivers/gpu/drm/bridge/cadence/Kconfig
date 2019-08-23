@@ -5,3 +5,9 @@ config DRM_CDNS_MHDP
 	depends on OF
 	help
 	  Support Cadence MHDP API library.
+
+config DRM_CDNS_HDMI
+	tristate "Cadence HDMI DRM driver"
+
+config DRM_CDNS_DP
+	tristate "Cadence DP DRM driver"
