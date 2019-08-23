@@ -76,9 +76,17 @@ struct wacom_features {
 struct wacom_i2c {
 	struct i2c_client *client;
 	struct input_dev *input;
+	struct wacom_features features;
 	u8 data[WACOM_MAX_DATA_SIZE];
 	bool prox;
 	int tool;
+
+	bool flip_tilt_x;
+	bool flip_tilt_y;
+	bool flip_pos_x;
+	bool flip_pos_y;
+	bool flip_distance;
+	bool flip_pressure;
 };
 
 u8 reset_cmd[] = {
@@ -172,6 +180,20 @@ static int wacom_query_device(struct i2c_client *client,
 	return 0;
 }
 
+#ifdef CONFIG_OF
+static void wacom_of_read(struct wacom_i2c *wac_i2c)
+{
+	struct i2c_client *client = wac_i2c->client;
+
+	wac_i2c->flip_tilt_x = of_property_read_bool(client->dev.of_node, "flip-tilt-x");
+	wac_i2c->flip_tilt_y = of_property_read_bool(client->dev.of_node, "flip-tilt-y");
+	wac_i2c->flip_pos_x = of_property_read_bool(client->dev.of_node, "flip-pos-x");
+	wac_i2c->flip_pos_y = of_property_read_bool(client->dev.of_node, "flip-pos-y");
+	wac_i2c->flip_distance = of_property_read_bool(client->dev.of_node, "flip-distance");
+	wac_i2c->flip_pressure = of_property_read_bool(client->dev.of_node, "flip-pressure");
+}
+#endif
+
 static int wacom_setup_device(struct i2c_client *client)
 {
 	int ret;
@@ -254,13 +276,12 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 {
 	struct wacom_i2c *wac_i2c = dev_id;
 	struct input_dev *input = wac_i2c->input;
+	struct wacom_features *features = &wac_i2c->features;
 	u8 *data = wac_i2c->data;
 	unsigned int x, y, pressure;
 	unsigned char tip, f1, f2, eraser, transducer = 0;
 	short tilt_x, tilt_y, distance;
 	int error;
-
-// TODO: Should continue to read packets until DIGITIZER_INT is pulled high
 
 	error = i2c_master_recv(wac_i2c->client,
 				wac_i2c->data, 17);
@@ -296,6 +317,14 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 			BTN_TOOL_RUBBER : BTN_TOOL_PEN;
 
 	wac_i2c->prox = (data[3] & 0x20) ? true : false;
+
+	// Flippin'
+	pressure = wac_i2c->flip_pressure ? (features->pressure_max - pressure) : pressure;
+	distance = wac_i2c->flip_distance ? -distance : distance;
+	x = wac_i2c->flip_pos_x ? (features->x_max - x) : x;
+	y = wac_i2c->flip_pos_y ? (features->y_max - y) : y;
+	tilt_x = wac_i2c->flip_tilt_x ? -tilt_x : tilt_x;
+	tilt_y = wac_i2c->flip_tilt_y ? -tilt_y : tilt_y;
 
 	input_report_key(input, BTN_TOUCH, tip || eraser);
 	input_report_key(input, wac_i2c->tool, wac_i2c->prox);
@@ -335,16 +364,22 @@ static int wacom_i2c_probe(struct i2c_client *client,
 					 const struct i2c_device_id *id)
 {
 	struct wacom_i2c *wac_i2c;
+	struct wacom_features *features;
 	struct input_dev *input;
-	struct wacom_features features = { 0 };
 	int error;
+
+	wac_i2c = kzalloc(sizeof(*wac_i2c), GFP_KERNEL);
+	if (!wac_i2c) {
+		return -ENOMEM;
+	}
+	features = &wac_i2c->features;
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "i2c_check_functionality error\n");
 		return -EIO;
 	}
 
-	error = wacom_query_device(client, &features);
+	error = wacom_query_device(client, features);
 	if (error)
 		return error;
 
@@ -352,10 +387,8 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	if (error)
 		return error;
 
-	wac_i2c = kzalloc(sizeof(*wac_i2c), GFP_KERNEL);
-
 	input = input_allocate_device();
-	if (!wac_i2c || !input) {
+	if (!input) {
 		error = -ENOMEM;
 		goto err_free_mem;
 	}
@@ -366,7 +399,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	input->name = "Wacom I2C Digitizer";
 	input->id.bustype = BUS_I2C;
 	input->id.vendor = 0x56a;
-	input->id.version = features.fw_version;
+	input->id.version = features->fw_version;
 	input->dev.parent = &client->dev;
 	input->open = wacom_i2c_open;
 	input->close = wacom_i2c_close;
@@ -379,14 +412,14 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	__set_bit(BTN_STYLUS2, input->keybit);
 	__set_bit(BTN_TOUCH, input->keybit);
 
-	input_set_abs_params(input, ABS_X, 0, features.x_max, 0, 0);
-	input_set_abs_params(input, ABS_Y, 0, features.y_max, 0, 0);
+	input_set_abs_params(input, ABS_X, 0, features->x_max, 0, 0);
+	input_set_abs_params(input, ABS_Y, 0, features->y_max, 0, 0);
 	input_set_abs_params(input, ABS_PRESSURE,
-				 0, features.pressure_max, 0, 0);
+				 0, features->pressure_max, 0, 0);
 
-	input_set_abs_params(input, ABS_DISTANCE, 0, features.distance_max, 0, 0);
-	input_set_abs_params(input, ABS_TILT_X, -features.tilt_x_max, features.tilt_x_max, 0, 0);
-	input_set_abs_params(input, ABS_TILT_Y, -features.tilt_y_max, features.tilt_y_max, 0, 0);
+	input_set_abs_params(input, ABS_DISTANCE, 0, features->distance_max, 0, 0);
+	input_set_abs_params(input, ABS_TILT_X, -features->tilt_x_max, features->tilt_x_max, 0, 0);
+	input_set_abs_params(input, ABS_TILT_Y, -features->tilt_y_max, features->tilt_y_max, 0, 0);
 
 	input_set_drvdata(input, wac_i2c);
 
@@ -396,7 +429,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	if (error) {
 		dev_err(&client->dev,
 			"Failed to enable IRQ, error: %d\n", error);
-		goto err_free_mem;
+		goto err_free_moremem;
 	}
 
 	/* Disable the IRQ, we'll enable it in wac_i2c_open() */
@@ -410,12 +443,18 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	}
 
 	i2c_set_clientdata(client, wac_i2c);
+
+#ifdef CONFIG_OF
+	wacom_of_read(wac_i2c);
+#endif
+
 	return 0;
 
 err_free_irq:
 	free_irq(client->irq, wac_i2c);
-err_free_mem:
+err_free_moremem:
 	input_free_device(input);
+err_free_mem:
 	kfree(wac_i2c);
 
 	return error;
