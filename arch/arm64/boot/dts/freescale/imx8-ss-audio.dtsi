@@ -122,22 +122,6 @@ audio_subsys: bus@59000000 {
 				<&pd IMX_SC_R_MQS_0>;
 	};
 
-	dsp: dsp@596e8000 {
-		compatible = "fsl,imx8qxp-dsp";
-		reg = <0x596e8000 0x88000>;
-		clocks = <&dsp_lpcg 1>,
-			 <&dsp_ram_lpcg 0>,
-			 <&dsp_lpcg 2>;
-		clock-names = "ipg", "ocram", "core";
-		fsl,dsp-firmware = "imx/dsp/hifi4.bin";
-		power-domains = <&pd IMX_SC_R_MU_13A>,
-				<&pd IMX_SC_R_MU_13B>,
-				<&pd IMX_SC_R_DSP>,
-				<&pd IMX_SC_R_DSP_RAM>;
-		reserved-region = <&dsp_reserved>;
-		status = "disabled";
-	};
-
 	asrc0: asrc@59000000 {
 		compatible = "fsl,imx8qm-asrc0";
 		reg = <0x59000000 0x10000>;
@@ -421,11 +405,12 @@ audio_subsys: bus@59000000 {
 	};
 
 	amix: amix@59840000 {
-		compatible = "fsl,imx8qm-amix";
+		compatible = "fsl,imx8qm-audmix";
 		reg = <0x59840000 0x10000>;
 		clocks = <&amix_lpcg 0>;
 		clock-names = "ipg";
 		power-domains = <&pd IMX_SC_R_AMIX>;
+		dais = <&sai4>, <&sai5>;
 		status = "disabled";
 	};
 
@@ -565,7 +550,6 @@ audio_subsys: bus@59000000 {
 		clock-output-names = "sai4_lpcg_mclk",
 				     "sai4_lpcg_ipg_clk";
 		power-domains = <&pd IMX_SC_R_SAI_4>;
-		status = "disabled";
 	};
 
 	sai5_lpcg: clock-controller@59c30000 {
@@ -578,7 +562,6 @@ audio_subsys: bus@59000000 {
 		clock-output-names = "sai5_lpcg_mclk",
 				     "sai5_lpcg_ipg_clk";
 		power-domains = <&pd IMX_SC_R_SAI_5>;
-		status = "disabled";
 	};
 
 	amix_lpcg: clock-controller@59c40000 {
