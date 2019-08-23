@@ -124,6 +124,11 @@ int dpmac_destroy(struct fsl_mc_io *mc_io,
  * IRQ event - Indicates that the link state changed
  */
 #define DPMAC_IRQ_EVENT_LINK_CHANGED		0x00000002
+/**
+ * IRQ event - Indicate if the phy needs to suspend or resume
+ */
+#define DPMAC_IRQ_EVENT_LINK_UP_REQ		0x00000004
+#define DPMAC_IRQ_EVENT_LINK_DOWN_REQ		0x00000008
 
 int dpmac_set_irq_enable(struct fsl_mc_io *mc_io,
 			 u32 cmd_flags,

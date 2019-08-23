@@ -181,6 +181,7 @@ static void dpaa2_mac_link_changed(struct net_device *netdev)
 		dev_err(&priv->mc_dev->dev, "dpmac_set_link_state: %d\n", err);
 }
 
+#ifdef CONFIG_FSL_DPAA2_MAC_NETDEVS
 static int dpaa2_mac_open(struct net_device *netdev)
 {
 	/* start PHY state machine */
@@ -188,6 +189,7 @@ static int dpaa2_mac_open(struct net_device *netdev)
 
 	return 0;
 }
+#endif
 
 static int dpaa2_mac_stop(struct net_device *netdev)
 {
@@ -450,6 +452,7 @@ static irqreturn_t dpaa2_mac_irq_handler(int irq_num, void *arg)
 	struct device *dev = (struct device *)arg;
 	struct fsl_mc_device *mc_dev = to_fsl_mc_device(dev);
 	struct dpaa2_mac_priv *priv = dev_get_drvdata(dev);
+	struct net_device *ndev = priv->netdev;
 	struct dpmac_link_cfg link_cfg = { 0 };
 	u32 status;
 	int err;
@@ -474,6 +477,12 @@ static irqreturn_t dpaa2_mac_irq_handler(int irq_num, void *arg)
 
 		configure_link(priv, &link_cfg);
 	}
+
+	if (status & DPMAC_IRQ_EVENT_LINK_UP_REQ)
+		phy_start(ndev->phydev);
+
+	if (status & DPMAC_IRQ_EVENT_LINK_DOWN_REQ)
+		phy_stop(ndev->phydev);
 
 out:
 	dpmac_clear_irq_status(mc_dev->mc_io, 0, mc_dev->mc_handle,
@@ -505,7 +514,9 @@ static int setup_irqs(struct fsl_mc_device *mc_dev)
 	}
 
 	err = dpmac_set_irq_mask(mc_dev->mc_io, 0, mc_dev->mc_handle,
-				 DPMAC_IRQ_INDEX, DPMAC_IRQ_EVENT_LINK_CFG_REQ);
+				 DPMAC_IRQ_INDEX, DPMAC_IRQ_EVENT_LINK_CFG_REQ |
+				 DPMAC_IRQ_EVENT_LINK_UP_REQ |
+				 DPMAC_IRQ_EVENT_LINK_DOWN_REQ);
 	if (err) {
 		dev_err(&mc_dev->dev, "dpmac_set_irq_mask err %d\n", err);
 		goto free_irq;
@@ -733,8 +744,6 @@ probe_fixed_link:
 
 		dev_info(dev, "Registered fixed PHY.\n");
 	}
-
-	dpaa2_mac_open(netdev);
 
 	return 0;
 
