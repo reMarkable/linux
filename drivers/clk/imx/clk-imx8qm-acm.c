@@ -22,30 +22,38 @@
 static const char *aud_clk_sels[] = {
 	"aud_rec_clk0_lpcg_clk",
 	"aud_rec_clk1_lpcg_clk",
+	"mlb_clk",
+	"hdmi_rx_mclk",
 	"ext_aud_mclk0",
 	"ext_aud_mclk1",
 	"esai0_rx_clk",
 	"esai0_rx_hf_clk",
 	"esai0_tx_clk",
 	"esai0_tx_hf_clk",
+	"esai1_rx_clk",
+	"esai1_rx_hf_clk",
+	"esai1_tx_clk",
+	"esai1_tx_hf_clk",
 	"spdif0_rx",
+	"spdif1_rx",
 	"sai0_rx_bclk",
 	"sai0_tx_bclk",
 	"sai1_rx_bclk",
 	"sai1_tx_bclk",
 	"sai2_rx_bclk",
 	"sai3_rx_bclk",
+	"sai4_rx_bclk",
 };
 
 static const char *mclk_out_sels[] = {
 	"aud_rec_clk0_lpcg_clk",
 	"aud_rec_clk1_lpcg_clk",
-	"dummy",
-	"dummy",
+	"mlb_clk",
+	"hdmi_rx_mclk",
 	"spdif0_rx",
-	"dummy",
-	"dummy",
+	"spdif1_rx",
 	"sai4_rx_bclk",
+	"sai6_rx_bclk",
 };
 
 static const char *sai_mclk_sels[] = {
@@ -53,6 +61,13 @@ static const char *sai_mclk_sels[] = {
 	"aud_pll_div_clk1_lpcg_clk",
 	"acm_aud_clk0_sel",
 	"acm_aud_clk1_sel",
+};
+
+static const char *asrc_mux_clk_sels[] = {
+	"sai4_rx_bclk",
+	"sai5_tx_bclk",
+	"dummy",
+	"mlb_clk",
 };
 
 static const char *esai_mclk_sels[] = {
@@ -76,7 +91,7 @@ static const char *mqs_mclk_sels[] = {
 	"acm_aud_clk1_sel",
 };
 
-static int imx8qxp_acm_clk_probe(struct platform_device *pdev)
+static int imx8qm_acm_clk_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
@@ -129,7 +144,12 @@ static int imx8qxp_acm_clk_probe(struct platform_device *pdev)
 	clks[IMX_ADMA_ESAI0_RX_HF_CLK]   = imx_clk_fixed("esai0_rx_hf_clk", 0);
 	clks[IMX_ADMA_ESAI0_TX_CLK]      = imx_clk_fixed("esai0_tx_clk", 0);
 	clks[IMX_ADMA_ESAI0_TX_HF_CLK]   = imx_clk_fixed("esai0_tx_hf_clk", 0);
+	clks[IMX_ADMA_ESAI1_RX_CLK]      = imx_clk_fixed("esai1_rx_clk", 0);
+	clks[IMX_ADMA_ESAI1_RX_HF_CLK]   = imx_clk_fixed("esai1_rx_hf_clk", 0);
+	clks[IMX_ADMA_ESAI1_TX_CLK]      = imx_clk_fixed("esai1_tx_clk", 0);
+	clks[IMX_ADMA_ESAI1_TX_HF_CLK]   = imx_clk_fixed("esai1_tx_hf_clk", 0);
 	clks[IMX_ADMA_SPDIF0_RX]         = imx_clk_fixed("spdif0_rx", 0);
+	clks[IMX_ADMA_SPDIF1_RX]         = imx_clk_fixed("spdif1_rx", 0);
 	clks[IMX_ADMA_SAI0_RX_BCLK]      = imx_clk_fixed("sai0_rx_bclk", 0);
 	clks[IMX_ADMA_SAI0_TX_BCLK]      = imx_clk_fixed("sai0_tx_bclk", 0);
 	clks[IMX_ADMA_SAI1_RX_BCLK]      = imx_clk_fixed("sai1_rx_bclk", 0);
@@ -137,6 +157,10 @@ static int imx8qxp_acm_clk_probe(struct platform_device *pdev)
 	clks[IMX_ADMA_SAI2_RX_BCLK]      = imx_clk_fixed("sai2_rx_bclk", 0);
 	clks[IMX_ADMA_SAI3_RX_BCLK]      = imx_clk_fixed("sai3_rx_bclk", 0);
 	clks[IMX_ADMA_SAI4_RX_BCLK]      = imx_clk_fixed("sai4_rx_bclk", 0);
+	clks[IMX_ADMA_SAI5_TX_BCLK]      = imx_clk_fixed("sai5_tx_bclk", 0);
+	clks[IMX_ADMA_SAI6_RX_BCLK]      = imx_clk_fixed("sai6_rx_bclk", 0);
+	clks[IMX_ADMA_HDMI_RX_MCLK]      = imx_clk_fixed("hdmi_rx_mclk", 0);
+	clks[IMX_ADMA_MLB_CLK]           = imx_clk_fixed("mlb_clk", 0);
 
 
 	clks[IMX_ADMA_ACM_AUD_CLK0_SEL] = imx_clk_mux("acm_aud_clk0_sel", base+0x000000, 0, 5, aud_clk_sels, ARRAY_SIZE(aud_clk_sels));
@@ -145,15 +169,21 @@ static int imx8qxp_acm_clk_probe(struct platform_device *pdev)
 	clks[IMX_ADMA_ACM_MCLKOUT0_SEL]	= imx_clk_mux("acm_mclkout0_sel", base+0x020000, 0, 3, mclk_out_sels, ARRAY_SIZE(mclk_out_sels));
 	clks[IMX_ADMA_ACM_MCLKOUT1_SEL]	= imx_clk_mux("acm_mclkout1_sel", base+0x030000, 0, 3, mclk_out_sels, ARRAY_SIZE(mclk_out_sels));
 
+	clks[IMX_ADMA_ACM_ASRC0_MUX_CLK_SEL] = imx_clk_mux("acm_asrc0_mclk_sel", base+0x040000, 0, 2, asrc_mux_clk_sels, ARRAY_SIZE(asrc_mux_clk_sels));
+
 	clks[IMX_ADMA_ACM_ESAI0_MCLK_SEL] = imx_clk_mux("acm_esai0_mclk_sel", base+0x060000, 0, 2, esai_mclk_sels, ARRAY_SIZE(esai_mclk_sels));
+	clks[IMX_ADMA_ACM_ESAI1_MCLK_SEL] = imx_clk_mux("acm_esai1_mclk_sel", base+0x070000, 0, 2, esai_mclk_sels, ARRAY_SIZE(esai_mclk_sels));
 	clks[IMX_ADMA_ACM_SAI0_MCLK_SEL] = imx_clk_mux("acm_sai0_mclk_sel", base+0x0E0000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
 	clks[IMX_ADMA_ACM_SAI1_MCLK_SEL] = imx_clk_mux("acm_sai1_mclk_sel", base+0x0F0000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
 	clks[IMX_ADMA_ACM_SAI2_MCLK_SEL] = imx_clk_mux("acm_sai2_mclk_sel", base+0x100000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
 	clks[IMX_ADMA_ACM_SAI3_MCLK_SEL] = imx_clk_mux("acm_sai3_mclk_sel", base+0x110000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
-	clks[IMX_ADMA_ACM_SAI4_MCLK_SEL] = imx_clk_mux("acm_sai4_mclk_sel", base+0x140000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
-	clks[IMX_ADMA_ACM_SAI5_MCLK_SEL] = imx_clk_mux("acm_sai5_mclk_sel", base+0x150000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI4_MCLK_SEL] = imx_clk_mux("acm_sai4_mclk_sel", base+0x120000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI5_MCLK_SEL] = imx_clk_mux("acm_sai5_mclk_sel", base+0x130000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI6_MCLK_SEL] = imx_clk_mux("acm_sai6_mclk_sel", base+0x140000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI7_MCLK_SEL] = imx_clk_mux("acm_sai7_mclk_sel", base+0x150000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
 
 	clks[IMX_ADMA_ACM_SPDIF0_TX_CLK_SEL] = imx_clk_mux("acm_spdif0_mclk_sel", base+0x1A0000, 0, 2, spdif_mclk_sels, ARRAY_SIZE(spdif_mclk_sels));
+	clks[IMX_ADMA_ACM_SPDIF1_TX_CLK_SEL] = imx_clk_mux("acm_spdif1_mclk_sel", base+0x1B0000, 0, 2, spdif_mclk_sels, ARRAY_SIZE(spdif_mclk_sels));
 	clks[IMX_ADMA_ACM_MQS_TX_CLK_SEL] = imx_clk_mux("acm_mqs_mclk_sel", base+0x1C0000, 0, 2, mqs_mclk_sels, ARRAY_SIZE(mqs_mclk_sels));
 
 	for (i = 0; i < clk_data->clk_num; i++) {
@@ -165,22 +195,22 @@ static int imx8qxp_acm_clk_probe(struct platform_device *pdev)
 	return of_clk_add_provider(np, of_clk_src_onecell_get, clk_data);
 }
 
-static const struct of_device_id imx8qxp_acm_match[] = {
-	{ .compatible = "nxp,imx8qxp-acm", },
+static const struct of_device_id imx8qm_acm_match[] = {
+	{ .compatible = "nxp,imx8qm-acm", },
 	{ /* sentinel */ }
 };
 
-static struct platform_driver imx8qxp_acm_clk_driver = {
+static struct platform_driver imx8qm_acm_clk_driver = {
 	.driver = {
-		.name = "imx8qxp-acm",
-		.of_match_table = imx8qxp_acm_match,
+		.name = "imx8qm-acm",
+		.of_match_table = imx8qm_acm_match,
 		.suppress_bind_attrs = true,
 	},
-	.probe = imx8qxp_acm_clk_probe,
+	.probe = imx8qm_acm_clk_probe,
 };
 
-static int __init imx8qxp_acm_init(void)
+static int __init imx8qm_acm_init(void)
 {
-	return platform_driver_register(&imx8qxp_acm_clk_driver);
+	return platform_driver_register(&imx8qm_acm_clk_driver);
 }
-fs_initcall(imx8qxp_acm_init);
+fs_initcall(imx8qm_acm_init);
