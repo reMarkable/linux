@@ -22,6 +22,7 @@ struct imx_usbmisc_data {
 	unsigned int evdo:1; /* set external vbus divider option */
 	unsigned int ulpi:1; /* connected to an ULPI phy */
 	unsigned int hsic:1; /* HSIC controlller */
+	enum usb_dr_mode available_role;
 };
 
 int imx_usbmisc_init(struct imx_usbmisc_data *data);
