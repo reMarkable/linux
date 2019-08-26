@@ -124,6 +124,7 @@ static void __init imx7d_init_machine(void)
 	imx_anatop_init();
 	of_platform_default_populate(NULL, NULL, parent);
 	imx7d_pm_init();
+	imx_anatop_init();
 	imx7d_enet_init();
 }
 
