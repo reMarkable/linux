@@ -204,7 +204,6 @@ static enum power_supply_property max77818_charger_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
-	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CHARGER_MODE,
 };
 
@@ -339,23 +338,6 @@ max77818_charger_set_wcin_current_limit(struct max77818_charger *chg,
 
 	return regmap_update_bits(chg->regmap, REG_CHG_CNFG_10,
 				  BIT_WCIN_ILIM, val);
-}
-
-static int max77818_charger_get_charge_current(struct max77818_charger *chg)
-{
-	u32 val = 0;
-	int get_current;
-
-	regmap_read(chg->regmap, REG_CHG_CNFG_02, &val);
-
-	if ((val & BIT_CHG_CC) < 2)
-		get_current = 100;
-	else if ((val & BIT_CHG_CC) > 0x3C)
-		get_current = 3000;
-	else
-		get_current = (val & BIT_CHG_CC) * 50;
-
-	return get_current;
 }
 
 static int max77818_charger_set_enable(struct max77818_charger *chg, int en)
@@ -607,9 +589,6 @@ static int max77818_charger_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
 		val->intval = chg->charge_type;
-		break;
-	case POWER_SUPPLY_PROP_CURRENT_NOW:
-		val->intval = max77818_charger_get_charge_current(chg);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		val->intval = max77818_charger_get_input_current(chg);
