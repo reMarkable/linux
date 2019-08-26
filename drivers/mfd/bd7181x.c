@@ -269,6 +269,46 @@ struct bd7181x_board *bd7181x_parse_dt(struct i2c_client *client,
 }
 #endif
 
+static void bd7181x_lpsr_init(struct bd7181x *bd7181x)
+{
+
+	/* Set LPSR_MODE bit to get into LPSR state when PWRON goes low */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_PWRCTRL, BIT(4));
+
+	/* Turn off BUCK1 (VDD_ARM_1V1) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK1_MODE, BIT(1));
+
+	/* Turn off BUCK2 (VDD_SOC_1V0) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK2_MODE, BIT(1));
+
+	/* Keep BUCK3 (VDD_1V8) on in LPSR mode, as it supplies DDR VDD1 */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_BUCK3_MODE, BIT(1));
+
+	/* Keep BUCK4 (VDD_DRAM_1V2) on in LPSR mode for DDR retention */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_BUCK4_MODE, BIT(1));
+
+	/* Turn off BUCK5 (VDD_3V3) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK5_MODE, BIT(1));
+
+	/* Turn off LDO1_3V3 (NVCC_GPIO2) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE1, BIT(5));
+
+	/*
+	 * Keep LDO2_3V3 (NVCC_GPIO1) on in LPSR mode, as we have wakeup
+	 * source from there.
+	 */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_LDO_MODE2, BIT(1));
+
+	/* Turn off LDO3 (VDDA_USB_3P3) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE2, BIT(5));
+
+	/* Turn off LDO4_3V3 (EPD screen) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE3, BIT(1));
+
+	/* Turn off LDO5_1V8 (SD/MMC) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE3, BIT(5));
+}
+
 /** @brief probe bd7181x device
  *  @param i2c client object provided by system
  *  @param id chip id
@@ -327,6 +367,8 @@ static int bd7181x_i2c_probe(struct i2c_client *i2c,
 			      regmap_irq_get_domain(bd7181x->irq_data));
 	if (ret < 0)
 		goto err;
+
+	bd7181x_lpsr_init(bd7181x);
 
 	return ret;
 
