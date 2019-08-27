@@ -14,6 +14,7 @@
 		bit-offset = <0 16>;
 		clock-output-names = "uart4_lpcg_baud_clk",
 				     "uart4_lpcg_ipg_clk";
+		power-domains = <&pd IMX_SC_R_UART_4>;
 	};
 
 	can1_lpcg: clock-controller@5ace0000 {
