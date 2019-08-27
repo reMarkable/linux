@@ -639,3 +639,11 @@
 		};
 	};
 };
+
+&vpu_g1 {
+	status = "okay";
+};
+
+&vpu_g2 {
+	status = "okay";
+};
