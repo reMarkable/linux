@@ -447,6 +447,7 @@
 	#include "imx8-ss-img.dtsi"
 	#include "imx8-ss-dc0.dtsi"
 	#include "imx8-ss-dc1.dtsi"
+	#include "imx8-ss-vpu.dtsi"
 };
 
 #include "imx8qm-ss-audio.dtsi"
