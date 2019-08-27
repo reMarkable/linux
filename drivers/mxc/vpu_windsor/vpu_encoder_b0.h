@@ -364,7 +364,8 @@ struct vpu_dev {
 	struct vpu_enc_mem_info reserved_mem;
 	struct device *pd_vpu;
 	struct device *pd_enc;
-	struct device *pd_mu;
+	struct device *pd_mu1;
+	struct device *pd_mu2;
 };
 
 struct buffer_addr {

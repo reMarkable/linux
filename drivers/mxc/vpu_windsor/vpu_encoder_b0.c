@@ -5436,10 +5436,10 @@ static int vpu_enc_probe(struct platform_device *pdev)
 		ret = PTR_ERR(dev->pd_enc);
 		goto error_put_dev;
 	}
-	dev->pd_mu = dev_pm_domain_attach_by_name(&pdev->dev, "vpumu1");
-	if (IS_ERR(dev->pd_mu)) {
+	dev->pd_mu1 = dev_pm_domain_attach_by_name(&pdev->dev, "vpumu1");
+	if (IS_ERR(dev->pd_mu1)) {
 		vpu_dbg(LVL_ERR, "error: %s unable to get vpu mu1 power domain \n", __func__);
-		ret = PTR_ERR(dev->pd_mu);
+		ret = PTR_ERR(dev->pd_mu1);
 		goto error_put_dev;
 	}
 
@@ -5457,7 +5457,7 @@ static int vpu_enc_probe(struct platform_device *pdev)
 		ret = PTR_ERR(link);
 		goto error_put_dev;
 	}
-	link = device_link_add(&pdev->dev, dev->pd_mu,
+	link = device_link_add(&pdev->dev, dev->pd_mu1,
 		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
 	if (IS_ERR(link)) {
 		vpu_dbg(LVL_ERR, "error: %s unable to link vpu mu1 power domain \n", __func__);
@@ -5466,6 +5466,24 @@ static int vpu_enc_probe(struct platform_device *pdev)
 	}
 
 	dev->plat_type = *(enum PLAT_TYPE *)dev_id->data;
+
+	if (dev->plat_type == IMX8QM) {
+		dev->pd_mu2 = dev_pm_domain_attach_by_name(&pdev->dev, "vpumu2");
+		if (IS_ERR(dev->pd_mu2)) {
+			vpu_dbg(LVL_ERR, "error: %s unable to get vpu mu2 power domain \n", __func__);
+			ret = PTR_ERR(dev->pd_mu2);
+			goto error_put_dev;
+		}
+
+		link = device_link_add(&pdev->dev, dev->pd_mu2,
+			DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+		if (IS_ERR(link)) {
+			vpu_dbg(LVL_ERR, "error: %s unable to link vpu mu2 power domain \n", __func__);
+			ret = PTR_ERR(link);
+			goto error_put_dev;
+		}
+	}
+
 	dev->plat_dev = pdev;
 	dev->generic_dev = get_device(&pdev->dev);
 
