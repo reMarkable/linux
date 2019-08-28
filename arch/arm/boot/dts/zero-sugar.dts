@@ -413,12 +413,32 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c4>;
 	status = "okay";
+
+	sy7636a@62 {
+		compatible = "silergy,sy7636a";
+		reg = <0x62>;
+		status = "okay";
+
+		regulators {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			reg_epdpmic: regulator@0 {
+				reg = <0>;
+				regulator-compatible = "silergy,sy7636a-regulator";
+				regulator-name = "vcom";
+				regulator-boot-on;
+			};
+		};
+	};
+
 };
 
 &lcdif {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lcdif>;
 	/* TODO: enable-gpio = <&extended_io 7 GPIO_ACTIVE_LOW>; */
+	lcd-supply = <&reg_epdpmic>;
 	display = <&display0>;
 	prevent-frying-pan;
 	status = "okay";
