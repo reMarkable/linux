@@ -27,6 +27,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/of_address.h>
+#include <linux/pinctrl/consumer.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/watchdog.h>
@@ -378,6 +379,8 @@ static int imx2_wdt_suspend(struct device *dev)
 
 	clk_disable_unprepare(wdev->clk);
 
+	pinctrl_pm_select_sleep_state(dev);
+
 	return 0;
 }
 
@@ -387,6 +390,8 @@ static int imx2_wdt_resume(struct device *dev)
 	struct watchdog_device *wdog = dev_get_drvdata(dev);
 	struct imx2_wdt_device *wdev = watchdog_get_drvdata(wdog);
 	int ret;
+
+	pinctrl_pm_select_default_state(dev);
 
 	ret = clk_prepare_enable(wdev->clk);
 	if (ret)
