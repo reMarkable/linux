@@ -521,6 +521,10 @@
 	};
 };
 
+&ocrams {
+	fsl,enable-lpsr;
+};
+
 &sdma {
 	status = "okay";
 };
@@ -567,7 +571,6 @@
 	vmmc-supply = <&reg_brcm>;
 	bus-width = <4>;
 	non-removable;
-	keep-power-in-suspend;
 	cap-power-off-card;
 	status = "okay";
 
