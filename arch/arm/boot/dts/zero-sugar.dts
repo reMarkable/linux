@@ -512,7 +512,7 @@
 	non-removable;
 	disable-wp;
 	wifi-host;
-	/* keep-power-in-suspend; */
+	keep-power-in-suspend;
 	cap-power-off-card;
 	status = "okay";
 
