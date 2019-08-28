@@ -494,10 +494,6 @@
 	status = "okay";
 };
 
-&usdhc1 {
-	status = "disabled";
-};
-
 &usdhc2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
