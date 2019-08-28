@@ -68,8 +68,9 @@
 		regulator-name = "brcm_reg";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_brcm_reg>;
+		pinctrl-1 = <&pinctrl_brcm_reg>;
 		gpio = <&gpio6 13 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		startup-delay-us = <150>;
@@ -78,18 +79,21 @@
 
 	wifi_pwrseq: wifi_pwrseq {
 		compatible = "mmc-pwrseq-simple";
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_wifi>;
+		pinctrl-1 = <&pinctrl_wifi>;
 		reset-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
 		clocks = <&clks IMX7D_CLKO2_ROOT_DIV>;
 		clock-names = "ext_clock";
 	};
 
 	otgcontrol: otgcontrol1 {
-		pinctrl-names = "default", "one_wire_uart_tx", "one_wire_uart_rx";
+		pinctrl-names = "default", "one_wire_uart_tx", "one_wire_uart_rx",
+				"sleep";
 		pinctrl-0 = <&pinctrl_one_wire_gpio>;
 		pinctrl-1 = <&pinctrl_one_wire_uart6_tx>;
 		pinctrl-2 = <&pinctrl_one_wire_uart6_rx>;
+		pinctrl-3 = <&pinctrl_one_wire_gpio>;
 		compatible = "rm-otgcontrol";
 		vbus-supply =<&max77818_chg>;
 		one-wire-tty-name = "ttymxc5";
@@ -110,13 +114,15 @@
 
 &i2c1 {
 	clock-frequency = <400000>;
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&pinctrl_i2c1>;
+	pinctrl-1 = <&pinctrl_i2c1>;
 	status = "okay";
 
 	digitizer: wacom-i2c@09 {
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_wacom>;
+		pinctrl-1 = <&pinctrl_wacom>;
 		compatible = "wacom,wacom-i2c";
 		reg = <0x09>;
 		interrupt-parent = <&gpio1>;
@@ -131,8 +137,9 @@
 
 &i2c2 {
 	clock-frequency = <100000>;
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&pinctrl_i2c2>;
+	pinctrl-1 = <&pinctrl_i2c2>;
 	status = "okay";
 
 	pmic: bd71815@4b {
@@ -269,8 +276,9 @@
 		#address-cells = <0>;
 		interrupt-parent = <&gpio6>;
 		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_max77818>;
+		pinctrl-1 = <&pinctrl_max77818>;
 		reg = <0x66>;
 
 		regulators {
@@ -346,8 +354,9 @@
 
 &i2c3 {
 	clock-frequency = <100000>;
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&pinctrl_i2c3>;
+	pinctrl-1 = <&pinctrl_i2c3>;
 	status = "okay";
 
 	tsc@24 {
@@ -357,8 +366,9 @@
 		interrupt-parent = <&gpio1>;
 		interrupts = <14 2>;
 		cy,adapter_id = "cyttsp5_i2c_adapter";
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_touch>;
+		pinctrl-1 = <&pinctrl_touch>;
 
 		cy,core {
 			cy,name = "cyttsp5_core";
@@ -427,8 +437,9 @@
 
 &i2c4 {
 	clock-frequency = <100000>;
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&pinctrl_i2c4>;
+	pinctrl-1 = <&pinctrl_i2c4>;
 	status = "okay";
 
 	sy7636a@62 {
@@ -448,8 +459,9 @@
 };
 
 &lcdif {
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&pinctrl_lcdif>;
+	pinctrl-1 = <&pinctrl_lcdif>;
 	/* TODO: enable-gpio = <&extended_io 7 GPIO_ACTIVE_LOW>; */
 	lcd-supply = <&reg_epdpmic>;
 	display = <&display0>;
@@ -487,8 +499,9 @@
 };
 
 &uart1 {
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&pinctrl_uart1>;
+	pinctrl-1 = <&pinctrl_uart1>;
 	assigned-clocks = <&clks IMX7D_UART1_ROOT_SRC>;
 	assigned-clock-parents = <&clks IMX7D_OSC_24M_CLK>;
 	status = "okay";
@@ -519,9 +532,10 @@
 &usdhc2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	pinctrl-names = "default", "state_100mhz";
+	pinctrl-names = "default", "state_100mhz", "sleep";
 	pinctrl-0 = <&pinctrl_usdhc2>;
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
+	pinctrl-2 = <&pinctrl_usdhc2>;
 	mmc-pwrseq = <&wifi_pwrseq>;
 	vmmc-supply = <&reg_brcm>;
 	bus-width = <4>;
@@ -537,10 +551,11 @@
 };
 
 &usdhc3 {
-	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-names = "default", "state_100mhz", "state_200mhz", "sleep";
 	pinctrl-0 = <&pinctrl_usdhc3>;
 	pinctrl-1 = <&pinctrl_usdhc3_100mhz>;
 	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;
+	pinctrl-3 = <&pinctrl_usdhc3>;
 	assigned-clocks = <&clks IMX7D_USDHC3_ROOT_CLK>;
 	assigned-clock-rates = <400000000>;
 	bus-width = <8>;
@@ -549,8 +564,9 @@
 };
 
 &wdog1 {
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&pinctrl_wdog>;
+	pinctrl-1 = <&pinctrl_wdog>;
 	fsl,ext-reset-output;
 };
 
