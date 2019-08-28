@@ -509,7 +509,6 @@
 	mmc-pwrseq = <&wifi_pwrseq>;
 	bus-width = <4>;
 	non-removable;
-	wifi-host;
 	keep-power-in-suspend;
 	cap-power-off-card;
 	status = "okay";
