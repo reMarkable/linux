@@ -508,7 +508,6 @@
 	/*pinctrl-2 = <&pinctrl_usdhc2_200mhz &pinctrl_wifi>;*/
 	mmc-pwrseq = <&wifi_pwrseq>;
 	bus-width = <4>;
-	enable-sdio-wakeup;
 	non-removable;
 	disable-wp;
 	wifi-host;
@@ -519,12 +518,6 @@
 	brcmf: bcrmf@1 {
 		reg = <1>;
 		compatible = "brcm,bcm4329-fmac";
-		interrupt-parent = <&gpio1>;
-		interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "host-wake";
-		/*clocks = <&clks IMX7D_CLKO2_ROOT_DIV>;*/
-		/*clock-names = "32K_ext_wifi_clk";*/
-		/*resets = <&wifi_reset>;*/
 	};
 };
 
