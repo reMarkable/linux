@@ -501,11 +501,9 @@
 &usdhc2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	pinctrl-names = "default", "state_100mhz";/*, "state_200mhz";*/
-	pinctrl-0 = <&pinctrl_usdhc2>;
-	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
-
-	/*pinctrl-2 = <&pinctrl_usdhc2_200mhz &pinctrl_wifi>;*/
+	pinctrl-names = "default", "state_100mhz";
+	pinctrl-0 = <&pinctrl_usdhc2 &pinctrl_wifi>;
+	pinctrl-1 = <&pinctrl_usdhc2_100mhz &pinctrl_wifi>;
 	mmc-pwrseq = <&wifi_pwrseq>;
 	bus-width = <4>;
 	non-removable;
@@ -539,7 +537,6 @@
 
 &iomuxc {
 	pinctrl-names = "default";
-    pinctrl-0 = <&pinctrl_wifi>;
 
 	imx7d-sdb {
 
