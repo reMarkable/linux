@@ -787,6 +787,12 @@ config REGULATOR_SKY81452
 	  This driver can also be built as a module. If so, the module
 	  will be called sky81452-regulator.
 
+config REGULATOR_SY7636A
+	tristate "Silergy SY7636A voltage regulator"
+	depends on MFD_SY7636A
+	help
+	  This driver supports Silergy SY3686A voltage regulator.
+
 config REGULATOR_STM32_VREFBUF
 	tristate "STMicroelectronics STM32 VREFBUF"
 	depends on ARCH_STM32 || COMPILE_TEST
