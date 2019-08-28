@@ -909,6 +909,12 @@ config REGULATOR_STPMIC1
 	  To compile this driver as a module, choose M here: the
 	  module will be called stpmic1_regulator.
 
+config REGULATOR_SY7636A
+	tristate "Silergy SY7636A voltage regulator"
+	depends on MFD_SY7636A
+	help
+	  This driver supports Silergy SY3686A voltage regulator.
+
 config REGULATOR_TI_ABB
 	tristate "TI Adaptive Body Bias on-chip LDO"
 	depends on ARCH_OMAP
