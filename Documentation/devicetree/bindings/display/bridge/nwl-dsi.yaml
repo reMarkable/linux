@@ -93,6 +93,10 @@ properties:
       DSI output port node to the panel or the next bridge
       in the chain
 
+  fsl,clock-drop-level:
+    description:
+      Specifies the level at wich the crtc_clock should be dropped
+
 patternProperties:
   "^panel@[0-9]+$": true
 
