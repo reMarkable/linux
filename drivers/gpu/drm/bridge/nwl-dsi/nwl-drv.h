@@ -66,6 +66,7 @@ struct nwl_dsi {
 	struct list_head valid_modes;
 	/* dsi lanes */
 	u32 lanes;
+	u32 clk_drop_lvl;
 	enum mipi_dsi_pixel_format format;
 	struct drm_display_mode mode;
 	unsigned long dsi_mode_flags;

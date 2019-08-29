@@ -519,6 +519,7 @@ static const struct drm_bridge_funcs nwl_dsi_bridge_funcs = {
 
 static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 {
+	struct device_node *np = dsi->dev->of_node;
 	struct platform_device *pdev = to_platform_device(dsi->dev);
 	struct clk *clk;
 	const char *clk_id;
@@ -621,6 +622,8 @@ static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 			      PTR_ERR(dsi->rstc));
 		return PTR_ERR(dsi->rstc);
 	}
+
+	of_property_read_u32(np, "fsl,clock-drop-level", &dsi->clk_drop_lvl);
 
 	return 0;
 }
