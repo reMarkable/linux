@@ -30,6 +30,7 @@ properties:
       - description: RX_ESC clock (used in escape mode)
       - description: TX_ESC clock (used in escape mode)
       - description: PHY_REF clock
+      - description: VIDEO_PLL clock
 
   clock-names:
     items:
@@ -37,6 +38,7 @@ properties:
       - const: rx_esc
       - const: tx_esc
       - const: phy_ref
+      - const: video_pll
 
   mux-controls:
     description:
