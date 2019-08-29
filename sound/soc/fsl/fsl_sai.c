@@ -1259,12 +1259,12 @@ static const struct of_device_id fsl_sai_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, fsl_sai_ids);
 
-static unsigned int fsl_sai_calc_dl_off(unsigned int* dl_mask)
+static unsigned int fsl_sai_calc_dl_off(unsigned long dl_mask)
 {
 	int fbidx, nbidx, offset;
 
-	fbidx = find_first_bit((const unsigned long *)dl_mask, 8);
-	nbidx = find_next_bit((const unsigned long *)dl_mask, 8, fbidx+1);
+	fbidx = find_first_bit(&dl_mask, 8);
+	nbidx = find_next_bit(&dl_mask, 8, fbidx + 1);
 	offset = nbidx - fbidx - 1;
 
 	return (offset < 0 || offset >= 7 ? 0 : offset);
@@ -1321,9 +1321,9 @@ static int fsl_sai_read_dlcfg(struct platform_device *pdev, char *pn,
 
 		cfg[i].pins = pins;
 		cfg[i].mask[0] = rx;
-		cfg[i].offset[0] = fsl_sai_calc_dl_off(&rx);
+		cfg[i].offset[0] = fsl_sai_calc_dl_off(rx);
 		cfg[i].mask[1] = tx;
-		cfg[i].offset[1] = fsl_sai_calc_dl_off(&tx);
+		cfg[i].offset[1] = fsl_sai_calc_dl_off(tx);
 	}
 
 	*rcfg = cfg;
