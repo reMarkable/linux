@@ -852,6 +852,45 @@
 				status = "disabled";
 			};
 
+			mipi_dsi: mipi_dsi@30a00000 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				compatible = "fsl,imx8mq-nwl-dsi";
+				reg = <0x30a00000 0x300>;
+				clocks = <&clk IMX8MQ_CLK_DSI_CORE>,
+					 <&clk IMX8MQ_CLK_DSI_AHB>,
+					 <&clk IMX8MQ_CLK_DSI_IPG_DIV>,
+					 <&clk IMX8MQ_CLK_DSI_PHY_REF>,
+					 <&clk IMX8MQ_VIDEO_PLL1>;
+				clock-names = "core",
+					      "rx_esc",
+					      "tx_esc",
+					      "phy_ref",
+					      "video_pll";
+				assigned-clocks = <&clk IMX8MQ_CLK_DSI_PHY_REF>,
+						  <&clk IMX8MQ_CLK_DSI_CORE>,
+						  <&clk IMX8MQ_CLK_DSI_AHB>,
+						  <&clk IMX8MQ_CLK_DSI_IPG_DIV>;
+				assigned-clock-parents = <&clk IMX8MQ_VIDEO_PLL1_OUT>,
+							 <&clk IMX8MQ_SYS1_PLL_266M>,
+							 <&clk IMX8MQ_SYS1_PLL_80M>;
+				assigned-clock-rates = <27000000>,
+						       <266000000>,
+						       <80000000>,
+						       <20000000>;
+				interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
+				power-domains = <&pgc_mipi>;
+				resets = <&src IMX8MQ_RESET_MIPI_DSI_RESET_BYTE_N>,
+			                 <&src IMX8MQ_RESET_MIPI_DSI_DPI_RESET_N>,
+			                 <&src IMX8MQ_RESET_MIPI_DSI_ESC_RESET_N>,
+				         <&src IMX8MQ_RESET_MIPI_DSI_PCLK_RESET_N>;
+				reset-names = "byte", "dpi", "esc", "pclk";
+				mux-controls = <&mux 0>;
+				phys = <&dphy>;
+				phy-names = "dphy";
+				status = "disabled";
+			};
+
 			i2c1: i2c@30a20000 {
 				compatible = "fsl,imx8mq-i2c", "fsl,imx21-i2c";
 				reg = <0x30a20000 0x10000>;
