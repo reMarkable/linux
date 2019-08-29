@@ -505,6 +505,9 @@ static int nwl_dsi_bridge_attach(struct drm_bridge *bridge)
 {
 	struct nwl_dsi *dsi = bridge->driver_private;
 
+	if (!dsi->panel_bridge)
+		return -EPROBE_DEFER;
+
 	return drm_bridge_attach(bridge->encoder, dsi->panel_bridge, bridge);
 }
 
