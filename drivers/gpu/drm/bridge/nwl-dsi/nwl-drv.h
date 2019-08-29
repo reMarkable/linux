@@ -30,6 +30,17 @@ struct nwl_dsi_plat_clk_config {
 	bool present;
 };
 
+struct mode_config {
+	int				clock;
+	int				crtc_clock;
+	unsigned int			lanes;
+	unsigned long			bitclock;
+	unsigned long			phy_rates[3];
+	unsigned long			pll_rates[3];
+	int				phy_rate_idx;
+	struct list_head		list;
+};
+
 struct nwl_dsi {
 	struct drm_bridge bridge;
 	struct mipi_dsi_host dsi_host;
@@ -48,9 +59,11 @@ struct nwl_dsi {
 	struct clk *phy_ref_clk;
 	struct clk *rx_esc_clk;
 	struct clk *tx_esc_clk;
+	struct clk *pll_clk;
 	/* Platform dependent clocks */
 	struct nwl_dsi_plat_clk_config clk_config[NWL_DSI_MAX_PLATFORM_CLOCKS];
 
+	struct list_head valid_modes;
 	/* dsi lanes */
 	u32 lanes;
 	enum mipi_dsi_pixel_format format;
