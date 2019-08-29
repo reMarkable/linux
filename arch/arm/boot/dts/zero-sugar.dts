@@ -652,12 +652,6 @@
 		>;
 	};
 
-	pinctrl_usbotg2_pwr_1: usbotg2-1 {
-		fsl,pins = <
-			MX7D_PAD_UART3_CTS_B__GPIO4_IO7	0x14
-		>;
-	};
-
 	pinctrl_usdhc2: usdhc2grp {
 		fsl,pins = <
 			MX7D_PAD_SD2_CMD__SD2_CMD		0x59
