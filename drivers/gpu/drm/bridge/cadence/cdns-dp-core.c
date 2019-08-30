@@ -526,6 +526,9 @@ __cdns_dp_probe(struct platform_device *pdev,
 
 	dev_set_drvdata(dev, &dp->mhdp);
 	
+	/* register audio driver */
+	cdns_mhdp_register_audio_driver(dev);
+
 	dp_aux_init(&dp->mhdp, dev);
 
 	return dp;
@@ -537,6 +540,7 @@ err_out:
 static void __cdns_dp_remove(struct cdns_mhdp_device *mhdp)
 {
 	dp_aux_destroy(mhdp);
+	cdns_mhdp_unregister_audio_driver(mhdp->dev);
 }
 
 /* -----------------------------------------------------------------------------

@@ -9,7 +9,6 @@
  * (at your option) any later version.
  *
  */
-
 #include <drm/bridge/cdns-mhdp-imx.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
@@ -513,6 +512,9 @@ __cdns_hdmi_probe(struct platform_device *pdev,
 
 	dev_set_drvdata(dev, &hdmi->mhdp);
 
+	/* register audio driver */
+	cdns_mhdp_register_audio_driver(dev);
+
 	return hdmi;
 
 err_out:
@@ -522,6 +524,7 @@ err_out:
 
 static void __cdns_hdmi_remove(struct cdns_mhdp_device *mhdp)
 {
+	cdns_mhdp_unregister_audio_driver(mhdp->dev);
 }
 
 /* -----------------------------------------------------------------------------

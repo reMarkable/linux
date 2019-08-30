@@ -548,6 +548,7 @@ struct audio_info {
 	int sample_rate;
 	int channels;
 	int sample_width;
+	int connector_type;
 };
 
 enum vic_pxl_encoding_format {
@@ -670,11 +671,16 @@ int cdns_mhdp_get_edid_block(void *mhdp, u8 *edid,
 int cdns_mhdp_train_link(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_set_video_status(struct cdns_mhdp_device *mhdp, int active);
 int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp);
+
+/* Audio */
 int cdns_mhdp_audio_stop(struct cdns_mhdp_device *mhdp,
 			 struct audio_info *audio);
 int cdns_mhdp_audio_mute(struct cdns_mhdp_device *mhdp, bool enable);
 int cdns_mhdp_audio_config(struct cdns_mhdp_device *mhdp,
 			   struct audio_info *audio);
+int cdns_mhdp_register_audio_driver(struct device *dev);
+void cdns_mhdp_unregister_audio_driver(struct device *dev);
+
 int cdns_mhdp_reg_read(struct cdns_mhdp_device *mhdp, u32 addr);
 int cdns_mhdp_reg_write(struct cdns_mhdp_device *mhdp, u32 addr, u32 val);
 int cdns_mhdp_reg_write_bit(struct cdns_mhdp_device *mhdp, u16 addr,
