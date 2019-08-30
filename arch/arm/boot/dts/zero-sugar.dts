@@ -72,6 +72,7 @@
 		pinctrl-0 = <&pinctrl_brcm_reg>;
 		gpio = <&gpio6 13 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+		startup-delay-us = <150>;
 	};
 
 
