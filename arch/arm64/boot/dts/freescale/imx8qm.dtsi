@@ -420,7 +420,7 @@
 		ranges = <0x55000000 0x0 0x55000000 0x1000000>;
 
 		dsp: dsp@556e8000 {
-			compatible = "fsl,imx8qxp-dsp";
+			compatible = "fsl,imx8qm-dsp";
 			reg = <0x556e8000 0x88000>;
 			clocks = <&dsp_lpcg 1>,
 				 <&dsp_ram_lpcg 0>,
