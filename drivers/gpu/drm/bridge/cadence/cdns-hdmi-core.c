@@ -25,24 +25,7 @@
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
 #include <linux/mutex.h>
-#include <linux/regmap.h>
 #include <linux/of_device.h>
-
-static void hdmi_writel(struct cdns_mhdp_device *mhdp, u32 val, u32 offset)
-{
-	struct imx_mhdp_device *hdmi = container_of(mhdp, struct imx_mhdp_device, mhdp);
-
-	/* TODO */
-	if (offset >= 0x1000 && hdmi->regmap_csr) {
-		/* Remap address to low 4K memory */
-		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, offset >> 12);
-		writel(val, (offset & 0xfff) + mhdp->regs);
-		/* Restore address mapping */
-		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, 0);
-
-	} else
-		writel(val, mhdp->regs + offset);
-}
 
 static int hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 {
@@ -75,65 +58,12 @@ static int hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 	return ret;
 }
 
-static int hdmi_lanes_config(struct cdns_mhdp_device *mhdp)
+static void hdmi_lanes_config(struct cdns_mhdp_device *mhdp)
 {
-	int ret;
-
-	/* TODO */
-	/* Set the lane swapping */
-//	if (cpu_is_imx8qm())
-		ret = cdns_mhdp_reg_write(mhdp, LANES_CONFIG,
-						    F_SOURCE_PHY_LANE0_SWAP(3) |
-						    F_SOURCE_PHY_LANE1_SWAP(0) |
-						    F_SOURCE_PHY_LANE2_SWAP(1) |
-						    F_SOURCE_PHY_LANE3_SWAP(2) |
-						    F_SOURCE_PHY_COMB_BYPASS(0) |
-							F_SOURCE_PHY_20_10(1));
-#if 0
-	else
-		ret = cdns_mhdp_reg_write(mhdp, LANES_CONFIG,
-						    F_SOURCE_PHY_LANE0_SWAP(0) |
-						    F_SOURCE_PHY_LANE1_SWAP(1) |
-						    F_SOURCE_PHY_LANE2_SWAP(2) |
-						    F_SOURCE_PHY_LANE3_SWAP(3) |
-						    F_SOURCE_PHY_COMB_BYPASS(0) |
-							F_SOURCE_PHY_20_10(1));
-#endif
-	return ret;
-}
-
-static void hdmi_info_frame_set(struct cdns_mhdp_device *mhdp,
-					u8 entry_id, u8 packet_len, u8 *packet, u8 packet_type)
-{
-	u32 *packet32, len32;
-	u32 val, i;
-
-	/* invalidate entry */
-	val = F_ACTIVE_IDLE_TYPE(1) | F_PKT_ALLOC_ADDRESS(entry_id);
-	hdmi_writel(mhdp, val, SOURCE_PIF_PKT_ALLOC_REG);
-	hdmi_writel(mhdp, F_PKT_ALLOC_WR_EN(1), SOURCE_PIF_PKT_ALLOC_WR_EN);
-
-	/* flush fifo 1 */
-	hdmi_writel(mhdp, F_FIFO1_FLUSH(1), SOURCE_PIF_FIFO1_FLUSH);
-
-	/* write packet into memory */
-	packet32 = (u32 *)packet;
-	len32 = packet_len / 4;
-	for (i = 0; i < len32; i++)
-		hdmi_writel(mhdp, F_DATA_WR(packet32[i]), SOURCE_PIF_DATA_WR);
-
-	/* write entry id */
-	hdmi_writel(mhdp, F_WR_ADDR(entry_id), SOURCE_PIF_WR_ADDR);
-
-	/* write request */
-	hdmi_writel(mhdp, F_HOST_WR(1), SOURCE_PIF_WR_REQ);
-
-	/* update entry */
-	val =  F_ACTIVE_IDLE_TYPE(1) | F_TYPE_VALID(1) |
-			F_PACKET_TYPE(packet_type) | F_PKT_ALLOC_ADDRESS(entry_id);
-	hdmi_writel(mhdp, val, SOURCE_PIF_PKT_ALLOC_REG);
-
-	hdmi_writel(mhdp, F_PKT_ALLOC_WR_EN(1), SOURCE_PIF_PKT_ALLOC_WR_EN);
+	/* Line swaping */
+	/* For imx8qm lane_mapping = 0x93
+	 * For imx8mq lane_mapping = 0xe4*/
+	cdns_mhdp_reg_write(mhdp, LANES_CONFIG, 0x00400000 | mhdp->lane_mapping);
 }
 
 #define RGB_ALLOWED_COLORIMETRY (BIT(HDMI_EXTENDED_COLORIMETRY_BT2020) |\
@@ -148,9 +78,11 @@ static int hdmi_avi_info_set(struct cdns_mhdp_device *mhdp,
 				struct drm_display_mode *mode)
 {
 	struct hdmi_avi_infoframe frame;
-//	struct drm_display_info *di = &mhdp->connector.base.display_info;
-//	enum hdmi_extended_colorimetry ext_col;
-//	u32 sink_col, allowed_col;
+#if 0
+	struct drm_display_info *di = &mhdp->connector.base.display_info;
+	enum hdmi_extended_colorimetry ext_col;
+	u32 sink_col, allowed_col;
+#endif
 	int format = mhdp->video_info.color_fmt;
 	u8 buf[32];
 	int ret;
@@ -209,7 +141,7 @@ static int hdmi_avi_info_set(struct cdns_mhdp_device *mhdp,
 	}
 
 	buf[0] = 0;
-	hdmi_info_frame_set(mhdp, 0, sizeof(buf), buf, HDMI_INFOFRAME_TYPE_AVI);
+	cdns_mhdp_infoframe_set(mhdp, 0, sizeof(buf), buf, HDMI_INFOFRAME_TYPE_AVI);
 	return 0;
 }
 
@@ -234,7 +166,7 @@ static int hdmi_vendor_info_set(struct cdns_mhdp_device *mhdp,
 	}
 
 	buf[0] = 0;
-	hdmi_info_frame_set(mhdp, 3, sizeof(buf), buf, HDMI_INFOFRAME_TYPE_VENDOR);
+	cdns_mhdp_infoframe_set(mhdp, 3, sizeof(buf), buf, HDMI_INFOFRAME_TYPE_VENDOR);
 	return 0;
 }
 
@@ -464,6 +396,19 @@ static irqreturn_t cdns_hdmi_irq_thread(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static void cdns_hdmi_parse_dt(struct cdns_mhdp_device *mhdp)
+{
+	struct device_node *of_node = mhdp->dev->of_node;
+	int ret;
+
+	ret = of_property_read_u32(of_node, "lane-mapping", &mhdp->lane_mapping);
+	if (ret) {
+		mhdp->lane_mapping = 0xc6;
+		dev_warn(mhdp->dev, "Failed to get lane_mapping - using default 0xc6\n");
+	}
+	dev_info(mhdp->dev, "lane-mapping 0x%02x\n", mhdp->lane_mapping);
+}
+
 static struct imx_mhdp_device *
 __cdns_hdmi_probe(struct platform_device *pdev,
 			const struct cdn_plat_data *plat_data)
@@ -503,13 +448,13 @@ __cdns_hdmi_probe(struct platform_device *pdev,
 
 	hdmi->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
 	if (hdmi->irq[IRQ_IN] < 0) {
-		dev_info(&pdev->dev, "No plug_in irq number\n");
+		dev_info(dev, "No plug_in irq number\n");
 		return ERR_PTR(-EPROBE_DEFER);
 	}
 
 	hdmi->irq[IRQ_OUT] = platform_get_irq_byname(pdev, "plug_out");
 	if (hdmi->irq[IRQ_OUT] < 0) {
-		dev_info(&pdev->dev, "No plug_out irq number\n");
+		dev_info(dev, "No plug_out irq number\n");
 		return ERR_PTR(-EPROBE_DEFER);
 	}
 
@@ -533,7 +478,7 @@ __cdns_hdmi_probe(struct platform_device *pdev,
 					IRQF_ONESHOT, dev_name(dev),
 					hdmi);
 	if (ret) {
-		dev_err(&pdev->dev, "can't claim irq %d\n",
+		dev_err(dev, "can't claim irq %d\n",
 						hdmi->irq[IRQ_IN]);
 		goto err_out;
 	}
@@ -544,10 +489,12 @@ __cdns_hdmi_probe(struct platform_device *pdev,
 					IRQF_ONESHOT, dev_name(dev),
 					hdmi);
 	if (ret) {
-		dev_err(&pdev->dev, "can't claim irq %d\n",
+		dev_err(dev, "can't claim irq %d\n",
 						hdmi->irq[IRQ_OUT]);
 		goto err_out;
 	}
+
+	cdns_hdmi_parse_dt(&hdmi->mhdp);
 
 	if (cdns_mhdp_read_hpd(&hdmi->mhdp))
 		enable_irq(hdmi->irq[IRQ_OUT]);
@@ -557,14 +504,14 @@ __cdns_hdmi_probe(struct platform_device *pdev,
 	hdmi->mhdp.bridge.base.driver_private = hdmi;
 	hdmi->mhdp.bridge.base.funcs = &cdns_hdmi_bridge_funcs;
 #ifdef CONFIG_OF
-	hdmi->mhdp.bridge.base.of_node = pdev->dev.of_node;
+	hdmi->mhdp.bridge.base.of_node = dev->of_node;
 #endif
 
 	memset(&pdevinfo, 0, sizeof(pdevinfo));
 	pdevinfo.parent = dev;
 	pdevinfo.id = PLATFORM_DEVID_AUTO;
 
-	platform_set_drvdata(pdev, hdmi);
+	dev_set_drvdata(dev, &hdmi->mhdp);
 
 	return hdmi;
 
@@ -573,7 +520,7 @@ err_out:
 	return ERR_PTR(ret);
 }
 
-static void __cdns_hdmi_remove(struct imx_mhdp_device *hdmi)
+static void __cdns_hdmi_remove(struct cdns_mhdp_device *mhdp)
 {
 }
 
@@ -597,11 +544,11 @@ EXPORT_SYMBOL_GPL(cdns_hdmi_probe);
 
 void cdns_hdmi_remove(struct platform_device *pdev)
 {
-	struct imx_mhdp_device *hdmi = platform_get_drvdata(pdev);
+	struct cdns_mhdp_device *mhdp = platform_get_drvdata(pdev);
 
-	drm_bridge_remove(&hdmi->mhdp.bridge.base);
+	drm_bridge_remove(&mhdp->bridge.base);
 
-	__cdns_hdmi_remove(hdmi);
+	__cdns_hdmi_remove(mhdp);
 }
 EXPORT_SYMBOL_GPL(cdns_hdmi_remove);
 
@@ -631,9 +578,9 @@ EXPORT_SYMBOL_GPL(cdns_hdmi_bind);
 
 void cdns_hdmi_unbind(struct device *dev)
 {
-	struct imx_mhdp_device *hdmi = dev_get_drvdata(dev);
+	struct cdns_mhdp_device *mhdp = dev_get_drvdata(dev);
 
-	__cdns_hdmi_remove(hdmi);
+	__cdns_hdmi_remove(mhdp);
 }
 EXPORT_SYMBOL_GPL(cdns_hdmi_unbind);
 

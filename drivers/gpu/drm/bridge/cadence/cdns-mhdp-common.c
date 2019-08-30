@@ -23,8 +23,10 @@
 #include <asm/unaligned.h>
 
 #include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp-imx.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_print.h>
+#include <linux/regmap.h>
 
 #define CDNS_DP_SPDIF_CLK		200000000
 #define FW_ALIVE_TIMEOUT_US		1000000
@@ -32,6 +34,27 @@
 #define MAILBOX_TIMEOUT_US		5000000
 #define LINK_TRAINING_RETRY_MS		20
 #define LINK_TRAINING_TIMEOUT_MS	500
+
+#define mhdp_readx_poll_timeout(op, addr, offset, val, cond, sleep_us, timeout_us)	\
+({ \
+	u64 __timeout_us = (timeout_us); \
+	unsigned long __sleep_us = (sleep_us); \
+	ktime_t __timeout = ktime_add_us(ktime_get(), __timeout_us); \
+	might_sleep_if((__sleep_us) != 0); \
+	for (;;) { \
+		(val) = op(addr, offset); \
+		if (cond) \
+			break; \
+		if (__timeout_us && \
+		    ktime_compare(ktime_get(), __timeout) > 0) { \
+			(val) = op(addr, offset); \
+			break; \
+		} \
+		if (__sleep_us) \
+			usleep_range((__sleep_us >> 2) + 1, __sleep_us); \
+	} \
+	(cond) ? 0 : -ETIMEDOUT; \
+})
 
 static inline u32 get_unaligned_be24(const void *p)
 {
@@ -49,9 +72,51 @@ static inline void put_unaligned_be24(u32 val, void *p)
 	_p[2] = val;
 }
 
+u32 cdns_mhdp_bus_read(struct cdns_mhdp_device *mhdp, u32 offset)
+{
+	struct imx_mhdp_device *hdmi = container_of(mhdp, struct imx_mhdp_device, mhdp);
+	u32 val;
+
+	/* TODO */
+	if (offset >= 0x1000 && hdmi->regmap_csr) {
+		/* Remap address to low 4K memory */
+		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, offset >> 12);
+		val = readl((offset & 0xfff) + mhdp->regs);
+		/* Restore address mapping */
+		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, 0);
+	} else
+		val = readl(mhdp->regs + offset);
+
+	return val;
+}
+EXPORT_SYMBOL(cdns_mhdp_bus_read);
+
+void cdns_mhdp_bus_write(u32 val, struct cdns_mhdp_device *mhdp, u32 offset)
+{
+	struct imx_mhdp_device *hdmi = container_of(mhdp, struct imx_mhdp_device, mhdp);
+
+	/* TODO */
+	if (offset >= 0x1000 && hdmi->regmap_csr) {
+		/* Remap address to low 4K memory */
+		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, offset >> 12);
+		writel(val, (offset & 0xfff) + mhdp->regs);
+		/* Restore address mapping */
+		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, 0);
+
+	} else
+		writel(val, mhdp->regs + offset);
+}
+EXPORT_SYMBOL(cdns_mhdp_bus_write);
+
+u32 cdns_mhdp_get_fw_clk(struct cdns_mhdp_device *mhdp)
+{
+	return cdns_mhdp_bus_read(mhdp, SW_CLK_H);
+}
+EXPORT_SYMBOL(cdns_mhdp_get_fw_clk);
+
 void cdns_mhdp_set_fw_clk(struct cdns_mhdp_device *mhdp, unsigned long clk)
 {
-	writel(clk / 1000000, mhdp->regs + SW_CLK_H);
+	cdns_mhdp_bus_write(clk / 1000000, mhdp, SW_CLK_H);
 }
 EXPORT_SYMBOL(cdns_mhdp_set_fw_clk);
 
@@ -71,16 +136,16 @@ void cdns_mhdp_clock_reset(struct cdns_mhdp_device *mhdp)
 	      DPTX_SYS_CLK_EN |
 	      CFG_DPTX_VIF_CLK_RSTN_EN |
 	      CFG_DPTX_VIF_CLK_EN;
-	writel(val, mhdp->regs + SOURCE_DPTX_CAR);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_DPTX_CAR);
 
 	val = SOURCE_PHY_RSTN_EN | SOURCE_PHY_CLK_EN;
-	writel(val, mhdp->regs + SOURCE_PHY_CAR);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_PHY_CAR);
 
 	val = SOURCE_PKT_SYS_RSTN_EN |
 	      SOURCE_PKT_SYS_CLK_EN |
 	      SOURCE_PKT_DATA_RSTN_EN |
 	      SOURCE_PKT_DATA_CLK_EN;
-	writel(val, mhdp->regs + SOURCE_PKT_CAR);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_PKT_CAR);
 
 	val = SPDIF_CDR_CLK_RSTN_EN |
 	      SPDIF_CDR_CLK_EN |
@@ -88,20 +153,20 @@ void cdns_mhdp_clock_reset(struct cdns_mhdp_device *mhdp)
 	      SOURCE_AIF_SYS_CLK_EN |
 	      SOURCE_AIF_CLK_RSTN_EN |
 	      SOURCE_AIF_CLK_EN;
-	writel(val, mhdp->regs + SOURCE_AIF_CAR);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_AIF_CAR);
 
 	val = SOURCE_CIPHER_SYSTEM_CLK_RSTN_EN |
 	      SOURCE_CIPHER_SYS_CLK_EN |
 	      SOURCE_CIPHER_CHAR_CLK_RSTN_EN |
 	      SOURCE_CIPHER_CHAR_CLK_EN;
-	writel(val, mhdp->regs + SOURCE_CIPHER_CAR);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_CIPHER_CAR);
 
 	val = SOURCE_CRYPTO_SYS_CLK_RSTN_EN |
 	      SOURCE_CRYPTO_SYS_CLK_EN;
-	writel(val, mhdp->regs + SOURCE_CRYPTO_CAR);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_CRYPTO_CAR);
 
 	/* enable Mailbox and PIF interrupt */
-	writel(0, mhdp->regs + APB_INT_MASK);
+	cdns_mhdp_bus_write(0, mhdp, APB_INT_MASK);
 }
 EXPORT_SYMBOL(cdns_mhdp_clock_reset);
 
@@ -109,13 +174,13 @@ int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
 {
 	int val, ret;
 
-	ret = readx_poll_timeout(readl, mhdp->regs + MAILBOX_EMPTY_ADDR,
+	ret = mhdp_readx_poll_timeout(cdns_mhdp_bus_read, mhdp, MAILBOX_EMPTY_ADDR,
 				 val, !val, MAILBOX_RETRY_US,
 				 MAILBOX_TIMEOUT_US);
 	if (ret < 0)
 		return ret;
 
-	return readl(mhdp->regs + MAILBOX0_RD_DATA) & 0xff;
+	return cdns_mhdp_bus_read(mhdp, MAILBOX0_RD_DATA) & 0xff;
 }
 EXPORT_SYMBOL(cdns_mhdp_mailbox_read);
 
@@ -123,13 +188,13 @@ static int cdp_dp_mailbox_write(struct cdns_mhdp_device *mhdp, u8 val)
 {
 	int ret, full;
 
-	ret = readx_poll_timeout(readl, mhdp->regs + MAILBOX_FULL_ADDR,
+	ret = mhdp_readx_poll_timeout(cdns_mhdp_bus_read, mhdp, MAILBOX_FULL_ADDR,
 				 full, !full, MAILBOX_RETRY_US,
 				 MAILBOX_TIMEOUT_US);
 	if (ret < 0)
 		return ret;
 
-	writel(val, mhdp->regs + MAILBOX0_WR_DATA);
+	cdns_mhdp_bus_write(val, mhdp, MAILBOX0_WR_DATA);
 
 	return 0;
 }
@@ -357,20 +422,20 @@ int cdns_mhdp_load_firmware(struct cdns_mhdp_device *mhdp, const u32 *i_mem,
 	int i, ret;
 
 	/* reset ucpu before load firmware*/
-	writel(APB_IRAM_PATH | APB_DRAM_PATH | APB_XT_RESET,
-	       mhdp->regs + APB_CTRL);
+	cdns_mhdp_bus_write(APB_IRAM_PATH | APB_DRAM_PATH | APB_XT_RESET,
+	       mhdp, APB_CTRL);
 
 	for (i = 0; i < i_size; i += 4)
-		writel(*i_mem++, mhdp->regs + ADDR_IMEM + i);
+		cdns_mhdp_bus_write(*i_mem++, mhdp, ADDR_IMEM + i);
 
 	for (i = 0; i < d_size; i += 4)
-		writel(*d_mem++, mhdp->regs + ADDR_DMEM + i);
+		cdns_mhdp_bus_write(*d_mem++, mhdp, ADDR_DMEM + i);
 
 	/* un-reset ucpu */
-	writel(0, mhdp->regs + APB_CTRL);
+	cdns_mhdp_bus_write(0, mhdp, APB_CTRL);
 
 	/* check the keep alive register to make sure fw working */
-	ret = readx_poll_timeout(readl, mhdp->regs + KEEP_ALIVE,
+	ret = mhdp_readx_poll_timeout(cdns_mhdp_bus_read, mhdp, KEEP_ALIVE,
 				 reg, reg, 2000, FW_ALIVE_TIMEOUT_US);
 	if (ret < 0) {
 		DRM_DEV_ERROR(mhdp->dev, "failed to loaded the FW reg = %x\n",
@@ -378,13 +443,13 @@ int cdns_mhdp_load_firmware(struct cdns_mhdp_device *mhdp, const u32 *i_mem,
 		return -EINVAL;
 	}
 
-	reg = readl(mhdp->regs + VER_L) & 0xff;
+	reg = cdns_mhdp_bus_read(mhdp, VER_L) & 0xff;
 	mhdp->fw_version = reg;
-	reg = readl(mhdp->regs + VER_H) & 0xff;
+	reg = cdns_mhdp_bus_read(mhdp, VER_H) & 0xff;
 	mhdp->fw_version |= reg << 8;
-	reg = readl(mhdp->regs + VER_LIB_L_ADDR) & 0xff;
+	reg = cdns_mhdp_bus_read(mhdp, VER_LIB_L_ADDR) & 0xff;
 	mhdp->fw_version |= reg << 16;
-	reg = readl(mhdp->regs + VER_LIB_H_ADDR) & 0xff;
+	reg = cdns_mhdp_bus_read(mhdp, VER_LIB_H_ADDR) & 0xff;
 	mhdp->fw_version |= reg << 24;
 
 	DRM_DEV_DEBUG(mhdp->dev, "firmware version: %x\n", mhdp->fw_version);
@@ -466,7 +531,7 @@ int cdns_mhdp_event_config(struct cdns_mhdp_device *mhdp)
 
 	memset(msg, 0, sizeof(msg));
 
-	msg[0] = DPTX_EVENT_ENABLE_HPD | DPTX_EVENT_ENABLE_TRAINING;
+	msg[0] = MHDP_EVENT_ENABLE_HPD | MHDP_EVENT_ENABLE_TRAINING;
 
 	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
 				     DPTX_ENABLE_EVENT, sizeof(msg), msg);
@@ -479,7 +544,7 @@ EXPORT_SYMBOL(cdns_mhdp_event_config);
 
 u32 cdns_mhdp_get_event(struct cdns_mhdp_device *mhdp)
 {
-	return readl(mhdp->regs + SW_EVENTS0);
+	return cdns_mhdp_bus_read(mhdp, SW_EVENTS0);
 }
 EXPORT_SYMBOL(cdns_mhdp_get_event);
 
@@ -883,24 +948,24 @@ int cdns_mhdp_audio_stop(struct cdns_mhdp_device *mhdp,
 		return ret;
 	}
 
-	writel(0, mhdp->regs + SPDIF_CTRL_ADDR);
+	cdns_mhdp_bus_write(0, mhdp, SPDIF_CTRL_ADDR);
 
 	/* clearn the audio config and reset */
-	writel(0, mhdp->regs + AUDIO_SRC_CNTL);
-	writel(0, mhdp->regs + AUDIO_SRC_CNFG);
-	writel(AUDIO_SW_RST, mhdp->regs + AUDIO_SRC_CNTL);
-	writel(0, mhdp->regs + AUDIO_SRC_CNTL);
+	cdns_mhdp_bus_write(0, mhdp, AUDIO_SRC_CNTL);
+	cdns_mhdp_bus_write(0, mhdp, AUDIO_SRC_CNFG);
+	cdns_mhdp_bus_write(AUDIO_SW_RST, mhdp, AUDIO_SRC_CNTL);
+	cdns_mhdp_bus_write(0, mhdp, AUDIO_SRC_CNTL);
 
 	/* reset smpl2pckt component  */
-	writel(0, mhdp->regs + SMPL2PKT_CNTL);
-	writel(AUDIO_SW_RST, mhdp->regs + SMPL2PKT_CNTL);
-	writel(0, mhdp->regs + SMPL2PKT_CNTL);
+	cdns_mhdp_bus_write(0, mhdp, SMPL2PKT_CNTL);
+	cdns_mhdp_bus_write(AUDIO_SW_RST, mhdp, SMPL2PKT_CNTL);
+	cdns_mhdp_bus_write(0, mhdp, SMPL2PKT_CNTL);
 
 	/* reset FIFO */
-	writel(AUDIO_SW_RST, mhdp->regs + FIFO_CNTL);
-	writel(0, mhdp->regs + FIFO_CNTL);
+	cdns_mhdp_bus_write(AUDIO_SW_RST, mhdp, FIFO_CNTL);
+	cdns_mhdp_bus_write(0, mhdp, FIFO_CNTL);
 
-	if (audio->format == AFMT_SPDIF)
+	if (audio->format == AFMT_SPDIF_INT)
 		clk_disable_unprepare(mhdp->spdif_clk);
 
 	return 0;
@@ -936,15 +1001,15 @@ static void cdns_mhdp_audio_config_i2s(struct cdns_mhdp_device *mhdp,
 		i2s_port_en_val = 3;
 	}
 
-	writel(0x0, mhdp->regs + SPDIF_CTRL_ADDR);
+	cdns_mhdp_bus_write(0x0, mhdp, SPDIF_CTRL_ADDR);
 
-	writel(SYNC_WR_TO_CH_ZERO, mhdp->regs + FIFO_CNTL);
+	cdns_mhdp_bus_write(SYNC_WR_TO_CH_ZERO, mhdp, FIFO_CNTL);
 
 	val = MAX_NUM_CH(audio->channels);
 	val |= NUM_OF_I2S_PORTS(audio->channels);
 	val |= AUDIO_TYPE_LPCM;
 	val |= CFG_SUB_PCKT_NUM(sub_pckt_num);
-	writel(val, mhdp->regs + SMPL2PKT_CNFG);
+	cdns_mhdp_bus_write(val, mhdp, SMPL2PKT_CNFG);
 
 	if (audio->sample_width == 16)
 		val = 0;
@@ -956,7 +1021,7 @@ static void cdns_mhdp_audio_config_i2s(struct cdns_mhdp_device *mhdp,
 	val |= AUDIO_CH_NUM(audio->channels);
 	val |= I2S_DEC_PORT_EN(i2s_port_en_val);
 	val |= TRANS_SMPL_WIDTH_32;
-	writel(val, mhdp->regs + AUDIO_SRC_CNFG);
+	cdns_mhdp_bus_write(val, mhdp, AUDIO_SRC_CNFG);
 
 	for (i = 0; i < (audio->channels + 1) / 2; i++) {
 		if (audio->sample_width == 16)
@@ -965,7 +1030,7 @@ static void cdns_mhdp_audio_config_i2s(struct cdns_mhdp_device *mhdp,
 			val = (0x0b << 8) | (0x0b << 20);
 
 		val |= ((2 * i) << 4) | ((2 * i + 1) << 16);
-		writel(val, mhdp->regs + STTS_BIT_CH(i));
+		cdns_mhdp_bus_write(val, mhdp, STTS_BIT_CH(i));
 	}
 
 	switch (audio->sample_rate) {
@@ -999,24 +1064,24 @@ static void cdns_mhdp_audio_config_i2s(struct cdns_mhdp_device *mhdp,
 		break;
 	}
 	val |= 4;
-	writel(val, mhdp->regs + COM_CH_STTS_BITS);
+	cdns_mhdp_bus_write(val, mhdp, COM_CH_STTS_BITS);
 
-	writel(SMPL2PKT_EN, mhdp->regs + SMPL2PKT_CNTL);
-	writel(I2S_DEC_START, mhdp->regs + AUDIO_SRC_CNTL);
+	cdns_mhdp_bus_write(SMPL2PKT_EN, mhdp, SMPL2PKT_CNTL);
+	cdns_mhdp_bus_write(I2S_DEC_START, mhdp, AUDIO_SRC_CNTL);
 }
 
 static void cdns_mhdp_audio_config_spdif(struct cdns_mhdp_device *mhdp)
 {
 	u32 val;
 
-	writel(SYNC_WR_TO_CH_ZERO, mhdp->regs + FIFO_CNTL);
+	cdns_mhdp_bus_write(SYNC_WR_TO_CH_ZERO, mhdp, FIFO_CNTL);
 
 	val = MAX_NUM_CH(2) | AUDIO_TYPE_LPCM | CFG_SUB_PCKT_NUM(4);
-	writel(val, mhdp->regs + SMPL2PKT_CNFG);
-	writel(SMPL2PKT_EN, mhdp->regs + SMPL2PKT_CNTL);
+	cdns_mhdp_bus_write(val, mhdp, SMPL2PKT_CNFG);
+	cdns_mhdp_bus_write(SMPL2PKT_EN, mhdp, SMPL2PKT_CNTL);
 
 	val = SPDIF_ENABLE | SPDIF_AVG_SEL | SPDIF_JITTER_BYPASS;
-	writel(val, mhdp->regs + SPDIF_CTRL_ADDR);
+	cdns_mhdp_bus_write(val, mhdp, SPDIF_CTRL_ADDR);
 
 	clk_prepare_enable(mhdp->spdif_clk);
 	clk_set_rate(mhdp->spdif_clk, CDNS_DP_SPDIF_CLK);
@@ -1028,7 +1093,7 @@ int cdns_mhdp_audio_config(struct cdns_mhdp_device *mhdp,
 	int ret;
 
 	/* reset the spdif clk before config */
-	if (audio->format == AFMT_SPDIF) {
+	if (audio->format == AFMT_SPDIF_INT) {
 		reset_control_assert(mhdp->spdif_rst);
 		reset_control_deassert(mhdp->spdif_rst);
 	}
@@ -1043,7 +1108,7 @@ int cdns_mhdp_audio_config(struct cdns_mhdp_device *mhdp,
 
 	if (audio->format == AFMT_I2S)
 		cdns_mhdp_audio_config_i2s(mhdp, audio);
-	else if (audio->format == AFMT_SPDIF)
+	else if (audio->format == AFMT_SPDIF_INT)
 		cdns_mhdp_audio_config_spdif(mhdp);
 
 	ret = cdns_mhdp_reg_write(mhdp, AUDIO_PACK_CONTROL, AUDIO_PACK_EN);
@@ -1150,12 +1215,12 @@ bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp)
 	u32  alive, newalive;
 	u8 retries_left = 10;
 
-	alive = readl(mhdp->regs + KEEP_ALIVE);
+	alive = cdns_mhdp_bus_read(mhdp, KEEP_ALIVE);
 
 	while (retries_left--) {
 		udelay(2);
 
-		newalive = readl(mhdp->regs + KEEP_ALIVE);
+		newalive = cdns_mhdp_bus_read(mhdp, KEEP_ALIVE);
 		if (alive == newalive)
 			continue;
 		return true;

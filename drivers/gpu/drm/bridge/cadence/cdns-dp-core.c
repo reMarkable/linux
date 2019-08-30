@@ -116,7 +116,7 @@ static void cdns_dp_mode_set(struct imx_mhdp_device *dp,
 {
 	struct drm_dp_link link;
 	struct cdns_mhdp_device *mhdp = &dp->mhdp;
-	u32 lane_mapping = mhdp->dp.lane_mapping;
+	u32 lane_mapping = mhdp->lane_mapping;
 	int ret;
 	char linkid[6];
 
@@ -405,12 +405,12 @@ static void cdns_dp_parse_dt(struct cdns_mhdp_device *mhdp)
 	int ret;
 
 	ret = of_property_read_u32(of_node, "lane-mapping",
-						&mhdp->dp.lane_mapping);
+						&mhdp->lane_mapping);
 	if (ret) {
-		mhdp->dp.lane_mapping = 0xc6;
+		mhdp->lane_mapping = 0xc6;
 		dev_warn(mhdp->dev, "Failed to get lane_mapping - using default 0xc6\n");
 	}
-	dev_info(mhdp->dev, "lane-mapping 0x%02x\n", mhdp->dp.lane_mapping);
+	dev_info(mhdp->dev, "lane-mapping 0x%02x\n", mhdp->lane_mapping);
 
 	ret = of_property_read_u32(of_node, "link-rate", &mhdp->dp.link_rate);
 	if (ret) {
@@ -470,11 +470,11 @@ __cdns_dp_probe(struct platform_device *pdev,
 
 	dp->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
 	if (dp->irq[IRQ_IN] < 0)
-		dev_info(&pdev->dev, "No plug_in irq number\n");
+		dev_info(dev, "No plug_in irq number\n");
 
 	dp->irq[IRQ_OUT] = platform_get_irq_byname(pdev, "plug_out");
 	if (dp->irq[IRQ_OUT] < 0)
-		dev_info(&pdev->dev, "No plug_out irq number\n");
+		dev_info(dev, "No plug_out irq number\n");
 
 	cdns_dp_parse_dt(&dp->mhdp);
 
@@ -498,7 +498,7 @@ __cdns_dp_probe(struct platform_device *pdev,
 					IRQF_ONESHOT, dev_name(dev),
 					dp);
 	if (ret) {
-		dev_err(&pdev->dev, "can't claim irq %d\n",
+		dev_err(dev, "can't claim irq %d\n",
 						dp->irq[IRQ_IN]);
 		goto err_out;
 	}
@@ -509,7 +509,7 @@ __cdns_dp_probe(struct platform_device *pdev,
 					IRQF_ONESHOT, dev_name(dev),
 					dp);
 	if (ret) {
-		dev_err(&pdev->dev, "can't claim irq %d\n",
+		dev_err(dev, "can't claim irq %d\n",
 						dp->irq[IRQ_OUT]);
 		goto err_out;
 	}
@@ -521,10 +521,10 @@ __cdns_dp_probe(struct platform_device *pdev,
 	dp->mhdp.bridge.base.driver_private = dp;
 	dp->mhdp.bridge.base.funcs = &cdns_dp_bridge_funcs;
 #ifdef CONFIG_OF
-	dp->mhdp.bridge.base.of_node = pdev->dev.of_node;
+	dp->mhdp.bridge.base.of_node = dev->of_node;
 #endif
 
-	platform_set_drvdata(pdev, dp);
+	dev_set_drvdata(dev, &dp->mhdp);
 	
 	dp_aux_init(&dp->mhdp, dev);
 
@@ -534,9 +534,9 @@ err_out:
 	return ERR_PTR(ret);
 }
 
-static void __cdns_dp_remove(struct imx_mhdp_device *dp)
+static void __cdns_dp_remove(struct cdns_mhdp_device *mhdp)
 {
-	dp_aux_destroy(&dp->mhdp);
+	dp_aux_destroy(mhdp);
 }
 
 /* -----------------------------------------------------------------------------
@@ -559,11 +559,11 @@ EXPORT_SYMBOL_GPL(cdns_dp_probe);
 
 void cdns_dp_remove(struct platform_device *pdev)
 {
-	struct imx_mhdp_device *dp = platform_get_drvdata(pdev);
+	struct cdns_mhdp_device *mhdp = platform_get_drvdata(pdev);
 
-	drm_bridge_remove(&dp->mhdp.bridge.base);
+	drm_bridge_remove(&mhdp->bridge.base);
 
-	__cdns_dp_remove(dp);
+	__cdns_dp_remove(mhdp);
 }
 EXPORT_SYMBOL_GPL(cdns_dp_remove);
 
@@ -593,9 +593,9 @@ EXPORT_SYMBOL_GPL(cdns_dp_bind);
 
 void cdns_dp_unbind(struct device *dev)
 {
-	struct imx_mhdp_device *dp = dev_get_drvdata(dev);
+	struct cdns_mhdp_device *mhdp = dev_get_drvdata(dev);
 
-	__cdns_dp_remove(dp);
+	__cdns_dp_remove(mhdp);
 }
 EXPORT_SYMBOL_GPL(cdns_dp_unbind);
 

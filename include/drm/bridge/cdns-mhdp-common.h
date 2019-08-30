@@ -391,8 +391,8 @@
 #define FW_STANDBY				0
 #define FW_ACTIVE				1
 
-#define DPTX_EVENT_ENABLE_HPD			BIT(0)
-#define DPTX_EVENT_ENABLE_TRAINING		BIT(1)
+#define MHDP_EVENT_ENABLE_HPD			BIT(0)
+#define MHDP_EVENT_ENABLE_TRAINING		BIT(1)
 
 #define LINK_TRAINING_NOT_ACTIVE		0
 #define LINK_TRAINING_RUN			1
@@ -532,7 +532,8 @@ enum vic_bt_type {
 
 enum audio_format {
 	AFMT_I2S = 0,
-	AFMT_SPDIF = 1,
+	AFMT_SPDIF_INT = 1,
+	AFMT_SPDIF_EXT = 2,
 	AFMT_UNUSED,
 };
 
@@ -625,12 +626,13 @@ struct cdns_mhdp_device {
 	struct drm_dp_mst_topology_mgr mst_mgr;
 	struct delayed_work hotplug_work;
 
+	u32 lane_mapping;
 	bool link_up;
 	bool power_up;
 	bool plugged;
 
 	union {
-		struct _dp_data {
+		struct cdn_dp_data {
 			struct drm_dp_link	link;
 			struct drm_dp_aux	aux;
 			struct cdns_mhdp_host	host;
@@ -638,7 +640,6 @@ struct cdns_mhdp_device {
 			struct cdns_mhdp_mst_cbs cbs;
 			bool is_mst;
 			bool can_mst;
-			u32 lane_mapping;
 			u32 link_rate;
 			u32 num_lanes;
 		} dp;
@@ -649,8 +650,11 @@ struct cdns_mhdp_device {
 	};
 };
 
+u32 cdns_mhdp_bus_read(struct cdns_mhdp_device *mhdp, u32 offset);
+void cdns_mhdp_bus_write(u32 val, struct cdns_mhdp_device *mhdp, u32 offset);
 void cdns_mhdp_clock_reset(struct cdns_mhdp_device *mhdp);
 void cdns_mhdp_set_fw_clk(struct cdns_mhdp_device *mhdp, unsigned long clk);
+u32 cdns_mhdp_get_fw_clk(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_load_firmware(struct cdns_mhdp_device *mhdp, const u32 *i_mem,
 			    u32 i_size, const u32 *d_mem, u32 d_size);
 int cdns_mhdp_set_firmware_active(struct cdns_mhdp_device *mhdp, bool enable);
@@ -691,6 +695,8 @@ int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
 					      u16 req_size);
 int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp);
 
+void cdns_mhdp_infoframe_set(struct cdns_mhdp_device *mhdp,
+					u8 entry_id, u8 packet_len, u8 *packet, u8 packet_type);
 int cdns_hdmi_get_edid_block(void *data, u8 *edid, u32 block, size_t length);
 int cdns_hdmi_scdc_read(struct cdns_mhdp_device *mhdp, u8 addr, u8 *data);
 int cdns_hdmi_scdc_write(struct cdns_mhdp_device *mhdp, u8 addr, u8 value);

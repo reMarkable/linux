@@ -10,6 +10,42 @@
 #include <drm/drmP.h>
 #include <linux/io.h>
 #include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp-imx.h>
+#include <linux/regmap.h>
+
+void cdns_mhdp_infoframe_set(struct cdns_mhdp_device *mhdp,
+					u8 entry_id, u8 packet_len, u8 *packet, u8 packet_type)
+{
+	u32 *packet32, len32;
+	u32 val, i;
+
+	/* invalidate entry */
+	val = F_ACTIVE_IDLE_TYPE(1) | F_PKT_ALLOC_ADDRESS(entry_id);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_PIF_PKT_ALLOC_REG);
+	cdns_mhdp_bus_write(F_PKT_ALLOC_WR_EN(1), mhdp, SOURCE_PIF_PKT_ALLOC_WR_EN);
+
+	/* flush fifo 1 */
+	cdns_mhdp_bus_write(F_FIFO1_FLUSH(1), mhdp, SOURCE_PIF_FIFO1_FLUSH);
+
+	/* write packet into memory */
+	packet32 = (u32 *)packet;
+	len32 = packet_len / 4;
+	for (i = 0; i < len32; i++)
+		cdns_mhdp_bus_write(F_DATA_WR(packet32[i]), mhdp, SOURCE_PIF_DATA_WR);
+
+	/* write entry id */
+	cdns_mhdp_bus_write(F_WR_ADDR(entry_id), mhdp, SOURCE_PIF_WR_ADDR);
+
+	/* write request */
+	cdns_mhdp_bus_write(F_HOST_WR(1), mhdp, SOURCE_PIF_WR_REQ);
+
+	/* update entry */
+	val =  F_ACTIVE_IDLE_TYPE(1) | F_TYPE_VALID(1) |
+			F_PACKET_TYPE(packet_type) | F_PKT_ALLOC_ADDRESS(entry_id);
+	cdns_mhdp_bus_write(val, mhdp, SOURCE_PIF_PKT_ALLOC_REG);
+
+	cdns_mhdp_bus_write(F_PKT_ALLOC_WR_EN(1), mhdp, SOURCE_PIF_PKT_ALLOC_WR_EN);
+}
 
 int cdns_hdmi_get_edid_block(void *data, u8 *edid,
 			  u32 block, size_t length)
