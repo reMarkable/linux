@@ -267,12 +267,17 @@ static struct snd_soc_ops imx_aif_ops = {
 	.startup = imx_aif_startup,
 };
 
+SND_SOC_DAILINK_DEFS(hifi,
+	DAILINK_COMP_ARRAY(COMP_EMPTY()),
+	DAILINK_COMP_ARRAY(COMP_CODEC(NULL, "ak5558-aif")),
+	DAILINK_COMP_ARRAY(COMP_EMPTY()));
+
 static struct snd_soc_dai_link imx_ak5558_dai = {
 	.name = "ak5558",
 	.stream_name = "Audio",
-	.codec_dai_name = "ak5558-aif",
 	.ops = &imx_aif_ops,
 	.capture_only = 1,
+	SND_SOC_DAILINK_REG(hifi),
 };
 
 static int imx_ak5558_probe(struct platform_device *pdev)
@@ -310,9 +315,9 @@ static int imx_ak5558_probe(struct platform_device *pdev)
 	if (of_find_property(pdev->dev.of_node, "fsl,tdm", NULL))
 		priv->tdm_mode = true;
 
-	imx_ak5558_dai.codec_of_node = codec_np;
-	imx_ak5558_dai.cpu_dai_name = dev_name(&cpu_pdev->dev);
-	imx_ak5558_dai.platform_of_node = cpu_np;
+	imx_ak5558_dai.codecs->of_node = codec_np;
+	imx_ak5558_dai.cpus->dai_name = dev_name(&cpu_pdev->dev);
+	imx_ak5558_dai.platforms->of_node = cpu_np;
 	imx_ak5558_dai.capture_only = 1;
 
 	priv->card.dai_link = &imx_ak5558_dai;
