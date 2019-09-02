@@ -277,10 +277,15 @@ static int imx_ak4458_probe(struct platform_device *pdev)
 	struct imx_ak4458_data *priv;
 	struct device_node *cpu_np, *codec_np_0 = NULL, *codec_np_1 = NULL;
 	struct platform_device *cpu_pdev;
+	struct snd_soc_dai_link_component *dlc;
 	int ret;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
+		return -ENOMEM;
+
+	dlc = devm_kzalloc(&pdev->dev, 2 * sizeof(*dlc), GFP_KERNEL);
+	if (!dlc)
 		return -ENOMEM;
 
 	cpu_np = of_parse_phandle(pdev->dev.of_node, "audio-cpu", 0);
@@ -331,8 +336,13 @@ static int imx_ak4458_probe(struct platform_device *pdev)
 	ak4458_codecs[0].of_node = codec_np_0;
 	ak4458_codecs[1].of_node = codec_np_1;
 
-	imx_ak4458_dai.cpu_dai_name  = dev_name(&cpu_pdev->dev);
-	imx_ak4458_dai.platform_of_node = cpu_np;
+	imx_ak4458_dai.cpus = &dlc[0];
+	imx_ak4458_dai.num_cpus = 1;
+	imx_ak4458_dai.platforms = &dlc[1];
+	imx_ak4458_dai.num_platforms = 1;
+
+	imx_ak4458_dai.cpus->dai_name  = dev_name(&cpu_pdev->dev);
+	imx_ak4458_dai.platforms->of_node = cpu_np;
 
 	priv->card.num_links = 1;
 	priv->card.dai_link = &imx_ak4458_dai;
