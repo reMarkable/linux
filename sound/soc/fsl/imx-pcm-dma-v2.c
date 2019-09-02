@@ -254,6 +254,7 @@ static int imx_pcm_new(struct snd_soc_pcm_runtime *rtd)
 }
 
 static struct snd_soc_component_driver imx_soc_platform = {
+	.name           = "imx-pcm-dma-v2",
 	.ops		= &imx_pcm_ops,
 	.pcm_new	= imx_pcm_new,
 };
