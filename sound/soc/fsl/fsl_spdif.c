@@ -1495,6 +1495,8 @@ static int fsl_spdif_probe(struct platform_device *pdev)
 	regmap_update_bits(spdif_priv->regmap, REG_SPDIF_SCR,
 					SCR_VAL_MASK, 1 << SCR_VAL_OFFSET);
 
+	pm_runtime_enable(&pdev->dev);
+
 	/* Register with ASoC */
 	dev_set_drvdata(&pdev->dev, spdif_priv);
 
