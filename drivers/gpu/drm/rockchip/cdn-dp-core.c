@@ -797,7 +797,7 @@ static int cdn_dp_audio_hw_params(struct device *dev,  void *data,
 		audio.format = AFMT_I2S;
 		break;
 	case HDMI_SPDIF:
-		audio.format = AFMT_SPDIF;
+		audio.format = AFMT_SPDIF_INT;
 		break;
 	default:
 		DRM_DEV_ERROR(dev, "Invalid format %d\n", daifmt->fmt);
