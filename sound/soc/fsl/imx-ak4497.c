@@ -20,7 +20,6 @@
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
 
-#include "../codecs/ak4497.h"
 #include "fsl_sai.h"
 
 struct imx_ak4497_data {
@@ -166,12 +165,17 @@ static struct snd_soc_ops imx_aif_ops = {
 	.hw_params = imx_aif_hw_params,
 };
 
+SND_SOC_DAILINK_DEFS(hifi,
+	DAILINK_COMP_ARRAY(COMP_EMPTY()),
+	DAILINK_COMP_ARRAY(COMP_CODEC(NULL, "ak4497-aif")),
+	DAILINK_COMP_ARRAY(COMP_EMPTY()));
+
 static struct snd_soc_dai_link imx_ak4497_dai = {
 	.name = "ak4497",
 	.stream_name = "Audio",
-	.codec_dai_name = "ak4497-aif",
 	.ops = &imx_aif_ops,
 	.playback_only = 1,
+	SND_SOC_DAILINK_REG(hifi),
 };
 
 static int imx_ak4497_probe(struct platform_device *pdev)
@@ -206,9 +210,9 @@ static int imx_ak4497_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
-	imx_ak4497_dai.codec_of_node = codec_np;
-	imx_ak4497_dai.cpu_dai_name = dev_name(&cpu_pdev->dev);
-	imx_ak4497_dai.platform_of_node = cpu_np;
+	imx_ak4497_dai.codecs->of_node = codec_np;
+	imx_ak4497_dai.cpus->dai_name = dev_name(&cpu_pdev->dev);
+	imx_ak4497_dai.platforms->of_node = cpu_np;
 	imx_ak4497_dai.playback_only = 1;
 
 	priv->card.dai_link = &imx_ak4497_dai;
