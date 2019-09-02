@@ -21,7 +21,7 @@
 #include <drm/drm_connector.h>
 #include <drm/drm_dp_helper.h>
 #include <drm/drm_dp_mst_helper.h>
-
+#include <media/cec.h>
 #include <linux/bitops.h>
 
 #define ADDR_IMEM		0x10000
@@ -605,6 +605,17 @@ struct cdns_mhdp_connector {
 	struct cdns_mhdp_bridge *bridge;
 };
 
+#ifdef CONFIG_DRM_CDNS_HDMI_CEC
+struct cdns_mhdp_cec {
+       struct cec_adapter *adap;
+       struct device *dev;
+       struct mutex lock;
+
+       struct cec_msg msg;
+       struct task_struct *cec_worker;
+};
+#endif
+
 struct cdns_mhdp_device {
 	void __iomem		*regs;
 
@@ -633,7 +644,7 @@ struct cdns_mhdp_device {
 	bool plugged;
 
 	union {
-		struct cdn_dp_data {
+		struct _dp_data {
 			struct drm_dp_link	link;
 			struct drm_dp_aux	aux;
 			struct cdns_mhdp_host	host;
@@ -645,6 +656,9 @@ struct cdns_mhdp_device {
 			u32 num_lanes;
 		} dp;
 		struct _hdmi_data {
+#ifdef CONFIG_DRM_CDNS_HDMI_CEC
+			struct cdns_mhdp_cec cec;
+#endif
 			u32 char_rate;
 			u32 hdmi_type;
 		} hdmi;
@@ -713,4 +727,10 @@ int cdns_hdmi_disable_gcp(struct cdns_mhdp_device *mhdp);
 int cdns_hdmi_enable_gcp(struct cdns_mhdp_device *mhdp);
 
 bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp);
+/* CEC */
+#ifdef CONFIG_DRM_CDNS_HDMI_CEC
+int cdns_mhdp_register_cec_driver(struct device *dev);
+int cdns_mhdp_unregister_cec_driver(struct device *dev);
+#endif
+
 #endif /* CDNS_MHDP_COMMON_H_ */

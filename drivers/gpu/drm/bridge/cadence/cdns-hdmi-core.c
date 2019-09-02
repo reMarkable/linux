@@ -515,6 +515,11 @@ __cdns_hdmi_probe(struct platform_device *pdev,
 	/* register audio driver */
 	cdns_mhdp_register_audio_driver(dev);
 
+	/* register cec driver */
+#ifdef CONFIG_DRM_CDNS_HDMI_CEC
+	cdns_mhdp_register_cec_driver(dev);
+#endif
+
 	return hdmi;
 
 err_out:
@@ -524,6 +529,10 @@ err_out:
 
 static void __cdns_hdmi_remove(struct cdns_mhdp_device *mhdp)
 {
+	/* unregister cec driver */
+#ifdef CONFIG_DRM_CDNS_HDMI_CEC
+	cdns_mhdp_unregister_cec_driver(mhdp->dev);
+#endif
 	cdns_mhdp_unregister_audio_driver(mhdp->dev);
 }
 
