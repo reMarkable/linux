@@ -388,6 +388,71 @@ static const char * const low_power_ocram_match[] __initconst = {
 	NULL
 };
 
+#define CCGR_WDOG1	0x49c0
+#define CCGR_WDOG2	0x49d0
+#define CCGR_WDOG3	0x49e0
+#define CCGR_WDOG4	0x49f0
+#define ROOT_WDOG	0xbb80
+
+#define WDOG_WMCR	0x8
+
+static void __iomem *wdog1_base;
+static void __iomem *wdog2_base;
+static void __iomem *wdog3_base;
+static void __iomem *wdog4_base;
+
+static inline void disable_wdog_powerdown_single(int id)
+{
+	void __iomem *ccm_root, *ccm_ccgr, *wdog_wmcr;
+	u32 val_root, val_ccgr;
+
+	ccm_root = pm_info->ccm_base.vbase + ROOT_WDOG;
+
+	switch (id) {
+	case 0:
+		ccm_ccgr = pm_info->ccm_base.vbase + CCGR_WDOG1;
+		wdog_wmcr = wdog1_base + WDOG_WMCR;
+		break;
+	case 1:
+		ccm_ccgr = pm_info->ccm_base.vbase + CCGR_WDOG2;
+		wdog_wmcr = wdog2_base + WDOG_WMCR;
+		break;
+	case 2:
+		ccm_ccgr = pm_info->ccm_base.vbase + CCGR_WDOG3;
+		wdog_wmcr = wdog3_base + WDOG_WMCR;
+		break;
+	case 3:
+		ccm_ccgr = pm_info->ccm_base.vbase + CCGR_WDOG4;
+		wdog_wmcr = wdog4_base + WDOG_WMCR;
+		break;
+	default:
+		return;
+	}
+
+	/* Save WDOG clock states */
+	val_root = readl_relaxed(ccm_root);
+	val_ccgr = readl_relaxed(ccm_ccgr);
+
+	/* Turn on WDOG root and ccgr clock */
+	writel_relaxed(val_root | BIT(28), ccm_root);
+	writel_relaxed(0x3, ccm_ccgr);
+
+	/* Clear powerdown bit */
+	writew_relaxed(0, wdog_wmcr);
+
+	/* Restore WDOG clock states */
+	writel_relaxed(val_ccgr, ccm_ccgr);
+	writel_relaxed(val_root, ccm_root);
+}
+
+static void imx7_disable_wdog_powerdown(void)
+{
+	disable_wdog_powerdown_single(0);
+	disable_wdog_powerdown_single(1);
+	disable_wdog_powerdown_single(2);
+	disable_wdog_powerdown_single(3);
+}
+
 static void imx7_gpio_save(void)
 {
 	u32 i;
@@ -808,6 +873,7 @@ static int imx7_pm_enter(suspend_state_t state)
 			imx7_sys_counter_restore();
 			imx7_gpio_restore();
 			imx7d_enable_rcosc();
+			imx7_disable_wdog_powerdown();
 		}
 		if (imx_gpcv2_is_mf_mix_off() ||
 			imx7_pm_is_resume_from_lpsr()) {
@@ -1195,6 +1261,30 @@ void __init imx7d_pm_init(void)
 		if (np)
 			gpio1_base = of_iomap(np, 0);
 		WARN_ON(!gpio1_base);
+
+		np = of_find_node_by_path(
+			"/soc/aips-bus@30000000/wdog@30280000");
+		if (np)
+			wdog1_base = of_iomap(np, 0);
+		WARN_ON(!wdog1_base);
+
+		np = of_find_node_by_path(
+			"/soc/aips-bus@30000000/wdog@30290000");
+		if (np)
+			wdog2_base = of_iomap(np, 0);
+		WARN_ON(!wdog2_base);
+
+		np = of_find_node_by_path(
+			"/soc/aips-bus@30000000/wdog@302a0000");
+		if (np)
+			wdog3_base = of_iomap(np, 0);
+		WARN_ON(!wdog3_base);
+
+		np = of_find_node_by_path(
+			"/soc/aips-bus@30000000/wdog@302b0000");
+		if (np)
+			wdog4_base = of_iomap(np, 0);
+		WARN_ON(!wdog4_base);
 	}
 
 	np = of_find_node_by_path(
