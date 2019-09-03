@@ -29,6 +29,42 @@
 			reg = <0 0xb8400000 0 0x100000>;
 		};
 	};
+
+	sound-wm8524 {
+		status = "disabled";
+	};
+
+	wm8524: audio-codec {
+		status = "disabled";
+	};
+
+	rpmsg_i2s: rpmsg-i2s {
+		compatible = "fsl,imx8mq-rpmsg-i2s";
+		/* the audio device index in m4 domain */
+		fsl,audioindex = <0> ;
+		fsl,dma-buffer-size = <0x6000000>;
+		fsl,enable-lpa;
+		status = "okay";
+	};
+
+	sound-rpmsg {
+		compatible = "fsl,imx-audio-rpmsg";
+		model = "ak4497-audio";
+		cpu-dai = <&rpmsg_i2s>;
+		rpmsg-out;
+	};
+};
+
+&clk {
+	init-on-array = <IMX8MM_CLK_UART4_ROOT
+	IMX8MM_CLK_AHB IMX8MM_CLK_DRAM_CORE
+	IMX8MM_CLK_NOC IMX8MM_CLK_NOC_APB
+	IMX8MM_CLK_USB_BUS
+	IMX8MM_CLK_MAIN_AXI IMX8MM_CLK_AUDIO_AHB
+	IMX8MM_CLK_DRAM_APB IMX8MM_CLK_A53_DIV
+	IMX8MM_ARM_PLL_OUT IMX8MM_CLK_DISP_AXI
+	IMX8MM_CLK_DISP_APB
+	>;
 };
 
 /*
@@ -60,5 +96,17 @@
 };
 
 &sdma3 {
+	status = "disabled";
+};
+
+&sai3 {
+	status = "disabled";
+};
+
+&sai1 {
+	status = "disabled";
+};
+
+&flexspi {
 	status = "disabled";
 };
