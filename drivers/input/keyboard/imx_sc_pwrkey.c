@@ -74,18 +74,17 @@ static void imx_sc_check_for_events(struct work_struct *work)
 	struct imx_sc_msg_pwrkey msg;
 	struct imx_sc_rpc_msg *hdr = &msg.hdr;
 	bool state;
-	int ret;
 
 	hdr->ver = IMX_SC_RPC_VERSION;
 	hdr->svc = IMX_SC_RPC_SVC_MISC;
 	hdr->func = IMX_SC_MISC_FUNC_GET_BUTTON_STATUS;
 	hdr->size = 1;
 
-	ret = imx_scu_call_rpc(pdata->ipcHandle, &msg, false);
-	if (ret) {
-		dev_err(&input->dev, "read imx sc key failed, ret %d\n", ret);
-		return;
-	}
+	/*
+	 * Current SCU firmware does NOT have return value for
+	 * this API, that means it is always successful.
+	 */
+	imx_scu_call_rpc(pdata->ipcHandle, &msg, true);
 
 	state = msg.state;
 	/*
