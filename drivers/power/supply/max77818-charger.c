@@ -682,9 +682,9 @@ static void max77818_do_irq(struct max77818_charger *chg)
 
 		dev_dbg(dev, "CHGIN input %s\n", chg_input ? "inserted" :
 							     "removed");
-		/* if CHGIN is the only present charger */
-		if (!wc_input)
-			max77818_charger_set_enable(chg, chg_input ? 1 : 0);
+
+		/* Enable charging whenever charge input is changed, and leave it on */
+		max77818_charger_set_enable(chg, 1);
 		break;
 	case CHG_INT_WCIN_I:
 		/*
@@ -699,9 +699,9 @@ static void max77818_do_irq(struct max77818_charger *chg)
 
 		dev_dbg(dev, "WCIN input %s\n", wc_input ? "inserted" :
 							   "removed");
-		/* if WCIN is the only present charger */
-		if (!chg_input)
-			max77818_charger_set_enable(chg, wc_input ? 1 : 0);
+
+		/* Enable charging whenever charge input is changed, and leave it on */
+		max77818_charger_set_enable(chg, 1);
 		break;
 	default:
 		break;
