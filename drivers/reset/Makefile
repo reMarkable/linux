@@ -12,6 +12,7 @@ obj-$(CONFIG_RESET_DISPMIX) += reset-dispmix.o
 obj-$(CONFIG_RESET_HSDK) += reset-hsdk.o
 obj-$(CONFIG_RESET_IMX7) += reset-imx7.o
 obj-$(CONFIG_RESET_IMX_HDMIMIX) += reset-imx-hdmimix.o
+obj-$(CONFIG_RESET_IMX_AUDIOMIX) += reset-imx-audiomix.o
 obj-$(CONFIG_RESET_LANTIQ) += reset-lantiq.o
 obj-$(CONFIG_RESET_GPIO) += gpio-reset.o
 obj-$(CONFIG_RESET_LPC18XX) += reset-lpc18xx.o
