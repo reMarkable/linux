@@ -572,10 +572,15 @@ static int imx_wm8962_probe(struct platform_device *pdev)
 	int ret;
 	struct platform_device *asrc_pdev = NULL;
 	struct device_node *asrc_np;
+	struct snd_soc_dai_link_component *dlc;
 	u32 width;
 
 	priv->pdev = pdev;
 	priv->asrc_pdev = NULL;
+
+	dlc = devm_kzalloc(&pdev->dev, 9 * sizeof(*dlc), GFP_KERNEL);
+	if (!dlc)
+		return -ENOMEM;
 
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data) {
@@ -683,12 +688,19 @@ audmux_bypass:
 	priv->mic_gpio = of_get_named_gpio_flags(np, "mic-det-gpios", 0,
 				(enum of_gpio_flags *)&priv->mic_active_low);
 
+	data->dai[0].cpus = &dlc[0];
+	data->dai[0].num_cpus = 1;
+	data->dai[0].platforms = &dlc[1];
+	data->dai[0].num_platforms = 1;
+	data->dai[0].codecs = &dlc[2];
+	data->dai[0].num_codecs = 1;
+
 	data->dai[0].name = "HiFi";
 	data->dai[0].stream_name = "HiFi";
-	data->dai[0].codec_dai_name = "wm8962";
-	data->dai[0].codec_of_node = codec_np;
-	data->dai[0].cpu_dai_name = dev_name(&cpu_pdev->dev);
-	data->dai[0].platform_of_node = cpu_np;
+	data->dai[0].codecs->dai_name = "wm8962";
+	data->dai[0].codecs->of_node = codec_np;
+	data->dai[0].cpus->dai_name = dev_name(&cpu_pdev->dev);
+	data->dai[0].platforms->of_node = cpu_np;
 	data->dai[0].ops = &imx_hifi_ops;
 	data->dai[0].dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF;
 	if (data->is_codec_master)
@@ -699,13 +711,27 @@ audmux_bypass:
 	data->card.num_links = 1;
 
 	if (asrc_pdev) {
+		data->dai[1].cpus = &dlc[3];
+		data->dai[1].num_cpus = 1;
+		data->dai[1].platforms = &dlc[4];
+		data->dai[1].num_platforms = 1;
+		data->dai[1].codecs = &dlc[5];
+		data->dai[1].num_codecs = 1;
+
+		data->dai[2].cpus = &dlc[6];
+		data->dai[2].num_cpus = 1;
+		data->dai[2].platforms = &dlc[7];
+		data->dai[2].num_platforms = 1;
+		data->dai[2].codecs = &dlc[8];
+		data->dai[2].num_codecs = 1;
+
 		data->dai[0].ignore_pmdown_time = 1;
 		data->dai[1].name = "HiFi-ASRC-FE";
 		data->dai[1].stream_name = "HiFi-ASRC-FE";
-		data->dai[1].codec_name = "snd-soc-dummy";
-		data->dai[1].codec_dai_name = "snd-soc-dummy-dai";
-		data->dai[1].cpu_of_node = asrc_np;
-		data->dai[1].platform_of_node = asrc_np;
+		data->dai[1].codecs->name = "snd-soc-dummy";
+		data->dai[1].codecs->dai_name = "snd-soc-dummy-dai";
+		data->dai[1].cpus->of_node = asrc_np;
+		data->dai[1].platforms->of_node = asrc_np;
 		data->dai[1].dynamic = 1;
 		data->dai[1].ignore_pmdown_time = 1;
 		data->dai[1].dpcm_playback = 1;
@@ -714,10 +740,10 @@ audmux_bypass:
 
 		data->dai[2].name = "HiFi-ASRC-BE";
 		data->dai[2].stream_name = "HiFi-ASRC-BE";
-		data->dai[2].codec_dai_name = "wm8962";
-		data->dai[2].codec_of_node = codec_np;
-		data->dai[2].cpu_dai_name = dev_name(&cpu_pdev->dev);
-		data->dai[2].platform_name = "snd-soc-dummy";
+		data->dai[2].codecs->dai_name = "wm8962";
+		data->dai[2].codecs->of_node = codec_np;
+		data->dai[2].cpus->dai_name = dev_name(&cpu_pdev->dev);
+		data->dai[2].platforms->name = "snd-soc-dummy";
 		data->dai[2].ops = &imx_hifi_ops;
 		data->dai[2].be_hw_params_fixup = be_hw_params_fixup;
 		data->dai[2].no_pcm = 1;
