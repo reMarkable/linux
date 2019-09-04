@@ -108,7 +108,7 @@
 	sound {
 		compatible = "fsl,imx6sl-evk-wm8962", "fsl,imx-audio-wm8962";
 		model = "wm8962-audio";
-		ssi-controller = <&ssi2>;
+		cpu-dai = <&ssi2>;
 		audio-codec = <&codec>;
 		audio-routing =
 			"Headphone Jack", "HPOUTL",
@@ -119,6 +119,8 @@
 			"IN3R", "AMIC";
 		mux-int-port = <2>;
 		mux-ext-port = <3>;
+		codec-master;
+		hp-det-gpios = <&gpio4 19 1>;
 	};
 
 	panel {
@@ -330,6 +332,7 @@
 				MX6SL_PAD_ECSPI2_MISO__GPIO4_IO14 0x17000
 				MX6SL_PAD_ECSPI2_MOSI__GPIO4_IO13 0x17000
 				MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15  0x17000
+				MX6SL_PAD_FEC_RX_ER__GPIO4_IO19	  0x1b0b0
 			>;
 		};
 
