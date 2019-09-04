@@ -434,9 +434,14 @@ static int imx_wm8958_probe(struct platform_device *pdev)
 	struct imx_priv *priv = &card_priv;
 	struct i2c_client *codec_dev;
 	struct imx_wm8958_data *data;
+	struct snd_soc_dai_link_component *dlc;
 	int ret;
 
 	priv->pdev = pdev;
+
+	dlc = devm_kzalloc(&pdev->dev, 3 * sizeof(*dlc), GFP_KERNEL);
+	if (!dlc)
+		return -ENOMEM;
 
 	cpu_np = of_parse_phandle(np, "cpu-dai", 0);
 	if (!cpu_np) {
@@ -492,12 +497,19 @@ static int imx_wm8958_probe(struct platform_device *pdev)
 	priv->hp_gpio = of_get_named_gpio_flags(np, "hp-det-gpios", 0,
 			(enum of_gpio_flags *)&priv->hp_active_low);
 
+	data->dai.cpus = &dlc[0];
+	data->dai.num_cpus = 1;
+	data->dai.platforms = &dlc[1];
+	data->dai.num_platforms = 1;
+	data->dai.codecs = &dlc[2];
+	data->dai.num_codecs = 1;
+
 	data->dai.name = "HiFi";
 	data->dai.stream_name = "HiFi";
-	data->dai.codec_dai_name = "wm8994-aif1";
-	data->dai.codec_name = "wm8994-codec";
-	data->dai.cpu_dai_name = dev_name(&cpu_pdev->dev);
-	data->dai.platform_of_node = cpu_np;
+	data->dai.codecs->dai_name = "wm8994-aif1";
+	data->dai.codecs->name = "wm8994-codec";
+	data->dai.cpus->dai_name = dev_name(&cpu_pdev->dev);
+	data->dai.platforms->of_node = cpu_np;
 	data->dai.ops = &imx_hifi_ops;
 	data->dai.dai_fmt |= SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF;
 	data->card.set_bias_level = imx_wm8958_set_bias_level;
