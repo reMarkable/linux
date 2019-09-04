@@ -2239,6 +2239,20 @@ static int mxsfb_probe(struct platform_device *pdev)
 	host->fb_info = fb_info;
 	fb_info->par = host;
 
+	host->reg_lcd = devm_regulator_get(&pdev->dev, "lcd");
+	if (IS_ERR(host->reg_lcd)) {
+		ret = PTR_ERR(host->reg_lcd);
+		if (ret == -EPROBE_DEFER) {
+			dev_warn(&pdev->dev, "lcd-supply not ready, deferring\n");
+			goto fb_release;
+		} else {
+			dev_err(&pdev->dev,
+					"Failed to get lcd-supply (errno %d), ignoring\n",
+					ret);
+			host->reg_lcd = NULL;
+		}
+	}
+
 	ret = devm_request_irq(&pdev->dev, irq, mxsfb_irq_handler, 0,
 			  dev_name(&pdev->dev), host);
 	if (ret) {
@@ -2282,10 +2296,6 @@ static int mxsfb_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to get disp_axi clock: %d\n", ret);
 		goto fb_release;
 	}
-
-	host->reg_lcd = devm_regulator_get(&pdev->dev, "lcd");
-	if (IS_ERR(host->reg_lcd))
-		host->reg_lcd = NULL;
 
 	fb_info->pseudo_palette = devm_kzalloc(&pdev->dev, sizeof(u32) * 16,
 					       GFP_KERNEL);
