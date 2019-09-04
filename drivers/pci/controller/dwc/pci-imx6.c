@@ -1590,10 +1590,9 @@ static int imx6_pcie_suspend_noirq(struct device *dev)
 
 	if (!(imx6_pcie->drvdata->flags & IMX6_PCIE_FLAG_SUPPORTS_SUSPEND))
 		return 0;
-
 	imx6_pcie_pm_turnoff(imx6_pcie);
-	imx6_pcie_clk_disable(imx6_pcie);
 	imx6_pcie_ltssm_disable(dev);
+	imx6_pcie_clk_disable(imx6_pcie);
 
 	return 0;
 }
@@ -1686,7 +1685,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	imx6_pcie->clkreq_gpio = of_get_named_gpio(node, "clkreq-gpio", 0);
 	if (gpio_is_valid(imx6_pcie->clkreq_gpio)) {
 		devm_gpio_request_one(&pdev->dev, imx6_pcie->clkreq_gpio,
-					    GPIOF_OUT_INIT_LOW, "PCIe CLKREQ");
+				      GPIOF_OUT_INIT_LOW, "PCIe CLKREQ");
 	} else if (imx6_pcie->clkreq_gpio == -EPROBE_DEFER) {
 		return imx6_pcie->clkreq_gpio;
 	}
@@ -1948,19 +1947,23 @@ static const struct imx6_pcie_drvdata drvdata[] = {
 	},
 	[IMX8MQ] = {
 		.variant = IMX8MQ,
-		.flags = IMX6_PCIE_FLAG_SUPPORTS_L1SS,
+		.flags = IMX6_PCIE_FLAG_SUPPORTS_SUSPEND |
+			 IMX6_PCIE_FLAG_SUPPORTS_L1SS,
 	},
 	[IMX8MM] = {
 		.variant = IMX8MM,
-		.flags = IMX6_PCIE_FLAG_SUPPORTS_L1SS,
+		.flags = IMX6_PCIE_FLAG_SUPPORTS_SUSPEND |
+			 IMX6_PCIE_FLAG_SUPPORTS_L1SS,
 	},
 	[IMX8QM] = {
 		.variant = IMX8QM,
-		.flags = IMX6_PCIE_FLAG_IMX6_CPU_ADDR_FIXUP,
+		.flags = IMX6_PCIE_FLAG_SUPPORTS_SUSPEND |
+			 IMX6_PCIE_FLAG_IMX6_CPU_ADDR_FIXUP,
 	},
 	[IMX8QXP] = {
 		.variant = IMX8QXP,
-		.flags = IMX6_PCIE_FLAG_IMX6_CPU_ADDR_FIXUP,
+		.flags = IMX6_PCIE_FLAG_SUPPORTS_SUSPEND |
+			 IMX6_PCIE_FLAG_IMX6_CPU_ADDR_FIXUP,
 	},
 };
 
