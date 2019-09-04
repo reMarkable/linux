@@ -110,6 +110,7 @@ enum {
 	IMX8QM_SATA_CTRL_EPCS_TXDEEMP_SEL	= BIT(6),
 	IMX8QM_SATA_CTRL_EPCS_TXDEEMP		= BIT(5),
 	IMX8QM_CTRL_BUTTON_RST_N		= BIT(21),
+	IMX8QM_CTRL_PERST_N			= BIT(22),
 	IMX8QM_CTRL_POWER_UP_RST_N		= BIT(23),
 	IMX8QM_CTRL_LTSSM_ENABLE		= BIT(4),
 };
@@ -623,6 +624,10 @@ disable_phy_pclk0:
 
 static void imx8_sata_clk_disable(struct imx_ahci_priv *imxpriv)
 {
+	regmap_update_bits(imxpriv->gpr,
+			IMX8QM_LPCG_PHYX2_OFFSET,
+			IMX8QM_LPCG_PHYX2_PCLK0_MASK |
+			IMX8QM_LPCG_PHYX2_PCLK1_MASK, 0);
 	clk_disable_unprepare(imxpriv->epcs_rx_clk);
 	clk_disable_unprepare(imxpriv->epcs_tx_clk);
 	clk_disable_unprepare(imxpriv->per_clk5);
@@ -673,6 +678,12 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 				IMX8QM_LPCG_PHYX2_PCLK0_MASK |
 				IMX8QM_LPCG_PHYX2_PCLK1_MASK,
 				0);
+	} else {
+		regmap_update_bits(imxpriv->gpr,
+				IMX8QM_LPCG_PHYX2_OFFSET,
+				IMX8QM_LPCG_PHYX2_PCLK0_MASK |
+				IMX8QM_LPCG_PHYX2_PCLK1_MASK,
+				BIT(17) | BIT(21));
 	}
 
 	/* set PWR_RST and BT_RST of csr_pciea */
@@ -681,6 +692,8 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 			val,
 			IMX8QM_CTRL_BUTTON_RST_N,
 			IMX8QM_CTRL_BUTTON_RST_N);
+	regmap_update_bits(imxpriv->gpr, val, IMX8QM_CTRL_PERST_N,
+			IMX8QM_CTRL_PERST_N);
 	regmap_update_bits(imxpriv->gpr,
 			val,
 			IMX8QM_CTRL_POWER_UP_RST_N,
