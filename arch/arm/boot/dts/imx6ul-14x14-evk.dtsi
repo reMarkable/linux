@@ -61,15 +61,55 @@
 			"LINPUT3", "Mic Jack",
 			"RINPUT1", "Mic Jack",
 			"RINPUT2", "Mic Jack";
+		status = "disabled";
 
 		simple-audio-card,cpu {
 			sound-dai = <&sai2>;
+			status = "disabled";
 		};
 
 		dailink_master: simple-audio-card,codec {
 			sound-dai = <&codec>;
 			clocks = <&clks IMX6UL_CLK_SAI2>;
+			status = "disabled";
 		};
+	};
+
+	sound-wm8960 {
+		compatible = "fsl,imx6ul-evk-wm8960",
+			   "fsl,imx-audio-wm8960";
+		model = "wm8960-audio";
+		cpu-dai = <&sai2>;
+		audio-codec = <&codec>;
+		asrc-controller = <&asrc>;
+		codec-master;
+		gpr = <&gpr 4 0x100000 0x100000>;
+		/*
+		 * hp-det = <hp-det-pin hp-det-polarity>;
+		 * hp-det-pin: JD1 JD2  or JD3
+		 * hp-det-polarity = 0: hp detect high for headphone
+		 * hp-det-polarity = 1: hp detect high for speaker
+		 */
+		hp-det = <3 0>;
+		hp-det-gpios = <&gpio5 4 0>;
+		mic-det-gpios = <&gpio5 4 0>;
+		audio-routing =
+			"Headphone Jack", "HP_L",
+			"Headphone Jack", "HP_R",
+			"Ext Spk", "SPK_LP",
+			"Ext Spk", "SPK_LN",
+			"Ext Spk", "SPK_RP",
+			"Ext Spk", "SPK_RN",
+			"LINPUT2", "Mic Jack",
+			"LINPUT3", "Mic Jack",
+			"RINPUT1", "Main MIC",
+			"RINPUT2", "Main MIC",
+			"Mic Jack", "MICB",
+			"Main MIC", "MICB",
+			"CPU-Playback", "ASRC-Playback",
+			"Playback", "CPU-Playback",
+			"ASRC-Capture", "CPU-Capture",
+			"CPU-Capture", "Capture";
 	};
 
 	spi4 {
@@ -122,6 +162,8 @@
 		compatible = "wlf,wm8960";
 		reg = <0x1a>;
 		wlf,shared-lrclk;
+		clocks = <&clks IMX6UL_CLK_SAI2>;
+		clock-names = "mclk";
 	};
 };
 
