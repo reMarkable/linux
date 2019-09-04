@@ -161,7 +161,7 @@
 	sound {
 		compatible = "fsl,imx6sx-sdb-wm8962", "fsl,imx-audio-wm8962";
 		model = "wm8962-audio";
-		ssi-controller = <&ssi2>;
+		cpu-dai = <&ssi2>;
 		audio-codec = <&codec>;
 		audio-routing =
 			"Headphone Jack", "HPOUTL",
@@ -172,6 +172,16 @@
 			"IN3R", "AMIC";
 		mux-int-port = <2>;
 		mux-ext-port = <6>;
+		codec-master;
+		hp-det-gpios = <&gpio1 17 1>;
+	};
+
+	sound-spdif {
+		compatible = "fsl,imx-audio-spdif",
+			   "fsl,imx6sx-sdb-spdif";
+		model = "imx-spdif";
+		spdif-controller = <&spdif>;
+		spdif-out;
 	};
 
 	panel {
@@ -362,6 +372,12 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sai1>;
 	status = "disabled";
+};
+
+&spdif {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_spdif>;
+	status = "okay";
 };
 
 &ssi2 {
@@ -654,6 +670,13 @@
 			>;
 		};
 
+		pinctrl_mqs: mqsgrp {
+			fsl,pins = <
+				MX6SX_PAD_SD2_CLK__MQS_RIGHT 0x120b0
+				MX6SX_PAD_SD2_CMD__MQS_LEFT  0x120b0
+			>;
+		};
+
 		pinctrl_sai1: sai1grp {
 			fsl,pins = <
 				MX6SX_PAD_CSI_DATA00__SAI1_TX_BCLK	0x130b0
@@ -661,6 +684,12 @@
 				MX6SX_PAD_CSI_HSYNC__SAI1_TX_DATA_0	0x120b0
 				MX6SX_PAD_CSI_VSYNC__SAI1_RX_DATA_0	0x130b0
 				MX6SX_PAD_CSI_PIXCLK__AUDMUX_MCLK	0x130b0
+			>;
+		};
+
+		pinctrl_spdif: spdifgrp {
+			fsl,pins = <
+				MX6SX_PAD_SD4_DATA4__SPDIF_OUT          0x1b0b0
 			>;
 		};
 
