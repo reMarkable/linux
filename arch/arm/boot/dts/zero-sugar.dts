@@ -435,12 +435,8 @@
 		status = "okay";
 
 		regulators {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			reg_epdpmic: regulator@0 {
-				reg = <0>;
-				regulator-compatible = "silergy,sy7636a-regulator";
+			compatible = "silergy,sy7636a-regulator";
+			reg_epdpmic: vcom {
 				regulator-name = "vcom";
 				regulator-boot-on;
 			};
