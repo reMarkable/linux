@@ -43,13 +43,14 @@ static const struct regulator_ops sy7636a_vcom_volt_ops = {
 
 struct regulator_desc desc = {
 	.name = "vcom",
-	.supply_name = "vcom-in",
 	.id = 0,
 	.ops = &sy7636a_vcom_volt_ops,
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 	.enable_reg = SY7636A_REG_OPERATION_MODE_CRL,
 	.enable_mask = SY7636A_OPERATION_MODE_CRL_ONOFF,
+	.regulators_node = of_match_ptr("regulators"),
+	.of_match = of_match_ptr("vcom"),
 };
 
 static int sy7636a_regulator_probe(struct platform_device *pdev)
