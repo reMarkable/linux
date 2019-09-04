@@ -11,6 +11,7 @@
 #include <linux/firmware/imx/ipc.h>
 #include "fsl_dsp_proxy.h"
 #include "fsl_dsp_platform.h"
+#include "fsl_dsp_audiomix.h"
 
 
 #define FSL_DSP_COMP_NAME "fsl-dsp-component"
@@ -24,6 +25,7 @@ typedef void (*memset_func) (void *s, int c, size_t n);
 enum {
 	DSP_IMX8QXP_TYPE = 0,
 	DSP_IMX8QM_TYPE,
+	DSP_IMX8MP_TYPE,
 };
 
 /* ...proxy client data */
@@ -71,6 +73,7 @@ struct fsl_dsp {
 	void __iomem			*regs;
 	void __iomem			*mu_base_virtaddr;
 	struct imx_sc_ipc		*dsp_ipcHandle;
+	struct imx_audiomix_dsp_data 	*audiomix;
 	unsigned int			dsp_mu_id;
 	int				dsp_mu_init;
 	atomic_long_t			refcnt;
@@ -110,6 +113,10 @@ struct fsl_dsp {
 	struct clk *asrc_mem_clk;
 	struct clk *asrc_ipg_clk;
 	struct clk *asrck_clk[4];
+	struct clk *dsp_ocrama_clk;
+	struct clk *dsp_root_clk;
+	struct clk *debug_clk;
+	struct clk *mu2_clk;
 };
 
 #define IRAM_OFFSET		0x10000
