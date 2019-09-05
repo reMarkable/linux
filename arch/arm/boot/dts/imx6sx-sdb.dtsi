@@ -183,19 +183,6 @@
 		spdif-controller = <&spdif>;
 		spdif-out;
 	};
-
-	panel {
-		compatible = "sii,43wvf1g";
-		backlight = <&backlight_display>;
-		dvdd-supply = <&reg_lcd_3v3>;
-		avdd-supply = <&reg_lcd_5v>;
-
-		port {
-			panel_in: endpoint {
-				remote-endpoint = <&display_out>;
-			};
-		};
-	};
 };
 
 &adc1 {
@@ -373,12 +360,6 @@
 				de-active = <1>;
 				pixelclk-active = <0>;
 			};
-		};
-	};
-
-	port {
-		display_out: endpoint {
-			remote-endpoint = <&panel_in>;
 		};
 	};
 };
