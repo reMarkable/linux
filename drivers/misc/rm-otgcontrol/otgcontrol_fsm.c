@@ -191,9 +191,11 @@ static int otgcontrol_reset_fsm(struct rm_otgcontrol_data *otgc_data)
 	otgcontrol_activate_gpio_irq(otgc_data);
 
 	dev_dbg(otgc_data->dev,
-		"%s: Checking if device is connected\n",
+		"%s: Checking if device is connected and initiating default "
+		"state\n",
 		__func__);
 
+	otgc_data->otg1_controllermode = OTG_MODE__ONEWIRE_AUTH;
 	if(otgcontrol_get_current_gpio_state(otgc_data) ==
 			OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED) {
 		dev_dbg(otgc_data->dev,
@@ -216,17 +218,16 @@ static int otgcontrol_reset_fsm(struct rm_otgcontrol_data *otgc_data)
 					OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
 			return ret;
 		}
-		return 0;
 	}
 	else {
 		dev_dbg(otgc_data->dev,
 			"%s: Device is not connected, so wait for device to connect\n",
 			__func__);
-
 		otgc_data->otg_controlstate =
 				OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
-		return 0;
 	}
+
+	return 0;
 }
 
 int otgcontrol_handleInput(struct rm_otgcontrol_data *otgc_data,
@@ -1457,6 +1458,7 @@ static int otgcontrol_do_device_connected_procedure(
 		}
 
 		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_DEVICE_CONNECTED;
+		otgc_data->otg1_controllermode = OTG_MODE__ONEWIRE_AUTH;
 		return 0;
 	}
 	else
@@ -1469,6 +1471,7 @@ static int otgcontrol_do_device_connected_procedure(
 		otgcontrol_set_dr_mode(otgc_data,
 				       OTG1_DR_MODE__HOST);
 		otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_DEVICE_CONNECTED;
+		otgc_data->otg1_controllermode = OTG_MODE__USB_NO_AUTH;
 		return 0;
 	}
 }
