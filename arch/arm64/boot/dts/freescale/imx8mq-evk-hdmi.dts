@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright 2019 NXP.
+ */
+
+#include "imx8mq-evk.dts"
+
+&irqsteer {
+	status = "okay";
+};
+
+&dcss {
+	status = "okay";
+	disp-dev = "hdmi_disp";
+
+	port@0 {
+		dcss_out: endpoint {
+			remote-endpoint = <&hdmi_in>;
+		};
+	};
+};
+
+&hdmi {
+	status = "okay";
+
+	port@1 {
+		hdmi_in: endpoint {
+			remote-endpoint = <&dcss_out>;
+		};
+	};
+};
