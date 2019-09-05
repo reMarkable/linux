@@ -170,6 +170,56 @@
 		clock-output-names = "clk_ext4";
 	};
 
+	power-domains {
+		compatible = "simple-bus";
+
+		/* HSIOMIX */
+		hsiomix_pd: hsiomix-pd {
+			compatible = "fsl,imx8m-pm-domain";
+			domain-index = <0>;
+			#power-domain-cells = <0>;
+			domain-name = "hsiomix";
+			clocks = <&clk IMX8MN_CLK_USB1_CTRL_ROOT>;
+		};
+
+		usb_otg1_pd: usbotg1-pd{
+			compatible = "fsl,imx8m-pm-domain";
+			#power-domain-cells = <0>;
+			domain-index = <2>;
+			domain-name = "usb_otg1";
+			parent-domains = <&hsiomix_pd>;
+		};
+
+		/* GPU2D&3D */
+		gpumix_pd: gpumix-pd {
+			compatible = "fsl,imx8m-pm-domain";
+			domain-index = <4>;
+			#power-domain-cells = <0>;
+			domain-name = "gpumix";
+			clocks = <&clk IMX8MN_CLK_GPU_CORE_ROOT>,
+				 <&clk IMX8MN_CLK_GPU_SHADER_DIV>,
+				 <&clk IMX8MN_CLK_GPU_BUS_ROOT>,
+				 <&clk IMX8MN_CLK_GPU_AHB>;
+		};
+
+		dispmix_pd: dispmix-pd {
+			compatible = "fsl,imx8m-pm-domain";
+			domain-index = <9>;
+			#power-domain-cells = <0>;
+			domain-name = "dispmix";
+			clocks = <&clk IMX8MN_CLK_DISP_AXI_ROOT>,
+				 <&clk IMX8MN_CLK_DISP_APB_ROOT>;
+		};
+
+		mipi_pd: mipi-pd {
+			compatible = "fsl,imx8m-pm-domain";
+			domain-index = <10>;
+			#power-domain-cells = <0>;
+			domain-name = "mipi";
+			parent-domains = <&dispmix_pd>;
+		};
+	};
+
 	psci {
 		compatible = "arm,psci-1.0";
 		method = "smc";
