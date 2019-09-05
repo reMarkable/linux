@@ -83,8 +83,9 @@ int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 			__func__);
 
 		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
-		return ret;
 	}
+
+	otgc_data->otg1_pinctrlstate = OTG1_ONEWIRE_STATE__GPIO;
 	return 0;
 }
 
@@ -150,6 +151,7 @@ int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
 		return -EINVAL;
 	}
 
+	otgc_data->otg1_pinctrlstate = state;
 	return 0;
 }
 
