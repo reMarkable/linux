@@ -2818,6 +2818,26 @@ static void soc_pcm_private_free(struct snd_pcm *pcm)
 	snd_soc_pcm_component_free(pcm);
 }
 
+static int soc_rtdcom_ack(struct snd_pcm_substream *substream)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_rtdcom_list *rtdcom;
+	struct snd_soc_component *component;
+
+	for_each_rtdcom(rtd, rtdcom) {
+		component = rtdcom->component;
+
+		if (!component->driver->ops ||
+		    !component->driver->ops->ack)
+			continue;
+
+		/* FIXME. it returns 1st ask now */
+		return component->driver->ops->ack(substream);
+	}
+
+	return -EINVAL;
+}
+
 /* create a new pcm */
 int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num)
 {
@@ -2941,6 +2961,8 @@ int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num)
 		if (!ops)
 			continue;
 
+		if (ops->ack)
+			rtd->ops.ack		= soc_rtdcom_ack;
 		if (ops->copy_user)
 			rtd->ops.copy_user	= snd_soc_pcm_component_copy_user;
 		if (ops->page)
