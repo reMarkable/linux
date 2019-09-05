@@ -85,6 +85,7 @@ struct dcss_dev {
 	void (*dcss_disable_callback)(void *data);
 
 	bool clks_on;
+	bool bus_freq_on;
 	bool hdmi_output;
 
 	struct pm_qos_request pm_qos_req;
