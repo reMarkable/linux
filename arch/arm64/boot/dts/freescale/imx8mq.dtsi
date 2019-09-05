@@ -1200,6 +1200,7 @@
 			assigned-clock-rates = <800000000>, <800000000>,
 			                       <800000000>, <800000000>, <0>;
 			power-domains = <&pgc_gpu>;
+			status = "disabled";
 		};
 
 		usb_dwc3_0: usb@38100000 {
