@@ -348,6 +348,28 @@ static bool dcss_plane_needs_setup(struct drm_plane_state *state,
 	       state->rotation != old_state->rotation;
 }
 
+static void dcss_plane_setup_hdr10_pipes(struct dcss_dev *dcss,
+					 struct drm_crtc *crtc,
+					 int ch_num,
+					 const struct drm_format_info *format)
+{
+	struct dcss_hdr10_pipe_cfg ipipe_cfg, opipe_cfg;
+	struct dcss_crtc *dcss_crtc = container_of(crtc, struct dcss_crtc,
+						   base);
+
+	opipe_cfg.is_yuv = dcss_crtc->output_is_yuv;
+	opipe_cfg.g = dcss_crtc->opipe_g;
+	opipe_cfg.nl = dcss_crtc->opipe_nl;
+	opipe_cfg.pr = dcss_crtc->opipe_pr;
+
+	ipipe_cfg.is_yuv = format->is_yuv;
+	ipipe_cfg.nl = opipe_cfg.nl == NL_REC2084 ? NL_REC2084 : NL_REC709;
+	ipipe_cfg.pr = PR_FULL;
+	ipipe_cfg.g = opipe_cfg.g == G_REC2020 ? G_REC2020 : G_REC709;
+
+	dcss_hdr10_setup(dcss->hdr10, ch_num,  &ipipe_cfg, &opipe_cfg);
+}
+
 static void dcss_plane_atomic_update(struct drm_plane *plane,
 				     struct drm_plane_state *old_state)
 {
@@ -365,12 +387,14 @@ static void dcss_plane_atomic_update(struct drm_plane *plane,
 	if (!fb || !state->crtc || !state->visible)
 		return;
 
-	pixel_format = state->fb->format->format;
+	pixel_format = fb->format->format;
 	crtc_state = state->crtc->state;
 	modifiers_present = !!(fb->flags & DRM_MODE_FB_MODIFIERS);
 
 	if (old_state->fb && !drm_atomic_crtc_needs_modeset(crtc_state) &&
-	    !dcss_plane_needs_setup(state, old_state)) {
+	    !dcss_plane_needs_setup(state, old_state) &&
+	    !dcss_dtg_global_alpha_changed(dcss->dtg, dcss_plane->ch_num,
+					   state->alpha >> 8)) {
 		dcss_plane_atomic_set_base(dcss_plane);
 		if (plane->type == DRM_PLANE_TYPE_PRIMARY)
 			dcss_dec400d_shadow_trig(dcss->dec400d);
@@ -405,6 +429,9 @@ static void dcss_plane_atomic_update(struct drm_plane *plane,
 			  state->fb->format, src_w, src_h,
 			  dst_w, dst_h,
 			  drm_mode_vrefresh(&crtc_state->mode));
+
+	dcss_plane_setup_hdr10_pipes(dcss, state->crtc,
+				     dcss_plane->ch_num, fb->format);
 
 	dcss_dtg_plane_pos_set(dcss->dtg, dcss_plane->ch_num,
 			       dst.x1, dst.y1, dst_w, dst_h);
@@ -492,7 +519,7 @@ struct dcss_plane *dcss_plane_init(struct drm_device *drm,
 					   DRM_MODE_REFLECT_X  |
 					   DRM_MODE_REFLECT_Y);
 
-	dcss_plane->ch_num = zpos;
+	dcss_plane->ch_num = 2 - zpos;
 
 	return dcss_plane;
 }

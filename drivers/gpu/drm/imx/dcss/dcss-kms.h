@@ -25,6 +25,11 @@ struct dcss_crtc {
 
 	struct completion en_completion;
 	struct completion dis_completion;
+
+	bool output_is_yuv;
+	enum dcss_hdr10_nonlinearity opipe_nl;
+	enum dcss_hdr10_gamut opipe_g;
+	enum dcss_hdr10_pixel_range opipe_pr;
 };
 
 struct commit {
