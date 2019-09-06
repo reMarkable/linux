@@ -172,6 +172,8 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 
 	/* GPU SS */
 	{ "gpu0-pid", IMX_SC_R_GPU_0_PID0, 4, true, 0 },
+	{ "gpu1-pid", IMX_SC_R_GPU_1_PID0, 4, true, 0 },
+
 
 	/* HSIO SS */
 	{ "pcie-a", IMX_SC_R_PCIE_A, 1, false, 0 },
