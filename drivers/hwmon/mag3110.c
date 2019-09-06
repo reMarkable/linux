@@ -544,6 +544,11 @@ error_rm_poll_dev:
 error_free_poll_dev:
 	input_free_polled_device(data->poll_dev);
 error_rm_hwmon_dev:
+	if (!IS_ERR(vdd))
+		regulator_disable(vdd);
+	if (!IS_ERR(vdd_io))
+		regulator_disable(vdd_io);
+
 	hwmon_device_unregister(data->hwmon_dev);
 
 	kfree(data);
