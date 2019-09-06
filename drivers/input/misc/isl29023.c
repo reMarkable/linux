@@ -992,6 +992,8 @@ exit_free_interrupt:
 exit_free_input:
 	input_free_device(input_dev);
 exit_kfree:
+	if (!IS_ERR(vdd))
+		regulator_disable(vdd);
 	kfree(data);
 	return err;
 }
