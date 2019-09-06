@@ -877,7 +877,7 @@ static int usbmisc_imx_probe(struct platform_device *pdev)
 	data->ops = (const struct usbmisc_ops *)of_id->data;
 	platform_set_drvdata(pdev, data);
 
-	vbus_wakeup_reg = devm_regulator_get(&pdev->dev, "vbus-wakeup");
+	vbus_wakeup_reg = devm_regulator_get_optional(&pdev->dev, "vbus-wakeup");
 	if (PTR_ERR(vbus_wakeup_reg) == -EPROBE_DEFER)
 		return -EPROBE_DEFER;
 	else if (PTR_ERR(vbus_wakeup_reg) == -ENODEV)
