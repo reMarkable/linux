@@ -510,6 +510,10 @@ err_register_polled_device:
 err_alloc_poll_device:
 	hwmon_device_unregister(&client->dev);
 err_out:
+	if (!IS_ERR(vdd))
+		regulator_disable(vdd);
+	if (!IS_ERR(vdd_io))
+		regulator_disable(vdd_io);
 	return result;
 }
 
