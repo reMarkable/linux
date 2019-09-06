@@ -346,3 +346,7 @@
 	fsl,ext-reset-output;
 	status = "okay";
 };
+
+&gpu {
+	status= "okay";
+};
