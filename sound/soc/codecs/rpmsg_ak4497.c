@@ -887,6 +887,9 @@ static int ak4497_probe(struct snd_soc_component *component)
 		gpio_direction_output(ak4497->mute_gpio, 0);
 	}
 
+	snd_soc_dapm_ignore_suspend(snd_soc_component_get_dapm(component), "AK4497 AOUT");
+	snd_soc_dapm_ignore_suspend(snd_soc_component_get_dapm(component), "Playback");
+
 	ret = ak4497_init_reg(component);
 	if (ret)
 		return ret;
