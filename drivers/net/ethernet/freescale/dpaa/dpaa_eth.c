@@ -2134,7 +2134,7 @@ static bool dpaa_errata_a010022_has_dma_issue(struct sk_buff *skb,
 		/* Check if a paged fragment crosses a boundary from its
 		 * offset to its end.
 		 */
-		if (CROSS_4K_BOUND((uintptr_t)frag->page_offset, frag->size))
+		if (CROSS_4K_BOUND((uintptr_t)frag->page_offset, frag->bv_len))
 			return true;
 
 		i++;
