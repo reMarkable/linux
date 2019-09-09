@@ -135,9 +135,11 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
-	pmic: bd7181x@4b {
+	pmic: bd71815@4b {
 		reg = <0x4b>;
 		compatible = "rohm,bd71815";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_bd71815>;
 		/* PMIC_INT_B GPIO6_IO16 */
 		gpio_intr = <&gpio6 16 0>;
 
@@ -565,6 +567,12 @@
 };
 
 &iomuxc {
+	pinctrl_bd71815: bd71815grp {
+		fsl,pins = <
+			MX7D_PAD_SAI1_RX_SYNC__GPIO6_IO16	0x59
+		>;
+	};
+
 	pinctrl_touch: touchgrp {
 		fsl,pins = <
 			/* CYTTSP interrupt */
