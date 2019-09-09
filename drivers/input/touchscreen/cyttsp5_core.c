@@ -4731,12 +4731,16 @@ static int cyttsp5_core_suspend(struct device *dev)
 		dev_dbg(dev, "%s Device MAY NOT wakeup\n", __func__);
 	}
 
+	pinctrl_pm_select_sleep_state(dev);
+
 	return 0;
 }
 
 static int cyttsp5_core_resume(struct device *dev)
 {
 	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
+
+	pinctrl_pm_select_default_state(dev);
 
 	if (IS_DEEP_SLEEP_CONFIGURED(cd->easy_wakeup_gesture))
 		goto exit;
