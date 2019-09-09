@@ -98,6 +98,10 @@
 	status = "okay";
 };
 
+&usb1 {
+	dr_mode = "otg";
+};
+
 &i2c0 {
 	status = "okay";
 
