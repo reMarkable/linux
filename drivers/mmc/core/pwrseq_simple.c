@@ -19,6 +19,7 @@
 #include <linux/property.h>
 
 #include <linux/mmc/host.h>
+#include <linux/pinctrl/consumer.h>
 
 #include "pwrseq.h"
 
@@ -151,12 +152,30 @@ static int mmc_pwrseq_simple_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int mmc_pwrseq_simple_suspend(struct device *dev)
+{
+	pinctrl_pm_select_sleep_state(dev);
+
+	return 0;
+}
+
+static int mmc_pwrseq_simple_resume(struct device *dev)
+{
+	pinctrl_pm_select_default_state(dev);
+
+	return 0;
+}
+
+SIMPLE_DEV_PM_OPS(mmc_pwrseq_simple_pm_ops, mmc_pwrseq_simple_suspend,
+					    mmc_pwrseq_simple_resume);
+
 static struct platform_driver mmc_pwrseq_simple_driver = {
 	.probe = mmc_pwrseq_simple_probe,
 	.remove = mmc_pwrseq_simple_remove,
 	.driver = {
 		.name = "pwrseq_simple",
 		.of_match_table = mmc_pwrseq_simple_of_match,
+		.pm = &mmc_pwrseq_simple_pm_ops,
 	},
 };
 
