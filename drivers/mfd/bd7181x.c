@@ -400,12 +400,28 @@ static const struct i2c_device_id bd7181x_i2c_id[] = {
 };
 MODULE_DEVICE_TABLE(i2c, bd7181x_i2c_id);
 
+static int bd7181x_suspend(struct device *dev)
+{
+	pinctrl_pm_select_sleep_state(dev);
+
+	return 0;
+}
+
+static int bd7181x_resume(struct device *dev)
+{
+	pinctrl_pm_select_default_state(dev);
+
+	return 0;
+}
+
+SIMPLE_DEV_PM_OPS(bd7181x_pm_ops, bd7181x_suspend, bd7181x_resume);
 
 static struct i2c_driver bd7181x_i2c_driver = {
 	.driver = {
 		.name = "bd7181x",
 		.owner = THIS_MODULE,
 		.of_match_table = of_match_ptr(bd7181x_of_match),
+		.pm = &bd7181x_pm_ops,
 	},
 	.probe = bd7181x_i2c_probe,
 	.remove = bd7181x_i2c_remove,
