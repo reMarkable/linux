@@ -476,6 +476,7 @@ static int __maybe_unused wacom_i2c_suspend(struct device *dev)
 	struct i2c_client *client = to_i2c_client(dev);
 
 	disable_irq(client->irq);
+	pinctrl_pm_select_sleep_state(dev);
 
 	return 0;
 }
@@ -484,6 +485,7 @@ static int __maybe_unused wacom_i2c_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 
+	pinctrl_pm_select_default_state(dev);
 	enable_irq(client->irq);
 
 	return 0;
