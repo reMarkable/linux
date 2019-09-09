@@ -1,0 +1,7 @@
+config DRM_IMX_DCSS
+	tristate "i.MX8MQ DCSS"
+	select RESET_CONTROLLER
+	select IMX_IRQSTEER
+	help
+	  Choose this if you have a NXP i.MX8MQ based system and want to use the
+	  Display Controller Subsystem. This option enables DCSS support.
