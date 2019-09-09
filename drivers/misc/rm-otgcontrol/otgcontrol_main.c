@@ -327,12 +327,16 @@ static int rm_otgcontrol_suspend(struct device *dev)
 {
 	dev_dbg(dev, "%s Enter:\n", __func__);
 
+	pinctrl_pm_select_sleep_state(dev);
+
 	return 0;
 }
 
 static int rm_otgcontrol_resume(struct device *dev)
 {
 	dev_dbg(dev, "%s Enter:\n", __func__);
+
+	pinctrl_pm_select_default_state(dev);
 
 	return 0;
 }
