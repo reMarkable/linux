@@ -673,7 +673,7 @@
 			};
 
 			fec1: ethernet@30be0000 {
-				compatible = "fsl,imx8mn-fec", "fsl,imx6sx-fec";
+				compatible = "fsl,imx8mn-fec", "fsl,imx8mq-fec", "fsl,imx6sx-fec";
 				reg = <0x30be0000 0x10000>;
 				interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>,
 					     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>,
@@ -695,6 +695,8 @@
 				assigned-clock-rates = <0>, <0>, <125000000>, <100000000>;
 				fsl,num-tx-queues = <3>;
 				fsl,num-rx-queues = <3>;
+				stop-mode = <&gpr 0x10 3>;
+				fsl,wakeup_irq = <2>;
 				status = "disabled";
 			};
 
