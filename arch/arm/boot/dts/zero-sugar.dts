@@ -376,8 +376,8 @@
 			cy,irq_gpio = <&gpio1 14 0>;
 			cy,rst_gpio = <&gpio1 13 0>;
 			cy,hid_desc_register = <1>;
-			/* CY_CORE_FLAG_RESTORE_PARAMETERS */
-			cy,flags = <4>;
+			/* CY_CORE_FLAG_RESTORE_PARAMETERS & CY_CORE_FLAG_POWEROFF_ON_SLEEP */
+			cy,flags = <0x6>;
 			/* CY_CORE_EWG_NONE */
 			cy,easy_wakeup_gesture = <0>;
 			cy,btn_keys = <172 /* KEY_HOMEPAGE */
