@@ -3901,7 +3901,7 @@ fec_probe(struct platform_device *pdev)
 	}
 
 	/* get wake up irq */
-	ret = of_property_read_u32(np, "fsl, wakeup_irq", &irq);
+	ret = of_property_read_u32(np, "fsl,wakeup_irq", &irq);
 	if (!ret && irq < irq_cnt)
 		fep->wake_irq = fep->irq[irq];
 	else
