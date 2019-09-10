@@ -390,6 +390,7 @@
 				212 /* KEY_CAMERA */
 				116>; /* KEY_POWER */
 			cy,btn_keys-tag = <0>;
+			cy,fb_blanking_disabled;
 
 			cy,mt {
 				cy,name = "cyttsp5_mt";
