@@ -593,6 +593,8 @@ static struct cyttsp5_core_platform_data *create_and_get_core_pdata(
 	if (!rc)
 		pdata->easy_wakeup_gesture = (u8)value;
 
+	pdata->fb_blanking_disabled = of_property_read_bool(core_node, "cy,fb_blanking_disabled");
+
 	for (i = 0; (unsigned int)i < ARRAY_SIZE(touch_setting_names); i++) {
 		if (touch_setting_names[i] == NULL)
 			continue;

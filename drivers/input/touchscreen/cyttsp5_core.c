@@ -5893,7 +5893,9 @@ int cyttsp5_probe(const struct cyttsp5_bus_ops *ops, struct device *dev,
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	cyttsp5_setup_early_suspend(cd);
 #elif defined(CONFIG_FB)
-	cyttsp5_setup_fb_notifier(cd);
+	if (!cd->cpdata->fb_blanking_disabled) {
+		cyttsp5_setup_fb_notifier(cd);
+	}
 #endif
 
 #if NEED_SUSPEND_NOTIFIER

@@ -133,6 +133,7 @@ struct cyttsp5_core_platform_data {
 	struct touch_settings *sett[CY_TOUCH_SETTINGS_MAX];
 	u32 flags;
 	u8 easy_wakeup_gesture;
+	bool fb_blanking_disabled;
 };
 
 struct touch_framework {
