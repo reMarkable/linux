@@ -717,10 +717,10 @@ static int cdn_dp_parse_dt(struct cdn_dp_device *dp)
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	dp->mhdp.regs = devm_ioremap_resource(dev, res);
-	if (IS_ERR(dp->mhdp.regs)) {
+	dp->mhdp.regs_base = devm_ioremap_resource(dev, res);
+	if (IS_ERR(dp->mhdp.regs_base)) {
 		DRM_DEV_ERROR(dev, "ioremap reg failed\n");
-		return PTR_ERR(dp->mhdp.regs);
+		return PTR_ERR(dp->mhdp.regs_base);
 	}
 
 	dp->core_clk = devm_clk_get(dev, "core-clk");
