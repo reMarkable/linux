@@ -344,4 +344,4 @@ int cdns_mhdp_unregister_cec_driver(struct device *dev)
 
 MODULE_AUTHOR("Sandor.Yu@NXP.com");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("NXP CDNS MHDP CEC driver");
+MODULE_DESCRIPTION("NXP CDNS MHDP HDMI CEC driver");

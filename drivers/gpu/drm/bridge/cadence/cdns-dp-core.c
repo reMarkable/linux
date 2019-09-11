@@ -9,8 +9,7 @@
  * (at your option) any later version.
  *
  */
-
-#include <drm/bridge/cdns-mhdp-imx.h>
+#include <drm/bridge/cdns-mhdp-common.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_edid.h>
@@ -24,8 +23,6 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of_device.h>
-
-#define aux_to_hdp(x) container_of(x, struct imx_mhdp_device, aux)
 
 /*
  * This function only implements native DPDC reads and writes
@@ -111,24 +108,24 @@ static void dp_pixel_clk_reset(struct cdns_mhdp_device *mhdp)
 	cdns_mhdp_reg_write(mhdp, SOURCE_HDTX_CAR, val);
 }
 
-static void cdns_dp_mode_set(struct imx_mhdp_device *dp,
+static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp,
 			const struct drm_display_mode *mode)
 {
 	struct drm_dp_link link;
-	struct cdns_mhdp_device *mhdp = &dp->mhdp;
 	u32 lane_mapping = mhdp->lane_mapping;
 	int ret;
 	char linkid[6];
 
 	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
 
-	dp->dual_mode = video_is_dual_mode(mode);
+	//Sandor TODO
+//	mhdp->dual_mode = video_is_dual_mode(mode);
 
 	dp_pixel_clk_reset(mhdp);
 
-	hdp_plat_call(dp, pclock_change);
+	cdns_mhdp_plat_call(mhdp, pclk_rate);
 
-	hdp_plat_call(dp, phy_init);
+	cdns_mhdp_plat_call(mhdp, phy_set);
 
 	ret = drm_dp_downstream_id(&mhdp->dp.aux, linkid);
 	if (ret < 0) {
@@ -168,7 +165,7 @@ static void cdns_dp_mode_set(struct imx_mhdp_device *dp,
 	/* initialize phy if lanes or link rate differnt */
 	if (mhdp->dp.link.num_lanes != mhdp->dp.num_lanes ||
 			mhdp->dp.link.rate != mhdp->dp.link_rate)
-		hdp_plat_call(dp, phy_init);
+		cdns_mhdp_plat_call(mhdp, phy_set);
 
 	/* Video off */
 	ret = cdns_mhdp_set_video_status(mhdp, CONTROL_VIDEO_IDLE);
@@ -215,11 +212,11 @@ static void cdns_dp_mode_set(struct imx_mhdp_device *dp,
 static enum drm_connector_status
 cdns_dp_connector_detect(struct drm_connector *connector, bool force)
 {
-	struct imx_mhdp_device *dp = container_of(connector,
-					struct imx_mhdp_device, mhdp.connector.base);
+	struct cdns_mhdp_device *mhdp = container_of(connector,
+					struct cdns_mhdp_device, connector.base);
 	u8 hpd = 0xf;
 
-	hpd = cdns_mhdp_read_hpd(&dp->mhdp);
+	hpd = cdns_mhdp_read_hpd(mhdp);
 	if (hpd == 1)
 		/* Cable Connected */
 		return connector_status_connected;
@@ -235,15 +232,15 @@ cdns_dp_connector_detect(struct drm_connector *connector, bool force)
 
 static int cdns_dp_connector_get_modes(struct drm_connector *connector)
 {
-	struct imx_mhdp_device *dp = container_of(connector,
-						struct imx_mhdp_device, mhdp.connector.base);
+	struct cdns_mhdp_device *mhdp = container_of(connector,
+					struct cdns_mhdp_device, connector.base);
 	int num_modes = 0;
 	struct edid *edid;
 
-	edid = drm_do_get_edid(&dp->mhdp.connector.base,
-				   cdns_mhdp_get_edid_block, &dp->mhdp);
+	edid = drm_do_get_edid(&mhdp->connector.base,
+				   cdns_mhdp_get_edid_block, mhdp);
 	if (edid) {
-		dev_info(dp->mhdp.dev, "%x,%x,%x,%x,%x,%x,%x,%x\n",
+		dev_info(mhdp->dev, "%x,%x,%x,%x,%x,%x,%x,%x\n",
 			 edid->header[0], edid->header[1],
 			 edid->header[2], edid->header[3],
 			 edid->header[4], edid->header[5],
@@ -273,9 +270,9 @@ static const struct drm_connector_helper_funcs cdns_dp_connector_helper_funcs = 
 
 static int cdns_dp_bridge_attach(struct drm_bridge *bridge)
 {
-	struct imx_mhdp_device *dp = bridge->driver_private;
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 	struct drm_encoder *encoder = bridge->encoder;
-	struct drm_connector *connector = &dp->mhdp.connector.base;
+	struct drm_connector *connector = &mhdp->connector.base;
 
 	connector->interlace_allowed = 1;
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
@@ -319,9 +316,9 @@ static void cdns_dp_bridge_mode_set(struct drm_bridge *bridge,
 				    const struct drm_display_mode *orig_mode,
 				    const struct drm_display_mode *mode)
 {
-	struct imx_mhdp_device *dp = bridge->driver_private;
-	struct drm_display_info *display_info = &dp->mhdp.connector.base.display_info;
-	struct video_info *video = &dp->mhdp.video_info;
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
+	struct drm_display_info *display_info = &mhdp->connector.base.display_info;
+	struct video_info *video = &mhdp->video_info;
 
 	switch (display_info->bpc) {
 	case 10:
@@ -341,11 +338,11 @@ static void cdns_dp_bridge_mode_set(struct drm_bridge *bridge,
 
 	DRM_INFO("Mode: %dx%dp%d\n", mode->hdisplay, mode->vdisplay, mode->clock); 
 
-	mutex_lock(&dp->lock);
+	mutex_lock(&mhdp->lock);
 
-	cdns_dp_mode_set(dp, mode);
+	cdns_dp_mode_set(mhdp, mode);
 
-	mutex_unlock(&dp->lock);
+	mutex_unlock(&mhdp->lock);
 }
 
 static void cdn_hdp_bridge_enable(struct drm_bridge *bridge)
@@ -354,8 +351,7 @@ static void cdn_hdp_bridge_enable(struct drm_bridge *bridge)
 
 static void cdn_hdp_bridge_disable(struct drm_bridge *bridge)
 {	
-	struct imx_mhdp_device *dp = bridge->driver_private;
-	struct cdns_mhdp_device *mhdp = &dp->mhdp;
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 
 	cdns_mhdp_set_video_status(mhdp, CONTROL_VIDEO_IDLE);
 	drm_dp_link_power_down(&mhdp->dp.aux, &mhdp->dp.link);
@@ -371,29 +367,29 @@ static const struct drm_bridge_funcs cdns_dp_bridge_funcs = {
 
 static void hotplug_work_func(struct work_struct *work)
 {
-	struct imx_mhdp_device *dp = container_of(work,
-					   struct imx_mhdp_device, hotplug_work.work);
-	struct drm_connector *connector = &dp->mhdp.connector.base;
+	struct cdns_mhdp_device *mhdp = container_of(work,
+					   struct cdns_mhdp_device, hotplug_work.work);
+	struct drm_connector *connector = &mhdp->connector.base;
 
 	drm_helper_hpd_irq_event(connector->dev);
 
 	if (connector->status == connector_status_connected) {
 		DRM_INFO("HDMI/DP Cable Plug In\n");
-		enable_irq(dp->irq[IRQ_OUT]);
+		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI/DP Cable Plug Out\n");
-		enable_irq(dp->irq[IRQ_IN]);
+		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }
 
 static irqreturn_t cdns_dp_irq_thread(int irq, void *data)
 {
-	struct imx_mhdp_device *dp = data;
+	struct cdns_mhdp_device *mhdp = data;
 
 	disable_irq_nosync(irq);
 
-	mod_delayed_work(system_wq, &dp->hotplug_work,
+	mod_delayed_work(system_wq, &mhdp->hotplug_work,
 			msecs_to_jiffies(HOTPLUG_DEBOUNCE_MS));
 
 	return IRQ_HANDLED;
@@ -430,111 +426,92 @@ static void cdns_dp_parse_dt(struct cdns_mhdp_device *mhdp)
 	mhdp->dp.link.rate= mhdp->dp.link_rate;
 }
 
-static struct imx_mhdp_device *
-__cdns_dp_probe(struct platform_device *pdev,
-		const struct cdn_plat_data *plat_data)
+static int __cdns_dp_probe(struct platform_device *pdev,
+		struct cdns_mhdp_device *mhdp)
 {
 	struct device *dev = &pdev->dev;
-	struct imx_mhdp_device *dp;
 	struct resource *iores = NULL;
 	int ret;
 
-	dp = devm_kzalloc(dev, sizeof(*dp), GFP_KERNEL);
-	if (!dp)
-		return ERR_PTR(-ENOMEM);
+	mutex_init(&mhdp->lock);
 
-	dp->plat_data = plat_data;
-	dp->mhdp.dev = dev;
-
-	mutex_init(&dp->lock);
-	mutex_init(&dp->audio_mutex);
-	spin_lock_init(&dp->audio_lock);
-
-	INIT_DELAYED_WORK(&dp->hotplug_work, hotplug_work_func);
+	INIT_DELAYED_WORK(&mhdp->hotplug_work, hotplug_work_func);
 
 	iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	dp->mhdp.regs = devm_ioremap(dev, iores->start, resource_size(iores));
-	if (IS_ERR(dp->mhdp.regs)) {
-		ret = PTR_ERR(dp->mhdp.regs);
-		goto err_out;
-	}
+	mhdp->regs_base = devm_ioremap(dev, iores->start, resource_size(iores));
+	if (IS_ERR(mhdp->regs_base))
+		return -ENOMEM;
 
-#if 0
 	iores = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	dp->regs_ss = devm_ioremap(dev, iores->start, resource_size(iores));
-	if (IS_ERR(dp->regs_ss)) {
-		ret = PTR_ERR(dp->regs_ss);
-		goto err_out;
-	}
-#endif
+	mhdp->regs_sec = devm_ioremap(dev, iores->start, resource_size(iores));
+	if (IS_ERR(mhdp->regs_sec))
+		return -ENOMEM;
 
-	dp->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
-	if (dp->irq[IRQ_IN] < 0)
+	mhdp->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
+	if (mhdp->irq[IRQ_IN] < 0)
 		dev_info(dev, "No plug_in irq number\n");
 
-	dp->irq[IRQ_OUT] = platform_get_irq_byname(pdev, "plug_out");
-	if (dp->irq[IRQ_OUT] < 0)
+	mhdp->irq[IRQ_OUT] = platform_get_irq_byname(pdev, "plug_out");
+	if (mhdp->irq[IRQ_OUT] < 0)
 		dev_info(dev, "No plug_out irq number\n");
 
-	cdns_dp_parse_dt(&dp->mhdp);
+	cdns_dp_parse_dt(mhdp);
 
-	dp->dual_mode = false;
-	hdp_plat_call(dp, fw_init);
+//	mhdp->dual_mode = false;
+	cdns_mhdp_plat_call(mhdp, firmware_init);
 
 	/* DP FW alive check */
-	ret = cdns_mhdp_check_alive(&dp->mhdp);
+	ret = cdns_mhdp_check_alive(mhdp);
 	if (ret == false) {
 		DRM_ERROR("NO dp FW running\n");
-		return ERR_PTR(-ENXIO);
+		return -ENXIO;
 	}
 
 	/* DP PHY init before AUX init */
-	hdp_plat_call(dp, phy_init);
+	cdns_mhdp_plat_call(mhdp, phy_set);
 
 	/* Enable Hotplug Detect IRQ thread */
-	irq_set_status_flags(dp->irq[IRQ_IN], IRQ_NOAUTOEN);
-	ret = devm_request_threaded_irq(dev, dp->irq[IRQ_IN],
+	irq_set_status_flags(mhdp->irq[IRQ_IN], IRQ_NOAUTOEN);
+	ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_IN],
 					NULL, cdns_dp_irq_thread,
 					IRQF_ONESHOT, dev_name(dev),
-					dp);
+					mhdp);
 	if (ret) {
 		dev_err(dev, "can't claim irq %d\n",
-						dp->irq[IRQ_IN]);
-		goto err_out;
+						mhdp->irq[IRQ_IN]);
+		return -EINVAL;
 	}
 	
-	irq_set_status_flags(dp->irq[IRQ_OUT], IRQ_NOAUTOEN);
-	ret = devm_request_threaded_irq(dev, dp->irq[IRQ_OUT],
+	irq_set_status_flags(mhdp->irq[IRQ_OUT], IRQ_NOAUTOEN);
+	ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_OUT],
 					NULL, cdns_dp_irq_thread,
 					IRQF_ONESHOT, dev_name(dev),
-					dp);
+					mhdp);
 	if (ret) {
 		dev_err(dev, "can't claim irq %d\n",
-						dp->irq[IRQ_OUT]);
-		goto err_out;
+						mhdp->irq[IRQ_OUT]);
+		return -EINVAL;
 	}
-	if (cdns_mhdp_read_hpd(&dp->mhdp))
-		enable_irq(dp->irq[IRQ_OUT]);
-	else
-		enable_irq(dp->irq[IRQ_IN]);
 
-	dp->mhdp.bridge.base.driver_private = dp;
-	dp->mhdp.bridge.base.funcs = &cdns_dp_bridge_funcs;
+	if (cdns_mhdp_read_hpd(mhdp))
+		enable_irq(mhdp->irq[IRQ_OUT]);
+	else
+		enable_irq(mhdp->irq[IRQ_IN]);
+
+	mhdp->bridge.base.driver_private = mhdp;
+	mhdp->bridge.base.funcs = &cdns_dp_bridge_funcs;
 #ifdef CONFIG_OF
-	dp->mhdp.bridge.base.of_node = dev->of_node;
+	mhdp->bridge.base.of_node = dev->of_node;
 #endif
 
-	dev_set_drvdata(dev, &dp->mhdp);
+	dev_set_drvdata(dev, mhdp);
 	
 	/* register audio driver */
 	cdns_mhdp_register_audio_driver(dev);
 
-	dp_aux_init(&dp->mhdp, dev);
+	dp_aux_init(mhdp, dev);
 
-	return dp;
-
-err_out:
-	return ERR_PTR(ret);
+	return 0;
 }
 
 static void __cdns_dp_remove(struct cdns_mhdp_device *mhdp)
@@ -547,15 +524,15 @@ static void __cdns_dp_remove(struct cdns_mhdp_device *mhdp)
  * Probe/remove API, used from platforms based on the DRM bridge API.
  */
 int cdns_dp_probe(struct platform_device *pdev,
-		  const struct cdn_plat_data *plat_data)
+		  struct cdns_mhdp_device *mhdp)
 {
-	struct imx_mhdp_device *dp;
+	int ret;
 
-	dp = __cdns_dp_probe(pdev, plat_data);
-	if (IS_ERR(dp))
-		return PTR_ERR(dp);
+	ret = __cdns_dp_probe(pdev, mhdp);
+	if (ret)
+		return ret;
 
-	drm_bridge_add(&dp->mhdp.bridge.base);
+	drm_bridge_add(&mhdp->bridge.base);
 
 	return 0;
 }
@@ -575,16 +552,15 @@ EXPORT_SYMBOL_GPL(cdns_dp_remove);
  * Bind/unbind API, used from platforms based on the component framework.
  */
 int cdns_dp_bind(struct platform_device *pdev, struct drm_encoder *encoder,
-		 const struct cdn_plat_data *plat_data)
+		struct cdns_mhdp_device *mhdp)
 {
-	struct imx_mhdp_device *dp;
 	int ret;
 
-	dp = __cdns_dp_probe(pdev, plat_data);
-	if (IS_ERR(dp))
-		return PTR_ERR(dp);
+	ret = __cdns_dp_probe(pdev, mhdp);
+	if (ret < 0)
+		return ret;
 
-	ret = drm_bridge_attach(encoder, &dp->mhdp.bridge.base, NULL);
+	ret = drm_bridge_attach(encoder, &mhdp->bridge.base, NULL);
 	if (ret) {
 		cdns_dp_remove(pdev);
 		DRM_ERROR("Failed to initialize bridge with drm\n");

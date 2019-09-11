@@ -10,7 +10,6 @@
 #include <drm/drmP.h>
 #include <linux/io.h>
 #include <drm/bridge/cdns-mhdp-common.h>
-#include <drm/bridge/cdns-mhdp-imx.h>
 #include <linux/regmap.h>
 
 void cdns_mhdp_infoframe_set(struct cdns_mhdp_device *mhdp,

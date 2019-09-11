@@ -23,7 +23,6 @@
 #include <asm/unaligned.h>
 
 #include <drm/bridge/cdns-mhdp-common.h>
-#include <drm/bridge/cdns-mhdp-imx.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_print.h>
 #include <linux/regmap.h>
@@ -74,18 +73,20 @@ static inline void put_unaligned_be24(u32 val, void *p)
 
 u32 cdns_mhdp_bus_read(struct cdns_mhdp_device *mhdp, u32 offset)
 {
-	struct imx_mhdp_device *hdmi = container_of(mhdp, struct imx_mhdp_device, mhdp);
 	u32 val;
 
-	/* TODO */
-	if (offset >= 0x1000 && hdmi->regmap_csr) {
+	if (mhdp->bus_type == BUS_TYPE_LOW4K_SAPB) {
+		/* Remap address to low 4K SAPB bus */
+		writel(offset >> 12, mhdp->regs_sec + 0xc);
+		val = readl((offset & 0xfff) + mhdp->regs_base);
+	} else if (mhdp->bus_type == BUS_TYPE_LOW4K_APB) {
 		/* Remap address to low 4K memory */
-		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, offset >> 12);
-		val = readl((offset & 0xfff) + mhdp->regs);
-		/* Restore address mapping */
-		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, 0);
-	} else
-		val = readl(mhdp->regs + offset);
+		writel(offset >> 12, mhdp->regs_sec + 8);
+		val = readl((offset & 0xfff) + mhdp->regs_base);
+	} else if (mhdp->bus_type == BUS_TYPE_NORMAL_SAPB)
+		val = readl(mhdp->regs_sec + offset);
+	else
+		val = readl(mhdp->regs_base + offset);
 
 	return val;
 }
@@ -93,18 +94,18 @@ EXPORT_SYMBOL(cdns_mhdp_bus_read);
 
 void cdns_mhdp_bus_write(u32 val, struct cdns_mhdp_device *mhdp, u32 offset)
 {
-	struct imx_mhdp_device *hdmi = container_of(mhdp, struct imx_mhdp_device, mhdp);
-
-	/* TODO */
-	if (offset >= 0x1000 && hdmi->regmap_csr) {
+	if (mhdp->bus_type == BUS_TYPE_LOW4K_SAPB) {
+		/* Remap address to low 4K SAPB bus */
+		writel(offset >> 12, mhdp->regs_sec + 0xc);
+		writel(val, (offset & 0xfff) + mhdp->regs_base);
+	} else if (mhdp->bus_type == BUS_TYPE_LOW4K_APB) {
 		/* Remap address to low 4K memory */
-		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, offset >> 12);
-		writel(val, (offset & 0xfff) + mhdp->regs);
-		/* Restore address mapping */
-		regmap_write(hdmi->regmap_csr, hdmi->csr_ctrl0_reg, 0);
-
-	} else
-		writel(val, mhdp->regs + offset);
+		writel(offset >> 12, mhdp->regs_sec + 8);
+		writel(val, (offset & 0xfff) + mhdp->regs_base);
+	} else if (mhdp->bus_type == BUS_TYPE_NORMAL_SAPB)
+		writel(val, mhdp->regs_sec + offset);
+	else
+		writel(val, mhdp->regs_base + offset);
 }
 EXPORT_SYMBOL(cdns_mhdp_bus_write);
 

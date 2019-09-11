@@ -9,7 +9,7 @@
  * (at your option) any later version.
  *
  */
-#include <drm/bridge/cdns-mhdp-imx.h>
+#include <drm/bridge/cdns-mhdp-common.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_edid.h>
@@ -60,8 +60,6 @@ static int hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 static void hdmi_lanes_config(struct cdns_mhdp_device *mhdp)
 {
 	/* Line swaping */
-	/* For imx8qm lane_mapping = 0x93
-	 * For imx8mq lane_mapping = 0xe4*/
 	cdns_mhdp_reg_write(mhdp, LANES_CONFIG, 0x00400000 | mhdp->lane_mapping);
 }
 
@@ -216,12 +214,12 @@ void cdns_hdmi_mode_set(struct cdns_mhdp_device *mhdp)
 static enum drm_connector_status
 cdns_hdmi_connector_detect(struct drm_connector *connector, bool force)
 {
-	struct imx_mhdp_device *hdmi =
-				container_of(connector, struct imx_mhdp_device, mhdp.connector.base);
+	struct cdns_mhdp_device *mhdp =
+				container_of(connector, struct cdns_mhdp_device, connector.base);
 
 	u8 hpd = 0xf;
 
-	hpd = cdns_mhdp_read_hpd(&hdmi->mhdp);
+	hpd = cdns_mhdp_read_hpd(mhdp);
 
 	if (hpd == 1)
 		/* Cable Connected */
@@ -238,15 +236,15 @@ cdns_hdmi_connector_detect(struct drm_connector *connector, bool force)
 
 static int cdns_hdmi_connector_get_modes(struct drm_connector *connector)
 {
-	struct imx_mhdp_device *hdmi = container_of(connector, struct imx_mhdp_device,
-					     mhdp.connector.base);
+	struct cdns_mhdp_device *mhdp =
+				container_of(connector, struct cdns_mhdp_device, connector.base);
 	int num_modes = 0;
 	struct edid *edid;
 
-	edid = drm_do_get_edid(&hdmi->mhdp.connector.base,
-				   cdns_hdmi_get_edid_block, &hdmi->mhdp);
+	edid = drm_do_get_edid(&mhdp->connector.base,
+				   cdns_hdmi_get_edid_block, mhdp);
 	if (edid) {
-		dev_info(hdmi->mhdp.dev, "%x,%x,%x,%x,%x,%x,%x,%x\n",
+		dev_info(mhdp->dev, "%x,%x,%x,%x,%x,%x,%x,%x\n",
 			 edid->header[0], edid->header[1],
 			 edid->header[2], edid->header[3],
 			 edid->header[4], edid->header[5],
@@ -276,9 +274,9 @@ static const struct drm_connector_helper_funcs cdns_hdmi_connector_helper_funcs 
 
 static int cdns_hdmi_bridge_attach(struct drm_bridge *bridge)
 {
-	struct imx_mhdp_device *hdmi = bridge->driver_private;
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 	struct drm_encoder *encoder = bridge->encoder;
-	struct drm_connector *connector = &hdmi->mhdp.connector.base;
+	struct drm_connector *connector = &mhdp->connector.base;
 
 	connector->interlace_allowed = 1;
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
@@ -319,9 +317,9 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 				    const struct drm_display_mode *orig_mode,
 				    const struct drm_display_mode *mode)
 {
-	struct imx_mhdp_device *hdmi = bridge->driver_private;
-	struct drm_display_info *display_info = &hdmi->mhdp.connector.base.display_info;
-	struct video_info *video = &hdmi->mhdp.video_info;
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
+	struct drm_display_info *display_info = &mhdp->connector.base.display_info;
+	struct video_info *video = &mhdp->video_info;
 
 	switch (display_info->bpc) {
 	case 10:
@@ -339,23 +337,24 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 	video->v_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NVSYNC);
 	video->h_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NHSYNC);
 
-	mutex_lock(&hdmi->lock);
+	mutex_lock(&mhdp->lock);
 
 	DRM_INFO("Mode: %dx%dp%d\n", mode->hdisplay, mode->vdisplay, mode->clock); 
 
-	memcpy(&hdmi->mhdp.mode, mode, sizeof(struct drm_display_mode));
+	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
 
-	hdmi->dual_mode = video_is_dual_mode(mode);
+	//Sandor TODO
+//	hdmi->dual_mode = video_is_dual_mode(mode);
 
-	hdmi_lanes_config(&hdmi->mhdp);
+	hdmi_lanes_config(mhdp);
 
-	hdp_plat_call(hdmi, pclock_change);
+	cdns_mhdp_plat_call(mhdp, pclk_rate);
 
-	hdp_plat_call(hdmi, phy_init);
+	cdns_mhdp_plat_call(mhdp, phy_set);
 
-	cdns_hdmi_mode_set(&hdmi->mhdp);
+	cdns_hdmi_mode_set(mhdp);
 
-	mutex_unlock(&hdmi->lock);
+	mutex_unlock(&mhdp->lock);
 }
 
 static const struct drm_bridge_funcs cdns_hdmi_bridge_funcs = {
@@ -366,30 +365,30 @@ static const struct drm_bridge_funcs cdns_hdmi_bridge_funcs = {
 
 static void hotplug_work_func(struct work_struct *work)
 {
-	struct imx_mhdp_device *hdmi = container_of(work,
-					   struct imx_mhdp_device, hotplug_work.work);
-	struct drm_connector *connector = &hdmi->mhdp.connector.base;
+	struct cdns_mhdp_device *mhdp = container_of(work,
+					   struct cdns_mhdp_device, hotplug_work.work);
+	struct drm_connector *connector = &mhdp->connector.base;
 
 	drm_helper_hpd_irq_event(connector->dev);
 
 	if (connector->status == connector_status_connected) {
 		/* Cable Connected */
 		DRM_INFO("HDMI Cable Plug In\n");
-		enable_irq(hdmi->irq[IRQ_OUT]);
+		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI Cable Plug Out\n");
-		enable_irq(hdmi->irq[IRQ_IN]);
+		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }
 
 static irqreturn_t cdns_hdmi_irq_thread(int irq, void *data)
 {
-	struct imx_mhdp_device *hdmi = data;
+	struct cdns_mhdp_device *mhdp = data;
 
 	disable_irq_nosync(irq);
 
-	mod_delayed_work(system_wq, &hdmi->hotplug_work,
+	mod_delayed_work(system_wq, &mhdp->hotplug_work,
 			msecs_to_jiffies(HOTPLUG_DEBOUNCE_MS));
 
 	return IRQ_HANDLED;
@@ -408,109 +407,99 @@ static void cdns_hdmi_parse_dt(struct cdns_mhdp_device *mhdp)
 	dev_info(mhdp->dev, "lane-mapping 0x%02x\n", mhdp->lane_mapping);
 }
 
-static struct imx_mhdp_device *
-__cdns_hdmi_probe(struct platform_device *pdev,
-			const struct cdn_plat_data *plat_data)
+static int __cdns_hdmi_probe(struct platform_device *pdev,
+		  struct cdns_mhdp_device *mhdp)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *np = dev->of_node;
 	struct platform_device_info pdevinfo;
-	struct imx_mhdp_device *hdmi;
 	struct resource *iores = NULL;
 	int ret;
 
-	hdmi = devm_kzalloc(dev, sizeof(*hdmi), GFP_KERNEL);
-	if (!hdmi)
-		return ERR_PTR(-ENOMEM);
+	mutex_init(&mhdp->lock);
 
-	hdmi->plat_data = plat_data;
-	hdmi->mhdp.dev = dev;
-
-	mutex_init(&hdmi->lock);
-	mutex_init(&hdmi->audio_mutex);
-	spin_lock_init(&hdmi->audio_lock);
-
-	INIT_DELAYED_WORK(&hdmi->hotplug_work, hotplug_work_func);
+	INIT_DELAYED_WORK(&mhdp->hotplug_work, hotplug_work_func);
 
 	iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	hdmi->mhdp.regs = devm_ioremap(dev, iores->start, resource_size(iores));
-	if (IS_ERR(hdmi->mhdp.regs)) {
-		ret = PTR_ERR(hdmi->mhdp.regs);
-		goto err_out;
+	mhdp->regs_base = devm_ioremap(dev, iores->start, resource_size(iores));
+	if (IS_ERR(mhdp->regs_base)) {
+		dev_err(dev, "No regs_base memory\n");
+		return -ENOMEM;
 	}
 
-	/* csr register base */
-	hdmi->regmap_csr = syscon_regmap_lookup_by_phandle(np, "csr");
-	if (IS_ERR(hdmi->regmap_csr)) {
-		dev_info(dev, "No csr regmap\n");
+	/* sec register base */
+	iores = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	mhdp->regs_sec = devm_ioremap(dev, iores->start, resource_size(iores));
+	if (IS_ERR(mhdp->regs_sec)) {
+		dev_err(dev, "No regs_sec memory\n");
+		return -ENOMEM;
 	}
 
-	hdmi->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
-	if (hdmi->irq[IRQ_IN] < 0) {
+	mhdp->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
+	if (mhdp->irq[IRQ_IN] < 0) {
 		dev_info(dev, "No plug_in irq number\n");
-		return ERR_PTR(-EPROBE_DEFER);
+		return -EPROBE_DEFER;
 	}
 
-	hdmi->irq[IRQ_OUT] = platform_get_irq_byname(pdev, "plug_out");
-	if (hdmi->irq[IRQ_OUT] < 0) {
+	mhdp->irq[IRQ_OUT] = platform_get_irq_byname(pdev, "plug_out");
+	if (mhdp->irq[IRQ_OUT] < 0) {
 		dev_info(dev, "No plug_out irq number\n");
-		return ERR_PTR(-EPROBE_DEFER);
+		return -EPROBE_DEFER;
 	}
 
 	/* Initialize dual_mode to false */
-	hdmi->dual_mode = false;
+//	hdmi->dual_mode = false;
 
 	/* Initialize FW */
-	hdp_plat_call(hdmi, fw_init);
+	cdns_mhdp_plat_call(mhdp, firmware_init);
 
 	/* HDMI FW alive check */
-	ret = cdns_mhdp_check_alive(&hdmi->mhdp);
+	ret = cdns_mhdp_check_alive(mhdp);
 	if (ret == false) {
-		DRM_ERROR("NO HDMI FW running\n");
-		return ERR_PTR(-ENXIO);
+		dev_err(dev, "NO HDMI FW running\n");
+		return -ENXIO;
 	}
 
 	/* Enable Hotplug Detect thread */
-	irq_set_status_flags(hdmi->irq[IRQ_IN], IRQ_NOAUTOEN);
-	ret = devm_request_threaded_irq(dev, hdmi->irq[IRQ_IN],
+	irq_set_status_flags(mhdp->irq[IRQ_IN], IRQ_NOAUTOEN);
+	ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_IN],
 					NULL, cdns_hdmi_irq_thread,
 					IRQF_ONESHOT, dev_name(dev),
-					hdmi);
-	if (ret) {
+					mhdp);
+	if (ret < 0) {
 		dev_err(dev, "can't claim irq %d\n",
-						hdmi->irq[IRQ_IN]);
-		goto err_out;
+						mhdp->irq[IRQ_IN]);
+		return -EINVAL;
 	}
 	
-	irq_set_status_flags(hdmi->irq[IRQ_OUT], IRQ_NOAUTOEN);
-	ret = devm_request_threaded_irq(dev, hdmi->irq[IRQ_OUT],
+	irq_set_status_flags(mhdp->irq[IRQ_OUT], IRQ_NOAUTOEN);
+	ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_OUT],
 					NULL, cdns_hdmi_irq_thread,
 					IRQF_ONESHOT, dev_name(dev),
-					hdmi);
-	if (ret) {
+					mhdp);
+	if (ret < 0) {
 		dev_err(dev, "can't claim irq %d\n",
-						hdmi->irq[IRQ_OUT]);
-		goto err_out;
+						mhdp->irq[IRQ_OUT]);
+		return -EINVAL;
 	}
 
-	cdns_hdmi_parse_dt(&hdmi->mhdp);
+	cdns_hdmi_parse_dt(mhdp);
 
-	if (cdns_mhdp_read_hpd(&hdmi->mhdp))
-		enable_irq(hdmi->irq[IRQ_OUT]);
+	if (cdns_mhdp_read_hpd(mhdp))
+		enable_irq(mhdp->irq[IRQ_OUT]);
 	else
-		enable_irq(hdmi->irq[IRQ_IN]);
+		enable_irq(mhdp->irq[IRQ_IN]);
 
-	hdmi->mhdp.bridge.base.driver_private = hdmi;
-	hdmi->mhdp.bridge.base.funcs = &cdns_hdmi_bridge_funcs;
+	mhdp->bridge.base.driver_private = mhdp;
+	mhdp->bridge.base.funcs = &cdns_hdmi_bridge_funcs;
 #ifdef CONFIG_OF
-	hdmi->mhdp.bridge.base.of_node = dev->of_node;
+	mhdp->bridge.base.of_node = dev->of_node;
 #endif
 
 	memset(&pdevinfo, 0, sizeof(pdevinfo));
 	pdevinfo.parent = dev;
 	pdevinfo.id = PLATFORM_DEVID_AUTO;
 
-	dev_set_drvdata(dev, &hdmi->mhdp);
+	dev_set_drvdata(dev, mhdp);
 
 	/* register audio driver */
 	cdns_mhdp_register_audio_driver(dev);
@@ -520,11 +509,7 @@ __cdns_hdmi_probe(struct platform_device *pdev,
 	cdns_mhdp_register_cec_driver(dev);
 #endif
 
-	return hdmi;
-
-err_out:
-
-	return ERR_PTR(ret);
+	return 0;
 }
 
 static void __cdns_hdmi_remove(struct cdns_mhdp_device *mhdp)
@@ -540,15 +525,15 @@ static void __cdns_hdmi_remove(struct cdns_mhdp_device *mhdp)
  * Probe/remove API, used from platforms based on the DRM bridge API.
  */
 int cdns_hdmi_probe(struct platform_device *pdev,
-		  const struct cdn_plat_data *plat_data)
+		struct cdns_mhdp_device *mhdp)
 {
-	struct imx_mhdp_device *hdmi;
+	int ret;
 
-	hdmi = __cdns_hdmi_probe(pdev, plat_data);
-	if (IS_ERR(hdmi))
-		return PTR_ERR(hdmi);
+	ret  = __cdns_hdmi_probe(pdev, mhdp);
+	if (ret < 0)
+		return ret;
 
-	drm_bridge_add(&hdmi->mhdp.bridge.base);
+	drm_bridge_add(&mhdp->bridge.base);
 
 	return 0;
 }
@@ -568,16 +553,15 @@ EXPORT_SYMBOL_GPL(cdns_hdmi_remove);
  * Bind/unbind API, used from platforms based on the component framework.
  */
 int cdns_hdmi_bind(struct platform_device *pdev, struct drm_encoder *encoder,
-		 const struct cdn_plat_data *plat_data)
+			struct cdns_mhdp_device *mhdp)
 {
-	struct imx_mhdp_device *hdmi;
 	int ret;
 
-	hdmi = __cdns_hdmi_probe(pdev, plat_data);
-	if (IS_ERR(hdmi))
-		return PTR_ERR(hdmi);
+	ret = __cdns_hdmi_probe(pdev, mhdp);
+	if (ret)
+		return ret;
 
-	ret = drm_bridge_attach(encoder, &hdmi->mhdp.bridge.base, NULL);
+	ret = drm_bridge_attach(encoder, &mhdp->bridge.base, NULL);
 	if (ret) {
 		cdns_hdmi_remove(pdev);
 		DRM_ERROR("Failed to initialize bridge with drm\n");

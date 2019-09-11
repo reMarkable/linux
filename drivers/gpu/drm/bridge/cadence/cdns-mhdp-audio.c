@@ -16,7 +16,6 @@
 #include <linux/reset.h>
 #include <drm/bridge/cdns-mhdp-common.h>
 #include <sound/hdmi-codec.h>
-#include <drm/bridge/cdns-mhdp-imx.h>
 #include <drm/drm_of.h>
 #include <drm/drmP.h>
 

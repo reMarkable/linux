@@ -495,6 +495,22 @@
 
 #define HOTPLUG_DEBOUNCE_MS		200
 
+#define IRQ_IN    0
+#define IRQ_OUT   1
+#define IRQ_NUM   2
+
+#define cdns_mhdp_plat_call(mhdp, operation)			\
+	(!(mhdp) ? -ENODEV : (((mhdp)->plat_data && (mhdp)->plat_data->operation) ?	\
+	 (mhdp)->plat_data->operation(mhdp) : ENOIOCTLCMD))
+
+/* bus access type */
+enum {
+	BUS_TYPE_NORMAL_APB = 0,
+	BUS_TYPE_NORMAL_SAPB = 1,
+	BUS_TYPE_LOW4K_APB = 2,
+	BUS_TYPE_LOW4K_SAPB = 3,
+};
+
 enum voltage_swing_level {
 	VOLTAGE_LEVEL_0,
 	VOLTAGE_LEVEL_1,
@@ -616,8 +632,33 @@ struct cdns_mhdp_cec {
 };
 #endif
 
+struct cdns_plat_data {
+	/* Vendor PHY support */
+	int (*bind)(struct platform_device *pdev,
+			struct drm_encoder *encoder,
+			struct cdns_mhdp_device *mhdp);
+	void (*unbind)(struct device *dev);
+
+	void (*plat_init)(struct cdns_mhdp_device *mhdp);
+	void (*plat_deinit)(struct cdns_mhdp_device *mhdp);
+
+	int (*phy_set)(struct cdns_mhdp_device *mhdp);
+	int (*firmware_init)(struct cdns_mhdp_device *mhdp);
+	void (*pclk_rate)(struct cdns_mhdp_device *mhdp);
+
+	int (*power_on)(struct cdns_mhdp_device *mhdp);
+	int (*power_off)(struct cdns_mhdp_device *mhdp);
+
+	int bus_type;
+	int video_format;
+	char is_dp;
+};
+
 struct cdns_mhdp_device {
-	void __iomem		*regs;
+	void __iomem		*regs_base;
+	void __iomem		*regs_sec;
+
+	int bus_type;
 
 	struct device		*dev;
 
@@ -642,6 +683,9 @@ struct cdns_mhdp_device {
 	bool link_up;
 	bool power_up;
 	bool plugged;
+	struct mutex lock;
+
+	int irq[IRQ_NUM];
 
 	union {
 		struct _dp_data {
@@ -663,6 +707,8 @@ struct cdns_mhdp_device {
 			u32 hdmi_type;
 		} hdmi;
 	};
+	const struct cdns_plat_data *plat_data;
+
 };
 
 u32 cdns_mhdp_bus_read(struct cdns_mhdp_device *mhdp, u32 offset);
@@ -727,6 +773,25 @@ int cdns_hdmi_disable_gcp(struct cdns_mhdp_device *mhdp);
 int cdns_hdmi_enable_gcp(struct cdns_mhdp_device *mhdp);
 
 bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp);
+
+/* HDMI */
+int cdns_hdmi_probe(struct platform_device *pdev,
+		 struct cdns_mhdp_device *mhdp);
+void cdns_hdmi_remove(struct platform_device *pdev);
+void cdns_hdmi_unbind(struct device *dev);
+int cdns_hdmi_bind(struct platform_device *pdev,
+			struct drm_encoder *encoder, struct cdns_mhdp_device *mhdp);
+void cdns_hdmi_set_sample_rate(struct cdns_mhdp_device *mhdp, unsigned int rate);
+void cdns_hdmi_audio_enable(struct cdns_mhdp_device *mhdp);
+void cdns_hdmi_audio_disable(struct cdns_mhdp_device *mhdp);
+/* DP  */
+int cdns_dp_probe(struct platform_device *pdev,
+		 struct cdns_mhdp_device *mhdp);
+void cdns_dp_remove(struct platform_device *pdev);
+void cdns_dp_unbind(struct device *dev);
+int cdns_dp_bind(struct platform_device *pdev,
+			struct drm_encoder *encoder, struct cdns_mhdp_device *mhdp);
+
 /* CEC */
 #ifdef CONFIG_DRM_CDNS_HDMI_CEC
 int cdns_mhdp_register_cec_driver(struct device *dev);
