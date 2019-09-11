@@ -21,6 +21,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_dma.h>
+#include <linux/pinctrl/consumer.h>
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
@@ -1708,10 +1709,23 @@ static void lpuart_rx_dma_startup(struct lpuart_port *sport)
 	}
 }
 
+static void lpuart_hw_setup(struct lpuart_port *sport)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&sport->port.lock, flags);
+
+	lpuart_setup_watermark_enable(sport);
+
+	lpuart_rx_dma_startup(sport);
+	lpuart_tx_dma_startup(sport);
+
+	spin_unlock_irqrestore(&sport->port.lock, flags);
+}
+
 static int lpuart_startup(struct uart_port *port)
 {
 	struct lpuart_port *sport = container_of(port, struct lpuart_port, port);
-	unsigned long flags;
 	unsigned char temp;
 
 	/* determine FIFO size and enable FIFO mode */
@@ -1724,14 +1738,7 @@ static int lpuart_startup(struct uart_port *port)
 	sport->rxfifo_size = UARTFIFO_DEPTH((temp >> UARTPFIFO_RXSIZE_OFF) &
 					    UARTPFIFO_FIFOSIZE_MASK);
 
-	spin_lock_irqsave(&sport->port.lock, flags);
-
-	lpuart_setup_watermark_enable(sport);
-
-	lpuart_rx_dma_startup(sport);
-	lpuart_tx_dma_startup(sport);
-
-	spin_unlock_irqrestore(&sport->port.lock, flags);
+	lpuart_hw_setup(sport);
 
 	return 0;
 }
@@ -1758,11 +1765,27 @@ static void lpuart32_configure(struct lpuart_port *sport)
 	lpuart32_write(&sport->port, temp, UARTCTRL);
 }
 
+static void lpuart32_hw_setup(struct lpuart_port *sport)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&sport->port.lock, flags);
+
+	lpuart32_hw_disable(sport);
+
+	lpuart_rx_dma_startup(sport);
+	lpuart_tx_dma_startup(sport);
+
+	lpuart32_setup_watermark_enable(sport);
+	lpuart32_configure(sport);
+
+	spin_unlock_irqrestore(&sport->port.lock, flags);
+}
+
 static int lpuart32_startup(struct uart_port *port)
 {
 	struct lpuart_port *sport = container_of(port, struct lpuart_port, port);
 	struct tty_port *tty_port = &sport->port.state->port;
-	unsigned long flags;
 	unsigned long temp;
 	int ret;
 
@@ -1783,17 +1806,8 @@ static int lpuart32_startup(struct uart_port *port)
 	sport->rxfifo_size = UARTFIFO_DEPTH((temp >> UARTFIFO_RXSIZE_OFF) &
 					    UARTFIFO_FIFOSIZE_MASK);
 
-	spin_lock_irqsave(&sport->port.lock, flags);
+	lpuart32_hw_setup(sport);
 
-	lpuart32_hw_disable(sport);
-
-	lpuart_rx_dma_startup(sport);
-	lpuart_tx_dma_startup(sport);
-
-	lpuart32_setup_watermark_enable(sport);
-	lpuart32_configure(sport);
-
-	spin_unlock_irqrestore(&sport->port.lock, flags);
 	return 0;
 }
 
@@ -2843,108 +2857,205 @@ static int lpuart_runtime_resume(struct device *dev)
 	return lpuart_enable_clks(sport);
 };
 
+static void serial_lpuart_enable_wakeup(struct lpuart_port *sport, bool on)
+{
+	unsigned int val;
+
+	if (lpuart_is_32(sport)) {
+		val = lpuart32_read(&sport->port, UARTCTRL);
+		if (on)
+			val |= (UARTCTRL_RIE | UARTCTRL_ILIE);
+		else
+			val &= ~(UARTCTRL_RIE | UARTCTRL_ILIE);
+		lpuart32_write(&sport->port, val, UARTCTRL);
+	} else {
+		val = readb(sport->port.membase + UARTCR2);
+		if (on)
+			val |= UARTCR2_RIE;
+		else
+			val &= ~UARTCR2_RIE;
+		writeb(val, sport->port.membase + UARTCR2);
+	}
+}
+
+static bool lpuart_uport_is_active(struct lpuart_port *sport)
+{
+	struct tty_port *port = &sport->port.state->port;
+	struct tty_struct *tty;
+	struct device *tty_dev;
+	int may_wake = 0;
+
+	tty = tty_port_tty_get(port);
+	if (tty) {
+		tty_dev = tty->dev;
+		may_wake = device_may_wakeup(tty_dev);
+		tty_kref_put(tty);
+	}
+
+	if ((tty_port_initialized(port) && may_wake) ||
+	    (!console_suspend_enabled && uart_console(&sport->port)))
+		return true;
+
+	return false;
+}
+
+static int lpuart_suspend_noirq(struct device *dev)
+{
+	struct lpuart_port *sport = dev_get_drvdata(dev);
+	bool irq_wake = irqd_is_wakeup_set(irq_get_irq_data(sport->port.irq));
+
+	if (lpuart_uport_is_active(sport))
+		serial_lpuart_enable_wakeup(sport, !!irq_wake);
+
+	pinctrl_pm_select_sleep_state(dev);
+
+	return 0;
+}
+
+static int lpuart_resume_noirq(struct device *dev)
+{
+	struct lpuart_port *sport = dev_get_drvdata(dev);
+	unsigned int val;
+
+	pinctrl_pm_select_default_state(dev);
+
+	if (lpuart_uport_is_active(sport)) {
+		serial_lpuart_enable_wakeup(sport, false);
+
+		/* clear the wakeup flags */
+		if (lpuart_is_32(sport)) {
+			val = lpuart32_read(&sport->port, UARTSTAT);
+			lpuart32_write(&sport->port, val, UARTSTAT);
+		}
+	}
+
+	return 0;
+}
+
 static int lpuart_suspend(struct device *dev)
 {
 	struct lpuart_port *sport = dev_get_drvdata(dev);
 	unsigned long temp;
-	bool irq_wake;
-	int ret;
-
-	ret = clk_prepare_enable(sport->ipg_clk);
-	if (ret)
-		return ret;
-
-	if (lpuart_is_32(sport)) {
-		/* disable Rx/Tx and interrupts */
-		temp = lpuart32_read(&sport->port, UARTCTRL);
-		temp &= ~(UARTCTRL_TE | UARTCTRL_TIE | UARTCTRL_TCIE);
-		lpuart32_write(&sport->port, temp, UARTCTRL);
-	} else {
-		/* disable Rx/Tx and interrupts */
-		temp = readb(sport->port.membase + UARTCR2);
-		temp &= ~(UARTCR2_TE | UARTCR2_TIE | UARTCR2_TCIE);
-		writeb(temp, sport->port.membase + UARTCR2);
-	}
-
-	clk_disable_unprepare(sport->ipg_clk);
+	unsigned long flags;
 
 	uart_suspend_port(&lpuart_reg, &sport->port);
 
-	/* uart_suspend_port() might set wakeup flag */
-	irq_wake = irqd_is_wakeup_set(irq_get_irq_data(sport->port.irq));
-	if (sport->port.suspended && !irq_wake)
-		return 0;
+	if (lpuart_uport_is_active(sport)) {
+		spin_lock_irqsave(&sport->port.lock, flags);
+		if (lpuart_is_32(sport)) {
+			temp = lpuart32_read(&sport->port, UARTCTRL);
+			temp &= ~(UARTCTRL_TE | UARTCTRL_TIE | UARTCTRL_TCIE);
+			lpuart32_write(&sport->port, temp, UARTCTRL);
+		} else {
+			temp = readb(sport->port.membase + UARTCR2);
+			temp &= ~(UARTCR2_TE | UARTCR2_TIE | UARTCR2_TCIE);
+			writeb(temp, sport->port.membase + UARTCR2);
+		}
+		spin_unlock_irqrestore(&sport->port.lock, flags);
 
-	if (sport->lpuart_dma_rx_use) {
-		/*
-		 * EDMA driver during suspend will forcefully release any
-		 * non-idle DMA channels. If port wakeup is enabled or if port
-		 * is console port or 'no_console_suspend' is set the Rx DMA
-		 * cannot resume as as expected, hence gracefully release the
-		 * Rx DMA path before suspend and start Rx DMA path on resume.
-		 */
-		if (irq_wake) {
+		if (sport->lpuart_dma_rx_use) {
+			/*
+			 * EDMA driver during suspend will forcefully release any
+			 * non-idle DMA channels. If port wakeup is enabled or if port
+			 * is console port or 'no_console_suspend' is set the Rx DMA
+			 * cannot resume as as expected, hence gracefully release the
+			 * Rx DMA path before suspend and start Rx DMA path on resume.
+			 */
 			lpuart_del_timer_sync(sport);
 			lpuart_dma_rx_free(&sport->port);
+
+			/* Disable Rx DMA to use UART port as wakeup source */
+			spin_lock_irqsave(&sport->port.lock, flags);
+			if (lpuart_is_32(sport)) {
+				temp = lpuart32_read(&sport->port, UARTBAUD);
+				lpuart32_write(&sport->port, temp & ~UARTBAUD_RDMAE,
+					       UARTBAUD);
+			} else {
+				writeb(readb(sport->port.membase + UARTCR5) &
+				       ~UARTCR5_RDMAS, sport->port.membase + UARTCR5);
+			}
+			spin_unlock_irqrestore(&sport->port.lock, flags);
 		}
 
-		/* Disable Rx DMA to use UART port as wakeup source */
-		if (lpuart_is_32(sport)) {
-			temp = lpuart32_read(&sport->port, UARTBAUD);
-			lpuart32_write(&sport->port, temp & ~UARTBAUD_RDMAE,
-				       UARTBAUD);
-		} else {
-			writeb(readb(sport->port.membase + UARTCR5) &
-			       ~UARTCR5_RDMAS, sport->port.membase + UARTCR5);
+		if (sport->lpuart_dma_tx_use) {
+			spin_lock_irqsave(&sport->port.lock, flags);
+			if (lpuart_is_32(sport)) {
+				temp = lpuart32_read(&sport->port, UARTBAUD);
+				temp &= ~UARTBAUD_TDMAE;
+				lpuart32_write(&sport->port, temp, UARTBAUD);
+			} else {
+				temp = readb(sport->port.membase + UARTCR5);
+				temp &= ~UARTCR5_TDMAS;
+				writeb(temp, sport->port.membase + UARTCR5);
+			}
+			spin_unlock_irqrestore(&sport->port.lock, flags);
+			sport->dma_tx_in_progress = false;
+			dmaengine_terminate_all(sport->dma_tx_chan);
 		}
-	}
-
-	if (sport->lpuart_dma_tx_use) {
-		sport->dma_tx_in_progress = false;
-		dmaengine_terminate_all(sport->dma_tx_chan);
+	} else if (pm_runtime_active(sport->port.dev)) {
+		lpuart_disable_clks(sport);
+		pm_runtime_disable(sport->port.dev);
+		pm_runtime_set_suspended(sport->port.dev);
 	}
 
 	return 0;
+}
+
+static void lpuart_console_fixup(struct lpuart_port *sport)
+{
+	struct tty_port *port = &sport->port.state->port;
+	struct uart_port *uport = &sport->port;
+	struct ktermios termios;
+
+	/* i.MX7ULP enter VLLS mode that lpuart module power off and registers
+	 * all lost no matter the port is wakeup source.
+	 * For console port, console baud rate setting lost and print messy
+	 * log when enable the console port as wakeup source. To avoid the
+	 * issue happen, user should not enable uart port as wakeup source
+	 * in VLLS mode, or restore console setting here.
+	 */
+	if (is_imx7ulp_lpuart(sport) && lpuart_uport_is_active(sport) &&
+	    console_suspend_enabled && uart_console(&sport->port)) {
+
+		mutex_lock(&port->mutex);
+		memset(&termios, 0, sizeof(struct ktermios));
+		termios.c_cflag = uport->cons->cflag;
+		if (port->tty && termios.c_cflag == 0)
+			termios = port->tty->termios;
+		uport->ops->set_termios(uport, &termios, NULL);
+		mutex_unlock(&port->mutex);
+	}
 }
 
 static int lpuart_resume(struct device *dev)
 {
 	struct lpuart_port *sport = dev_get_drvdata(dev);
-	bool irq_wake = irqd_is_wakeup_set(irq_get_irq_data(sport->port.irq));
 	int ret;
 
-	ret = clk_prepare_enable(sport->ipg_clk);
-	if (ret)
-		return ret;
-
-	if (lpuart_is_32(sport))
-		lpuart32_setup_watermark_enable(sport);
-	else
-		lpuart_setup_watermark_enable(sport);
-
-	if (sport->lpuart_dma_rx_use) {
-		if (irq_wake) {
-			if (!lpuart_start_rx_dma(sport))
-				rx_dma_timer_init(sport);
-			else
-				sport->lpuart_dma_rx_use = false;
-		}
+	if (lpuart_uport_is_active(sport)) {
+		if (lpuart_is_32(sport))
+			lpuart32_hw_setup(sport);
+		else
+			lpuart_hw_setup(sport);
+	} else if (pm_runtime_active(sport->port.dev)) {
+		ret = lpuart_enable_clks(sport);
+		if (ret)
+			return ret;
+		pm_runtime_set_active(sport->port.dev);
+		pm_runtime_enable(sport->port.dev);
 	}
 
-	lpuart_tx_dma_startup(sport);
-
-	if (lpuart_is_32(sport))
-		lpuart32_configure(sport);
-
-	clk_disable_unprepare(sport->ipg_clk);
-
+	lpuart_console_fixup(sport);
 	uart_resume_port(&lpuart_reg, &sport->port);
 
 	return 0;
 }
+
 static const struct dev_pm_ops lpuart_pm_ops = {
 	SET_RUNTIME_PM_OPS(lpuart_runtime_suspend,
 			   lpuart_runtime_resume, NULL)
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(lpuart_suspend_noirq,
+				      lpuart_resume_noirq)
 	SET_SYSTEM_SLEEP_PM_OPS(lpuart_suspend, lpuart_resume)
 };
 #define SERIAL_LPUART_PM_OPS	(&lpuart_pm_ops)
