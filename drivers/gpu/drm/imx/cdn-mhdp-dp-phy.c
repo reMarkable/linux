@@ -12,7 +12,6 @@
 #include <linux/clk.h>
 #include <linux/kernel.h>
 #include <drm/drm_dp_helper.h>
-
 #include <drm/bridge/cdns-mhdp-common.h>
 #include "cdn-mhdp-phy.h"
 
@@ -477,9 +476,8 @@ static int dp_phy_power_up(struct cdns_mhdp_device *mhdp)
 	return 0;
 }
 
-int cdns_dp_phy_init_imx8mq(struct imx_mhdp_device *hdp)
+int cdns_dp_phy_set_imx8mq(struct cdns_mhdp_device *mhdp)
 {
-	struct cdns_mhdp_device *mhdp = &hdp->mhdp;
 	int ret;
 
 	/* Disable phy clock if PHY in power up state */
@@ -504,10 +502,8 @@ int cdns_dp_phy_init_imx8mq(struct imx_mhdp_device *hdp)
 	return ret;
 }
 
-
-int cdns_dp_phy_init_imx8qm(struct imx_mhdp_device *hdp)
+int cdns_dp_phy_set_imx8qm(struct cdns_mhdp_device *mhdp)
 {
-	struct cdns_mhdp_device *mhdp = &hdp->mhdp;
 	int ret;
 
 	/* Disable phy clock if PHY in power up state */

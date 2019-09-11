@@ -10,7 +10,7 @@
 #ifndef _CDN_DP_PHY_H
 #define _CDN_DP_PHY_H
 
-#include <drm/bridge/cdns-mhdp-imx.h>
+#include <drm/bridge/cdns-mhdp-common.h>
 
 #define CMN_SSM_BIAS_TMR                0x0022
 #define CMN_PLLSM0_PLLEN_TMR            0x0029
@@ -146,8 +146,8 @@
 #define PHY_PMA_ISO_RX_DATA_LO          0xCC16
 #define PHY_PMA_ISO_RX_DATA_HI          0xCC17
 
-int cdns_dp_phy_init_imx8mq(struct imx_mhdp_device *hdp);
-int cdns_dp_phy_init_imx8qm(struct imx_mhdp_device *hdp);
-int cdns_hdmi_phy_set_imx8mq(struct imx_mhdp_device *hdp);
-int cdns_hdmi_phy_set_imx8qm(struct imx_mhdp_device *hdp);
-#endif /* _CDN_DP_PHY_H */
+int cdns_dp_phy_set_imx8mq(struct cdns_mhdp_device *hdp);
+int cdns_dp_phy_set_imx8qm(struct cdns_mhdp_device *hdp);
+int cdns_hdmi_phy_set_imx8mq(struct cdns_mhdp_device *hdp);
+int cdns_hdmi_phy_set_imx8qm(struct cdns_mhdp_device *hdp);
+#endif /* _CDNS_MHDP_PHY_H */

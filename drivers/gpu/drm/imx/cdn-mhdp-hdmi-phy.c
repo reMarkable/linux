@@ -624,9 +624,8 @@ static int hdmi_phy_power_up(struct cdns_mhdp_device *mhdp)
 	return 0;
 }
 
-int cdns_hdmi_phy_set_imx8mq(struct imx_mhdp_device *hdp)
+int cdns_hdmi_phy_set_imx8mq(struct cdns_mhdp_device *mhdp)
 {
-	struct cdns_mhdp_device *mhdp = &hdp->mhdp;
 	struct drm_display_mode *mode = &mhdp->mode;
 	int ret;
 
@@ -653,9 +652,8 @@ int cdns_hdmi_phy_set_imx8mq(struct imx_mhdp_device *hdp)
 	return true;
 }
 
-int cdns_hdmi_phy_set_imx8qm(struct imx_mhdp_device *hdp)
+int cdns_hdmi_phy_set_imx8qm(struct cdns_mhdp_device *mhdp)
 {
-	struct cdns_mhdp_device *mhdp = &hdp->mhdp;
 	struct drm_display_mode *mode = &mhdp->mode;
 	int ret;
 
@@ -681,4 +679,3 @@ int cdns_hdmi_phy_set_imx8qm(struct imx_mhdp_device *hdp)
 
 	return true;
 }
-

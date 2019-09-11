@@ -9,4 +9,4 @@ obj-$(CONFIG_DRM_IMX_TVE) += imx-tve.o
 obj-$(CONFIG_DRM_IMX_LDB) += imx-ldb.o
 
 obj-$(CONFIG_DRM_IMX_HDMI) += dw_hdmi-imx.o
-obj-$(CONFIG_DRM_IMX_CDNS_MHDP) += cdn-mhdp-imx8qm.o cdn-mhdp-imx8mq.o cdn-mhdp-dp-phy.o cdn-mhdp-hdmi-phy.o
+obj-$(CONFIG_DRM_IMX_CDNS_MHDP) += cdn-mhdp-imxdrv.o cdn-mhdp-dp-phy.o cdn-mhdp-hdmi-phy.o cdn-mhdp-imx8qm.o
