@@ -24,6 +24,7 @@
 #include <linux/kernel.h>
 #include <linux/reset.h>
 #include <linux/delay.h>
+#include <linux/regulator/consumer.h>
 
 // Bitmasks (for data[3])
 #define WACOM_TIP_SWITCH_bm         (1 << 0)
@@ -82,6 +83,7 @@ struct wacom_i2c {
 	struct i2c_client *client;
 	struct input_dev *input;
 	struct wacom_features features;
+	struct regulator *vdd;
 	u8 data[WACOM_MAX_DATA_SIZE];
 	bool prox;
 	int tool;
@@ -384,18 +386,28 @@ static int wacom_i2c_probe(struct i2c_client *client,
 		return -EIO;
 	}
 
+	wac_i2c->vdd = regulator_get(&client->dev, "vdd");
+	if (IS_ERR(wac_i2c->vdd)) {
+		error = PTR_ERR(wac_i2c->vdd);
+		goto err_free_mem;
+	}
+
+	error = regulator_enable(wac_i2c->vdd);
+	if (error)
+		goto err_put_vdd;
+
 	error = wacom_query_device(client, features);
 	if (error)
-		return error;
+		goto err_disable_vdd;
 
 	error = wacom_setup_device(client);
 	if (error)
-		return error;
+		goto err_disable_vdd;
 
 	input = input_allocate_device();
 	if (!input) {
 		error = -ENOMEM;
-		goto err_free_mem;
+		goto err_disable_vdd;
 	}
 
 	wac_i2c->client = client;
@@ -459,6 +471,10 @@ err_free_irq:
 	free_irq(client->irq, wac_i2c);
 err_free_moremem:
 	input_free_device(input);
+err_disable_vdd:
+	regulator_disable(wac_i2c->vdd);
+err_put_vdd:
+	regulator_put(wac_i2c->vdd);
 err_free_mem:
 	kfree(wac_i2c);
 
@@ -471,6 +487,8 @@ static int wacom_i2c_remove(struct i2c_client *client)
 
 	free_irq(client->irq, wac_i2c);
 	input_unregister_device(wac_i2c->input);
+	regulator_disable(wac_i2c->vdd);
+	regulator_put(wac_i2c->vdd);
 	kfree(wac_i2c);
 
 	return 0;
