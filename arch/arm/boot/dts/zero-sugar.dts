@@ -76,6 +76,30 @@
 		startup-delay-us = <150>;
 	};
 
+	reg_digitizer: regulator-digitizer {
+		compatible = "regulator-fixed";
+		regulator-name = "VDD_3V3_DIGITIZER";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&pinctrl_digitizer_reg>;
+		pinctrl-1 = <&pinctrl_digitizer_reg>;
+		gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		startup-delay-us = <200000>; /* 200 ms */
+	};
+
+	reg_touch: regulator-touch {
+		compatible = "regulator-fixed";
+		regulator-name = "VDD_3V3_TOUCH";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&pinctrl_touch_reg>;
+		pinctrl-1 = <&pinctrl_touch_reg>;
+		gpio = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
 
 	wifi_pwrseq: wifi_pwrseq {
 		compatible = "mmc-pwrseq-simple";
@@ -132,6 +156,7 @@
 		flip-pos-x;
 		flip-pos-y;
 		flip-distance;
+		vdd-supply = <&reg_digitizer>;
 	};
 };
 
@@ -369,6 +394,7 @@
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_touch>;
 		pinctrl-1 = <&pinctrl_touch>;
+		vdd-supply = <&reg_touch>;
 
 		cy,core {
 			cy,name = "cyttsp5_core";
@@ -579,6 +605,13 @@
 			MX7D_PAD_LPSR_GPIO1_IO04__GPIO1_IO4	0x00000074 /* PDCTB */
 			/*MX7D_PAD_LPSR_GPIO1_IO05__GPIO1_IO5	0x00000014 /* FWE */
 			/*MX7D_PAD_LPSR_GPIO1_IO06__GPIO1_IO6	0x00000014 /* WACOM PWR ENABLE */
+		>;
+	};
+
+	pinctrl_digitizer_reg: digitizerreggrp {
+		fsl,pins = <
+			/* DIGITIZER_PWR_EN */
+			MX7D_PAD_LPSR_GPIO1_IO06__GPIO1_IO6	0x14
 		>;
 	};
 };
@@ -796,6 +829,13 @@
 		fsl,pins = <
 			MX7D_PAD_EPDC_DATA08__UART6_DCE_RX	0x00000004
 			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000004
+		>;
+	};
+
+	pinctrl_touch_reg: touchreggrp {
+		fsl,pins = <
+			/* TOUCH_PWR_EN */
+			MX7D_PAD_GPIO1_IO11__GPIO1_IO11		0x14
 		>;
 	};
 };
