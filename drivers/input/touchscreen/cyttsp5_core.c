@@ -28,6 +28,7 @@
 
 #include "cyttsp5_regs.h"
 #include <linux/kthread.h>
+#include <linux/regulator/consumer.h>
 
 #define CY_CORE_STARTUP_RETRY_COUNT		3
 
@@ -5799,6 +5800,16 @@ int cyttsp5_probe(const struct cyttsp5_bus_ops *ops, struct device *dev,
 	dev_set_drvdata(dev, cd);
 	cyttsp5_add_core(dev);
 
+	cd->vdd = regulator_get(cd->dev, "vdd");
+	if (IS_ERR(cd->vdd)) {
+		rc = PTR_ERR(cd->vdd);
+		goto error_vdd_get;
+	}
+
+	rc = regulator_enable(cd->vdd);
+	if (rc)
+		goto error_vdd_enable;
+
 	/* Call platform init function */
 	if (cd->cpdata->init) {
 		dev_dbg(cd->dev, "%s: Init HW\n", __func__);
@@ -5926,6 +5937,10 @@ error_setup_irq:
 error_detect:
 	if (cd->cpdata->init)
 		cd->cpdata->init(cd->cpdata, 0, dev);
+	regulator_disable(cd->vdd);
+error_vdd_enable:
+	regulator_put(cd->vdd);
+error_vdd_get:
 	cyttsp5_del_core(dev);
 	dev_set_drvdata(dev, NULL);
 	kfree(cd);
@@ -5984,6 +5999,8 @@ int cyttsp5_release(struct cyttsp5_core_data *cd)
 	free_irq(cd->irq, cd);
 	if (cd->cpdata->init)
 		cd->cpdata->init(cd->cpdata, 0, dev);
+	regulator_disable(cd->vdd);
+	regulator_put(cd->vdd);
 	dev_set_drvdata(dev, NULL);
 	cyttsp5_del_core(dev);
 	cyttsp5_free_si_ptrs(cd);
