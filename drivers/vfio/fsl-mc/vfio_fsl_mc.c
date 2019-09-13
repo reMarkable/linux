@@ -74,7 +74,75 @@ static int vfio_fsl_mc_mmap(void *device_data, struct vm_area_struct *vma)
 {
 	return -EINVAL;
 }
+static int vfio_fsl_mc_init_device(struct vfio_fsl_mc_device *vdev)
+{
+	struct fsl_mc_device *mc_dev = vdev->mc_dev;
+	struct fsl_mc_bus *mc_bus;
+	size_t region_size;
+	int ret = 0;
+	unsigned int irq_count;
 
+	/* Non-dprc devices share mc_io from parent */
+	if (!is_fsl_mc_bus_dprc(mc_dev)) {
+		struct fsl_mc_device *mc_cont = to_fsl_mc_device(mc_dev->dev.parent);
+
+		mc_dev->mc_io = mc_cont->mc_io;
+		return 0;
+	}
+
+	/* Use dprc mc-portal for interaction with MC f/w. */
+	region_size = resource_size(mc_dev->regions);
+	ret = fsl_create_mc_io(&mc_dev->dev,
+			 mc_dev->regions[0].start,
+			 region_size,
+			 NULL,
+			 FSL_MC_IO_ATOMIC_CONTEXT_PORTAL,
+			 &mc_dev->mc_io);
+	if (ret < 0) {
+		dev_err(&mc_dev->dev, "failed to create mc-io (error = %d)\n", ret);
+		return ret;
+	}
+	ret = dprc_open(mc_dev->mc_io, 0, mc_dev->obj_desc.id,
+			  &mc_dev->mc_handle);
+	if (ret < 0) {
+		dev_err(&mc_dev->dev, "dprc_open() failed: %d\n", ret);
+		goto clean_mc_io;
+	}
+
+	mc_bus = to_fsl_mc_bus(mc_dev);
+	/* initialize resource pools */
+	fsl_mc_init_all_resource_pools(mc_dev);
+
+	mutex_init(&mc_bus->scan_mutex);
+
+	mutex_lock(&mc_bus->scan_mutex);
+	ret = dprc_scan_objects(mc_dev, mc_dev->driver_override, false,
+		&irq_count);
+	mutex_unlock(&mc_bus->scan_mutex);
+
+	if (ret < 0) {
+		dev_err(&mc_dev->dev, "dprc_scan_objects() failed: %d\n", ret);
+		goto clean_resource_pool;
+	}
+
+	if (irq_count > FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS) {
+		dev_warn(&mc_dev->dev,
+			 "IRQs needed (%u) exceed IRQs preallocated (%u)\n",
+			 irq_count, FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS);
+	}
+
+return 0;
+
+clean_resource_pool:
+	fsl_mc_cleanup_all_resource_pools(mc_dev);
+	dprc_close(mc_dev->mc_io, 0, mc_dev->mc_handle);
+
+clean_mc_io:
+	fsl_destroy_mc_io(mc_dev->mc_io);
+	mc_dev->mc_io = NULL;
+
+	return ret;
+}
 static const struct vfio_device_ops vfio_fsl_mc_ops = {
 	.name		= "vfio-fsl-mc",
 	.open		= vfio_fsl_mc_open,
@@ -113,7 +181,33 @@ static int vfio_fsl_mc_probe(struct fsl_mc_device *mc_dev)
 		return ret;
 	}
 
+	ret = vfio_fsl_mc_init_device(vdev);
+	if (ret) {
+		vfio_iommu_group_put(group, dev);
+		return ret;
+	}
+
 	return ret;
+}
+static int vfio_fsl_mc_device_remove(struct device *dev, void *data)
+{
+	struct fsl_mc_device *mc_dev;
+
+	WARN_ON(dev == NULL);
+	mc_dev = to_fsl_mc_device(dev);
+	if (WARN_ON(mc_dev == NULL))
+		return -ENODEV;
+	fsl_mc_device_remove(mc_dev);
+
+	return 0;
+}
+
+static void vfio_fsl_mc_cleanup_dprc(struct fsl_mc_device *mc_dev)
+{
+	device_for_each_child(&mc_dev->dev, NULL, vfio_fsl_mc_device_remove);
+	fsl_mc_cleanup_all_resource_pools(mc_dev);
+	dprc_close(mc_dev->mc_io, 0, mc_dev->mc_handle);
+	fsl_destroy_mc_io(mc_dev->mc_io);
 }
 
 static int vfio_fsl_mc_remove(struct fsl_mc_device *mc_dev)
@@ -124,6 +218,11 @@ static int vfio_fsl_mc_remove(struct fsl_mc_device *mc_dev)
 	vdev = vfio_del_group_dev(dev);
 	if (!vdev)
 		return -EINVAL;
+
+	if (is_fsl_mc_bus_dprc(mc_dev))
+		vfio_fsl_mc_cleanup_dprc(vdev->mc_dev);
+
+	mc_dev->mc_io = NULL;
 
 	vfio_iommu_group_put(mc_dev->dev.iommu_group, dev);
 	devm_kfree(dev, vdev);
