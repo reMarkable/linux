@@ -1010,6 +1010,7 @@ struct fsl_mc_bus {
 
 int dprc_scan_objects(struct fsl_mc_device *mc_bus_dev,
 		      const char *driver_override,
+			  bool alloc_interrupts,
 		      unsigned int *total_irq_count);
 
 int fsl_mc_find_msi_domain(struct device *mc_platform_dev,

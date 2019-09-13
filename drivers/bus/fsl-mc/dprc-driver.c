@@ -3,6 +3,7 @@
  * Freescale data path resource container (DPRC) driver
  *
  * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
+ * Copyright 2019 NXP
  * Author: German Rivera <German.Rivera@freescale.com>
  *
  */
@@ -204,6 +205,8 @@ static void dprc_add_new_devices(struct fsl_mc_device *mc_bus_dev,
  * @mc_bus_dev: pointer to the fsl-mc device that represents a DPRC object
  * @driver_override: driver override to apply to new objects found in the
  * DPRC, or NULL, if none.
+ * @alloc_interrupts: if true the function allocates the interrupt pool,
+ * otherwise the interrupt allocation is delayed
  * @total_irq_count: If argument is provided the function populates the
  * total number of IRQs created by objects in the DPRC.
  *
@@ -221,6 +224,7 @@ static void dprc_add_new_devices(struct fsl_mc_device *mc_bus_dev,
  */
 int dprc_scan_objects(struct fsl_mc_device *mc_bus_dev,
 		      const char *driver_override,
+			  bool alloc_interrupts,
 		      unsigned int *total_irq_count)
 {
 	int num_child_objects;
@@ -302,19 +306,20 @@ int dprc_scan_objects(struct fsl_mc_device *mc_bus_dev,
 	 * Allocate IRQ's before binding the scanned devices with their
 	 * respective drivers.
 	 */
-	if (dev_get_msi_domain(&mc_bus_dev->dev) && !mc_bus->irq_resources) {
-		if (irq_count > FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS) {
-			dev_warn(&mc_bus_dev->dev,
-				 "IRQs needed (%u) exceed IRQs preallocated (%u)\n",
-				 irq_count, FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS);
+	if (alloc_interrupts) {
+		if (dev_get_msi_domain(&mc_bus_dev->dev) && !mc_bus->irq_resources) {
+			if (irq_count > FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS) {
+				dev_warn(&mc_bus_dev->dev,
+					 "IRQs needed (%u) exceed IRQs preallocated (%u)\n",
+					 irq_count, FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS);
+			}
+
+			error = fsl_mc_populate_irq_pool(mc_bus,
+					FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS);
+			if (error < 0)
+				return error;
 		}
-
-		error = fsl_mc_populate_irq_pool(mc_bus,
-				FSL_MC_IRQ_POOL_MAX_TOTAL_IRQS);
-		if (error < 0)
-			return error;
 	}
-
 	if (total_irq_count)
 		*total_irq_count = irq_count;
 
@@ -350,7 +355,7 @@ static int dprc_scan_container(struct fsl_mc_device *mc_bus_dev)
 	 * Discover objects in the DPRC:
 	 */
 	mutex_lock(&mc_bus->scan_mutex);
-	error = dprc_scan_objects(mc_bus_dev, NULL, NULL);
+	error = dprc_scan_objects(mc_bus_dev, NULL, true, NULL);
 	mutex_unlock(&mc_bus->scan_mutex);
 	if (error < 0) {
 		fsl_mc_cleanup_all_resource_pools(mc_bus_dev);
@@ -379,7 +384,7 @@ static ssize_t rescan_store(struct device *dev,
 
 	if (val) {
 		mutex_lock(&root_mc_bus->scan_mutex);
-		dprc_scan_objects(root_mc_dev, NULL, NULL);
+		dprc_scan_objects(root_mc_dev, NULL, true, NULL);
 		mutex_unlock(&root_mc_bus->scan_mutex);
 	}
 
@@ -448,7 +453,7 @@ static irqreturn_t dprc_irq0_handler_thread(int irq_num, void *arg)
 		      DPRC_IRQ_EVENT_OBJ_CREATED)) {
 		unsigned int irq_count;
 
-		error = dprc_scan_objects(mc_dev, NULL, &irq_count);
+		error = dprc_scan_objects(mc_dev, NULL, true, &irq_count);
 		if (error < 0) {
 			/*
 			 * If the error is -ENXIO, we ignore it, as it indicates
