@@ -34,6 +34,13 @@ Chassis Version		Example Chips
 Optional properties:
  - little-endian : RCPM register block is Little Endian. Without it RCPM
    will be Big Endian (default case).
+ - fsl,ippdexpcr1-alt-addr : The property is related to a hardware issue
+   on SoC LS1021A and only needed on SoC LS1021A.
+   Must include 1 + 2 entries.
+   The first entry must be a link to the SCFG device node.
+   The non-first entry must be offset of registers of SCFG.
+   The second and third entry compose an alt offset address
+   for IPPDEXPCR1(SCFG_SPARECR8)
 
 Example:
 The RCPM node for T4240:
@@ -42,6 +49,20 @@ The RCPM node for T4240:
 		reg = <0xe2000 0x1000>;
 		#fsl,rcpm-wakeup-cells = <2>;
 	};
+
+The RCPM node for LS1021A:
+	rcpm: rcpm@1ee2140 {
+		compatible = "fsl,ls1021a-rcpm", "fsl,qoriq-rcpm-2.1+";
+		reg = <0x0 0x1ee2140 0x0 0x8>;
+		#fsl,rcpm-wakeup-cells = <2>;
+
+		/*
+		 * The second and third entry compose an alt offset
+		 * address for IPPDEXPCR1(SCFG_SPARECR8)
+		 */
+		fsl,ippdexpcr1-alt-addr = <&scfg 0x0 0x51c>;
+	};
+
 
 * Freescale RCPM Wakeup Source Device Tree Bindings
 -------------------------------------------
