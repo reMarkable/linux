@@ -269,9 +269,8 @@ struct bd7181x_board *bd7181x_parse_dt(struct i2c_client *client,
 }
 #endif
 
-static void bd7181x_lpsr_init(struct bd7181x *bd7181x)
+static void bd7181x_hw_init(struct bd7181x *bd7181x)
 {
-
 	/* Set LPSR_MODE bit to get into LPSR state when PWRON goes low */
 	bd7181x_set_bits(bd7181x, BD7181X_REG_PWRCTRL, BIT(4));
 
@@ -307,6 +306,33 @@ static void bd7181x_lpsr_init(struct bd7181x *bd7181x)
 
 	/* Turn off LDO5_1V8 (SD/MMC) in LPSR mode */
 	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE3, BIT(5));
+
+	/*
+	 * Misc settings for a bit more power saving by disabling
+	 * unneeded stuff.
+	 *
+	 * Set LDO4_REG_MODE bit to get LDO4 controlled by register than
+	 * external pin (LDO4VEN).
+	 */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_LDO_MODE1, BIT(3));
+
+	/* Disable OUT32K and have it in open drain mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_OUT32K, BIT(1) | BIT(0));
+
+	/* Disable all charger stuff */
+	bd7181x_reg_write(bd7181x, BD7181X_REG_CHG_SET1, 0x0);
+
+	/* Disable charger thermal shutdown and battery detection */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_CHG_SET2, BIT(7) | BIT(4));
+
+	/* Disable LED lighting */
+	bd7181x_reg_write(bd7181x, BD7181X_REG_CHG_LED_1, 0x17);
+
+	/* Disable coulomb counter */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_CC_CTRL, BIT(6));
+
+	/* Disable Relax State detection */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_REX_CTRL_1, BIT(3));
 }
 
 /** @brief probe bd7181x device
@@ -368,7 +394,7 @@ static int bd7181x_i2c_probe(struct i2c_client *i2c,
 	if (ret < 0)
 		goto err;
 
-	bd7181x_lpsr_init(bd7181x);
+	bd7181x_hw_init(bd7181x);
 
 	return ret;
 
