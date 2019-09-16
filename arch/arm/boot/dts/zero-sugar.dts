@@ -86,7 +86,7 @@
 		pinctrl-1 = <&pinctrl_digitizer_reg>;
 		gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-		startup-delay-us = <200000>; /* 200 ms */
+		startup-delay-us = <100000>; /* 100 ms */
 	};
 
 	reg_touch: regulator-touch {
