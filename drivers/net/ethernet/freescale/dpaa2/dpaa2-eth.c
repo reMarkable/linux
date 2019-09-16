@@ -1276,8 +1276,7 @@ static int link_state_update(struct dpaa2_eth_priv *priv)
 	 * Rx FQ taildrop configuration as well. We configure taildrop
 	 * only when pause frame generation is disabled.
 	 */
-	tx_pause = !!(state.options & DPNI_LINK_OPT_PAUSE) ^
-		   !!(state.options & DPNI_LINK_OPT_ASYM_PAUSE);
+	tx_pause = dpaa2_eth_tx_pause_enabled(state.options);
 	dpaa2_eth_set_rx_taildrop(priv, !tx_pause);
 
 	/* Chech link state; speed / duplex changes are not treated yet */
