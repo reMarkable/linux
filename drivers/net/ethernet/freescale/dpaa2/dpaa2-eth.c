@@ -3613,6 +3613,9 @@ static int dpaa2_eth_dcbnl_ieee_getpfc(struct net_device *net_dev,
 {
 	struct dpaa2_eth_priv *priv = netdev_priv(net_dev);
 
+	if (!(priv->link_state.options & DPNI_LINK_OPT_PFC_PAUSE))
+		return 0;
+
 	memcpy(pfc, &priv->pfc, sizeof(priv->pfc));
 	pfc->pfc_cap = dpaa2_eth_tc_count(priv);
 
@@ -3623,6 +3626,8 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 				       struct ieee_pfc *pfc)
 {
 	struct dpaa2_eth_priv *priv = netdev_priv(net_dev);
+	struct dpni_link_cfg link_cfg = {0};
+	int err;
 
 	if (pfc->mbc || pfc->delay)
 		return -EOPNOTSUPP;
@@ -3630,6 +3635,24 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 	/* If same PFC enabled mask, nothing to do */
 	if (priv->pfc.pfc_en == pfc->pfc_en)
 		return 0;
+
+	/* We allow PFC configuration even if it won't have any effect until
+	 * general pause frames are enabled
+	 */
+	if (!dpaa2_eth_rx_pause_enabled(priv->link_state.options))
+		netdev_warn(net_dev, "Pause support must be enabled in order for PFC to work!\n");
+
+	link_cfg.rate = priv->link_state.rate;
+	link_cfg.options = priv->link_state.options;
+	if (pfc->pfc_en)
+		link_cfg.options |= DPNI_LINK_OPT_PFC_PAUSE;
+	else
+		link_cfg.options &= ~DPNI_LINK_OPT_PFC_PAUSE;
+	err = dpni_set_link_cfg(priv->mc_io, 0, priv->mc_token, &link_cfg);
+	if (err) {
+		netdev_err(net_dev, "dpni_set_link_cfg failed\n");
+		return err;
+	}
 
 	memcpy(&priv->pfc, pfc, sizeof(priv->pfc));
 

@@ -514,6 +514,11 @@ int dpni_get_statistics(struct fsl_mc_io	*mc_io,
 #define DPNI_LINK_OPT_ASYM_PAUSE	0x0000000000000008ULL
 
 /**
+ * Enable priority flow control pause frames
+ */
+#define DPNI_LINK_OPT_PFC_PAUSE		0x0000000000000010ULL
+
+/**
  * struct - Structure representing DPNI link configuration
  * @rate: Rate
  * @options: Mask of available options; use 'DPNI_LINK_OPT_<X>' values
