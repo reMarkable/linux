@@ -65,6 +65,17 @@
 #define DPAA2_ETH_CG_TAILDROP_THRESH(priv)				\
 	(1024 * dpaa2_eth_queue_count(priv) / dpaa2_eth_tc_count(priv))
 
+/* Congestion group notification threshold: when this many frames accumulate
+ * on the Rx queues belonging to the same TC, the MAC is instructed to send
+ * PFC frames for that TC.
+ * When number of pending frames drops below exit threshold transmission of
+ * PFC frames is stopped.
+ */
+#define DPAA2_ETH_CN_THRESH_ENTRY(priv) \
+	(DPAA2_ETH_CG_TAILDROP_THRESH(priv) / 2)
+#define DPAA2_ETH_CN_THRESH_EXIT(priv) \
+	(DPAA2_ETH_CN_THRESH_ENTRY(priv) * 3 / 4)
+
 /* Maximum number of buffers that can be acquired/released through a single
  * QBMan command
  */

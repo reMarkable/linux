@@ -3622,6 +3622,47 @@ static int dpaa2_eth_dcbnl_ieee_getpfc(struct net_device *net_dev,
 	return 0;
 }
 
+static inline bool is_prio_enabled(u8 pfc_en, u8 tc)
+{
+	return !!(pfc_en & (1 << tc));
+}
+
+static int set_pfc_cn(struct dpaa2_eth_priv *priv, u8 pfc_en)
+{
+	struct dpni_congestion_notification_cfg cfg = {0};
+	int i, err;
+
+	cfg.notification_mode = DPNI_CONG_OPT_FLOW_CONTROL;
+	cfg.units = DPNI_CONGESTION_UNIT_FRAMES;
+	cfg.message_iova = 0ULL;
+	cfg.message_ctx = 0ULL;
+
+	for (i = 0; i < dpaa2_eth_tc_count(priv); i++) {
+		if (is_prio_enabled(pfc_en, i)) {
+			cfg.threshold_entry = DPAA2_ETH_CN_THRESH_ENTRY(priv);
+			cfg.threshold_exit = DPAA2_ETH_CN_THRESH_EXIT(priv);
+		} else {
+			/* For priorities not set in the pfc_en mask, we leave
+			 * the congestion thresholds at zero, which effectively
+			 * disables generation of PFC frames for them
+			 */
+			cfg.threshold_entry = 0;
+			cfg.threshold_exit = 0;
+		}
+
+		err = dpni_set_congestion_notification(priv->mc_io, 0,
+						       priv->mc_token,
+						       DPNI_QUEUE_RX, i, &cfg);
+		if (err) {
+			netdev_err(priv->net_dev,
+				   "dpni_set_congestion_notification failed\n");
+			return err;
+		}
+	}
+
+	return 0;
+}
+
 static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 				       struct ieee_pfc *pfc)
 {
@@ -3639,7 +3680,8 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 	/* We allow PFC configuration even if it won't have any effect until
 	 * general pause frames are enabled
 	 */
-	if (!dpaa2_eth_rx_pause_enabled(priv->link_state.options))
+	if (!dpaa2_eth_rx_pause_enabled(priv->link_state.options) ||
+	    !dpaa2_eth_tx_pause_enabled(priv->link_state.options))
 		netdev_warn(net_dev, "Pause support must be enabled in order for PFC to work!\n");
 
 	link_cfg.rate = priv->link_state.rate;
@@ -3653,6 +3695,11 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 		netdev_err(net_dev, "dpni_set_link_cfg failed\n");
 		return err;
 	}
+
+	/* Configure congestion notifications for the enabled priorities */
+	err = set_pfc_cn(priv, pfc->pfc_en);
+	if (err)
+		return err;
 
 	memcpy(&priv->pfc, pfc, sizeof(priv->pfc));
 
