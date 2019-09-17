@@ -94,6 +94,16 @@ static struct cdns_plat_data imx8qm_dp_drv_data = {
 	.is_dp = true,
 };
 
+static struct cdns_plat_data ls1028a_dp_drv_data = {
+	.bind = cdns_dp_bind,
+	.unbind = cdns_dp_unbind,
+	.phy_set = cdns_dp_phy_set_imx8mq,
+	.power_on = cdns_mhdp_power_on_ls1028a,
+	.firmware_init = cdns_mhdp_firmware_init_imx8qm,
+	.pclk_rate = cdns_mhdp_pclk_rate_ls1028a,
+	.bus_type = BUS_TYPE_NORMAL_APB,
+};
+
 static const struct of_device_id cdns_mhdp_imx_dt_ids[] = {
 	{ .compatible = "cdn,imx8mq-hdmi",
 	  .data = &imx8mq_hdmi_drv_data
@@ -106,6 +116,9 @@ static const struct of_device_id cdns_mhdp_imx_dt_ids[] = {
 	},
 	{ .compatible = "cdn,imx8qm-dp",
 	  .data = &imx8qm_dp_drv_data
+	},
+	{ .compatible = "cdn,ls1028a-dp",
+	  .data = &ls1028a_dp_drv_data
 	},
 	{},
 };

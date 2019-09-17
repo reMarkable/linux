@@ -275,6 +275,7 @@ static int cdns_dp_bridge_attach(struct drm_bridge *bridge)
 	struct drm_connector *connector = &mhdp->connector.base;
 
 	connector->interlace_allowed = 1;
+
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
 
 	drm_connector_helper_add(connector, &cdns_dp_connector_helper_funcs);
