@@ -440,7 +440,7 @@ fail:
 	return ret;
 }
 
-static void imx8qm_mhdp_power_on(struct cdns_mhdp_device *mhdp)
+int cdns_mhdp_power_on_imx8qm(struct cdns_mhdp_device *mhdp)
 {
 	struct imx_mhdp_device *imx_mhdp =
 				container_of(mhdp, struct imx_mhdp_device, mhdp);
@@ -463,6 +463,8 @@ static void imx8qm_mhdp_power_on(struct cdns_mhdp_device *mhdp)
 	imx8qm_pixel_clk_enable(imx_mhdp);
 
 	imx8qm_phy_reset(1);
+
+	return 0;
 }
 
 void cdns_mhdp_plat_init_imx8qm(struct cdns_mhdp_device *mhdp)
@@ -505,8 +507,6 @@ int cdns_mhdp_firmware_init_imx8qm(struct cdns_mhdp_device *mhdp)
 				container_of(mhdp, struct imx_mhdp_device, mhdp);
 	u32 rate;
 	int ret;
-
-	imx8qm_mhdp_power_on(mhdp);
 
 	/* configure HDMI/DP core clock */
 	rate = clk_get_rate(imx_mhdp->clks.clk_core);

@@ -449,6 +449,8 @@ static int __cdns_hdmi_probe(struct platform_device *pdev,
 	/* Initialize dual_mode to false */
 //	hdmi->dual_mode = false;
 
+	cdns_mhdp_plat_call(mhdp, power_on);
+
 	/* Initialize FW */
 	cdns_mhdp_plat_call(mhdp, firmware_init);
 

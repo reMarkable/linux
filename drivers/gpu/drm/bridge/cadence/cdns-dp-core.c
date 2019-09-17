@@ -457,6 +457,8 @@ static int __cdns_dp_probe(struct platform_device *pdev,
 
 	cdns_dp_parse_dt(mhdp);
 
+	cdns_mhdp_plat_call(mhdp, power_on);
+
 //	mhdp->dual_mode = false;
 	cdns_mhdp_plat_call(mhdp, firmware_init);
 
