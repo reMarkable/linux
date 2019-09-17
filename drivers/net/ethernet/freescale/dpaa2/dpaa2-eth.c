@@ -1229,17 +1229,21 @@ static void disable_ch_napi(struct dpaa2_eth_priv *priv)
 }
 
 static void dpaa2_eth_set_rx_taildrop(struct dpaa2_eth_priv *priv,
-				      bool tx_pause)
+				      bool tx_pause, bool pfc)
 {
 	struct dpni_taildrop td = {0};
 	struct dpaa2_eth_fq *fq;
 	int i, err;
 
+	/* FQ taildrop: threshold is in bytes, per frame queue. Enabled if
+	 * flow control is disabled (as it might interfere with either the
+	 * buffer pool depletion trigger for pause frames or with the group
+	 * congestion trigger for PFC frames)
+	 */
 	td.enable = !tx_pause;
-	if (priv->rx_td_enabled == td.enable)
-		return;
+	if (priv->rx_fqtd_enabled == td.enable)
+		goto set_cgtd;
 
-	/* FQ taildrop: thrshold is in bytes, per frame queue */
 	td.threshold = DPAA2_ETH_FQ_TAILDROP_THRESH;
 	td.units = DPNI_CONGESTION_UNIT_BYTES;
 
@@ -1257,9 +1261,20 @@ static void dpaa2_eth_set_rx_taildrop(struct dpaa2_eth_priv *priv,
 		}
 	}
 
+	priv->rx_fqtd_enabled = td.enable;
+
+set_cgtd:
 	/* Congestion group taildrop: threshold is in frames, per group
 	 * of FQs belonging to the same traffic class
+	 * Enabled if general Tx pause disabled or if PFCs are enabled
+	 * (congestion group threhsold for PFC generation is lower than the
+	 * CG taildrop threshold, so it won't interfere with it; we also
+	 * want frames in non-PFC enabled traffic classes to be kept in check)
 	 */
+	td.enable = !tx_pause || (tx_pause && pfc);
+	if (priv->rx_cgtd_enabled == td.enable)
+		return;
+
 	td.threshold = DPAA2_ETH_CG_TAILDROP_THRESH(priv);
 	td.units = DPNI_CONGESTION_UNIT_FRAMES;
 	for (i = 0; i < dpaa2_eth_tc_count(priv); i++) {
@@ -1273,7 +1288,7 @@ static void dpaa2_eth_set_rx_taildrop(struct dpaa2_eth_priv *priv,
 		}
 	}
 
-	priv->rx_td_enabled = td.enable;
+	priv->rx_cgtd_enabled = td.enable;
 }
 
 static void update_tx_fqids(struct dpaa2_eth_priv *priv);
@@ -1296,7 +1311,7 @@ static int link_state_update(struct dpaa2_eth_priv *priv)
 	 * only when pause frame generation is disabled.
 	 */
 	tx_pause = dpaa2_eth_tx_pause_enabled(state.options);
-	dpaa2_eth_set_rx_taildrop(priv, tx_pause);
+	dpaa2_eth_set_rx_taildrop(priv, tx_pause, priv->pfc_enabled);
 
 	/* Chech link state; speed / duplex changes are not treated yet */
 	if (priv->link_state.up == state.up)
@@ -3668,6 +3683,7 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 {
 	struct dpaa2_eth_priv *priv = netdev_priv(net_dev);
 	struct dpni_link_cfg link_cfg = {0};
+	bool tx_pause;
 	int err;
 
 	if (pfc->mbc || pfc->delay)
@@ -3680,8 +3696,8 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 	/* We allow PFC configuration even if it won't have any effect until
 	 * general pause frames are enabled
 	 */
-	if (!dpaa2_eth_rx_pause_enabled(priv->link_state.options) ||
-	    !dpaa2_eth_tx_pause_enabled(priv->link_state.options))
+	tx_pause = dpaa2_eth_tx_pause_enabled(priv->link_state.options);
+	if (!dpaa2_eth_rx_pause_enabled(priv->link_state.options) || !tx_pause)
 		netdev_warn(net_dev, "Pause support must be enabled in order for PFC to work!\n");
 
 	link_cfg.rate = priv->link_state.rate;
@@ -3702,6 +3718,9 @@ static int dpaa2_eth_dcbnl_ieee_setpfc(struct net_device *net_dev,
 		return err;
 
 	memcpy(&priv->pfc, pfc, sizeof(priv->pfc));
+	priv->pfc_enabled = !!pfc->pfc_en;
+
+	dpaa2_eth_set_rx_taildrop(priv, tx_pause, priv->pfc_enabled);
 
 	return 0;
 }

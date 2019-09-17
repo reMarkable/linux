@@ -422,7 +422,8 @@ struct dpaa2_eth_priv {
 	struct dpaa2_eth_drv_stats __percpu *percpu_extras;
 
 	u16 mc_token;
-	u8 rx_td_enabled;
+	u8 rx_fqtd_enabled;
+	u8 rx_cgtd_enabled;
 
 	struct dpni_link_state link_state;
 	bool do_link_poll;
@@ -434,6 +435,7 @@ struct dpaa2_eth_priv {
 	struct dpaa2_eth_cls_rule *cls_rules;
 	u8 rx_cls_enabled;
 	u8 vlan_cls_enabled;
+	u8 pfc_enabled;
 #ifdef CONFIG_FSL_DPAA2_ETH_DCB
 	u8 dcbx_mode;
 	struct ieee_pfc pfc;
