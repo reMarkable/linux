@@ -299,8 +299,8 @@
 	max77818@66 {
 		compatible = "maxim,max77818";
 		#address-cells = <0>;
-		interrupt-parent = <&gpio6>;
-		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <7 IRQ_TYPE_EDGE_FALLING>;
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_max77818>;
 		pinctrl-1 = <&pinctrl_max77818>;
@@ -614,6 +614,12 @@
 			MX7D_PAD_LPSR_GPIO1_IO06__GPIO1_IO6	0x14
 		>;
 	};
+
+	pinctrl_max77818: max77818grp {
+		fsl,pins = <
+			MX7D_PAD_LPSR_GPIO1_IO07__GPIO1_IO7	0x74
+		>;
+	};
 };
 
 &iomuxc {
@@ -691,12 +697,6 @@
 			MX7D_PAD_LCD_VSYNC__LCD_VSYNC		0x79
 			MX7D_PAD_LCD_HSYNC__LCD_HSYNC		0x79
 			MX7D_PAD_LCD_RESET__LCD_RESET		0x79
-		>;
-	};
-
-	pinctrl_max77818: max77818grp {
-		fsl,pins = <
-			MX7D_PAD_SAI2_TX_DATA__GPIO6_IO22	0x59
 		>;
 	};
 
