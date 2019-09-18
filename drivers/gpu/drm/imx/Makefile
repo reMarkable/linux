@@ -12,6 +12,7 @@ obj-$(CONFIG_DRM_IMX_DPU) += dpu/
 obj-$(CONFIG_DRM_IMX_IPUV3) += ipuv3/
 obj-$(CONFIG_DRM_IMX_HDMI) += dw_hdmi-imx.o
 obj-$(CONFIG_DRM_IMX_LCDIF) += lcdif/
+obj-$(CONFIG_DRM_IMX_LCDIFV3) += lcdifv3/
 obj-$(CONFIG_DRM_IMX_SEC_DSIM) += sec_mipi_dsim-imx.o
 obj-$(CONFIG_DRM_IMX_DCSS) += dcss/
 
