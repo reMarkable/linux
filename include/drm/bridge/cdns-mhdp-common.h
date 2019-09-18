@@ -683,6 +683,7 @@ struct cdns_mhdp_device {
 	bool link_up;
 	bool power_up;
 	bool plugged;
+	bool is_hpd;
 	struct mutex lock;
 
 	int irq[IRQ_NUM];

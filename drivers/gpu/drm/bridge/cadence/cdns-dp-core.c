@@ -276,7 +276,11 @@ static int cdns_dp_bridge_attach(struct drm_bridge *bridge)
 
 	connector->interlace_allowed = 1;
 
-	connector->polled = DRM_CONNECTOR_POLL_HPD;
+	if (mhdp->is_hpd)
+		connector->polled = DRM_CONNECTOR_POLL_HPD;
+	else
+		connector->polled = DRM_CONNECTOR_POLL_CONNECT |
+		DRM_CONNECTOR_POLL_DISCONNECT;
 
 	drm_connector_helper_add(connector, &cdns_dp_connector_helper_funcs);
 
@@ -439,22 +443,34 @@ static int __cdns_dp_probe(struct platform_device *pdev,
 	INIT_DELAYED_WORK(&mhdp->hotplug_work, hotplug_work_func);
 
 	iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	mhdp->regs_base = devm_ioremap(dev, iores->start, resource_size(iores));
-	if (IS_ERR(mhdp->regs_base))
-		return -ENOMEM;
+	if (iores) {
+		mhdp->regs_base = devm_ioremap(dev, iores->start,
+					       resource_size(iores));
+		if (IS_ERR(mhdp->regs_base))
+			return -ENOMEM;
+	}
 
 	iores = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	mhdp->regs_sec = devm_ioremap(dev, iores->start, resource_size(iores));
-	if (IS_ERR(mhdp->regs_sec))
-		return -ENOMEM;
+	if (iores) {
+		mhdp->regs_sec = devm_ioremap(dev, iores->start,
+					      resource_size(iores));
+		if (IS_ERR(mhdp->regs_sec))
+			return -ENOMEM;
+	}
+
+	mhdp->is_hpd = true;
 
 	mhdp->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
-	if (mhdp->irq[IRQ_IN] < 0)
+	if (mhdp->irq[IRQ_IN] < 0) {
+		mhdp->is_hpd = false;
 		dev_info(dev, "No plug_in irq number\n");
+	}
 
 	mhdp->irq[IRQ_OUT] = platform_get_irq_byname(pdev, "plug_out");
-	if (mhdp->irq[IRQ_OUT] < 0)
+	if (mhdp->irq[IRQ_OUT] < 0) {
+		mhdp->is_hpd = false;
 		dev_info(dev, "No plug_out irq number\n");
+	}
 
 	cdns_dp_parse_dt(mhdp);
 
@@ -474,32 +490,36 @@ static int __cdns_dp_probe(struct platform_device *pdev,
 	cdns_mhdp_plat_call(mhdp, phy_set);
 
 	/* Enable Hotplug Detect IRQ thread */
-	irq_set_status_flags(mhdp->irq[IRQ_IN], IRQ_NOAUTOEN);
-	ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_IN],
-					NULL, cdns_dp_irq_thread,
-					IRQF_ONESHOT, dev_name(dev),
-					mhdp);
-	if (ret) {
-		dev_err(dev, "can't claim irq %d\n",
-						mhdp->irq[IRQ_IN]);
-		return -EINVAL;
-	}
+	if (mhdp->is_hpd) {
+		irq_set_status_flags(mhdp->irq[IRQ_IN], IRQ_NOAUTOEN);
+		ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_IN],
+						NULL, cdns_dp_irq_thread,
+						IRQF_ONESHOT, dev_name(dev),
+						mhdp);
 	
-	irq_set_status_flags(mhdp->irq[IRQ_OUT], IRQ_NOAUTOEN);
-	ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_OUT],
-					NULL, cdns_dp_irq_thread,
-					IRQF_ONESHOT, dev_name(dev),
-					mhdp);
-	if (ret) {
-		dev_err(dev, "can't claim irq %d\n",
-						mhdp->irq[IRQ_OUT]);
-		return -EINVAL;
-	}
+		if (ret) {
+			dev_err(dev, "can't claim irq %d\n",
+					mhdp->irq[IRQ_IN]);
+			return -EINVAL;
+		}
 
-	if (cdns_mhdp_read_hpd(mhdp))
-		enable_irq(mhdp->irq[IRQ_OUT]);
-	else
-		enable_irq(mhdp->irq[IRQ_IN]);
+		irq_set_status_flags(mhdp->irq[IRQ_OUT], IRQ_NOAUTOEN);
+		ret = devm_request_threaded_irq(dev, mhdp->irq[IRQ_OUT],
+						NULL, cdns_dp_irq_thread,
+						IRQF_ONESHOT, dev_name(dev),
+						mhdp);
+
+		if (ret) {
+			dev_err(dev, "can't claim irq %d\n",
+					mhdp->irq[IRQ_OUT]);
+			return -EINVAL;
+		}
+
+		if (cdns_mhdp_read_hpd(mhdp))
+			enable_irq(mhdp->irq[IRQ_OUT]);
+		else
+			enable_irq(mhdp->irq[IRQ_IN]);
+	}
 
 	mhdp->bridge.base.driver_private = mhdp;
 	mhdp->bridge.base.funcs = &cdns_dp_bridge_funcs;
