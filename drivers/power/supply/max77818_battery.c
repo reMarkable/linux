@@ -84,7 +84,6 @@ struct max77818_chip {
 static enum power_supply_property max77818_battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_PRESENT,
-	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_VOLTAGE_MIN,
@@ -100,10 +99,7 @@ static enum power_supply_property max77818_battery_props[] = {
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_TEMP_ALERT_MIN,
 	POWER_SUPPLY_PROP_TEMP_ALERT_MAX,
-	POWER_SUPPLY_PROP_TEMP_MIN,
-	POWER_SUPPLY_PROP_TEMP_MAX,
 	POWER_SUPPLY_PROP_HEALTH,
-	POWER_SUPPLY_PROP_SCOPE,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
@@ -252,9 +248,6 @@ static int max77818_get_property(struct power_supply *psy,
 		else
 			val->intval = 1;
 		break;
-	case POWER_SUPPLY_PROP_TECHNOLOGY:
-		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
-		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
 		ret = regmap_read(map, MAX17042_Cycles, &data);
 		if (ret < 0)
@@ -366,19 +359,10 @@ static int max77818_get_property(struct power_supply *psy,
 		/* MSB is Alert Maximum. In deci-centigrade */
 		val->intval = sign_extend32(data >> 8, 7) * 10;
 		break;
-	case POWER_SUPPLY_PROP_TEMP_MIN:
-		val->intval = chip->pdata->temp_min;
-		break;
-	case POWER_SUPPLY_PROP_TEMP_MAX:
-		val->intval = chip->pdata->temp_max;
-		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 		ret = max77818_get_battery_health(chip, &val->intval);
 		if (ret < 0)
 			return ret;
-		break;
-	case POWER_SUPPLY_PROP_SCOPE:
-		val->intval = POWER_SUPPLY_SCOPE_SYSTEM;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		ret = regmap_read(map, MAX17042_Current, &data);
