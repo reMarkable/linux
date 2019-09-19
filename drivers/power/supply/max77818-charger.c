@@ -80,6 +80,7 @@
 #define BIT_PQEN			BIT(7)
 #define BIT_LSEL			BIT(6)
 #define BIT_CHG_RSTRT			GENMASK(5, 4)
+#define SHIFT_CHG_RSTRT			4
 #define BIT_FSW				BIT(3)
 #define BIT_FCHGTIME			GENMASK(2, 0)
 
@@ -90,11 +91,11 @@
 #define REG_CHG_CNFG_03			0xBA
 #define BIT_ILIM			GENMASK(7, 6)
 #define BIT_TO_TIME			GENMASK(5, 3)
+#define SHIFT_TO_TIME			3
 #define BIT_TO_ITH			GENMASK(2, 0)
 
 #define REG_CHG_CNFG_04			0xBB
-#define BIT_MINVSYS			GENMASK(7, 6)
-#define BIT_CHG_CV_PRM			GENMASK(5, 0)
+#define SHIFT_MINVSYS			6
 
 #define REG_CHG_CNFG_06			0xBD
 #define BIT_CHGPROT			GENMASK(3, 2)
@@ -425,7 +426,7 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 		val = 0x07;
 
 	/* topoff timer (min) */
-	val |= (chg->topoff_timer / 10) << ffs(BIT_TO_TIME);
+	val |= (chg->topoff_timer / 10) << SHIFT_TO_TIME;
 
 	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_03,
 				 BIT_TO_ITH | BIT_TO_TIME, val);
@@ -450,7 +451,7 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	else
 		tmpval = chg->fast_charge_timer / 2 - 1;
 
-	val = val << ffs(BIT_CHG_RSTRT) | tmpval << ffs(BIT_FCHGTIME);
+	val = val << SHIFT_CHG_RSTRT | tmpval;
 
 	/* Enable Low Battery Prequalification Mode */
 	val |= BIT_PQEN;
@@ -482,10 +483,9 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	else
 		tmpval = 0x03;
 
-	val = val << ffs(BIT_CHG_CV_PRM) | tmpval << ffs(BIT_MINVSYS);
+	val = val | tmpval << SHIFT_MINVSYS;
 
-	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_04,
-				 BIT_CHG_CV_PRM | BIT_MINVSYS, val);
+	ret = regmap_write(chg->regmap, REG_CHG_CNFG_04, val);
 	if (ret) {
 		dev_err(dev, "failed to update CNFG_04: %d\n", ret);
 		return ret;;
