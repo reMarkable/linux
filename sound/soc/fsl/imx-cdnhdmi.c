@@ -22,7 +22,7 @@
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
 #include <sound/hdmi-codec.h>
-#include "../../../drivers/gpu/drm/imx/hdp/imx-hdp.h"
+#include <drm/drm_connector.h>
 #include "fsl_sai.h"
 
 #define SUPPORT_RATE_NUM 10
@@ -148,8 +148,8 @@ static int get_edid_info(struct snd_soc_card *card)
 	struct snd_soc_pcm_runtime *rtd = list_first_entry(
 		&card->rtd_list, struct snd_soc_pcm_runtime, list);
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
-	struct snd_soc_codec *codec = codec_dai->codec;
-	struct hdmi_codec_pdata *hcd = codec->dev->platform_data;
+	struct snd_soc_component *component = codec_dai->component;
+	struct hdmi_codec_pdata *hcd = component->dev->platform_data;
 	struct imx_cdnhdmi_data *data = snd_soc_card_get_drvdata(card);
 	int i, j, ret;
 	const u8 *sad;
@@ -157,7 +157,7 @@ static int get_edid_info(struct snd_soc_card *card)
 	unsigned int rate_mask = 0;
 	unsigned int rate_mask_eld = 0;
 
-	ret = hcd->ops->get_eld(codec->dev->parent, hcd->data,
+	ret = hcd->ops->get_eld(component->dev->parent, hcd->data,
 					    data->eld, sizeof(data->eld));
 	sad = drm_eld_sad(data->eld);
 	if (sad) {
@@ -281,12 +281,12 @@ static int get_edid_rx_info(struct snd_soc_card *card)
 	struct snd_soc_pcm_runtime *rtd = list_first_entry(
 		&card->rtd_list, struct snd_soc_pcm_runtime, list);
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
-	struct snd_soc_codec *codec = codec_dai->codec;
-	struct hdmi_codec_pdata *hcd = codec->dev->platform_data;
+	struct snd_soc_component *component = codec_dai->component;
+	struct hdmi_codec_pdata *hcd = component->dev->platform_data;
 	struct imx_cdnhdmi_data *data = snd_soc_card_get_drvdata(card);
 	int ret;
 
-	ret = hcd->ops->get_eld(codec->dev->parent, hcd->data,
+	ret = hcd->ops->get_eld(component->dev->parent, hcd->data,
 					    data->eld, sizeof(data->eld));
 
 	if (ret)
@@ -410,8 +410,13 @@ static int imx_cdnhdmi_probe(struct platform_device *pdev)
 	struct device_node *cpu_np, *cdnhdmi_np = NULL;
 	struct platform_device *cpu_pdev;
 	struct imx_cdnhdmi_data *data;
+	struct snd_soc_dai_link_component *dlc;
 	int ret;
 	int i;
+
+	dlc = devm_kzalloc(&pdev->dev, 3 * sizeof(*dlc), GFP_KERNEL);
+	if (!dlc)
+		return -ENOMEM;
 
 	cpu_np = of_parse_phandle(pdev->dev.of_node, "audio-cpu", 0);
 	if (!cpu_np) {
@@ -459,10 +464,17 @@ static int imx_cdnhdmi_probe(struct platform_device *pdev)
 	of_property_read_u32(pdev->dev.of_node, "protocol",
 					&data->protocol);
 
+	data->dai.cpus = &dlc[0];
+	data->dai.num_cpus = 1;
+	data->dai.platforms = &dlc[1];
+	data->dai.num_platforms = 1;
+	data->dai.codecs = &dlc[2];
+	data->dai.num_codecs = 1;
+
 	data->dai.name = "imx8 hdmi";
 	data->dai.stream_name = "imx8 hdmi";
-	data->dai.cpu_dai_name = dev_name(&cpu_pdev->dev);
-	data->dai.platform_of_node = cpu_np;
+	data->dai.cpus->dai_name = dev_name(&cpu_pdev->dev);
+	data->dai.platforms->of_node = cpu_np;
 	data->dai.ops = &imx_cdnhdmi_ops;
 	data->dai.playback_only = true;
 	data->dai.capture_only = false;
@@ -476,8 +488,8 @@ static int imx_cdnhdmi_probe(struct platform_device *pdev)
 		data->dai.dai_fmt = SND_SOC_DAIFMT_I2S |
 			    SND_SOC_DAIFMT_NB_NF |
 			    SND_SOC_DAIFMT_CBS_CFS;
-		data->dai.codec_dai_name = "i2s-hifi";
-		data->dai.codec_name = "hdmi-audio-codec.1";
+		data->dai.codecs->dai_name = "i2s-hifi";
+		data->dai.codecs->name = "hdmi-audio-codec.1";
 		data->card.controls	= imx_cdnhdmi_ctrls;
 		data->card.num_controls	= ARRAY_SIZE(imx_cdnhdmi_ctrls);
 	}
@@ -488,8 +500,8 @@ static int imx_cdnhdmi_probe(struct platform_device *pdev)
 		data->dai.dai_fmt = SND_SOC_DAIFMT_I2S |
 			    SND_SOC_DAIFMT_NB_NF |
 			    SND_SOC_DAIFMT_CBM_CFM;
-		data->dai.codec_dai_name = "i2s-hifi";
-		data->dai.codec_name = "hdmi-audio-codec.2";
+		data->dai.codecs->dai_name = "i2s-hifi";
+		data->dai.codecs->name = "hdmi-audio-codec.2";
 		data->card.controls	= imx_cdnhdmi_rx_ctrls;
 		data->card.num_controls	= ARRAY_SIZE(imx_cdnhdmi_rx_ctrls);
 	}
