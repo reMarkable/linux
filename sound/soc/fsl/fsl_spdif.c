@@ -18,6 +18,7 @@
 #include <linux/of_irq.h>
 #include <linux/regmap.h>
 #include <linux/pm_runtime.h>
+#include <linux/pm_domain.h>
 
 #include <sound/asoundef.h>
 #include <sound/dmaengine_pcm.h>
@@ -1360,6 +1361,7 @@ static int fsl_spdif_probe(struct platform_device *pdev)
 	void __iomem *regs;
 	int irq, ret, i;
 	char tmp[16];
+	int num_domains = 0;
 
 	if (!np)
 		return -ENODEV;
@@ -1421,6 +1423,24 @@ static int fsl_spdif_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "could not claim irq %u\n", irq);
 			return ret;
 		}
+	}
+
+	num_domains = of_count_phandle_with_args(np, "power-domains",
+						 "#power-domain-cells");
+	for (i = 0; i < num_domains; i++) {
+		struct device *pd_dev;
+		struct device_link *link;
+
+		pd_dev = dev_pm_domain_attach_by_id(&pdev->dev, i);
+		if (IS_ERR(pd_dev))
+			return PTR_ERR(pd_dev);
+
+		link = device_link_add(&pdev->dev, pd_dev,
+			DL_FLAG_STATELESS |
+			DL_FLAG_PM_RUNTIME |
+			DL_FLAG_RPM_ACTIVE);
+		if (IS_ERR(link))
+			return PTR_ERR(link);
 	}
 
 	for (i = 0; i < STC_TXCLK_SRC_MAX; i++) {
