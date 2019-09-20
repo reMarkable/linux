@@ -528,7 +528,8 @@ static void enetc_configure_port_mac(struct enetc_hw *hw,
 	    phy_mode == PHY_INTERFACE_MODE_RGMII)
 		enetc_port_wr(hw, ENETC_PM0_IF_MODE, ENETC_PM0_IFM_RGAUTO);
 
-	if (phy_mode == PHY_INTERFACE_MODE_XGMII)
+	if (phy_mode == PHY_INTERFACE_MODE_XGMII ||
+	    phy_mode == PHY_INTERFACE_MODE_USXGMII)
 		enetc_port_wr(hw, ENETC_PM0_IF_MODE, ENETC_PM0_IFM_XGMII);
 }
 
@@ -844,7 +845,8 @@ static int enetc_configure_serdes(struct enetc_ndev_priv *priv)
 	int err;
 
 	if (priv->if_mode != PHY_INTERFACE_MODE_SGMII &&
-	    priv->if_mode != PHY_INTERFACE_MODE_XGMII)
+	    priv->if_mode != PHY_INTERFACE_MODE_XGMII &&
+	    priv->if_mode != PHY_INTERFACE_MODE_USXGMII)
 		return 0;
 
 	err = enetc_imdio_init(pf);
@@ -854,7 +856,8 @@ static int enetc_configure_serdes(struct enetc_ndev_priv *priv)
 	if (priv->if_mode == PHY_INTERFACE_MODE_SGMII)
 		enetc_configure_sgmii(pf->imdio);
 
-	if (priv->if_mode == PHY_INTERFACE_MODE_XGMII)
+	if (priv->if_mode == PHY_INTERFACE_MODE_XGMII ||
+	    priv->if_mode == PHY_INTERFACE_MODE_USXGMII)
 		enetc_configure_sxgmii(pf->imdio);
 
 	return 0;
