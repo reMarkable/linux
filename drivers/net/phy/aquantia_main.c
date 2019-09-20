@@ -299,10 +299,16 @@ static int aqr_config_aneg_set_prot(struct phy_device *phydev)
 	phy_write_mmd(phydev, MDIO_MMD_VEND1, AQUANTIA_VND1_GSTART_RATE,
 		      aquantia_syscfg[if_type].start_rate);
 
-	for (i = 0; i <= aquantia_syscfg[if_type].cnt; i++)
+	for (i = 0; i <= aquantia_syscfg[if_type].cnt; i++) {
+		u16 reg = phy_read_mmd(phydev, MDIO_MMD_VEND1,
+				       AQUANTIA_VND1_GSYSCFG_BASE + i);
+		if (!reg)
+			continue;
+
 		phy_write_mmd(phydev, MDIO_MMD_VEND1,
 			      AQUANTIA_VND1_GSYSCFG_BASE + i,
 			      aquantia_syscfg[if_type].syscfg);
+	}
 
 	/* wake PHY back up */
 	phy_write_mmd(phydev, MDIO_MMD_VEND1, AQUANTIA_VND1_GLOBAL_SC, 0);
