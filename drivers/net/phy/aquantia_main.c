@@ -33,6 +33,9 @@
 #define MDIO_PHYXS_VEND_IF_STATUS_TYPE_SGMII	6
 #define MDIO_PHYXS_VEND_IF_STATUS_TYPE_OCSGMII	10
 
+#define MDIO_PHYXS_VEND_PROV2			0xC441
+#define MDIO_PHYXS_VEND_PROV2_USX_AN		BIT(3)
+
 #define MDIO_AN_VEND_PROV			0xc400
 #define MDIO_AN_VEND_PROV_1000BASET_FULL	BIT(15)
 #define MDIO_AN_VEND_PROV_1000BASET_HALF	BIT(14)
@@ -309,6 +312,10 @@ static int aqr_config_aneg_set_prot(struct phy_device *phydev)
 			      AQUANTIA_VND1_GSYSCFG_BASE + i,
 			      aquantia_syscfg[if_type].syscfg);
 	}
+
+	if (if_type == PHY_INTERFACE_MODE_USXGMII)
+		phy_write_mmd(phydev, MDIO_MMD_PHYXS, MDIO_PHYXS_VEND_PROV2,
+			      MDIO_PHYXS_VEND_PROV2_USX_AN);
 
 	/* wake PHY back up */
 	phy_write_mmd(phydev, MDIO_MMD_VEND1, AQUANTIA_VND1_GLOBAL_SC, 0);
