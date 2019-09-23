@@ -22,13 +22,16 @@
 
 #include "imx-hdmi.h"
 
+SND_SOC_DAILINK_DEFS(hifi,
+	DAILINK_COMP_ARRAY(COMP_EMPTY()),
+	DAILINK_COMP_ARRAY(COMP_CODEC("hdmi-audio-codec", "i2s-hifi")),
+	DAILINK_COMP_ARRAY(COMP_PLATFORM("imx-hdmi-audio")));
+
 /* imx digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link imx_hdmi_dai_link = {
 	.name = "i.MX HDMI Audio Tx",
 	.stream_name = "i.MX HDMI Audio Tx",
-	.codec_dai_name = "i2s-hifi",
-	.codec_name = "hdmi-audio-codec",
-	.platform_name = "imx-hdmi-audio",
+	SND_SOC_DAILINK_REG(hifi),
 };
 
 static struct snd_soc_card snd_soc_card_imx_hdmi = {
@@ -65,7 +68,7 @@ static int imx_hdmi_audio_probe(struct platform_device *pdev)
 	}
 
 	card->dev = &pdev->dev;
-	card->dai_link->cpu_dai_name = dev_name(&hdmi_pdev->dev);
+	card->dai_link->cpus->dai_name = dev_name(&hdmi_pdev->dev);
 
 	platform_set_drvdata(pdev, card);
 
