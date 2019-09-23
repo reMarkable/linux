@@ -1123,7 +1123,11 @@ static int imx_soc_platform_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	priv->hdmi_sdma_t = dma_alloc_coherent(NULL,
+	ret = dma_coerce_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
+	if (ret)
+		return ret;
+
+	priv->hdmi_sdma_t = dma_alloc_coherent(&pdev->dev,
 			sizeof(struct hdmi_sdma_script),
 			&priv->phy_hdmi_sdma_t, GFP_KERNEL);
 	if (!priv->hdmi_sdma_t) {
@@ -1157,7 +1161,7 @@ static int imx_soc_platform_probe(struct platform_device *pdev)
 	return 0;
 
 err_plat:
-	dma_free_coherent(NULL, sizeof(struct hdmi_sdma_script),
+	dma_free_coherent(&pdev->dev, sizeof(struct hdmi_sdma_script),
 			priv->hdmi_sdma_t, priv->phy_hdmi_sdma_t);
 
 	return ret;
@@ -1167,7 +1171,7 @@ static int imx_soc_platform_remove(struct platform_device *pdev)
 {
 	struct hdmi_dma_priv *priv = dev_get_drvdata(&pdev->dev);
 
-	dma_free_coherent(NULL, sizeof(struct hdmi_sdma_script),
+	dma_free_coherent(&pdev->dev, sizeof(struct hdmi_sdma_script),
 			priv->hdmi_sdma_t, priv->phy_hdmi_sdma_t);
 
 	return 0;
