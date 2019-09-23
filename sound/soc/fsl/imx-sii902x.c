@@ -127,7 +127,12 @@ static int imx_sii902x_probe(struct platform_device *pdev)
 	struct device_node *cpu_np, *sii902x_np = NULL;
 	struct platform_device *cpu_pdev;
 	struct imx_sii902x_data *data;
+	struct snd_soc_dai_link_component *dlc;
 	int ret;
+
+	dlc = devm_kzalloc(&pdev->dev, 3 * sizeof(*dlc), GFP_KERNEL);
+	if (!dlc)
+		return -ENOMEM;
 
 	cpu_np = of_parse_phandle(pdev->dev.of_node, "cpu-dai", 0);
 	if (!cpu_np) {
@@ -149,12 +154,19 @@ static int imx_sii902x_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
+	data->dai.cpus = &dlc[0];
+	data->dai.num_cpus = 1;
+	data->dai.platforms = &dlc[1];
+	data->dai.num_platforms = 1;
+	data->dai.codecs = &dlc[2];
+	data->dai.num_codecs = 1;
+
 	data->dai.name = "sii902x hdmi";
 	data->dai.stream_name = "sii902x hdmi";
-	data->dai.codec_dai_name = "i2s-hifi";
-	data->dai.codec_name = "hdmi-audio-codec.1";
-	data->dai.cpu_dai_name = dev_name(&cpu_pdev->dev);
-	data->dai.platform_of_node = cpu_np;
+	data->dai.codecs->dai_name = "i2s-hifi";
+	data->dai.codecs->name = "hdmi-audio-codec.1";
+	data->dai.cpus->dai_name = dev_name(&cpu_pdev->dev);
+	data->dai.platforms->of_node = cpu_np;
 	data->dai.ops = &imx_sii902x_ops;
 	data->dai.playback_only = true;
 	data->dai.capture_only = false;
