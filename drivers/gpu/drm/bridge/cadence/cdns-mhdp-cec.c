@@ -183,18 +183,18 @@ static int mhdp_cec_set_logical_addr(struct cdns_mhdp_cec *cec, u32 la)
 
 		if ((la_reg & 0xF) == la) {
 			dev_warn(cec->dev, "Warning. LA already in use.\n");
-			return true;
+			return 0;
 		}
 
 		la = (la & 0xF) | (1 << 4);
 
 		mhdp_cec_write(cec, LOGICAL_ADDRESS_LA0 + (i * REG_ADDR_OFF), la);
-		return true;
+		return 0;
 	}
 
 	dev_warn(cec->dev, "All LA in use\n");
 
-	return false;
+	return -EINVAL;
 }
 
 static int mhdp_cec_poll_worker(void *_cec)
