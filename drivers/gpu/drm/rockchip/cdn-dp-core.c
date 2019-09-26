@@ -305,12 +305,10 @@ static int cdn_dp_connector_mode_valid(struct drm_connector *connector,
 	requested = mode->clock * bpc * 3 / 1000;
 
 	source_max = dp->lanes;
-	sink_max = drm_dp_max_lane_count(dp->dpcd);
+	sink_max = dp->mhdp.dp.link.num_lanes;
 	lanes = min(source_max, sink_max);
 
-	source_max = drm_dp_bw_code_to_link_rate(CDNS_DP_MAX_LINK_RATE);
-	sink_max = drm_dp_max_link_rate(dp->dpcd);
-	rate = min(source_max, sink_max);
+	rate = dp->mhdp.dp.link.rate;
 
 	actual = rate * lanes / 100;
 
@@ -365,21 +363,25 @@ static int cdn_dp_firmware_init(struct cdn_dp_device *dp)
 
 static int cdn_dp_get_sink_capability(struct cdn_dp_device *dp)
 {
+	struct cdns_mhdp_device *mhdp = &dp->mhdp;
+	struct drm_dp_link *link = &mhdp->dp.link;
 	int ret;
 
 	if (!cdn_dp_check_sink_connection(dp))
 		return -ENODEV;
 
-	ret = cdns_mhdp_dpcd_read(&dp->mhdp, DP_DPCD_REV, dp->dpcd,
-				  DP_RECEIVER_CAP_SIZE);
+	ret = drm_dp_link_probe(&mhdp->dp.aux, link);
 	if (ret) {
-		DRM_DEV_ERROR(dp->mhdp.dev, "Failed to get caps %d\n", ret);
+		DRM_DEV_ERROR(mhdp->dev, "Failed to get caps %d\n", ret);
 		return ret;
 	}
 
+	if (link->rate > CDNS_DP_MAX_LINK_RATE)
+		link->rate = CDNS_DP_MAX_LINK_RATE;
+
 	kfree(dp->edid);
-	dp->edid = drm_do_get_edid(&dp->mhdp.connector.base,
-				   cdns_mhdp_get_edid_block, &dp->mhdp);
+	dp->edid = drm_do_get_edid(&mhdp->connector.base,
+				   cdns_mhdp_get_edid_block, mhdp);
 	return 0;
 }
 
@@ -421,7 +423,8 @@ static int cdn_dp_enable_phy(struct cdn_dp_device *dp, struct cdn_dp_port *port)
 	}
 
 	port->lanes = cdn_dp_get_port_lanes(port);
-	ret = cdns_mhdp_set_host_cap(&dp->mhdp, port->lanes, property.intval);
+	dp->mhdp.dp.link.num_lanes = port->lanes;
+	ret = cdns_mhdp_set_host_cap(&dp->mhdp, property.intval);
 	if (ret) {
 		DRM_DEV_ERROR(dev, "set host capabilities failed: %d\n",
 			      ret);
@@ -576,9 +579,9 @@ static bool cdn_dp_check_link_status(struct cdn_dp_device *dp)
 {
 	u8 link_status[DP_LINK_STATUS_SIZE];
 	struct cdn_dp_port *port = cdn_dp_connected_port(dp);
-	u8 sink_lanes = drm_dp_max_lane_count(dp->dpcd);
+	u8 sink_lanes = dp->mhdp.dp.link.num_lanes;
 
-	if (!port || !dp->mhdp.dp.link.rate || !dp->mhdp.dp.link.num_lanes)
+	if (!port || !dp->mhdp.dp.link.rate || !sink_lanes)
 		return false;
 
 	if (cdns_mhdp_dpcd_read(&dp->mhdp, DP_LANE0_1_STATUS, link_status,

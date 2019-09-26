@@ -436,7 +436,7 @@
 #define HDCP_TX_IS_RECEIVER_ID_VALID_EVENT	BIT(7)
 
 #define TU_SIZE					30
-#define CDNS_DP_MAX_LINK_RATE			DP_LINK_BW_5_4
+#define CDNS_DP_MAX_LINK_RATE	540000
 
 #define F_HDMI_ENCODING(x) (((x) & ((1 << 2) - 1)) << 16)
 #define F_VIF_DATA_WIDTH(x) (((x) & ((1 << 2) - 1)) << 2)
@@ -697,8 +697,6 @@ struct cdns_mhdp_device {
 			struct cdns_mhdp_mst_cbs cbs;
 			bool is_mst;
 			bool can_mst;
-			u32 link_rate;
-			u32 num_lanes;
 		} dp;
 		struct _hdmi_data {
 #ifdef CONFIG_DRM_CDNS_HDMI_CEC
@@ -720,7 +718,7 @@ u32 cdns_mhdp_get_fw_clk(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_load_firmware(struct cdns_mhdp_device *mhdp, const u32 *i_mem,
 			    u32 i_size, const u32 *d_mem, u32 d_size);
 int cdns_mhdp_set_firmware_active(struct cdns_mhdp_device *mhdp, bool enable);
-int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp, u8 lanes, bool flip);
+int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp, bool flip);
 int cdns_mhdp_event_config(struct cdns_mhdp_device *mhdp);
 u32 cdns_mhdp_get_event(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_get_hpd_status(struct cdns_mhdp_device *mhdp);

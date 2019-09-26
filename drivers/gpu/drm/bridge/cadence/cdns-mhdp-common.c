@@ -494,13 +494,13 @@ err_set_firmware_active:
 }
 EXPORT_SYMBOL(cdns_mhdp_set_firmware_active);
 
-int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp, u8 lanes, bool flip)
+int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp, bool flip)
 {
 	u8 msg[8];
 	int ret;
 
-	msg[0] = CDNS_DP_MAX_LINK_RATE;
-	msg[1] = lanes | SCRAMBLER_EN;
+	msg[0] = drm_dp_link_rate_to_bw_code(mhdp->dp.link.rate);
+	msg[1] = mhdp->dp.link.num_lanes | SCRAMBLER_EN;
 	msg[2] = VOLTAGE_LEVEL_2;
 	msg[3] = PRE_EMPHASIS_LEVEL_3;
 	msg[4] = PTS1 | PTS2 | PTS3 | PTS4;

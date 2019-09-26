@@ -61,7 +61,6 @@ struct cdn_dp_device {
 	u8 lanes;
 	int active_port;
 
-	u8 dpcd[DP_RECEIVER_CAP_SIZE];
 	bool sink_has_audio;
 };
 #endif  /* _CDN_DP_CORE_H */

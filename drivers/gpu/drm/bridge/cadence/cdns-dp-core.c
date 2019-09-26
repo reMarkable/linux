@@ -111,10 +111,10 @@ static void dp_pixel_clk_reset(struct cdns_mhdp_device *mhdp)
 static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp,
 			const struct drm_display_mode *mode)
 {
-	struct drm_dp_link link;
 	u32 lane_mapping = mhdp->lane_mapping;
-	int ret;
+	struct drm_dp_link *link = &mhdp->dp.link;
 	char linkid[6];
+	int ret;
 
 	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
 
@@ -124,8 +124,6 @@ static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp,
 	dp_pixel_clk_reset(mhdp);
 
 	cdns_mhdp_plat_call(mhdp, pclk_rate);
-
-	cdns_mhdp_plat_call(mhdp, phy_set);
 
 	ret = drm_dp_downstream_id(&mhdp->dp.aux, linkid);
 	if (ret < 0) {
@@ -137,35 +135,28 @@ static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp,
 		 linkid[5]);
 
 	/* Check dp link */
-	ret = drm_dp_link_probe(&mhdp->dp.aux, &link);
+	ret = drm_dp_link_probe(&mhdp->dp.aux, link);
 	if (ret < 0) {
 		DRM_INFO("Failed to probe DP link: %d\n", ret);
 		return;
 	}
-	DRM_INFO("DP revision: 0x%x\n", link.revision);
-	DRM_INFO("DP rate: %d Mbps\n", link.rate);
-	DRM_INFO("DP number of lanes: %d\n", link.num_lanes);
-	DRM_INFO("DP capabilities: 0x%lx\n", link.capabilities);
+	DRM_INFO("DP revision: 0x%x\n", link->revision);
+	DRM_INFO("DP rate: %d Mbps\n", link->rate);
+	DRM_INFO("DP number of lanes: %d\n", link->num_lanes);
+	DRM_INFO("DP capabilities: 0x%lx\n", link->capabilities);
 
-	drm_dp_link_power_up(&mhdp->dp.aux, &mhdp->dp.link);
+	/* check the max link rate */
+	if (link->rate > CDNS_DP_MAX_LINK_RATE)
+		link->rate = CDNS_DP_MAX_LINK_RATE;
+
+	drm_dp_link_power_up(&mhdp->dp.aux, link);
 	if (ret < 0) {
 		DRM_INFO("Failed to power DP link: %d\n", ret);
 		return;
 	}
 
-	/* always use the number of lanes from the display*/
-	mhdp->dp.link.num_lanes = link.num_lanes;
-
-	/* Use the lower link rate */
-	if (mhdp->dp.link_rate != 0) {
-		mhdp->dp.link.rate = min(mhdp->dp.link_rate, (u32)link.rate);
-		DRM_DEBUG("DP actual link rate:  0x%x\n", link.rate);
-	}
-
-	/* initialize phy if lanes or link rate differnt */
-	if (mhdp->dp.link.num_lanes != mhdp->dp.num_lanes ||
-			mhdp->dp.link.rate != mhdp->dp.link_rate)
-		cdns_mhdp_plat_call(mhdp, phy_set);
+	/* Initialize link rate/num_lanes as panel max link rate/max_num_lanes */
+	cdns_mhdp_plat_call(mhdp, phy_set);
 
 	/* Video off */
 	ret = cdns_mhdp_set_video_status(mhdp, CONTROL_VIDEO_IDLE);
@@ -178,7 +169,7 @@ static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp,
 	cdns_mhdp_reg_write(mhdp, LANES_CONFIG, 0x00400000 | lane_mapping);
 
 	/* Set DP host capability */
-	ret = cdns_mhdp_set_host_cap(mhdp, mhdp->dp.link.num_lanes, false);
+	ret = cdns_mhdp_set_host_cap(mhdp, false);
 	if (ret) {
 		DRM_DEV_ERROR(mhdp->dev, "Failed to set host cap %d\n", ret);
 		return;
@@ -412,23 +403,6 @@ static void cdns_dp_parse_dt(struct cdns_mhdp_device *mhdp)
 		dev_warn(mhdp->dev, "Failed to get lane_mapping - using default 0xc6\n");
 	}
 	dev_info(mhdp->dev, "lane-mapping 0x%02x\n", mhdp->lane_mapping);
-
-	ret = of_property_read_u32(of_node, "link-rate", &mhdp->dp.link_rate);
-	if (ret) {
-		mhdp->dp.link_rate = 162000 ;
-		dev_warn(mhdp->dev, "Failed to get link-rate, use default 1620MHz\n");
-	}
-	dev_info(mhdp->dev, "link-rate %d\n", mhdp->dp.link_rate);
-	
-	ret = of_property_read_u32(of_node, "num-lanes", &mhdp->dp.num_lanes);
-	if (ret) {
-		mhdp->dp.num_lanes = 4;
-		dev_warn(mhdp->dev, "Failed to get num_lanes - using default\n");
-	}
-	dev_info(mhdp->dev, "dp_num_lanes 0x%02x\n", mhdp->dp.num_lanes);
-
-	mhdp->dp.link.num_lanes = mhdp->dp.num_lanes;
-	mhdp->dp.link.rate= mhdp->dp.link_rate;
 }
 
 static int __cdns_dp_probe(struct platform_device *pdev,
