@@ -457,7 +457,7 @@
 	pinctrl-2 = <&pinctrl_usdhc2_200mhz>;
 	bus-width = <8>;
 	non-removable;
-	vmmc-supply = <&reg_sd2_vmmc>;
+	vqmmc-supply = <&reg_sd2_vmmc>;
 	status = "okay";
 };
 
