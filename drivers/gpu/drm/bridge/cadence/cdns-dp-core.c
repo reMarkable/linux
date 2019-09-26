@@ -118,9 +118,6 @@ static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp,
 
 	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
 
-	//Sandor TODO
-//	mhdp->dual_mode = video_is_dual_mode(mode);
-
 	dp_pixel_clk_reset(mhdp);
 
 	cdns_mhdp_plat_call(mhdp, pclk_rate);
@@ -450,7 +447,6 @@ static int __cdns_dp_probe(struct platform_device *pdev,
 
 	cdns_mhdp_plat_call(mhdp, power_on);
 
-//	mhdp->dual_mode = false;
 	cdns_mhdp_plat_call(mhdp, firmware_init);
 
 	/* DP FW alive check */

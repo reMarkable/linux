@@ -172,7 +172,6 @@ static int cdns_mhdp_imx_bind(struct device *dev, struct device *master,
 	if (ret < 0)
 		drm_encoder_cleanup(encoder);
 
-	imx_mhdp->dual_mode = false;
 	return ret;
 }
 
@@ -205,7 +204,7 @@ static struct platform_driver cdns_mhdp_imx_platform_driver = {
 	.probe  = cdns_mhdp_imx_probe,
 	.remove = cdns_mhdp_imx_remove,
 	.driver = {
-		.name = "cdn-hdp-imx8qm",
+		.name = "cdns-mhdp-imx",
 		.of_match_table = cdns_mhdp_imx_dt_ids,
 	},
 };

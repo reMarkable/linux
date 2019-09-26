@@ -13,19 +13,32 @@
 
 #include "cdns-mhdp-imx.h"
 
+#define PLL_800MHZ (800000000)
+
+#define HDP_DUAL_MODE_MIN_PCLK_RATE	300000	/* KHz */
+#define HDP_SINGLE_MODE_MAX_WIDTH	1920
+
 #define CSR_PIXEL_LINK_MUX_CTL		0x00
 #define CSR_PIXEL_LINK_MUX_VCP_OFFSET		5
 #define CSR_PIXEL_LINK_MUX_HCP_OFFSET		4
 
-#define PLL_800MHZ (800000000)
+static bool imx8qm_video_dual_mode(struct cdns_mhdp_device *mhdp)
+{
+	struct drm_display_mode *mode = &mhdp->mode;
+	return (mode->clock > HDP_DUAL_MODE_MIN_PCLK_RATE ||
+		mode->hdisplay > HDP_SINGLE_MODE_MAX_WIDTH) ? true : false;
+}
 
 static void imx8qm_pixel_link_mux(struct imx_mhdp_device *imx_mhdp)
 {
 	struct drm_display_mode *mode = &imx_mhdp->mhdp.mode;
+	bool dual_mode;
 	u32 val;
 
+	dual_mode = imx8qm_video_dual_mode(&imx_mhdp->mhdp);
+
 	val = 0x4;	/* RGB */
-	if (imx_mhdp->dual_mode)
+	if (dual_mode)
 		val |= 0x2;	/* pixel link 0 and 1 are active */
 	if (mode->flags & DRM_MODE_FLAG_PVSYNC)
 		val |= 1 << CSR_PIXEL_LINK_MUX_VCP_OFFSET;
@@ -276,12 +289,13 @@ static void imx8qm_pixel_clk_disable(struct imx_mhdp_device *imx_mhdp)
 
 static void imx8qm_pixel_clk_set_rate(struct imx_mhdp_device *imx_mhdp, u32 pclock)
 {
+	bool dual_mode = imx8qm_video_dual_mode(&imx_mhdp->mhdp);
 	struct imx_hdp_clks *clks = &imx_mhdp->clks;
 
 	/* pixel clock for HDMI */
 	clk_set_rate(clks->av_pll, pclock);
 
-	if (imx_mhdp->dual_mode == true) {
+	if (dual_mode == true) {
 		clk_set_rate(clks->clk_pxl, pclock/2);
 		clk_set_rate(clks->clk_pxl_link, pclock/2);
 	} else {
@@ -471,18 +485,20 @@ void cdns_mhdp_plat_init_imx8qm(struct cdns_mhdp_device *mhdp)
 {
 	struct imx_mhdp_device *imx_mhdp =
 				container_of(mhdp, struct imx_mhdp_device, mhdp);
+	bool dual_mode = imx8qm_video_dual_mode(&imx_mhdp->mhdp);
 
-	imx8qm_pixel_link_sync_disable(imx_mhdp->dual_mode);
-	imx8qm_pixel_link_invalid(imx_mhdp->dual_mode);
+	imx8qm_pixel_link_sync_disable(dual_mode);
+	imx8qm_pixel_link_invalid(dual_mode);
 }
 
 void cdns_mhdp_plat_deinit_imx8qm(struct cdns_mhdp_device *mhdp)
 {
 	struct imx_mhdp_device *imx_mhdp =
 				container_of(mhdp, struct imx_mhdp_device, mhdp);
+	bool dual_mode = imx8qm_video_dual_mode(&imx_mhdp->mhdp);
 
-	imx8qm_pixel_link_valid(imx_mhdp->dual_mode);
-	imx8qm_pixel_link_sync_enable(imx_mhdp->dual_mode);
+	imx8qm_pixel_link_valid(dual_mode);
+	imx8qm_pixel_link_sync_enable(dual_mode);
 }
 
 void cdns_mhdp_pclk_rate_imx8qm(struct cdns_mhdp_device *mhdp)

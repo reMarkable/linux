@@ -16,15 +16,6 @@
 #include <drm/drm_encoder_slave.h>
 
 
-#define HDP_DUAL_MODE_MIN_PCLK_RATE	300000	/* KHz */
-#define HDP_SINGLE_MODE_MAX_WIDTH	1920
-
-static inline bool video_is_dual_mode(const struct drm_display_mode *mode)
-{
-	return (mode->clock > HDP_DUAL_MODE_MIN_PCLK_RATE ||
-		mode->hdisplay > HDP_SINGLE_MODE_MAX_WIDTH) ? true : false;
-}
-
 struct imx_mhdp_device;
 
 struct imx_hdp_clks {
@@ -62,17 +53,14 @@ struct imx_mhdp_device {
 
 	int bus_type;
 
-	u32 dual_mode;
-
 	struct device		*pd_mhdp_dev;
 	struct device		*pd_pll0_dev;
 	struct device		*pd_pll1_dev;
 	struct device_link	*pd_mhdp_link;
 	struct device_link	*pd_pll0_link;
 	struct device_link	*pd_pll1_link;
-
-//	u32 phy_init;
 };
+
 void cdns_mhdp_plat_init_imx8qm(struct cdns_mhdp_device *mhdp);
 void cdns_mhdp_plat_deinit_imx8qm(struct cdns_mhdp_device *mhdp);
 void cdns_mhdp_pclk_rate_imx8qm(struct cdns_mhdp_device *mhdp);

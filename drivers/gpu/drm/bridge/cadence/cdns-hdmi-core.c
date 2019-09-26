@@ -343,9 +343,6 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 
 	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
 
-	//Sandor TODO
-//	hdmi->dual_mode = video_is_dual_mode(mode);
-
 	hdmi_lanes_config(mhdp);
 
 	cdns_mhdp_plat_call(mhdp, pclk_rate);
@@ -445,9 +442,6 @@ static int __cdns_hdmi_probe(struct platform_device *pdev,
 		dev_info(dev, "No plug_out irq number\n");
 		return -EPROBE_DEFER;
 	}
-
-	/* Initialize dual_mode to false */
-//	hdmi->dual_mode = false;
 
 	cdns_mhdp_plat_call(mhdp, power_on);
 
