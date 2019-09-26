@@ -1398,13 +1398,12 @@ static int i2c_imx_probe(struct platform_device *pdev)
 			i2c_imx, IMX_I2C_I2CR);
 	imx_i2c_write_reg(i2c_imx->hwdata->i2sr_clr_opcode, i2c_imx, IMX_I2C_I2SR);
 
-#ifdef CONFIG_ARCH_LAYERSCAPE
-	/* Init optional bus recovery for layerscape */
-	ret = i2c_imx_init_recovery_for_layerscape(i2c_imx, pdev);
-#else
-	/* Init optional bus recovery function */
-	ret = i2c_imx_init_recovery_info(i2c_imx, pdev);
-#endif
+	/* Init optional bus recovery */
+	if (of_match_node(pinmux_of_match, pdev->dev.of_node))
+		ret = i2c_imx_init_recovery_for_layerscape(i2c_imx, pdev);
+	else
+		ret = i2c_imx_init_recovery_info(i2c_imx, pdev);
+
 	/* Give it another chance if pinctrl used is not ready yet */
 	if (ret == -EPROBE_DEFER)
 		goto clk_notifier_unregister;
