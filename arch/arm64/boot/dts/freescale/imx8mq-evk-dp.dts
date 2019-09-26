@@ -23,8 +23,6 @@
 &hdmi {
 	compatible = "cdn,imx8mq-dp";
 	lane-mapping = <0xc6>;
-	link-rate = <162000>;
-	num-lanes = <0x4>;
 
 	status = "okay";
 
