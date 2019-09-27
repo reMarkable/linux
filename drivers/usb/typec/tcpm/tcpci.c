@@ -10,6 +10,7 @@
 #include <linux/module.h>
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <linux/property.h>
 #include <linux/regmap.h>
 #include <linux/usb/pd.h>
@@ -563,6 +564,7 @@ static int tcpci_probe(struct i2c_client *client,
 	if (IS_ERR(chip->tcpci))
 		return PTR_ERR(chip->tcpci);
 
+	irq_set_status_flags(client->irq, IRQ_DISABLE_UNLAZY);
 	err = devm_request_threaded_irq(&client->dev, client->irq, NULL,
 					_tcpci_irq,
 					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
@@ -572,6 +574,8 @@ static int tcpci_probe(struct i2c_client *client,
 		return err;
 	}
 
+	device_set_wakeup_capable(chip->tcpci->dev, true);
+
 	return 0;
 }
 
@@ -580,9 +584,39 @@ static int tcpci_remove(struct i2c_client *client)
 	struct tcpci_chip *chip = i2c_get_clientdata(client);
 
 	tcpci_unregister_port(chip->tcpci);
+	irq_clear_status_flags(client->irq, IRQ_DISABLE_UNLAZY);
 
 	return 0;
 }
+
+static int __maybe_unused tcpci_suspend(struct device *dev)
+{
+	struct i2c_client *i2c = to_i2c_client(dev);
+
+	if (device_may_wakeup(dev))
+		enable_irq_wake(i2c->irq);
+	else
+		disable_irq(i2c->irq);
+
+	return 0;
+}
+
+
+static int __maybe_unused tcpci_resume(struct device *dev)
+{
+	struct i2c_client *i2c = to_i2c_client(dev);
+
+	if (device_may_wakeup(dev))
+		disable_irq_wake(i2c->irq);
+	else
+		enable_irq(i2c->irq);
+
+	return 0;
+}
+
+static const struct dev_pm_ops tcpci_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(tcpci_suspend, tcpci_resume)
+};
 
 static const struct i2c_device_id tcpci_id[] = {
 	{ "tcpci", 0 },
@@ -601,6 +635,7 @@ MODULE_DEVICE_TABLE(of, tcpci_of_match);
 static struct i2c_driver tcpci_i2c_driver = {
 	.driver = {
 		.name = "tcpci",
+		.pm = &tcpci_pm_ops,
 		.of_match_table = of_match_ptr(tcpci_of_match),
 	},
 	.probe = tcpci_probe,
