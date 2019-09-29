@@ -155,6 +155,13 @@ config CRYPTO_DEV_FSL_CAAM_RNG_TEST
 	  caam RNG. This test is several minutes long and executes
 	  just before the RNG is registered with the hw_random API.
 
+config CRYPTO_DEV_FSL_CAAM_SECVIO
+	tristate "CAAM/SNVS Security Violation Handler (EXPERIMENTAL)"
+	help
+	  Enables installation of an interrupt handler with registrable
+          handler functions which can be specified to act on the consequences
+          of a security violation.
+
 endif # CRYPTO_DEV_FSL_CAAM_JR
 
 endif # CRYPTO_DEV_FSL_CAAM
