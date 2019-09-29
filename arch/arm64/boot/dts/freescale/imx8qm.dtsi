@@ -438,6 +438,7 @@
 	};
 
 	/* sorted in register address */
+	#include "imx8-ss-security.dtsi"
 	#include "imx8-ss-cm41.dtsi"
 	#include "imx8-ss-adma.dtsi"
 	#include "imx8-ss-conn.dtsi"
