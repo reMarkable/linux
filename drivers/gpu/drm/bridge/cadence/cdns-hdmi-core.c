@@ -173,10 +173,8 @@ void cdns_hdmi_mode_set(struct cdns_mhdp_device *mhdp)
 	int ret;
 
 	ret = hdmi_sink_config(mhdp);
-	if (ret < 0) {
-		DRM_ERROR("%s failed\n", __func__);
-		return;
-	}
+	if (ret < 0)
+		DRM_DEBUG("%s failed\n", __func__);
 
 	ret = cdns_hdmi_ctrl_init(mhdp, mhdp->hdmi.hdmi_type, mhdp->hdmi.char_rate);
 	if (ret < 0) {
