@@ -271,8 +271,11 @@ struct bd7181x_board *bd7181x_parse_dt(struct i2c_client *client,
 
 static void bd7181x_hw_init(struct bd7181x *bd7181x)
 {
-	/* Set LPSR_MODE bit to get into LPSR state when PWRON goes low */
-	bd7181x_set_bits(bd7181x, BD7181X_REG_PWRCTRL, BIT(4));
+	/* Clear LPSR_MODE bit to get into SNVS state when PWRON goes low */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_PWRCTRL, BIT(4));
+
+	/* Change the default to turn off LDO3 in SNVS state */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE2, BIT(7));
 
 	/* Turn off BUCK1 (VDD_ARM_1V1) in LPSR mode */
 	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK1_MODE, BIT(1));
@@ -428,6 +431,12 @@ MODULE_DEVICE_TABLE(i2c, bd7181x_i2c_id);
 
 static int bd7181x_suspend(struct device *dev)
 {
+	struct i2c_client *i2c = to_i2c_client(dev);
+	struct bd7181x *bd7181x = i2c_get_clientdata(i2c);
+
+	/* Set LPSR_MODE bit to get into LPSR state when PWRON goes low */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_PWRCTRL, BIT(4));
+
 	pinctrl_pm_select_sleep_state(dev);
 
 	return 0;
@@ -435,7 +444,13 @@ static int bd7181x_suspend(struct device *dev)
 
 static int bd7181x_resume(struct device *dev)
 {
+	struct i2c_client *i2c = to_i2c_client(dev);
+	struct bd7181x *bd7181x = i2c_get_clientdata(i2c);
+
 	pinctrl_pm_select_default_state(dev);
+
+	/* Flip LPSR_MODE setting back to SNVS state */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_PWRCTRL, BIT(4));
 
 	return 0;
 }
