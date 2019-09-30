@@ -210,6 +210,18 @@
 	assigned-clock-rates = <884736000>;
 };
 
+&csi1 {
+	csi-mux-mipi = <&gpr 0x14 4>;
+	fsl,mipi-mode;
+	status = "okay";
+
+	port {
+		csi_ep: endpoint {
+			remote-endpoint = <&csi_mipi_ep>;
+		};
+	};
+};
+
 &ecspi3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi3>;
@@ -306,6 +318,24 @@
 	pinctrl-0 = <&pinctrl_flexcan2>;
 	xceiver-supply = <&reg_can2_3v3>;
 	status = "okay";
+};
+
+&mipi_csi {
+	clock-frequency = <240000000>;
+	status = "okay";
+	port {
+		mipi_sensor_ep: endpoint@1 {
+			remote-endpoint = <&ov5640_mipi_ep>;
+			data-lanes = <2>;
+			csis-hs-settle = <13>;
+			csis-clk-settle = <2>;
+			csis-wclk;
+		};
+
+		csi_mipi_ep: endpoint@2 {
+			remote-endpoint = <&csi_ep>;
+		};
+	};
 };
 
 &gpmi {
@@ -531,6 +561,23 @@
 		clocks = <&clks IMX7D_AUDIO_MCLK_ROOT_CLK>;
 		clock-names = "mclk";
 		wlf,shared-lrclk;
+	};
+
+	ov5640_mipi: ov5640_mipi@3c {
+		compatible = "ovti,ov5640_mipi";
+		reg = <0x3c>;
+		clocks = <&clks IMX7D_CLK_DUMMY>;
+		clock-names = "csi_mclk";
+		csi_id = <0>;
+		pwn-gpios = <&extended_io 6 GPIO_ACTIVE_HIGH>;
+		AVDD-supply = <&vgen6_reg>;
+		mclk = <24000000>;
+		mclk_source = <0>;
+		port {
+			ov5640_mipi_ep: endpoint {
+				remote-endpoint = <&mipi_sensor_ep>;
+			};
+		};
 	};
 };
 
