@@ -1077,6 +1077,33 @@
 				};
 			};
 
+			csi1_bridge: csi1_bridge@32e20000 {
+				compatible = "fsl,imx8mm-csi", "fsl,imx8mq-csi", "fsl,imx6s-csi";
+				reg = <0x32e20000 0x1000>;
+				interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clk IMX8MM_CLK_DISP_AXI_ROOT>,
+					<&clk IMX8MM_CLK_CSI1_ROOT>,
+					<&clk IMX8MM_CLK_DISP_APB_ROOT>;
+				clock-names = "disp-axi", "csi_mclk", "disp_dcic";
+				power-domains = <&dispmix_pd>;
+				status = "disabled";
+			};
+
+			mipi_csi_1: mipi_csi@32e30000 {
+				compatible = "fsl,imx8mm-mipi-csi";
+				reg = <0x32e30000 0x1000>;
+				interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <333000000>;
+				clocks = <&clk IMX8MM_CLK_CSI1_CORE>,
+					<&clk IMX8MM_CLK_CSI1_PHY_REF>,
+					<&clk IMX8MM_CLK_DISP_AXI_ROOT>,
+					<&clk IMX8MM_CLK_DISP_APB_ROOT>;
+				clock-names = "mipi_clk", "phy_clk", "disp_axi", "disp_apb";
+				bus-width = <4>;
+				power-domains = <&mipi_pd>;
+				status = "disabled";
+			};
+
 			dispmix_gpr: display-gpr@32e28000 {
 				compatible = "fsl, imx8mm-iomuxc-gpr", "syscon";
 				reg = <0x32e28000 0x100>;
