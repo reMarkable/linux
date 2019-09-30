@@ -3,6 +3,7 @@
  * Copyright (C) 2014-2016 Freescale Semiconductor, Inc. All Rights Reserved.
  * Copyright 2019 NXP
  */
+
 /*!
  * @file mx6s_csi.c
  *
@@ -334,7 +335,6 @@ struct mx6s_csi_dev {
 
 	struct v4l2_async_subdev	asd;
 	struct v4l2_async_notifier	subdev_notifier;
-	struct v4l2_async_subdev	*async_subdevs[2];
 
 	bool csi_mipi_mode;
 	bool csi_two_8bit_sensor_mode;
@@ -1365,7 +1365,7 @@ static int mx6s_vidioc_qbuf(struct file *file, void *priv,
 
 	WARN_ON(priv != file->private_data);
 
-	return vb2_qbuf(&csi_dev->vb2_vidq, p);
+	return vb2_qbuf(&csi_dev->vb2_vidq, NULL, p);
 }
 
 static int mx6s_vidioc_dqbuf(struct file *file, void *priv,
@@ -1561,39 +1561,39 @@ static int mx6s_vidioc_streamoff(struct file *file, void *priv,
 	return 0;
 }
 
-static int mx6s_vidioc_cropcap(struct file *file, void *fh,
-			      struct v4l2_cropcap *a)
+static int mx6s_vidioc_g_pixelaspect(struct file *file, void *fh,
+			       int type, struct v4l2_fract *f)
 {
 	struct mx6s_csi_dev *csi_dev = video_drvdata(file);
 
-	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+	if (type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 		return -EINVAL;
-	dev_dbg(csi_dev->dev, "VIDIOC_CROPCAP not implemented\n");
+	dev_dbg(csi_dev->dev, "G_PIXELASPECT not implemented\n");
 
 	return 0;
 }
 
-static int mx6s_vidioc_g_crop(struct file *file, void *priv,
-			     struct v4l2_crop *a)
+static int mx6s_vidioc_g_selection(struct file *file, void *priv,
+			     struct v4l2_selection *s)
 {
 	struct mx6s_csi_dev *csi_dev = video_drvdata(file);
 
-	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 		return -EINVAL;
-	dev_dbg(csi_dev->dev, "VIDIOC_G_CROP not implemented\n");
+	dev_dbg(csi_dev->dev, "VIDIOC_G_SELECTION not implemented\n");
 
 	return 0;
 }
 
-static int mx6s_vidioc_s_crop(struct file *file, void *priv,
-			     const struct v4l2_crop *a)
+static int mx6s_vidioc_s_selection(struct file *file, void *priv,
+			     struct v4l2_selection *s)
 {
 	struct mx6s_csi_dev *csi_dev = video_drvdata(file);
 
-	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 		return -EINVAL;
 
-	dev_dbg(csi_dev->dev, "VIDIOC_S_CROP not implemented\n");
+	dev_dbg(csi_dev->dev, "VIDIOC_S_SELECTION not implemented\n");
 
 	return 0;
 }
@@ -1689,9 +1689,9 @@ static const struct v4l2_ioctl_ops mx6s_csi_ioctl_ops = {
 	.vidioc_try_fmt_vid_cap   = mx6s_vidioc_try_fmt_vid_cap,
 	.vidioc_g_fmt_vid_cap     = mx6s_vidioc_g_fmt_vid_cap,
 	.vidioc_s_fmt_vid_cap     = mx6s_vidioc_s_fmt_vid_cap,
-	.vidioc_cropcap       = mx6s_vidioc_cropcap,
-	.vidioc_s_crop        = mx6s_vidioc_s_crop,
-	.vidioc_g_crop        = mx6s_vidioc_g_crop,
+	.vidioc_g_pixelaspect     = mx6s_vidioc_g_pixelaspect,
+	.vidioc_s_selection   = mx6s_vidioc_s_selection,
+	.vidioc_g_selection   = mx6s_vidioc_g_selection,
 	.vidioc_reqbufs       = mx6s_vidioc_reqbufs,
 	.vidioc_querybuf      = mx6s_vidioc_querybuf,
 	.vidioc_qbuf          = mx6s_vidioc_qbuf,
@@ -1797,6 +1797,8 @@ static int mx6sx_register_subdevs(struct mx6s_csi_dev *csi_dev)
 	struct device_node *node, *port, *rem;
 	int ret;
 
+	v4l2_async_notifier_init(&csi_dev->subdev_notifier);
+
 	/* Attach sensors linked to csi receivers */
 	for_each_available_child_of_node(parent, node) {
 		if (of_node_cmp(node->name, "port"))
@@ -1817,14 +1819,17 @@ static int mx6sx_register_subdevs(struct mx6s_csi_dev *csi_dev)
 
 		csi_dev->asd.match_type = V4L2_ASYNC_MATCH_FWNODE;
 		csi_dev->asd.match.fwnode = of_fwnode_handle(rem);
-		csi_dev->async_subdevs[0] = &csi_dev->asd;
+
+		ret = v4l2_async_notifier_add_subdev(&csi_dev->subdev_notifier,
+						&csi_dev->asd);
+		if (ret) {
+			of_node_put(rem);
+		}
 
 		of_node_put(rem);
 		break;
 	}
 
-	csi_dev->subdev_notifier.subdevs = csi_dev->async_subdevs;
-	csi_dev->subdev_notifier.num_subdevs = 1;
 	csi_dev->subdev_notifier.ops = &mx6s_capture_async_ops;
 
 	ret = v4l2_async_notifier_register(&csi_dev->v4l2_dev,
@@ -1845,7 +1850,7 @@ static int mx6s_csi_probe(struct platform_device *pdev)
 	struct resource *res;
 	int ret = 0;
 
-	dev_dbg(dev, "initialising\n");
+	dev_info(dev, "initialising\n");
 
 	/* Prepare our private structure */
 	csi_dev = devm_kzalloc(dev, sizeof(struct mx6s_csi_dev), GFP_ATOMIC);
@@ -1927,6 +1932,7 @@ static int mx6s_csi_probe(struct platform_device *pdev)
 	vdev->ioctl_ops		= &mx6s_csi_ioctl_ops;
 	vdev->release		= video_device_release;
 	vdev->lock			= &csi_dev->lock;
+	vdev->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
 
 	vdev->queue = &csi_dev->vb2_vidq;
 
