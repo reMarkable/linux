@@ -200,6 +200,28 @@ img_subsys: bus@58000000 {
 		power-domains = <&pd IMX_SC_R_CSI_1>;
 	};
 
+	img_jpeg_dec_clk: clock-controller@585d0000 {
+		compatible = "fsl,imx8qxp-lpcg";
+		reg = <0x585d0000 0x10000>;
+		#clock-cells = <1>;
+		clocks = <&img_ipg_clk>, <&img_ipg_clk>;
+		bit-offset = <0 16>;
+		clock-output-names = "img_jpeg_dec_clk",
+				     "img_jpeg_dec_ipg_clk";
+		power-domains = <&pd IMX_SC_R_MJPEG_DEC_MP>;
+	};
+
+	img_jpeg_enc_clk: clock-controller@585f0000 {
+		compatible = "fsl,imx8qxp-lpcg";
+		reg = <0x585f0000 0x10000>;
+		#clock-cells = <1>;
+		clocks = <&img_ipg_clk>, <&img_ipg_clk>;
+		bit-offset = <0 16>;
+		clock-output-names = "img_jpeg_enc_clk",
+				     "img_jpeg_enc_ipg_clk";
+		power-domains = <&pd IMX_SC_R_MJPEG_ENC_MP>;
+	};
+
 	irqsteer_csi0: irqsteer@58220000 {
 		compatible = "fsl,imx-irqsteer";
 		reg = <0x58220000 0x1000>;
