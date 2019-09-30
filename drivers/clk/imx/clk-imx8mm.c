@@ -647,6 +647,11 @@ static int imx8mm_clocks_probe(struct platform_device *pdev)
 
 	clk_set_parent(clks[IMX8MM_CLK_PCIE1_CTRL], clks[IMX8MM_SYS_PLL2_250M]);
 	clk_set_parent(clks[IMX8MM_CLK_PCIE1_PHY], clks[IMX8MM_SYS_PLL2_100M]);
+
+	clk_set_parent(clks[IMX8MM_CLK_CSI1_CORE], clks[IMX8MM_SYS_PLL2_1000M]);
+	clk_set_parent(clks[IMX8MM_CLK_CSI1_PHY_REF], clks[IMX8MM_SYS_PLL2_1000M]);
+	clk_set_parent(clks[IMX8MM_CLK_CSI1_ESC], clks[IMX8MM_SYS_PLL1_800M]);
+
 	imx_register_uart_clocks();
 
 	return 0;
