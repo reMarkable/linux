@@ -92,6 +92,8 @@ static enum power_supply_property max77818_battery_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_AVG,
 	POWER_SUPPLY_PROP_VOLTAGE_OCV,
 	POWER_SUPPLY_PROP_CAPACITY,
+	POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN,
+	POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_NOW,
@@ -306,6 +308,20 @@ static int max77818_get_property(struct power_supply *psy,
 
 		val->intval = data >> 8;
 		break;
+	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN:
+		ret = regmap_read(map, MAX17042_SALRT_Th, &data);
+		if (ret < 0)
+			return ret;
+
+		val->intval = data & 0xff;
+		break;
+	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX:
+		ret = regmap_read(map, MAX17042_SALRT_Th, &data);
+		if (ret < 0)
+			return ret;
+
+		val->intval = data >> 8;
+		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		ret = regmap_read(map, MAX17042_DesignCap, &data);
 		if (ret < 0)
@@ -433,6 +449,23 @@ static int max77818_set_property(struct power_supply *psy,
 		data = (data & 0xff) + (temp << 8);
 		ret = regmap_write(map, MAX17042_TALRT_Th, data);
 		break;
+	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN:
+		if (val->intval < 0 || val->intval > 100) {
+			ret = -EINVAL;
+			break;
+		}
+		ret = regmap_update_bits(map, MAX17042_SALRT_Th,
+					 0xff, val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX:
+		if ((val->intval < 0 || val->intval > 100) &&
+		    val->intval != 255) {
+			ret = -EINVAL;
+			break;
+		}
+		ret = regmap_update_bits(map, MAX17042_SALRT_Th,
+					 0xff00, val->intval << 8);
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -448,6 +481,8 @@ static int max77818_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_TEMP_ALERT_MIN:
 	case POWER_SUPPLY_PROP_TEMP_ALERT_MAX:
+	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN:
+	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX:
 		ret = 1;
 		break;
 	default:
@@ -746,30 +781,23 @@ static int max77818_init_chip(struct max77818_chip *chip)
 	return 0;
 }
 
-static void max77818_set_soc_threshold(struct max77818_chip *chip, u16 off)
-{
-	struct regmap *map = chip->regmap;
-	u32 soc, soc_tr;
-
-	/* program interrupt threshold such that we should
-	 * get interrupt for every 'off' percent change in the soc
-	 */
-	regmap_read(map, MAX17042_RepSOC, &soc);
-	soc >>= 8;
-	soc_tr = (soc + off) << 8;
-	soc_tr |= (soc - off);
-	regmap_write(map, MAX17042_SALRT_Th, soc_tr);
-}
-
 static irqreturn_t max77818_thread_handler(int id, void *dev)
 {
 	struct max77818_chip *chip = dev;
 	u32 val;
 
 	regmap_read(chip->regmap, MAX17042_STATUS, &val);
-	if ((val & STATUS_INTR_SOCMIN_BIT) || (val & STATUS_INTR_SOCMAX_BIT)) {
-		dev_dbg(chip->dev, "SOC threshold INTR\n");
-		max77818_set_soc_threshold(chip, 1);
+
+	if (val & STATUS_INTR_SOCMIN_BIT) {
+		dev_info(chip->dev, "MIN SOC alert\n");
+		sysfs_notify(&chip->battery->dev.kobj, NULL,
+			     "capacity_alert_min");
+	}
+
+	if (val & STATUS_INTR_SOCMAX_BIT) {
+		dev_info(chip->dev, "MAX SOC alert\n");
+		sysfs_notify(&chip->battery->dev.kobj, NULL,
+			     "capacity_alert_max");
 	}
 
 	power_supply_changed(chip->battery);
@@ -870,6 +898,9 @@ static int max77818_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	/* Disable max SOC alert and set min SOC alert as 10% by default */
+	regmap_write(chip->regmap, MAX17042_SALRT_Th, (0xff << 8) | 0x0a );
+
 	chip->irq = regmap_irq_get_virq(max77818->irqc_intsrc, MAX77818_FG_INT);
 	if (chip->irq <= 0) {
 		dev_err(dev, "failed to get virq: %d\n", chip->irq);
@@ -885,11 +916,6 @@ static int max77818_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	/* Get interrupt on each %1 change of SOC threshold */
-	regmap_update_bits(chip->regmap, MAX17042_CONFIG,
-			   CONFIG_ALRT_BIT_ENBL, CONFIG_ALRT_BIT_ENBL);
-	max77818_set_soc_threshold(chip, 1);
-
 	regmap_read(chip->regmap, MAX17042_STATUS, &val);
 	if (val & STATUS_POR_BIT) {
 		INIT_WORK(&chip->work, max77818_init_worker);
@@ -901,47 +927,10 @@ static int max77818_probe(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM_SLEEP
-static int max77818_suspend(struct device *dev)
-{
-	struct max77818_chip *chip = dev_get_drvdata(dev);
-
-	/*
-	 * disable the irq and enable irq_wake
-	 * capability to the interrupt line.
-	 */
-	disable_irq(chip->irq);
-	enable_irq_wake(chip->irq);
-
-	return 0;
-}
-
-static int max77818_resume(struct device *dev)
-{
-	struct max77818_chip *chip = dev_get_drvdata(dev);
-
-	disable_irq_wake(chip->irq);
-	enable_irq(chip->irq);
-
-	/*
-	 * As in suspend state, very likely we may have already missed the
-	 * recent 1% SOC change. So we need to reprogram a new SOC threshold.
-	 * Otherwise, we are unable to get the next interrupt.
-	 */
-	max77818_set_soc_threshold(chip, 1);
-
-	return 0;
-}
-#endif
-
-static SIMPLE_DEV_PM_OPS(max77818_pm_ops, max77818_suspend,
-			 max77818_resume);
-
 static struct platform_driver max77818_fg_driver = {
 	.driver = {
 		.name = MAX77818_FUELGAUGE_NAME,
 		.owner = THIS_MODULE,
-		.pm = &max77818_pm_ops,
 	},
 	.probe = max77818_probe,
 };
