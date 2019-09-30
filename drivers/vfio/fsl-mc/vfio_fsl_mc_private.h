@@ -35,4 +35,9 @@ struct vfio_fsl_mc_device {
 	struct vfio_fsl_mc_reflck   *reflck;
 };
 
+int vfio_fsl_mc_set_irqs_ioctl(struct vfio_fsl_mc_device *vdev,
+			       uint32_t flags, unsigned int index,
+			       unsigned int start, unsigned int count,
+			       void *data);
+
 #endif /* VFIO_PCI_PRIVATE_H */
