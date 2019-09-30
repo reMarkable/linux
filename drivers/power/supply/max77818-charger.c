@@ -598,8 +598,15 @@ static int max77818_charger_get_property(struct power_supply *psy,
 		val->intval = chg->charger_mode;
 		break;
 	case POWER_SUPPLY_PROP_STATUS_EX:
-		val->intval = (max77818_charger_chgin_present(chg) |
-			      (max77818_charger_wcin_present(chg) << 1));
+		if (chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY)
+			/* Charger device reports CHGIN OK in OTG mode anyway,
+			 * so just ignore this and report WCIN status only when
+			 * in OTG mode (charging is off anyway)
+			 */
+			val->intval = (max77818_charger_wcin_present(chg) << 1);
+		else
+			val->intval = (max77818_charger_chgin_present(chg) |
+			      	      (max77818_charger_wcin_present(chg) << 1));
 		break;
 	default:
 		ret = -EINVAL;
