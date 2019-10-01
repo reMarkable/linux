@@ -15,6 +15,13 @@
 #define VFIO_FSL_MC_INDEX_TO_OFFSET(index)	\
 	((u64)(index) << VFIO_FSL_MC_OFFSET_SHIFT)
 
+struct vfio_fsl_mc_irq {
+	u32         flags;
+	u32         count;
+	struct eventfd_ctx  *trigger;
+	char            *name;
+};
+
 struct vfio_fsl_mc_reflck {
 	struct kref		kref;
 	struct mutex		lock;
@@ -33,11 +40,14 @@ struct vfio_fsl_mc_device {
 	u32				num_regions;
 	struct vfio_fsl_mc_region	*regions;
 	struct vfio_fsl_mc_reflck   *reflck;
+	struct vfio_fsl_mc_irq      *mc_irqs;
 };
 
 int vfio_fsl_mc_set_irqs_ioctl(struct vfio_fsl_mc_device *vdev,
 			       uint32_t flags, unsigned int index,
 			       unsigned int start, unsigned int count,
 			       void *data);
+
+void vfio_fsl_mc_irqs_cleanup(struct vfio_fsl_mc_device *vdev);
 
 #endif /* VFIO_PCI_PRIVATE_H */

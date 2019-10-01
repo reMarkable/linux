@@ -144,11 +144,29 @@ err_reg_init:
 static void vfio_fsl_mc_release(void *device_data)
 {
 	struct vfio_fsl_mc_device *vdev = device_data;
+	int ret;
 
 	mutex_lock(&vdev->reflck->lock);
 
-	if (!(--vdev->refcnt))
+	if (!(--vdev->refcnt)) {
+		struct fsl_mc_device *mc_dev = vdev->mc_dev;
+		struct device *cont_dev = fsl_mc_cont_dev(&mc_dev->dev);
+		struct fsl_mc_device *mc_cont = to_fsl_mc_device(cont_dev);
+		struct fsl_mc_bus *mc_bus;
+
+		mc_bus = to_fsl_mc_bus(mc_cont);
+
 		vfio_fsl_mc_regions_cleanup(vdev);
+
+		/* reset the device before cleaning up the interrupts */
+		ret = dprc_reset_container(mc_dev->mc_io, 0,
+		      mc_dev->mc_handle,
+			  mc_dev->obj_desc.id);
+
+		vfio_fsl_mc_irqs_cleanup(vdev);
+
+		fsl_mc_cleanup_irq_pool(mc_bus);
+	}
 
 	mutex_unlock(&vdev->reflck->lock);
 
