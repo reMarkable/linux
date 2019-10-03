@@ -1529,7 +1529,7 @@ static int mxsfb_map_videomem(struct fb_info *fbi)
 		fbi->fix.smem_len = fbi->var.yres_virtual *
 				    fbi->fix.line_length;
 
-	fbi->screen_base = dma_alloc_writecombine(fbi->device,
+	fbi->screen_base = dma_alloc_wc(fbi->device,
 				fbi->fix.smem_len,
 				(dma_addr_t *)&fbi->fix.smem_start,
 				GFP_DMA | GFP_KERNEL);
@@ -1560,7 +1560,7 @@ static int mxsfb_map_videomem(struct fb_info *fbi)
  */
 static int mxsfb_unmap_videomem(struct fb_info *fbi)
 {
-	dma_free_writecombine(fbi->device, fbi->fix.smem_len,
+	dma_free_wc(fbi->device, fbi->fix.smem_len,
 			      fbi->screen_base, fbi->fix.smem_start);
 	fbi->screen_base = 0;
 	fbi->fix.smem_start = 0;
