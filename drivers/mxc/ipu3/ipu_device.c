@@ -33,6 +33,7 @@
 #include <linux/platform_device.h>
 #include <linux/poll.h>
 #include <linux/sched.h>
+#include <uapi/linux/sched/types.h>
 #include <linux/sched/types.h>
 #include <linux/sched/rt.h>
 #include <linux/slab.h>
