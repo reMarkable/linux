@@ -968,6 +968,9 @@ static int mxsfb_set_par(struct fb_info *fb_info)
 	writel(fb_info->fix.smem_start +
 			fb_info->fix.line_length * fb_info->var.yoffset,
 			host->base + host->devdata->next_buf);
+	writel(fb_info->fix.smem_start +
+			fb_info->fix.line_length * fb_info->var.yoffset,
+			host->base + host->devdata->cur_buf);
 
 	if (reenable)
 		mxsfb_enable_controller(fb_info);
