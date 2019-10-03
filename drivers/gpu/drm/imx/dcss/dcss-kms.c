@@ -14,7 +14,7 @@
 #include <drm/drm_gem_cma_helper.h>
 #include <drm/drm_probe_helper.h>
 #include <linux/dma-buf.h>
-#include <linux/reservation.h>
+#include <linux/dma-resv.h>
 
 #include "dcss-dev.h"
 #include "dcss-kms.h"
