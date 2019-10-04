@@ -872,6 +872,14 @@
 	};
 };
 
+&jpegdec {
+	status = "okay";
+};
+
+&jpegenc {
+	status = "okay";
+};
+
 &i2c_mipi_csi0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
