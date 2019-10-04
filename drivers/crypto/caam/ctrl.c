@@ -583,6 +583,7 @@ static int caam_probe(struct platform_device *pdev)
 	u8 rng_vid;
 	int pg_size;
 	int BLOCK_OFFSET = 0;
+	bool reg_access = true;
 
 	ctrlpriv = devm_kzalloc(&pdev->dev, sizeof(*ctrlpriv), GFP_KERNEL);
 	if (!ctrlpriv)
@@ -600,12 +601,25 @@ static int caam_probe(struct platform_device *pdev)
 		ctrlpriv->scu_en = !!np;
 		of_node_put(np);
 
+		reg_access = !ctrlpriv->scu_en;
+
 		/*
 		 * CAAM clocks cannot be controlled from kernel.
 		 * They are automatically turned on by SCU f/w.
 		 */
 		if (ctrlpriv->scu_en)
 			goto iomap_ctrl;
+
+		/*
+		 * Until Layerscape and i.MX OP-TEE get in sync,
+		 * only i.MX OP-TEE use cases disallow access to
+		 * caam page 0 (controller) registers.
+		 */
+		np = of_find_compatible_node(NULL, NULL, "linaro,optee-tz");
+		ctrlpriv->optee_en = !!np;
+		of_node_put(np);
+
+		reg_access = reg_access && !ctrlpriv->optee_en;
 
 		if (!imx_soc_match->data) {
 			dev_err(dev, "No clock data provided for i.MX SoC");
@@ -657,7 +671,7 @@ iomap_ctrl:
 	caam_little_end = !(bool)(rd_reg32(&perfmon->status) &
 				  (CSTA_PLEND | CSTA_ALT_PLEND));
 	comp_params = rd_reg32(&perfmon->comp_parms_ms);
-	if (!ctrlpriv->scu_en && comp_params & CTPR_MS_PS &&
+	if (reg_access && comp_params & CTPR_MS_PS &&
 	    rd_reg32(&ctrl->mcr) & MCFGR_LONG_PTR)
 		caam_ptr_sz = sizeof(u64);
 	else
@@ -708,7 +722,7 @@ iomap_ctrl:
 	/* Get the IRQ of the controller (for security violations only) */
 	ctrlpriv->secvio_irq = irq_of_parse_and_map(nprop, 0);
 
-	if (ctrlpriv->scu_en)
+	if (!reg_access)
 		goto set_dma_mask;
 
 	/*
@@ -803,7 +817,7 @@ set_dma_mask:
 		return -ENOMEM;
 	}
 
-	if (ctrlpriv->scu_en)
+	if (!reg_access)
 		goto report_live;
 
 	if (ctrlpriv->era < 10) {
@@ -930,7 +944,7 @@ report_live:
 			    ctrlpriv->ctl, &perfmon->status,
 			    &caam_fops_u32_ro);
 
-	if (ctrlpriv->scu_en)
+	if (!reg_access)
 		goto probe_jrs;
 
 	/* Internal covering keys (useful in non-secure mode only) */
