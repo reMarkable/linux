@@ -41,6 +41,7 @@
 #define APP14				0xEE
 #define MXC_JPEG_ENC_CONF_DONE		1
 #define MXC_JPEG_MAX_PLANES		2
+#define MXC_JPEG_NUM_PD			6
 
 
 /**
@@ -116,24 +117,25 @@ struct mxc_jpeg_slot_data {
 };
 
 struct mxc_jpeg_dev {
-	spinlock_t				hw_lock;
-	unsigned int				mode;
+	spinlock_t			hw_lock;
+	unsigned int			mode;
 	struct mutex			lock;
-	bool					enc;
-	bool					dec;
-	struct clk				*clk_ipg;
-	struct clk				*clk_per;
-	struct platform_device			*pdev;
-	struct device				*dev;
-	void __iomem				*base_reg;
-	void __iomem				*enc_reg;
-	struct v4l2_device			v4l2_dev;
-	struct v4l2_m2m_dev			*m2m_dev;
-	struct video_device			*dec_vdev;
-	unsigned int				irq;
-	int					id;
-
-	struct mxc_jpeg_slot_data slot_data[MXC_MAX_SLOTS];
+	bool				enc;
+	bool				dec;
+	struct clk			*clk_ipg;
+	struct clk			*clk_per;
+	struct platform_device		*pdev;
+	struct device			*dev;
+	void __iomem			*base_reg;
+	void __iomem			*enc_reg;
+	struct v4l2_device		v4l2_dev;
+	struct v4l2_m2m_dev		*m2m_dev;
+	struct video_device		*dec_vdev;
+	unsigned int			irq;
+	int				id;
+	struct mxc_jpeg_slot_data	slot_data[MXC_MAX_SLOTS];
+	struct device			*pd_dev[MXC_JPEG_NUM_PD];
+	struct device_link		*pd_link[MXC_JPEG_NUM_PD];
 };
 
 #define MXC_JPEG_MAX_COMPONENTS 4

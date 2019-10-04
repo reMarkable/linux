@@ -15,6 +15,7 @@
 #include <linux/irqreturn.h>
 #include <linux/interrupt.h>
 #include <linux/pm_runtime.h>
+#include <linux/pm_domain.h>
 #include <linux/string.h>
 
 #include <media/v4l2-mem2mem.h>
@@ -1994,6 +1995,58 @@ static struct v4l2_m2m_ops mxc_jpeg_m2m_ops = {
 	.job_abort	= mxc_jpeg_job_abort,
 };
 
+static void mxc_jpeg_detach_pm_domains(struct mxc_jpeg_dev *jpeg)
+{
+	int i;
+
+	for (i = 0; i < MXC_JPEG_NUM_PD; i++) {
+		if (jpeg->pd_link[i] && !IS_ERR(jpeg->pd_link[i]))
+			device_link_del(jpeg->pd_link[i]);
+		if (jpeg->pd_dev[i] && !IS_ERR(jpeg->pd_dev[i]))
+			dev_pm_domain_detach(jpeg->pd_dev[i], true);
+		jpeg->pd_dev[i] = NULL;
+		jpeg->pd_link[i] = NULL;
+	}
+}
+
+static int mxc_jpeg_attach_pm_domains(struct mxc_jpeg_dev *jpeg)
+{
+	struct device *dev = jpeg->dev;
+	struct device_node *np = jpeg->pdev->dev.of_node;
+	int i, num_domains;
+	int ret;
+
+	num_domains = of_count_phandle_with_args(np, "power-domains",
+						 "#power-domain-cells");
+	if (num_domains != MXC_JPEG_NUM_PD) {
+		dev_err(dev, "Expecting %d power domains, got %d\n",
+			MXC_JPEG_NUM_PD, num_domains);
+		return -EINVAL;
+	}
+
+	for (i = 0; i < MXC_JPEG_NUM_PD; i++) {
+		jpeg->pd_dev[i] = dev_pm_domain_attach_by_id(dev, i);
+		if (IS_ERR(jpeg->pd_dev[i])) {
+			ret = PTR_ERR(jpeg->pd_dev[i]);
+			goto fail;
+		}
+
+		jpeg->pd_link[i] = device_link_add(dev, jpeg->pd_dev[i],
+			DL_FLAG_STATELESS |
+			DL_FLAG_PM_RUNTIME |
+			DL_FLAG_RPM_ACTIVE);
+		if (IS_ERR(jpeg->pd_link[i])) {
+			ret = PTR_ERR(jpeg->pd_link[i]);
+			goto fail;
+		}
+	}
+
+	return 0;
+fail:
+	mxc_jpeg_detach_pm_domains(jpeg);
+	return ret;
+}
+
 static int mxc_jpeg_probe(struct platform_device *pdev)
 {
 	struct mxc_jpeg_dev *jpeg;
@@ -2057,6 +2110,12 @@ static int mxc_jpeg_probe(struct platform_device *pdev)
 	if (IS_ERR(jpeg->clk_per)) {
 		dev_err(dev, "failed to get clock: per\n");
 		goto err_clk;
+	}
+
+	ret = mxc_jpeg_attach_pm_domains(jpeg);
+	if (ret < 0) {
+		dev_err(dev, "failed to attach power domains %d\n", ret);
+		return ret;
 	}
 
 	/* v4l2 */
@@ -2184,6 +2243,7 @@ static int mxc_jpeg_remove(struct platform_device *pdev)
 	video_device_release(jpeg->dec_vdev);
 	v4l2_m2m_release(jpeg->m2m_dev);
 	v4l2_device_unregister(&jpeg->v4l2_dev);
+	mxc_jpeg_detach_pm_domains(jpeg);
 
 	return 0;
 }
