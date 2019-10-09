@@ -172,6 +172,8 @@ static int max17135_probe(struct i2c_client *client,
 err2:
 	mfd_remove_devices(max17135->dev);
 err1:
+	if (!IS_ERR(gpio_regulator))
+		regulator_disable(gpio_regulator);
 	kfree(max17135);
 
 	return ret;
@@ -183,6 +185,10 @@ static int max17135_remove(struct i2c_client *i2c)
 	struct max17135 *max17135 = i2c_get_clientdata(i2c);
 
 	mfd_remove_devices(max17135->dev);
+
+	if (!IS_ERR(gpio_regulator))
+		regulator_disable(gpio_regulator);
+
 	return 0;
 }
 
