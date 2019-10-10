@@ -30,6 +30,7 @@
 #include <linux/time.h>
 #include <linux/types.h>
 #include <linux/pinctrl/consumer.h>
+#include <linux/pm_domain.h>
 
 #define	DRIVER_NAME	"mxc_emvsim"
 
@@ -200,6 +201,10 @@ struct emvsim_t {
 	u32 clk_rate;
 	u8 checking_ts_timing;
 	u8 tx_last_character;
+
+	/* multiple power domain for emvsim */
+        struct device *sim_pd;
+        struct device *sim_aux_pd;
 };
 
 static struct miscdevice emvsim_dev;
@@ -1535,6 +1540,41 @@ static const struct of_device_id emvsim_imx_dt_ids[] = {
 
 MODULE_DEVICE_TABLE(of, emvsim_imx_dt_ids);
 
+static int emvsim_attach_multi_pd(struct device *dev, struct emvsim_t *emvsim)
+{
+        struct device_link *link;
+
+        /* Do nothing when in a signal power domain */
+        if (dev->pm_domain)
+                return 0;
+
+        emvsim->sim_pd = dev_pm_domain_attach_by_name(dev, "sim_pd");
+        if (IS_ERR(emvsim->sim_pd))
+                return PTR_ERR(emvsim->sim_pd);
+        link = device_link_add(dev, emvsim->sim_pd,
+                               DL_FLAG_STATELESS |
+                               DL_FLAG_PM_RUNTIME |
+                               DL_FLAG_RPM_ACTIVE);
+        if (IS_ERR(link)) {
+                dev_err(dev, "Failed to add device_link to EMVSIM pd: %ld\n", PTR_ERR(link));
+                return PTR_ERR(link);
+        }
+
+        emvsim->sim_aux_pd = dev_pm_domain_attach_by_name(dev, "sim_aux_pd");
+        if (IS_ERR(emvsim->sim_aux_pd))
+                return PTR_ERR(emvsim->sim_aux_pd);
+        link = device_link_add(dev, emvsim->sim_aux_pd,
+                               DL_FLAG_STATELESS |
+                               DL_FLAG_PM_RUNTIME |
+                               DL_FLAG_RPM_ACTIVE);
+        if (IS_ERR(link)) {
+                dev_err(dev, "Failed to add device_link to EMVSIM pd: %ld\n", PTR_ERR(link));
+                return PTR_ERR(link);
+        }
+
+        return 0;
+}
+
 static int emvsim_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1597,6 +1637,10 @@ static int emvsim_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, emvsim);
 	emvsim_dev.parent = &pdev->dev;
+
+        ret = emvsim_attach_multi_pd(&pdev->dev, emvsim);
+        if (ret)
+                return ret;
 
 	ret = misc_register(&emvsim_dev);
 	dev_info(&pdev->dev, "emvsim register %s\n", ret ? "fail" : "success");
