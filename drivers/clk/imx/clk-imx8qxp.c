@@ -111,6 +111,7 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	imx_clk_scu("uart2_clk", IMX_SC_R_UART_2, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("uart3_clk", IMX_SC_R_UART_3, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("uart4_clk", IMX_SC_R_UART_4, IMX_SC_PM_CLK_PER);
+	imx_clk_scu("sim0_clk",  IMX_SC_R_EMVSIM_0, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("spi0_clk",  IMX_SC_R_SPI_0, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("spi1_clk",  IMX_SC_R_SPI_1, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("spi2_clk",  IMX_SC_R_SPI_2, IMX_SC_PM_CLK_PER);
