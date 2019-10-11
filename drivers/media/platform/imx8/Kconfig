@@ -6,7 +6,7 @@ config IMX8_JPEG
 	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
 	select V4L2_MEM2MEM_DEV
 	select VIDEOBUF2_DMA_CONTIG
-	default y
+	default m
 
 endmenu
 endif #VIDEO_MX8_CAPTURE
