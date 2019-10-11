@@ -141,6 +141,14 @@ config VIDEO_RENESAS_CEU
 	help
 	  This is a v4l2 driver for the Renesas CEU Interface
 
+config VIDEO_MX8_CAPTURE
+	tristate "MX8 Video For Linux Video Capture"
+	depends on VIDEO_V4L2
+	---help---
+	  This is the video4linux2 capture driver based on i.MX8 module.
+
+source "drivers/media/platform/imx8/Kconfig"
+
 source "drivers/media/platform/exynos4-is/Kconfig"
 source "drivers/media/platform/am437x/Kconfig"
 source "drivers/media/platform/xilinx/Kconfig"
