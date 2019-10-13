@@ -412,6 +412,7 @@
 &can1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_flexcan1>;
+	pinctrl-assert-gpios = <&max7310_b 3 GPIO_ACTIVE_HIGH>; /* TX */
 	xceiver-supply = <&reg_can_stby>;
 	status = "disabled"; /* pin conflict with fec */
 };
