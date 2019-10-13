@@ -310,6 +310,9 @@ static void bd7181x_hw_init(struct bd7181x *bd7181x)
 	/* Turn off LDO5_1V8 (SD/MMC) in LPSR mode */
 	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE3, BIT(5));
 
+	/* Keep LDO_DVREF (LPDDR_VREF_0V6) on in LPSR mode */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_LDO_MODE4, BIT(5));
+
 	/*
 	 * Misc settings for a bit more power saving by disabling
 	 * unneeded stuff.
