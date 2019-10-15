@@ -1,0 +1,15 @@
+config TSN
+	bool "802.1 Time-Sensitive Networking support"
+	default n
+	depends on VLAN_8021Q && PTP_1588_CLOCK
+	help
+	  This enables support for TSN(time sensitive networking)
+	  TSN features include:
+		802.1Qav:
+		802.1Qbv:
+		802.1Qci:
+		802.1Qbu:
+		802.1AS:
+		802.1CB:
+
+	  If unsure, say N.
