@@ -89,6 +89,15 @@
 	clock-frequency = <24576000>;
 };
 
+&csi2 {
+	status = "okay";
+	port {
+		csi2_ep: endpoint {
+			remote-endpoint = <&vadc_ep>;
+		};
+	};
+};
+
 &dcic1 {
 	dcic_id = <0>;
 	dcic_mux = "dcic-lcdif1";
@@ -620,6 +629,17 @@
 		rext = <499>;
 		interrupt-parent = <&gpio3>;
 		interrupts = <23 2>;
+	};
+};
+
+&vadc {
+	vadc_in = <0>;
+	csi_id = <1>;
+	status = "okay";
+	port {
+		vadc_ep: endpoint {
+			remote-endpoint = <&csi2_ep>;
+		};
 	};
 };
 
