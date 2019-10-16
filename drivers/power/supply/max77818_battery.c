@@ -227,6 +227,7 @@ static int max77818_get_property(struct power_supply *psy,
 {
 	struct max77818_chip *chip = power_supply_get_drvdata(psy);
 	struct regmap *map = chip->regmap;
+	int temp;
 	int ret;
 	u32 data;
 	u64 data64;
@@ -241,11 +242,17 @@ static int max77818_get_property(struct power_supply *psy,
 			return ret;
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
-		ret = regmap_read(map, MAX17042_STATUS, &data);
+		/*
+		 * MAX17042_STATUS_BattAbsent bit is not working for some
+		 * reason unknown yet. We are working around the issue here by
+		 * reading temperature register, in which a negative value
+		 * indicates absence of battery.
+		 */
+		ret = max77818_get_temperature(chip, &temp);
 		if (ret < 0)
 			return ret;
 
-		if (data & MAX17042_STATUS_BattAbsent)
+		if (temp < 0)
 			val->intval = 0;
 		else
 			val->intval = 1;
