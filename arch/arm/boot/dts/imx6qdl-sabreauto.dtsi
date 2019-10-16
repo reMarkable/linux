@@ -160,6 +160,15 @@
 		regulator-always-on;
 	};
 
+    reg_hdmi: regulator-hdmi {
+		compatible = "regulator-fixed";
+		regulator-name = "hdmi-5v-supply";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+		hdmi-5v-supply = <&swbst_reg>;
+    };
+
 	mxcfb1: fb@0 {
 		compatible = "fsl,mxc_sdc_fb";
 		disp_dev = "ldb";
@@ -430,14 +439,26 @@
 	status = "okay";
 };
 
-&hdmi {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_hdmi_cec>;
-	ddc-i2c-bus = <&i2c2>;
+&hdmi_audio {
 	status = "okay";
 };
 
-&hdmi_audio {
+&hdmi_cec {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hdmi_cec>;
+	status = "okay";
+};
+
+&hdmi_core {
+	ipu_id = <0>;
+	disp_id = <0>;
+	status = "okay";
+};
+
+&hdmi_video {
+	fsl,phy_reg_vlev = <0x294>;
+	fsl,phy_reg_cksymtx = <0x800d>;
+	HDMI-supply = <&reg_hdmi>;
 	status = "okay";
 };
 
@@ -579,6 +600,11 @@
 		si476x_codec: si476x-codec {
 			compatible = "si476x-codec";
 		};
+	};
+
+	hdmi_edid: edid@50 {
+		compatible = "fsl,imx6-hdmi-i2c";
+		reg = <0x50>;
 	};
 };
 
