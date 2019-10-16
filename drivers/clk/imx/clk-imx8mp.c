@@ -212,6 +212,10 @@ static const char *imx8mp_mipi_dsi_esc_rx_sels[] = {"osc_24m", "sys_pll2_100m", 
 						    "sys_pll1_800m", "sys_pll2_1000m", "sys_pll3_out",
 						    "clk_ext3", "audio_pll2_out", };
 
+static const char *imx8mp_media_disp2_pix_sels[] = {"osc_24m", "video_pll1_out", "audio_pll2_out",
+						    "audio_pll1_out", "sys_pll1_800m", "sys_pll2_1000m",
+						    "sys_pll3_out", "clk_ext4", };
+
 static const char *imx8mp_dram_alt_sels[] = {"osc_24m", "sys_pll1_800m", "sys_pll1_100m",
 					     "sys_pll2_500m", "sys_pll2_1000m", "sys_pll3_out",
 					     "audio_pll1_out", "sys_pll1_266m", };
@@ -679,6 +683,7 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_AHB] = imx8m_clk_composite_critical("ahb_root", imx8mp_ahb_sels, base + 0x9000);
 	clks[IMX8MP_CLK_AUDIO_AHB] = imx8m_clk_composite("audio_ahb", imx8mp_audio_ahb_sels, base + 0x9100);
 	clks[IMX8MP_CLK_MIPI_DSI_ESC_RX] = imx8m_clk_composite("mipi_dsi_esc_rx", imx8mp_mipi_dsi_esc_rx_sels, base + 0x9200);
+	clks[IMX8MP_CLK_MEDIA_DISP2_PIX] = imx8m_clk_composite("media_disp2_pix", imx8mp_media_disp2_pix_sels, base + 0x9300);
 
 	/* IPG */
 	clks[IMX8MP_CLK_IPG_ROOT] = imx_clk_divider2("ipg_root", "ahb_root", base + 0x9080, 0, 1);
