@@ -312,7 +312,7 @@ static int enum_fmt(struct mxc_jpeg_fmt *mxc_formats, int n,
 	if (i >= n)
 		return -EINVAL;
 
-	stracpy(f->description, mxc_formats[i].name);
+	strscpy(f->description, mxc_formats[i].name, sizeof(f->description));
 	f->pixelformat = mxc_formats[i].fourcc;
 
 	return 0;
@@ -1596,8 +1596,8 @@ static int mxc_jpeg_querycap(struct file *file, void *priv,
 {
 	struct mxc_jpeg_dev *mxc_jpeg = video_drvdata(file);
 
-	stracpy(cap->driver, MXC_JPEG_NAME " decoder");
-	stracpy(cap->card, MXC_JPEG_NAME " decoder");
+	strscpy(cap->driver, MXC_JPEG_NAME " decoder", sizeof(cap->driver));
+	strscpy(cap->card, MXC_JPEG_NAME " decoder", sizeof(cap->card));
 	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s",
 		 dev_name(mxc_jpeg->dev));
 	cap->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_M2M_MPLANE;
