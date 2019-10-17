@@ -3,7 +3,7 @@ imx6-media-objs := imx-media-dev.o imx-media-internal-sd.o \
 	imx-ic-common.o imx-ic-prp.o imx-ic-prpencvf.o imx-media-vdic.o \
 	imx-media-csc-scaler.o
 
-imx8-capture-objs := imx8-isi-core.o imx8-isi-cap.o imx8-isi-hw.o
+imx8-capture-objs := imx8-isi-core.o imx8-isi-hw.o
 
 imx-media-common-objs := imx-media-capture.o imx-media-dev-common.o \
 	imx-media-of.o imx-media-utils.o
@@ -18,4 +18,4 @@ obj-$(CONFIG_VIDEO_IMX_CSI) += imx6-mipi-csi2.o
 
 obj-$(CONFIG_VIDEO_IMX7_CSI) += imx7-media-csi.o
 obj-$(CONFIG_VIDEO_IMX7_CSI) += imx7-mipi-csis.o
-obj-$(CONFIG_IMX8_CAPTURE_DRIVER) += imx8-capture.o
+obj-$(CONFIG_IMX8_ISI_CORE) += imx8-capture.o
