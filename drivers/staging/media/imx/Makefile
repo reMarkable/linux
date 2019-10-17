@@ -20,3 +20,4 @@ obj-$(CONFIG_VIDEO_IMX7_CSI) += imx7-media-csi.o
 obj-$(CONFIG_VIDEO_IMX7_CSI) += imx7-mipi-csis.o
 obj-$(CONFIG_IMX8_ISI_CORE) += imx8-capture.o
 obj-$(CONFIG_IMX8_ISI_CAPTURE) 	  += imx8-isi-cap.o
+obj-$(CONFIG_IMX8_ISI_M2M)	+= imx8-isi-m2m.o
