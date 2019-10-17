@@ -75,6 +75,8 @@ u32 cdns_mhdp_bus_read(struct cdns_mhdp_device *mhdp, u32 offset)
 {
 	u32 val;
 
+	mutex_lock(&mhdp->iolock);
+
 	if (mhdp->bus_type == BUS_TYPE_LOW4K_SAPB) {
 		/* Remap address to low 4K SAPB bus */
 		writel(offset >> 12, mhdp->regs_sec + 0xc);
@@ -88,12 +90,16 @@ u32 cdns_mhdp_bus_read(struct cdns_mhdp_device *mhdp, u32 offset)
 	else
 		val = readl(mhdp->regs_base + offset);
 
+	mutex_unlock(&mhdp->iolock);
+
 	return val;
 }
 EXPORT_SYMBOL(cdns_mhdp_bus_read);
 
 void cdns_mhdp_bus_write(u32 val, struct cdns_mhdp_device *mhdp, u32 offset)
 {
+	mutex_lock(&mhdp->iolock);
+
 	if (mhdp->bus_type == BUS_TYPE_LOW4K_SAPB) {
 		/* Remap address to low 4K SAPB bus */
 		writel(offset >> 12, mhdp->regs_sec + 0xc);
@@ -106,6 +112,8 @@ void cdns_mhdp_bus_write(u32 val, struct cdns_mhdp_device *mhdp, u32 offset)
 		writel(val, mhdp->regs_sec + offset);
 	else
 		writel(val, mhdp->regs_base + offset);
+
+	mutex_unlock(&mhdp->iolock);
 }
 EXPORT_SYMBOL(cdns_mhdp_bus_write);
 

@@ -410,6 +410,7 @@ static int __cdns_dp_probe(struct platform_device *pdev,
 	int ret;
 
 	mutex_init(&mhdp->lock);
+	mutex_init(&mhdp->iolock);
 
 	INIT_DELAYED_WORK(&mhdp->hotplug_work, hotplug_work_func);
 
