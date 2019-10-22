@@ -678,6 +678,12 @@ config REGULATOR_PCAP
 	 This driver provides support for the voltage regulators of the
 	 PCAP2 PMIC.
 
+config REGULATOR_PCA9450
+    tristate "NXP PCA9450 Power Regulator"
+    depends on MFD_PCA9450
+    help
+      This driver supports PCA9450 voltage regulator chips.
+
 config REGULATOR_PCF50633
 	tristate "NXP PCF50633 regulator driver"
 	depends on MFD_PCF50633
