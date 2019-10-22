@@ -218,9 +218,8 @@ static char *fourcc_to_str(u32 format)
 }
 
 static unsigned int mxc_jpeg_tracing;
-EXPORT_SYMBOL(mxc_jpeg_tracing);
-
 module_param_named(jpeg_tracing, mxc_jpeg_tracing, int, 0600);
+MODULE_PARM_DESC(jpeg_tracing, "Enable detailed debug messages");
 
 static void _bswap16(u16 *a)
 {
