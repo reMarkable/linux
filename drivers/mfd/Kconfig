@@ -1975,6 +1975,14 @@ config MFD_STMFX
 	  additional drivers must be enabled in order to use the functionality
 	  of the device.
 
+config MFD_PCA9450
+	bool "PCA9450 Power Management chip"
+	depends on I2C=y
+	select MFD_CORE
+	help
+	  if you say yes here you get support for the PCA9450
+	  Power Management chips.
+
 menu "Multimedia Capabilities Port drivers"
 	depends on ARCH_SA1100
 
