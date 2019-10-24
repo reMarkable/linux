@@ -418,8 +418,8 @@ static int max77818_get_property(struct power_supply *psy,
 }
 
 static int max77818_set_property(struct power_supply *psy,
-			         enum power_supply_property psp,
-			         const union power_supply_propval *val)
+				 enum power_supply_property psp,
+				 const union power_supply_propval *val)
 {
 	struct max77818_chip *chip = power_supply_get_drvdata(psy);
 	struct regmap *map = chip->regmap;
@@ -672,25 +672,38 @@ static int max77818_model_loading(struct max77818_chip *chip)
 	return (config2 & CONFIG2_LDMDL) ? -ETIMEDOUT : 0;
 }
 
-static inline u16 max77818_read_param(struct max77818_chip *chip, const char *param)
+static inline int max77818_read_param(struct max77818_chip *chip, const char *param, u16 *value)
 {
 	struct device_node *np = chip->dev->of_node;
-	u16 value = 0;
+	int ret;
 
-	if (of_property_read_u16(np, param, &value) != 0)
-		dev_warn(chip->dev, "failed to read parameter: %s\n", param);
+	u16 read_value = 0;
 
-	return value;
+	ret = of_property_read_u16(np, param, &read_value);
+	if (!ret)
+		*value = read_value;
+
+	return ret;
 }
 
 static void max77818_write_custom_params(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
 	u32 value;
+	u16 read_param;
+	int ret;
 
 	regmap_write(map, MAX17042_RepCap, 0);
-	regmap_write(map, MAX17042_RelaxCFG,
-		     max77818_read_param(chip, "maxim,relax-cfg"));
+
+	ret = max77818_read_param(chip, "maxim,relax-cfg", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,relax-cfg': %d\n", read_param);
+		regmap_write(map, MAX17042_RelaxCFG, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,relax-cfg property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,relax-cfg' param from DT, check value\n");
 
 	/* Unlock extra config registers for write access */
 	regmap_write(map, MAX17042_VFSOC0Enable, VFSOC0_UNLOCK);
@@ -698,84 +711,386 @@ static void max77818_write_custom_params(struct max77818_chip *chip)
 	regmap_read(map, MAX17042_VFSOC, &value);
 	max77818_write_verify_reg(map, MAX17042_VFSOC0, value);
 
-	regmap_write(map, MAX17042_LearnCFG,
-		     max77818_read_param(chip, "maxim,learn-cfg"));
-	regmap_write(map, MAX17042_CONFIG,
-		     max77818_read_param(chip, "maxim,config"));
-	regmap_write(map, MAX77818_Config2,
-		     max77818_read_param(chip, "maxim,config2"));
-	regmap_write(map, MAX17047_FullSOCThr,
-		     max77818_read_param(chip, "maxim,full-soc-threshold"));
-	max77818_write_verify_reg(map, MAX17042_FullCAP0,
-				  max77818_read_param(chip, "maxim,fullcaprep"));
-	regmap_write(map, MAX17042_DesignCap,
-		     max77818_read_param(chip, "maxim,design-cap"));
-	max77818_write_verify_reg(map, MAX17042_dPacc,
-				  max77818_read_param(chip, "maxim,dpacc"));
-	max77818_write_verify_reg(map, MAX17042_dQacc,
-				  max77818_read_param(chip, "maxim,dqacc"));
-	max77818_write_verify_reg(map, MAX17042_FullCAPNom,
-				  max77818_read_param(chip, "maxim,fullcapnom"));
-	regmap_write(map, MAX17042_MiscCFG,
-		     max77818_read_param(chip, "maxim,misc-cfg"));
-	regmap_write(map, MAX17047_V_empty,
-		     max77818_read_param(chip, "maxim,v-empty"));
-	max77818_write_verify_reg(map, MAX17047_QRTbl00,
-				  max77818_read_param(chip, "maxim,qresidual00"));
-	max77818_write_verify_reg(map, MAX17047_QRTbl10,
-				  max77818_read_param(chip, "maxim,qresidual10"));
-	max77818_write_verify_reg(map, MAX17047_QRTbl20,
-				  max77818_read_param(chip, "maxim,qresidual20"));
-	max77818_write_verify_reg(map, MAX17047_QRTbl30,
-				  max77818_read_param(chip, "maxim,qresidual30"));
-	max77818_write_verify_reg(map, MAX17042_RCOMP0,
-				  max77818_read_param(chip, "maxim,rcomp0"));
-	max77818_write_verify_reg(map, MAX17042_TempCo,
-				  max77818_read_param(chip, "maxim,tempco"));
-	regmap_write(map, MAX17042_ICHGTerm,
-		     max77818_read_param(chip, "maxim,ichg-term"));
-	regmap_write(map, MAX17042_FilterCFG,
-		     max77818_read_param(chip, "maxim,filter-cfg"));
-	regmap_write(map, MAX17042_LAvg_empty,
-		     max77818_read_param(chip, "maxim,iavg-empty"));
-	regmap_write(map, MAX17042_TGAIN,
-		     max77818_read_param(chip, "maxim,tgain"));
-	regmap_write(map, MAx17042_TOFF,
-		     max77818_read_param(chip, "maxim,toff"));
-	regmap_write(map, MAX77818_TCURVE,
-		     max77818_read_param(chip, "maxim,tcurve"));
-	regmap_write(map, MAX17042_TALRT_Th,
-		     max77818_read_param(chip, "maxim,talrt-th"));
-	regmap_write(map, MAX77818_TALRT_Th2,
-		     max77818_read_param(chip, "maxim,talrt-th2"));
-	regmap_write(map, MAX77818_JEITA_Curr,
-		     max77818_read_param(chip, "maxim,jeita-curr"));
-	regmap_write(map, MAX77818_JEITA_Volt,
-		     max77818_read_param(chip, "maxim,jeita-volt"));
-	regmap_write(map, MAX77818_ChargeState0,
-		     max77818_read_param(chip, "maxim,chargestate0"));
-	regmap_write(map, MAX77818_ChargeState1,
-		     max77818_read_param(chip, "maxim,chargestate1"));
-	regmap_write(map, MAX77818_ChargeState2,
-		     max77818_read_param(chip, "maxim,chargestate2"));
-	regmap_write(map, MAX77818_ChargeState3,
-		     max77818_read_param(chip, "maxim,chargestate3"));
-	regmap_write(map, MAX77818_ChargeState4,
-		     max77818_read_param(chip, "maxim,chargestate4"));
-	regmap_write(map, MAX77818_ChargeState5,
-		     max77818_read_param(chip, "maxim,chargestate5"));
-	regmap_write(map, MAX77818_ChargeState6,
-		     max77818_read_param(chip, "maxim,chargestate6"));
-	regmap_write(map, MAX77818_ChargeState7,
-		     max77818_read_param(chip, "maxim,chargestate7"));
+	ret = max77818_read_param(chip, "maxim,learn-cfg", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,learn-cfg': %d\n", read_param);
+		regmap_write(map, MAX17042_LearnCFG, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,learn-cfg property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,learn-cfg' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,config", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,config': %d\n", read_param);
+		regmap_write(map, MAX17042_CONFIG, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,config property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,config' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,config2", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,config2': %d\n", read_param);
+		regmap_write(map, MAX77818_Config2, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,config2 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,config2' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,full-soc-threshold", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,full-soc-threshold': %d\n", read_param);
+		regmap_write(map, MAX17047_FullSOCThr, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,full-soc-threshold property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,full-soc-threshold' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,fullcaprep", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,fullcaprep': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17042_FullCAP0, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,fullcaprep property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,fullcaprep' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,design-cap", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,design-cap': %d\n", read_param);
+		regmap_write(map, MAX17042_DesignCap, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,design-cap property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,design-cap' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,dpacc", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,dpacc': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17042_dPacc, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,dpacc property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,dpacc' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,dqacc", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,dqacc': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17042_dQacc, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,dqacc property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,dqacc' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,fullcapnom", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,fullcapno': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17042_FullCAPNom, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,fullcapnom property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,fullcapnom' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,misc-cfg", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,misc-cfg': %d\n", read_param);
+		regmap_write(map, MAX17042_MiscCFG, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,misc-cfg property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,misc-cfg' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,v-empty", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,v-empty': %d\n", read_param);
+		regmap_write(map, MAX17047_V_empty, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,v-empty property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,v-empty' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,qresidual00", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,qresidual00': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17047_QRTbl00, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,qresidual00 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,qresidual00' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,qresidual10", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,qresidual1': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17047_QRTbl10, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,qresidual10 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,qresidual10' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,qresidual20", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,qresidual20': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17047_QRTbl20, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,qresidual20 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,qresidual20' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,qresidual30", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,qresidual3': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17047_QRTbl30, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,qresidual30 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,qresidual30' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,rcomp0", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,rcomp0': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17042_RCOMP0, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,rcomp0 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,rcomp0' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,tempco", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,tempco': %d\n", read_param);
+		max77818_write_verify_reg(map, MAX17042_TempCo, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,tempco property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,tempco' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,ichg-term", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,ichg-term': %d\n", read_param);
+		regmap_write(map, MAX17042_ICHGTerm, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,ichg-term property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,ichg-term' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,filter-cfg", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,filter-cfg': %d\n", read_param);
+		regmap_write(map, MAX17042_FilterCFG, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,filter-cfg property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,filter-cfg' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,iavg-empty", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,iavg-empty': %d\n", read_param);
+		regmap_write(map, MAX17042_LAvg_empty, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,iavg-empty property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,iavg-empty' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,tgain", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,tgain': %d\n", read_param);
+		regmap_write(map, MAX17042_TGAIN, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,tgain property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,tgain' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,toff", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,toff': %d\n", read_param);
+		regmap_write(map, MAx17042_TOFF, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,toff property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,toff' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,tcurve", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,tcurve': %d\n", read_param);
+		regmap_write(map, MAX77818_TCURVE, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,tcurve property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,tcurve' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,talrt-th", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,talrt-th': %d\n", read_param);
+		regmap_write(map, MAX17042_TALRT_Th, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,talrt-th property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,talrt-th' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,talrt-th2", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,talrt-th2': %d\n", read_param);
+		regmap_write(map, MAX77818_TALRT_Th2, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,talrt-th2 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,talrt-th2' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,jeita-curr", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,jeita-curr': %d\n", read_param);
+		regmap_write(map, MAX77818_JEITA_Curr, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,jeita-curr property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,jeita-curr' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,jeita-volt", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,jeita-volt': %d\n", read_param);
+		regmap_write(map, MAX77818_JEITA_Volt, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,jeita-volt property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,jeita-volt' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate0", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate0': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState0, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate0 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate0' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate1", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate1': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState1, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate1 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate1' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate2", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate2': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState2, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate2 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate2' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate3", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate3': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState3, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate3 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate3' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate4", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate4': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState4, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate4 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate4' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate5", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate5': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState5, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate5 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate5' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate6", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate6': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState6, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate6 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate6' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,chargestate7", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,chargestate7': %d\n", read_param);
+		regmap_write(map, MAX77818_ChargeState7, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,chargestate7 property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,chargestate7' param from DT, check value\n");
 
 	/* The order of the following ones should be respected */
-	regmap_write(map, MAX17042_AtRate,
-		     max77818_read_param(chip, "maxim,at-rate"));
-	regmap_write(map, MAX77818_SmartChgCfg,
-		     max77818_read_param(chip, "maxim,smart-chg-cfg"));
-	regmap_write(map, MAX77818_ConvgCfg,
-		     max77818_read_param(chip, "maxim,convgcfg"));
+	ret = max77818_read_param(chip, "maxim,at-rate", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,at-rate': %d\n", read_param);
+		regmap_write(map, MAX17042_AtRate, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,at-rate property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,at-rate' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,smart-chg-cfg", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,smart-chg-cfg': %d\n", read_param);
+		regmap_write(map, MAX77818_SmartChgCfg, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,smart-chg-cfg property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,smart-chg-cfg' param from DT, check value\n");
+
+	ret = max77818_read_param(chip, "maxim,convgcfg", &read_param);
+	if (!ret) {
+		dev_dbg(chip->dev, "Writing 'maxim,convgcfg': %d\n", read_param);
+		regmap_write(map, MAX77818_ConvgCfg, read_param);
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev, "maxim,convgcfg property not given in DT, using default value\n");
+	else
+		dev_warn(chip->dev, "Failed to read 'maxim,convgcfg' param from DT, check value\n");
 
 	/* Back to lock */
 	regmap_write(map, MAX17042_VFSOC0Enable, VFSOC0_LOCK);
