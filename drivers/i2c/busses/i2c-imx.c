@@ -503,6 +503,14 @@ static void i2c_imx_dma_free(struct imx_i2c_struct *i2c_imx)
 	dma->chan_using = NULL;
 }
 
+/* Clear arbitration lost bit */
+static void i2c_imx_clr_al_bit(unsigned int status, struct imx_i2c_struct *i2c_imx)
+{
+	status &= ~I2SR_IAL;
+	status |= (i2c_imx->hwdata->i2sr_clr_opcode & I2SR_IAL);
+	imx_i2c_write_reg(status, i2c_imx, IMX_I2C_I2SR);
+}
+
 static int i2c_imx_bus_busy(struct imx_i2c_struct *i2c_imx, int for_busy)
 {
 	unsigned long orig_jiffies = jiffies;
@@ -515,8 +523,7 @@ static int i2c_imx_bus_busy(struct imx_i2c_struct *i2c_imx, int for_busy)
 
 		/* check for arbitration lost */
 		if (temp & I2SR_IAL) {
-			temp &= ~I2SR_IAL;
-			imx_i2c_write_reg(temp, i2c_imx, IMX_I2C_I2SR);
+			i2c_imx_clr_al_bit(temp, i2c_imx);
 			return -EAGAIN;
 		}
 
@@ -697,14 +704,6 @@ static void i2c_imx_clr_if_bit(unsigned int status, struct imx_i2c_struct *i2c_i
 {
 	status &= ~I2SR_IIF;
 	status |= (i2c_imx->hwdata->i2sr_clr_opcode & I2SR_IIF);
-	imx_i2c_write_reg(status, i2c_imx, IMX_I2C_I2SR);
-}
-
-/* Clear arbitration lost bit */
-static void i2c_imx_clr_al_bit(unsigned int status, struct imx_i2c_struct *i2c_imx)
-{
-	status &= ~I2SR_IAL;
-	status |= (i2c_imx->hwdata->i2sr_clr_opcode & I2SR_IAL);
 	imx_i2c_write_reg(status, i2c_imx, IMX_I2C_I2SR);
 }
 
@@ -1050,12 +1049,14 @@ static int i2c_imx_recovery_for_layerscape(struct imx_i2c_struct *i2c_imx)
 	gpio_set_value(i2c_imx->gpio, 1);
 
 	/*
-	 * Set I2Cx_IBCR = 0h00 to generate a STOP and then
-	 * set I2Cx_IBCR = 0h80 to reset
+	 * Set I2Cx_IBCR = 0h00 to generate a STOP
 	 */
-	temp = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2CR);
-	temp &= ~(I2CR_MSTA | I2CR_MTX);
-	imx_i2c_write_reg(temp, i2c_imx, IMX_I2C_I2CR);
+	imx_i2c_write_reg(i2c_imx->hwdata->i2cr_ien_opcode, i2c_imx, IMX_I2C_I2CR);
+
+	/*
+	 * Set I2Cx_IBCR = 0h80 to reset the I2Cx controller
+	 */
+	imx_i2c_write_reg(i2c_imx->hwdata->i2cr_ien_opcode | I2CR_IEN, i2c_imx, IMX_I2C_I2CR);
 
 	/* Restore the saved value of the register SCFG_RCWPMUXCR0 */
 	if (i2c_imx->need_set_pmuxcr == 1) {
@@ -1069,10 +1070,9 @@ static int i2c_imx_recovery_for_layerscape(struct imx_i2c_struct *i2c_imx)
 	 * I2C_IBSR[IBAL] = 1
 	 */
 	temp = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2SR);
-	if (temp & I2SR_IAL) {
-		temp &= ~I2SR_IAL;
-		imx_i2c_write_reg(temp, i2c_imx, IMX_I2C_I2SR);
-	}
+	if (temp & I2SR_IAL)
+		i2c_imx_clr_al_bit(temp, i2c_imx);
+
 	return 0;
 }
 
