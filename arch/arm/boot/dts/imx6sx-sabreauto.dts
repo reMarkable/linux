@@ -73,6 +73,73 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 	};
+
+	reg_audio: cs42888_supply {
+		compatible = "regulator-fixed";
+		regulator-name = "cs42888_supply";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	si4763_vio1: vio1_tnr {
+		compatible = "regulator-fixed";
+		regulator-name = "vio1";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	si4763_vio2: vio2_tnr {
+		compatible = "regulator-fixed";
+		regulator-name = "vio2";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	si4763_vd: f3v3_tnr {
+		compatible = "regulator-fixed";
+		regulator-name = "vd";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	si4763_va: f5v_tnr {
+		compatible = "regulator-fixed";
+		regulator-name = "va";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
+
+	sound-cs42888 {
+		compatible = "fsl,imx6-sabreauto-cs42888",
+			   "fsl,imx-audio-cs42888";
+		model = "imx-cs42888";
+		esai-controller = <&esai>;
+		asrc-controller = <&asrc>;
+		audio-codec = <&codec>;
+	};
+
+	sound-fm {
+		compatible = "fsl,imx-audio-si476x",
+			   "fsl,imx-tuner-si476x";
+		model = "imx-radio-si4763";
+
+		ssi-controller = <&ssi2>;
+		fm-controller = <&si476x_codec>;
+		mux-int-port = <2>;
+		mux-ext-port = <5>;
+	};
+
+	sound-spdif {
+		compatible = "fsl,imx-audio-spdif";
+		model = "imx-spdif";
+		spdif-controller = <&spdif>;
+		spdif-in;
+	};
 };
 
 &adc1 {
@@ -87,6 +154,42 @@
 
 &anaclk2 {
 	clock-frequency = <24576000>;
+};
+
+&audmux {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_audmux_3>;
+	status = "okay";
+};
+
+&clks {
+	assigned-clocks = <&clks IMX6SX_PLL4_BYPASS_SRC>,
+			  <&clks IMX6SX_PLL4_BYPASS>,
+			  <&clks IMX6SX_CLK_PLL4_POST_DIV>;
+	assigned-clock-parents = <&clks IMX6SX_CLK_LVDS2_IN>,
+				 <&clks IMX6SX_PLL4_BYPASS_SRC>;
+	assigned-clock-rates = <0>, <0>, <24576000>;
+};
+
+&esai {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_esai_2>;
+	assigned-clocks = <&clks IMX6SX_CLK_ESAI_SEL>,
+			<&clks IMX6SX_CLK_ESAI_EXTAL>;
+	assigned-clock-parents = <&clks IMX6SX_CLK_PLL4_AUDIO_DIV>;
+	assigned-clock-rates = <0>, <24576000>;
+	status = "okay";
+};
+
+&spdif {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_spdif_3>;
+	status = "okay";
+};
+
+&ssi2 {
+	fsl,mode = "i2s-master";
+	status = "okay";
 };
 
 &csi2 {
@@ -241,6 +344,14 @@
 };
 
 &iomuxc {
+	pinctrl_audmux_3: audmux-3 {
+		fsl,pins = <
+			MX6SX_PAD_SD1_CMD__AUDMUX_AUD5_RXC    0x130b0
+			MX6SX_PAD_SD1_CLK__AUDMUX_AUD5_RXFS   0x130b0
+			MX6SX_PAD_SD1_DATA3__AUDMUX_AUD5_RXD  0x130b0
+		>;
+	};
+
 	pinctrl_egalax_int: egalax-intgrp {
 		fsl,pins = <
 			MX6SX_PAD_SD4_RESET_B__GPIO6_IO_22      0x10b0
@@ -280,6 +391,27 @@
 			MX6SX_PAD_RGMII2_RD2__ENET2_RX_DATA_2   0x3081
 			MX6SX_PAD_RGMII2_RD3__ENET2_RX_DATA_3   0x3081
 			MX6SX_PAD_RGMII2_RX_CTL__ENET2_RX_EN    0x3081
+		>;
+	};
+
+	pinctrl_esai_2: esaigrp-2 {
+		fsl,pins = <
+			MX6SX_PAD_CSI_DATA00__ESAI_TX_CLK   0x1b030
+			MX6SX_PAD_CSI_DATA01__ESAI_TX_FS    0x1b030
+			MX6SX_PAD_CSI_HSYNC__ESAI_TX0       0x1b030
+			MX6SX_PAD_CSI_DATA04__ESAI_TX1      0x1b030
+			MX6SX_PAD_CSI_DATA06__ESAI_TX2_RX3  0x1b030
+			MX6SX_PAD_CSI_DATA07__ESAI_TX3_RX2  0x1b030
+			MX6SX_PAD_CSI_DATA02__ESAI_RX_CLK   0x1b030
+			MX6SX_PAD_CSI_DATA03__ESAI_RX_FS    0x1b030
+			MX6SX_PAD_CSI_VSYNC__ESAI_TX5_RX0   0x1b030
+			MX6SX_PAD_CSI_DATA05__ESAI_TX4_RX1  0x1b030
+		>;
+	};
+
+	pinctrl_spdif_3: spdifgrp-3 {
+		fsl,pins = <
+			MX6SX_PAD_ENET2_COL__SPDIF_IN           0x1b0b0
 		>;
 	};
 
@@ -465,6 +597,31 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
+
+	codec: cs42888@48 {
+		compatible = "cirrus,cs42888";
+		reg = <0x48>;
+		clocks = <&anaclk2 0>;
+		clock-names = "mclk";
+		VA-supply = <&reg_audio>;
+		VD-supply = <&reg_audio>;
+		VLS-supply = <&reg_audio>;
+		VLC-supply = <&reg_audio>;
+	};
+
+	si4763: si4763@63 {
+		compatible = "si4761";
+		reg = <0x63>;
+		va-supply = <&si4763_va>;
+		vd-supply = <&si4763_vd>;
+		vio1-supply = <&si4763_vio1>;
+		vio2-supply = <&si4763_vio2>;
+		revision-a10; /* set to default A10 compatible command set */
+
+		si476x_codec: si476x-codec {
+			compatible = "si476x-codec";
+		};
+	};
 
 	touchscreen@4 {
 		compatible = "eeti,egalax_ts";
