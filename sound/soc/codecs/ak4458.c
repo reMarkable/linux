@@ -136,6 +136,9 @@ static const char * const ak4458_ats_select_texts[] = {
 /* DIF2 bit Audio Interface Format Setting(BICK fs) */
 static const char * const ak4458_dif_select_texts[] = {"32fs,48fs", "64fs",};
 
+static const char * const ak4497_dsd_input_path_select[] = {
+	"16_17_19pin", "3_4_5pin"};
+
 static const struct soc_enum ak4458_dac1_dem_enum =
 	SOC_ENUM_SINGLE(AK4458_01_CONTROL2, 1,
 			ARRAY_SIZE(ak4458_dem_select_texts),
@@ -175,6 +178,10 @@ static const struct soc_enum ak4458_dif_enum =
 	SOC_ENUM_SINGLE(AK4458_00_CONTROL1, 3,
 			ARRAY_SIZE(ak4458_dif_select_texts),
 			ak4458_dif_select_texts);
+static const struct soc_enum ak4497_dsdp_enum =
+        SOC_ENUM_SINGLE(AK4458_09_DSD2, 2,
+                        ARRAY_SIZE(ak4497_dsd_input_path_select),
+                        ak4497_dsd_input_path_select);
 
 static int get_digfil(struct snd_kcontrol *kcontrol,
 		      struct snd_ctl_elem_value *ucontrol)
@@ -282,6 +289,7 @@ static const struct snd_kcontrol_new ak4497_snd_controls[] = {
 	SOC_ENUM("AK4497 Sound Mode", ak4458_sm_enum),
 	SOC_ENUM("AK4497 Attenuation transition Time Setting",
 		 ak4458_ats_enum),
+	SOC_ENUM("AK4497 DSD Data Input Pin", ak4497_dsdp_enum),
 };
 
 /* ak4497 dapm widgets */
