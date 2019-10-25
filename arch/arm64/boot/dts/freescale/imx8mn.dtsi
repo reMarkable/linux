@@ -38,6 +38,8 @@
 		spi0 = &ecspi1;
 		spi1 = &ecspi2;
 		spi2 = &ecspi3;
+		isi0 = &isi_0;
+		csi0 = &mipi_csi_1;
 	};
 
 	cpus {
@@ -1047,6 +1049,106 @@
 			active_low;
 			power-domains = <&dispmix_pd>;
 			#reset-cells = <1>;
+		};
+	};
+
+	isi_resets: isi-resets {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		#reset-cells = <0>;
+
+		isi-soft-resetn {
+			compatible = "isi,soft-resetn";
+			resets = <&dispmix_sft_rstn IMX8MN_ISI_PROC_CLK_RESET>,
+				 <&dispmix_sft_rstn IMX8MN_ISI_APB_CLK_RESET>;
+		};
+
+		isi-clk-enable {
+			compatible = "isi,clk-enable";
+			resets = <&dispmix_clk_en IMX8MN_ISI_PROC_CLK_EN>,
+				 <&dispmix_clk_en IMX8MN_ISI_APB_CLK_EN>;
+		};
+
+	};
+
+	mipi_csi_resets: mipi-csi-resets {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		#reset-cells = <0>;
+
+		csi-soft-resetn {
+			compatible = "csi,soft-resetn";
+			resets = <&dispmix_sft_rstn IMX8MN_MIPI_CSI_PCLK_RESET>,
+				 <&dispmix_sft_rstn IMX8MN_MIPI_CSI_ACLK_RESET>;
+		};
+
+		csi-clk-enable {
+			compatible = "csi,clk-enable";
+			resets = <&dispmix_clk_en IMX8MN_MIPI_CSI_PCLK_EN>,
+				 <&dispmix_clk_en IMX8MN_MIPI_CSI_ACLK_EN>;
+		};
+
+		csi-mipi-reset {
+			compatible = "csi,mipi-reset";
+			resets = <&dispmix_mipi_rst IMX8MN_MIPI_S_RESET>;
+		};
+	};
+
+	mipi2csi_gasket: gasket@32e28060 {
+		compatible = "syscon";
+		reg = <0x0 0x32e28060 0x0 0x28>;
+	};
+
+	cameradev: camera {
+		compatible = "fsl,mxc-md", "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+		status = "disabled";
+
+		isi_0: isi@0x32e20000 {
+			compatible = "fsl,imx8mn-isi";
+			reg = <0x0 0x32e20000 0x0 0x2000>;
+			power-domains = <&dispmix_pd>;
+			interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
+			interface = <2 0 2>;
+			clocks = <&clk IMX8MN_CLK_DISP_AXI>,
+				 <&clk IMX8MN_CLK_DISP_APB>,
+				 <&clk IMX8MN_CLK_DISP_AXI_ROOT>,
+				 <&clk IMX8MN_CLK_DISP_APB_ROOT>;
+			clock-names = "disp_axi", "disp_apb", "disp_axi_root", "disp_apb_root";
+			assigned-clocks = <&clk IMX8MN_CLK_DISP_AXI_ROOT>,
+					  <&clk IMX8MN_CLK_DISP_APB_ROOT>;
+			assigned-clock-rates = <500000000>, <200000000>;
+			resets = <&isi_resets>;
+			status = "disabled";
+
+			cap_device {
+				compatible = "imx-isi-capture";
+				status = "disabled";
+			};
+		};
+
+		mipi_csi_1: csi@32e30000 {
+			compatible = "fsl,imx8mn-mipi-csi";
+			reg = <0x0 0x32e30000 0x0 0x10000>;
+			interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <333000000>;
+			clocks = <&clk IMX8MN_CLK_CAMERA_PIXEL>,
+				 <&clk IMX8MN_CLK_CSI1_PHY_REF>,
+				 <&clk IMX8MN_CLK_DISP_AXI_ROOT>,
+				 <&clk IMX8MN_CLK_DISP_APB_ROOT>;
+			clock-names = "mipi_clk", "phy_clk", "disp_axi", "disp_apb";
+			assigned-clocks = <&clk IMX8MN_CLK_CAMERA_PIXEL>,
+					  <&clk IMX8MN_CLK_CSI1_PHY_REF>;
+			assigned-clock-parents = <&clk IMX8MN_SYS_PLL2_1000M>,
+						 <&clk IMX8MN_SYS_PLL2_1000M>;
+			assigned-clock-rates = <333000000>, <125000000>;
+			bus-width = <4>;
+			csi-gpr = <&mipi2csi_gasket>;
+			power-domains = <&mipi_pd>;
+			resets = <&mipi_csi_resets>;
+			status = "disabled";
 		};
 	};
 };
