@@ -167,6 +167,7 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 	{ "vpu-pid", IMX_SC_R_VPU_PID0, 8, true, 0 },
 	{ "vpu-dec0", IMX_SC_R_VPU_DEC_0, 1, false, 0 },
 	{ "vpu-enc0", IMX_SC_R_VPU_ENC_0, 1, false, 0 },
+	{ "vpu-enc1", IMX_SC_R_VPU_ENC_1, 1, false, 0 },
 	{ "vpu-mu0", IMX_SC_R_VPU_MU_0, 1, false, 0 },
 	{ "vpu-mu1", IMX_SC_R_VPU_MU_1, 1, false, 0 },
 	{ "vpu-mu2", IMX_SC_R_VPU_MU_2, 1, false, 0 },
