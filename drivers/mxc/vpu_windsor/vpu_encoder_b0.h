@@ -27,11 +27,19 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-fh.h>
 #include <media/videobuf2-v4l2.h>
-//#include <soc/imx8/sc/svc/irq/api.h>
-//#include <soc/imx8/sc/ipc.h>
-//#include <soc/imx8/sc/sci.h>
+#ifdef CONFIG_IMX_SCU
+#include <linux/firmware/imx/ipc.h>
+#include <linux/firmware/imx/svc/misc.h>
+#else
+#include <soc/imx8/sc/svc/irq/api.h>
+#include <soc/imx8/sc/ipc.h>
+#include <soc/imx8/sc/sci.h>
+#endif
 #include <linux/mx8_mu.h>
 #include <media/v4l2-event.h>
+#include <linux/mailbox_client.h>
+#include <linux/kfifo.h>
+
 #include "vpu_encoder_rpc.h"
 #include "vpu_encoder_config.h"
 
@@ -71,6 +79,8 @@ extern unsigned int vpu_dbg_level_encoder;
 #define QP_MAX				51
 #define QP_MIN				0
 #define QP_DEFAULT			25
+#define CPB_CTRL_UNIT			1024
+#define CPB_COUNT			3
 
 #define VPU_DISABLE_BITS		0x7
 #define VPU_ENCODER_MASK		0x1
@@ -269,6 +279,20 @@ struct print_buf_desc {
 	char buffer[0];
 };
 
+#ifdef CONFIG_IMX_SCU
+struct vpu_sc_msg_misc {
+	struct imx_sc_rpc_msg hdr;
+	u32 word;
+} __packed;
+#endif
+
+struct vpu_sc_chan {
+	struct core_device *dev;
+	char name[20];
+	struct mbox_client cl;
+	struct mbox_chan *ch;
+};
+
 struct core_device {
 	void *m0_p_fw_space_vir;
 	u_int32 m0_p_fw_space_phy;
@@ -310,6 +334,13 @@ struct core_device {
 	struct device_attribute core_attr;
 	char name[64];
 	unsigned long reset_times;
+
+	struct kfifo mu_msg_fifo;
+
+	/* reserve for kernel version 5.4 or later */
+	struct vpu_sc_chan sc_chan_tx0;
+	struct vpu_sc_chan sc_chan_tx1;
+	struct vpu_sc_chan sc_chan_rx;
 };
 
 struct vpu_enc_mem_item {
@@ -362,11 +393,18 @@ struct vpu_dev {
 		u32 step;
 	} supported_fps;
 	struct vpu_enc_mem_info reserved_mem;
+
+	/* reserve for kernel version 5.4 or later */
 	struct device *pd_vpu;
 	struct device *pd_enc1;
 	struct device *pd_enc2;
 	struct device *pd_mu1;
 	struct device *pd_mu2;
+	struct device_link *pd_vpu_link;
+	struct device_link *pd_enc1_link;
+	struct device_link *pd_enc2_link;
+	struct device_link *pd_mu1_link;
+	struct device_link *pd_mu2_link;
 };
 
 struct buffer_addr {
@@ -425,6 +463,7 @@ struct vpu_ctx {
 	unsigned int frozen_count;
 	u_int32 sequence;
 	s64 timestams[VPU_ENC_SEQ_CAPACITY];
+	u32 cpb_size;
 };
 
 #define LVL_ERR		(1 << 0)
@@ -444,7 +483,7 @@ struct vpu_ctx {
 #define LVL_FUNC	(1 << 16)
 
 #ifndef TAG
-#define TAG	"[VPU Encoder]\t "
+#define TAG	"[VPU Encoder] "
 #endif
 
 #define vpu_dbg(level, fmt, arg...) \
