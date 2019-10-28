@@ -5430,10 +5430,10 @@ static int vpu_enc_probe(struct platform_device *pdev)
 		ret = PTR_ERR(dev->pd_vpu);
 		goto error_put_dev;
 	}
-	dev->pd_enc = dev_pm_domain_attach_by_name(&pdev->dev, "vpuenc");
-	if (IS_ERR(dev->pd_enc)) {
-		vpu_dbg(LVL_ERR, "error: %s unable to get vpu enc power domain \n", __func__);
-		ret = PTR_ERR(dev->pd_enc);
+	dev->pd_enc1 = dev_pm_domain_attach_by_name(&pdev->dev, "vpuenc1");
+	if (IS_ERR(dev->pd_enc1)) {
+		vpu_dbg(LVL_ERR, "error: %s unable to get vpu enc1 power domain \n", __func__);
+		ret = PTR_ERR(dev->pd_enc1);
 		goto error_put_dev;
 	}
 	dev->pd_mu1 = dev_pm_domain_attach_by_name(&pdev->dev, "vpumu1");
@@ -5450,10 +5450,10 @@ static int vpu_enc_probe(struct platform_device *pdev)
 		ret = PTR_ERR(link);
 		goto error_put_dev;
 	}
-	link = device_link_add(&pdev->dev, dev->pd_enc,
+	link = device_link_add(&pdev->dev, dev->pd_enc1,
 		DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
 	if (IS_ERR(link)) {
-		vpu_dbg(LVL_ERR, "error: %s unable to link vpu enc power domain \n", __func__);
+		vpu_dbg(LVL_ERR, "error: %s unable to link vpu enc1 power domain \n", __func__);
 		ret = PTR_ERR(link);
 		goto error_put_dev;
 	}
@@ -5468,6 +5468,21 @@ static int vpu_enc_probe(struct platform_device *pdev)
 	dev->plat_type = *(enum PLAT_TYPE *)dev_id->data;
 
 	if (dev->plat_type == IMX8QM) {
+		dev->pd_enc2 = dev_pm_domain_attach_by_name(&pdev->dev, "vpuenc2");
+		if (IS_ERR(dev->pd_enc2)) {
+			vpu_dbg(LVL_ERR, "error: %s unable to get vpu enc2 power domain \n", __func__);
+			ret = PTR_ERR(dev->pd_enc2);
+			goto error_put_dev;
+		}
+
+		link = device_link_add(&pdev->dev, dev->pd_enc2,
+			DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
+		if (IS_ERR(link)) {
+			vpu_dbg(LVL_ERR, "error: %s unable to link vpu enc2 power domain \n", __func__);
+			ret = PTR_ERR(link);
+			goto error_put_dev;
+		}
+
 		dev->pd_mu2 = dev_pm_domain_attach_by_name(&pdev->dev, "vpumu2");
 		if (IS_ERR(dev->pd_mu2)) {
 			vpu_dbg(LVL_ERR, "error: %s unable to get vpu mu2 power domain \n", __func__);
