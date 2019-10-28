@@ -108,19 +108,19 @@ static void dp_pixel_clk_reset(struct cdns_mhdp_device *mhdp)
 	cdns_mhdp_reg_write(mhdp, SOURCE_HDTX_CAR, val);
 }
 
-static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp,
-			const struct drm_display_mode *mode)
+static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp)
 {
 	u32 lane_mapping = mhdp->lane_mapping;
 	struct drm_dp_link *link = &mhdp->dp.link;
 	char linkid[6];
 	int ret;
 
-	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
+	cdns_mhdp_plat_call(mhdp, pclk_rate);
+
+	/* delay for DP FW stable after pixel clock relock */
+	msleep(50);
 
 	dp_pixel_clk_reset(mhdp);
-
-	cdns_mhdp_plat_call(mhdp, pclk_rate);
 
 	ret = drm_dp_downstream_id(&mhdp->dp.aux, linkid);
 	if (ret < 0) {
@@ -330,11 +330,10 @@ static void cdns_dp_bridge_mode_set(struct drm_bridge *bridge,
 	video->h_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NHSYNC);
 
 	DRM_INFO("Mode: %dx%dp%d\n", mode->hdisplay, mode->vdisplay, mode->clock); 
+	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
 
 	mutex_lock(&mhdp->lock);
-
-	cdns_dp_mode_set(mhdp, mode);
-
+	cdns_dp_mode_set(mhdp);
 	mutex_unlock(&mhdp->lock);
 }
 
@@ -367,6 +366,11 @@ static void hotplug_work_func(struct work_struct *work)
 	drm_helper_hpd_irq_event(connector->dev);
 
 	if (connector->status == connector_status_connected) {
+		/* reset video mode after cable plugin */
+		mutex_lock(&mhdp->lock);
+		cdns_dp_mode_set(mhdp);
+		mutex_unlock(&mhdp->lock);
+
 		DRM_INFO("HDMI/DP Cable Plug In\n");
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {

@@ -11,11 +11,11 @@
  */
 #include <drm/bridge/cdns-mhdp-common.h>
 #include <drm/drm_atomic_helper.h>
-#include <drm/drm_crtc_helper.h>
 #include <drm/drm_edid.h>
 #include <drm/drm_encoder_slave.h>
 #include <drm/drm_of.h>
 #include <drm/drm_probe_helper.h>
+#include <drm/drm_scdc_helper.h>
 #include <drm/drmP.h>
 #include <linux/delay.h>
 #include <linux/err.h>
@@ -26,25 +26,30 @@
 #include <linux/mutex.h>
 #include <linux/of_device.h>
 
-static int hdmi_sink_config(struct cdns_mhdp_device *mhdp)
+static void hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 {
 	struct drm_scdc *scdc = &mhdp->connector.base.display_info.hdmi.scdc;
 	u8 buff;
-	int ret;
+
+	/* check sink support SCDC or not */
+	if (scdc->supported != true) {
+		DRM_INFO("Sink Not Support SCDC\n");
+		return;
+	}
 
 	if (mhdp->hdmi.char_rate > 340000) {
 		/*
 		 * TMDS Character Rate above 340MHz should working in HDMI2.0
 		 * Enable scrambling and TMDS_Bit_Clock_Ratio
 		 */
-		buff = 3;
+		buff = SCDC_TMDS_BIT_CLOCK_RATIO_BY_40 | SCDC_SCRAMBLING_ENABLE;
 		mhdp->hdmi.hdmi_type = MODE_HDMI_2_0;
 	} else  if (scdc->scrambling.low_rates) {
 		/*
 		 * Enable scrambling and HDMI2.0 when scrambling capability of sink
 		 * be indicated in the HF-VSDB LTE_340Mcsc_scramble bit
 		 */
-		buff = 1;
+		buff = SCDC_SCRAMBLING_ENABLE;
 		mhdp->hdmi.hdmi_type = MODE_HDMI_2_0;
 	} else {
 		/* Default work in HDMI1.4 */
@@ -53,8 +58,7 @@ static int hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 	 }
 
 	/* TMDS config */
-	ret = cdns_hdmi_scdc_write(mhdp, 0x20, buff);
-	return ret;
+	cdns_hdmi_scdc_write(mhdp, 0x20, buff);
 }
 
 static void hdmi_lanes_config(struct cdns_mhdp_device *mhdp)
@@ -142,7 +146,7 @@ static int hdmi_avi_info_set(struct cdns_mhdp_device *mhdp,
 	return 0;
 }
 
-static int hdmi_vendor_info_set(struct cdns_mhdp_device *mhdp,
+static void hdmi_vendor_info_set(struct cdns_mhdp_device *mhdp,
 				struct drm_display_mode *mode)
 {
 	struct hdmi_vendor_infoframe frame;
@@ -152,19 +156,18 @@ static int hdmi_vendor_info_set(struct cdns_mhdp_device *mhdp,
 	/* Initialise vendor frame from DRM mode */
 	ret = drm_hdmi_vendor_infoframe_from_display_mode(&frame, &mhdp->connector.base, mode);
 	if (ret < 0) {
-		DRM_WARN("Unable to init vendor infoframe: %d\n", ret);
-		return -1;
+		DRM_INFO("No vendor infoframe\n");
+		return;
 	}
 
 	ret = hdmi_vendor_infoframe_pack(&frame, buf + 1, sizeof(buf) - 1);
 	if (ret < 0) {
 		DRM_WARN("Unable to pack vendor infoframe: %d\n", ret);
-		return -1;
+		return;
 	}
 
 	buf[0] = 0;
 	cdns_mhdp_infoframe_set(mhdp, 3, sizeof(buf), buf, HDMI_INFOFRAME_TYPE_VENDOR);
-	return 0;
 }
 
 void cdns_hdmi_mode_set(struct cdns_mhdp_device *mhdp)
@@ -172,9 +175,16 @@ void cdns_hdmi_mode_set(struct cdns_mhdp_device *mhdp)
 	struct drm_display_mode *mode = &mhdp->mode;
 	int ret;
 
-	ret = hdmi_sink_config(mhdp);
-	if (ret < 0)
-		DRM_DEBUG("%s failed\n", __func__);
+	hdmi_lanes_config(mhdp);
+
+	cdns_mhdp_plat_call(mhdp, pclk_rate);
+
+	/* delay for HDMI FW stable after pixel clock relock */
+	msleep(20);
+
+	cdns_mhdp_plat_call(mhdp, phy_set);
+
+	hdmi_sink_config(mhdp);
 
 	ret = cdns_hdmi_ctrl_init(mhdp, mhdp->hdmi.hdmi_type, mhdp->hdmi.char_rate);
 	if (ret < 0) {
@@ -195,18 +205,13 @@ void cdns_hdmi_mode_set(struct cdns_mhdp_device *mhdp)
 	}
 
 	/* vendor info frame is enable only  when HDMI1.4 4K mode */
-	ret = hdmi_vendor_info_set(mhdp, mode);
-	if (ret < 0)
-		DRM_WARN("Unable to configure Vendor infoframe\n");
+	hdmi_vendor_info_set(mhdp, mode);
 
 	ret = cdns_hdmi_mode_config(mhdp, mode, &mhdp->video_info);
 	if (ret < 0) {
 		DRM_ERROR("CDN_API_HDMITX_SetVic_blocking ret = %d\n", ret);
 		return;
 	}
-
-	/* wait HDMI PHY pixel clock stable */
-	msleep(50);
 }
 
 static enum drm_connector_status
@@ -335,20 +340,11 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 	video->v_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NVSYNC);
 	video->h_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NHSYNC);
 
-	mutex_lock(&mhdp->lock);
-
 	DRM_INFO("Mode: %dx%dp%d\n", mode->hdisplay, mode->vdisplay, mode->clock); 
-
 	memcpy(&mhdp->mode, mode, sizeof(struct drm_display_mode));
 
-	hdmi_lanes_config(mhdp);
-
-	cdns_mhdp_plat_call(mhdp, pclk_rate);
-
-	cdns_mhdp_plat_call(mhdp, phy_set);
-
+	mutex_lock(&mhdp->lock);
 	cdns_hdmi_mode_set(mhdp);
-
 	mutex_unlock(&mhdp->lock);
 }
 
@@ -367,8 +363,11 @@ static void hotplug_work_func(struct work_struct *work)
 	drm_helper_hpd_irq_event(connector->dev);
 
 	if (connector->status == connector_status_connected) {
-		/* Cable Connected */
 		DRM_INFO("HDMI Cable Plug In\n");
+		/* reset video mode after cable plugin */
+		mutex_lock(&mhdp->lock);
+		cdns_hdmi_mode_set(mhdp);
+		mutex_unlock(&mhdp->lock);
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
