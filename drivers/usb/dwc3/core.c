@@ -1030,6 +1030,21 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		reg |= DWC3_GUCTL_HSTINAUTORETRY;
 
 		dwc3_writel(dwc->regs, DWC3_GUCTL, reg);
+
+		/*
+		 * Disable Park Mode for super speed:
+		 * Park mode is used in host mode when only a single async
+		 * endpoint is active, but which has a known issue cause
+		 * USB3.0 HC may die when read and write at the same time,
+		 * considering the advantages of this mode are minimal,
+		 * this issue only impacts super speed and exist on all IP
+		 * versions, disable it for SS, Synopsys will release a formal
+		 * STAR 9001415732, and disable it by default in next IP
+		 * release.
+		 */
+		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
+		reg |= DWC3_GUCTL1_PARKMODE_DISABLE_SS;
+		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
 	}
 
 	/*
