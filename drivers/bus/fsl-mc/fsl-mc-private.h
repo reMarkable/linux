@@ -203,4 +203,8 @@ static inline void fsl_mc_uapi_remove_device_file(struct fsl_mc_bus *mc_bus)
 
 #endif
 
+int disable_dprc_irq(struct fsl_mc_device *mc_dev);
+int enable_dprc_irq(struct fsl_mc_device *mc_dev);
+int get_dprc_irq_state(struct fsl_mc_device *mc_dev);
+
 #endif /* _FSL_MC_PRIVATE_H_ */

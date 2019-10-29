@@ -1006,6 +1006,7 @@ struct fsl_mc_bus {
 	struct mutex scan_mutex;    /* serializes bus scanning */
 	struct dprc_attributes dprc_attr;
 	struct fsl_mc_uapi uapi_misc;
+	int irq_enabled;
 };
 
 int dprc_scan_objects(struct fsl_mc_device *mc_bus_dev,
