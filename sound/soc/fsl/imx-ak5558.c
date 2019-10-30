@@ -344,9 +344,7 @@ static struct snd_soc_dai_link imx_ak5558_dai[] = {
 };
 
 static const struct snd_soc_dapm_route audio_map[] = {
-	{"Playback",  NULL, "CPU-Playback"},
 	{"CPU-Capture",  NULL, "Capture"},
-	{"CPU-Playback",  NULL, "ASRC-Playback"},
 	{"ASRC-Capture",  NULL, "CPU-Capture"},
 };
 
@@ -402,7 +400,7 @@ static int imx_ak5558_probe(struct platform_device *pdev)
 	priv->card.dai_link = &imx_ak5558_dai[0];
 	priv->card.num_links = 1;
 	priv->card.dapm_routes = audio_map;
-	priv->card.num_dapm_routes = 2;
+	priv->card.num_dapm_routes = 1;
 
 	/*if there is no asrc controller, we only enable one device*/
 	if (asrc_pdev) {
@@ -412,7 +410,7 @@ static int imx_ak5558_probe(struct platform_device *pdev)
 		imx_ak5558_dai[2].codecs->of_node   = codec_np;
 		imx_ak5558_dai[2].cpus->of_node     = cpu_np;
 		priv->card.num_links = 3;
-		priv->card.num_dapm_routes += 2;
+		priv->card.num_dapm_routes += 1;
 
 		ret = of_property_read_u32(asrc_np, "fsl,asrc-rate",
 					   &priv->asrc_rate);
