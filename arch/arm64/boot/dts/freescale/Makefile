@@ -39,7 +39,8 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mq-zii-ultra-zest.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8qm-mek.dtb imx8qm-mek-ov5640.dtb \
 			  imx8qm-mek-enet2-tja1100.dtb imx8qm-mek-rpmsg.dtb \
 			  imx8qm-mek-hdmi.dtb imx8qm-mek-dsp.dtb \
-			  imx8qm-lpddr4-val.dtb
+			  imx8qm-lpddr4-val.dtb imx8qm-lpddr4-val-mqs.dtb \
+			  imx8qm-lpddr4-val-spdif.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8qxp-ai_ml.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8qxp-mek.dtb imx8qxp-mek-dsp.dtb imx8qxp-mek-ov5640.dtb \
 			  imx8qxp-mek-enet2.dtb imx8qxp-mek-enet2-tja1100.dtb imx8qxp-mek-sof.dtb \
