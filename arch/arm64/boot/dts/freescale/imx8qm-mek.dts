@@ -17,12 +17,6 @@
 		stdout-path = &lpuart0;
 	};
 
-	cpus {
-		/delete-node/ cpu-map;
-		/delete-node/ cpu@100;
-		/delete-node/ cpu@101;
-	};
-
 	memory@80000000 {
 		device_type = "memory";
 		reg = <0x00000000 0x80000000 0 0x40000000>;
@@ -1277,7 +1271,12 @@
 			map0 {
 				trip = <&pmic_alert0>;
 				cooling-device =
-				<&A53_0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+				<&A53_0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+				<&A53_1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+				<&A53_2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+				<&A53_3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+				<&A72_0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+				<&A72_1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 		};
 	};
