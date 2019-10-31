@@ -126,8 +126,10 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a72", "arm,armv8";
 			reg = <0x0 0x100>;
+			clocks = <&clk IMX_SC_R_A72 IMX_SC_PM_CLK_CPU>;
 			enable-method = "psci";
 			next-level-cache = <&A72_L2>;
+			operating-points-v2 = <&a72_opp_table>;
 			#cooling-cells = <2>;
 		};
 
@@ -135,8 +137,10 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a72", "arm,armv8";
 			reg = <0x0 0x101>;
+			clocks = <&clk IMX_SC_R_A72 IMX_SC_PM_CLK_CPU>;
 			enable-method = "psci";
 			next-level-cache = <&A72_L2>;
+			operating-points-v2 = <&a72_opp_table>;
 			#cooling-cells = <2>;
 		};
 
@@ -149,7 +153,7 @@
 		};
 	};
 
-	a53_opp_table: opp-table {
+	a53_opp_table: a53-opp-table {
 		compatible = "operating-points-v2";
 		opp-shared;
 
@@ -173,6 +177,36 @@
 
 		opp-1200000000 {
 			opp-hz = /bits/ 64 <1200000000>;
+			opp-microvolt = <1100000>;
+			clock-latency-ns = <150000>;
+			opp-suspend;
+		};
+	};
+
+	a72_opp_table: a72-opp-table {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp-600000000 {
+			opp-hz = /bits/ 64 <600000000>;
+			opp-microvolt = <1000000>;
+			clock-latency-ns = <150000>;
+		};
+
+		opp-1056000000 {
+			opp-hz = /bits/ 64 <1056000000>;
+			opp-microvolt = <1000000>;
+			clock-latency-ns = <150000>;
+		};
+
+		opp-1296000000 {
+			opp-hz = /bits/ 64 <1296000000>;
+			opp-microvolt = <1100000>;
+			clock-latency-ns = <150000>;
+		};
+
+		opp-1596000000 {
+			opp-hz = /bits/ 64 <1596000000>;
 			opp-microvolt = <1100000>;
 			clock-latency-ns = <150000>;
 			opp-suspend;
