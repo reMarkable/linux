@@ -107,7 +107,7 @@ struct devtype {
 	bool has_mux;
 	bool has_ch_sel;
 	bool has_aux_ldb;
-	bool is_imx8;
+	bool is_imx8q;
 	bool use_mixel_phy;
 	bool use_mixel_combo_phy;
 	bool use_sc_misc;
@@ -142,7 +142,7 @@ struct imx_ldb {
 	bool has_mux;
 	bool has_ch_sel;
 	bool has_aux_ldb;
-	bool is_imx8;
+	bool is_imx8q;
 	bool use_mixel_phy;
 	bool use_mixel_combo_phy;
 	bool use_sc_misc;
@@ -252,7 +252,7 @@ static void imx_ldb_set_clock(struct imx_ldb *ldb, int mux, int chno,
 	int dual = ldb->ldb_ctrl & LDB_SPLIT_MODE_EN;
 	int ret;
 
-	if (ldb->is_imx8) {
+	if (ldb->is_imx8q) {
 		clk_set_rate(ldb->clk_bypass, di_clk);
 		clk_set_rate(ldb->clk_pixel, di_clk);
 
@@ -323,7 +323,7 @@ static void imx_ldb_encoder_enable(struct drm_encoder *encoder)
 
 	drm_panel_prepare(imx_ldb_ch->panel);
 
-	if (ldb->is_imx8) {
+	if (ldb->is_imx8q) {
 		clk_prepare_enable(ldb->clk_pixel);
 		clk_prepare_enable(ldb->clk_bypass);
 
@@ -649,7 +649,7 @@ static void imx_ldb_encoder_disable(struct drm_encoder *encoder)
 	if (dual && ldb->has_aux_ldb)
 		regmap_write(ldb->aux_regmap, ldb->ldb_ctrl_reg, ldb->ldb_ctrl);
 
-	if (ldb->is_imx8) {
+	if (ldb->is_imx8q) {
 		clk_disable_unprepare(ldb->clk_bypass);
 		clk_disable_unprepare(ldb->clk_pixel);
 
@@ -773,7 +773,7 @@ static int imx_ldb_get_clk(struct imx_ldb *ldb, int chno)
 {
 	char clkname[16];
 
-	if (ldb->is_imx8)
+	if (ldb->is_imx8q)
 		return 0;
 
 	snprintf(clkname, sizeof(clkname), "di%d", chno);
@@ -930,7 +930,7 @@ static struct devtype imx8qm_ldb_devtype = {
 	.bus_mux = NULL,
 	.capable_10bit = true,
 	.visible_phy = true,
-	.is_imx8 = true,
+	.is_imx8q = true,
 	.use_mixel_phy = true,
 	.use_sc_misc = true,
 	.has_padding_quirks = true,
@@ -945,7 +945,7 @@ static struct devtype imx8qxp_ldb_devtype = {
 	.visible_phy = true,
 	.has_ch_sel = true,
 	.has_aux_ldb = true,
-	.is_imx8 = true,
+	.is_imx8q = true,
 	.use_mixel_combo_phy = true,
 	.use_sc_misc = true,
 	.has_padding_quirks = true,
@@ -1093,7 +1093,7 @@ static int imx_ldb_bind(struct device *dev, struct device *master, void *data)
 	imx_ldb->has_mux = devtype->has_mux;
 	imx_ldb->has_ch_sel = devtype->has_ch_sel;
 	imx_ldb->has_aux_ldb = devtype->has_aux_ldb;
-	imx_ldb->is_imx8 = devtype->is_imx8;
+	imx_ldb->is_imx8q = devtype->is_imx8q;
 	imx_ldb->use_mixel_phy = devtype->use_mixel_phy;
 	imx_ldb->use_mixel_combo_phy = devtype->use_mixel_combo_phy;
 	imx_ldb->use_sc_misc = devtype->use_sc_misc;
@@ -1159,7 +1159,7 @@ static int imx_ldb_bind(struct device *dev, struct device *master, void *data)
 		regmap_write(imx_ldb->aux_regmap, imx_ldb->ldb_ctrl_reg , 0);
 	}
 
-	if (imx_ldb->is_imx8) {
+	if (imx_ldb->is_imx8q) {
 		imx_ldb->clk_pixel = devm_clk_get(imx_ldb->dev, "pixel");
 		if (IS_ERR(imx_ldb->clk_pixel))
 			return PTR_ERR(imx_ldb->clk_pixel);
