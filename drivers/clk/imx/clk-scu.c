@@ -14,14 +14,17 @@
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
+#include <linux/syscalls.h>
 
 #include "clk-scu.h"
 
 #define IMX_SIP_CPUFREQ			0xC2000001
 #define IMX_SIP_SET_CPUFREQ		0x00
+#define MAX_CLUSTER_NUM			2
 
 static struct imx_sc_ipc *ccm_ipc_handle;
 static const struct imx_clk_scu_rsrc_table *rsrc_table;
+static struct delayed_work cpufreq_governor_daemon;
 struct device_node *pd_np;
 u32 clock_cells;
 
@@ -275,6 +278,8 @@ static int clk_scu_atf_set_cpu_rate(struct clk_hw *hw, unsigned long rate,
 
 	if (clk->rsrc_id == IMX_SC_R_A35 || clk->rsrc_id == IMX_SC_R_A53)
 		cluster_id = 0;
+	else if (clk->rsrc_id == IMX_SC_R_A72)
+		cluster_id = 1;
 	else
 		return -EINVAL;
 
@@ -449,7 +454,7 @@ struct clk_hw *__imx_clk_scu(struct device *dev, const char *name,
 
 	init.name = name;
 	init.ops = &clk_scu_ops;
-	if (rsrc_id == IMX_SC_R_A35 || rsrc_id == IMX_SC_R_A53)
+	if (rsrc_id == IMX_SC_R_A35 || rsrc_id == IMX_SC_R_A53 || rsrc_id == IMX_SC_R_A72)
 		init.ops = &clk_scu_cpu_ops;
 	else if (rsrc_id == IMX_SC_R_PI_0_PLL)
 		init.ops = &clk_scu_pi_ops;
@@ -837,3 +842,53 @@ struct clk_hw *__imx_clk_gpr_scu(const char *name, const char * const *parent_na
 
 	return hw;
 }
+
+static void cpufreq_governor_daemon_handler(struct work_struct *work)
+{
+	int fd, i;
+	unsigned char cluster_governor[MAX_CLUSTER_NUM][54] = {
+		"/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
+		"",
+	};
+
+	/* generate second cluster's cpufreq governor path */
+	sprintf(cluster_governor[MAX_CLUSTER_NUM - 1],
+		"%s%d%s", "/sys/devices/system/cpu/cpu", num_online_cpus() - 1,
+		"/cpufreq/scaling_governor");
+
+	for (i = 0; i < MAX_CLUSTER_NUM; i++) {
+		fd = ksys_open((const char __user __force *)cluster_governor[i],
+				O_RDWR, 0700);
+		if (fd >= 0) {
+			ksys_write(fd, "schedutil", strlen("schedutil"));
+			ksys_close(fd);
+			pr_info("switch cluster %d cpu-freq governor to schedutil\n",
+				i);
+		} else {
+			/* re-schedule if sys write is NOT ready */
+			schedule_delayed_work(&cpufreq_governor_daemon,
+				msecs_to_jiffies(3000));
+			break;
+		}
+	}
+}
+
+static int __init imx_scu_switch_cpufreq_governor(void)
+{
+	int i;
+
+	INIT_DELAYED_WORK(&cpufreq_governor_daemon,
+		cpufreq_governor_daemon_handler);
+
+	for (i = 1; i < num_online_cpus(); i++) {
+		if (topology_physical_package_id(i) == topology_physical_package_id(0))
+			continue;
+
+		schedule_delayed_work(&cpufreq_governor_daemon,
+			msecs_to_jiffies(3000));
+		break;
+	}
+
+	return 0;
+}
+late_initcall(imx_scu_switch_cpufreq_governor);
