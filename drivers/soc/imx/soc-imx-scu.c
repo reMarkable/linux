@@ -12,6 +12,8 @@
 
 #define IMX_SCU_SOC_DRIVER_NAME		"imx-scu-soc"
 
+bool TKT340553_SW_WORKAROUND;
+
 static struct imx_sc_ipc *soc_ipc_handle;
 
 struct imx_sc_msg_misc_get_soc_id {
@@ -114,9 +116,10 @@ static int imx_scu_soc_probe(struct platform_device *pdev)
 
 	/* format soc_id value passed from SCU firmware */
 	val = id & 0x1f;
-	if (of_machine_is_compatible("fsl,imx8qm"))
+	if (of_machine_is_compatible("fsl,imx8qm")) {
 		soc_dev_attr->soc_id = "i.MX8QM";
-	else if (of_machine_is_compatible("fsl,imx8qxp"))
+		TKT340553_SW_WORKAROUND = true;
+	} else if (of_machine_is_compatible("fsl,imx8qxp"))
 		soc_dev_attr->soc_id = "i.MX8QXP";
 
 	/* format revision value passed from SCU firmware */
