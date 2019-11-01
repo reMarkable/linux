@@ -241,3 +241,8 @@ int vpu_sc_check_fuse(struct vpu_dev *dev, struct vpu_v4l2_fmt *pformat_table,
 
 	return ret;
 }
+
+void vpu_mu_enable_rx(struct vpu_dev *dev)
+{
+
+}

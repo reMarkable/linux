@@ -219,3 +219,8 @@ int vpu_enc_sc_check_fuse(void)
 
 	return ret;
 }
+
+void vpu_enc_mu_enable_rx(struct core_device *core_dev)
+{
+
+}
