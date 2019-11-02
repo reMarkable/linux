@@ -1410,6 +1410,9 @@ static int imx6_pcie_host_init(struct pcie_port *pp)
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct imx6_pcie *imx6_pcie = to_imx6_pcie(pci);
 
+	if (gpio_is_valid(imx6_pcie->dis_gpio))
+		gpio_set_value_cansleep(imx6_pcie->dis_gpio, 1);
+
 	imx6_pcie_assert_core_reset(imx6_pcie);
 	imx6_pcie_init_phy(imx6_pcie);
 	imx6_pcie_deassert_core_reset(imx6_pcie);
@@ -1709,7 +1712,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	imx6_pcie->dis_gpio = of_get_named_gpio(node, "disable-gpio", 0);
 	if (gpio_is_valid(imx6_pcie->dis_gpio)) {
 		ret = devm_gpio_request_one(&pdev->dev, imx6_pcie->dis_gpio,
-					    GPIOF_OUT_INIT_HIGH, "PCIe DIS");
+					    GPIOF_OUT_INIT_LOW, "PCIe DIS");
 		if (ret) {
 			dev_err(&pdev->dev, "unable to get disable gpio\n");
 			return ret;
