@@ -313,6 +313,28 @@ void dw_pcie_msi_init(struct pcie_port *pp)
 }
 EXPORT_SYMBOL_GPL(dw_pcie_msi_init);
 
+void dw_pcie_msi_cfg_store(struct pcie_port *pp)
+{
+	int i;
+
+	for (i = 0; i < MAX_MSI_CTRLS; i++)
+		dw_pcie_rd_own_conf(pp, PCIE_MSI_INTR0_ENABLE + i * 12, 4,
+				    &pp->msi_enable[i]);
+}
+
+void dw_pcie_msi_cfg_restore(struct pcie_port *pp)
+{
+	int i;
+
+	for (i = 0; i < MAX_MSI_CTRLS; i++) {
+		dw_pcie_wr_own_conf(pp, PCIE_MSI_ADDR_LO, 4,
+				    virt_to_phys((void *)pp->msi_data));
+		dw_pcie_wr_own_conf(pp, PCIE_MSI_ADDR_HI, 4, 0);
+		dw_pcie_wr_own_conf(pp, PCIE_MSI_INTR0_ENABLE + i * 12, 4,
+				    pp->msi_enable[i]);
+	}
+}
+
 int dw_pcie_host_init(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);

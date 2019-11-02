@@ -188,6 +188,7 @@ struct pcie_port {
 	dma_addr_t		msi_data;
 	struct page		*msi_page;
 	struct irq_chip		*msi_irq_chip;
+	unsigned int		msi_enable[MAX_MSI_CTRLS];
 	u32			num_vectors;
 	u32			irq_mask[MAX_MSI_CTRLS];
 	struct pci_bus		*root_bus;
@@ -359,6 +360,8 @@ static inline void dw_pcie_dbi_ro_wr_dis(struct dw_pcie *pci)
 irqreturn_t dw_handle_msi_irq(struct pcie_port *pp);
 void dw_pcie_msi_init(struct pcie_port *pp);
 void dw_pcie_free_msi(struct pcie_port *pp);
+void dw_pcie_msi_cfg_store(struct pcie_port *pp);
+void dw_pcie_msi_cfg_restore(struct pcie_port *pp);
 void dw_pcie_setup_rc(struct pcie_port *pp);
 int dw_pcie_host_init(struct pcie_port *pp);
 void dw_pcie_host_deinit(struct pcie_port *pp);
@@ -367,6 +370,14 @@ int dw_pcie_allocate_domains(struct pcie_port *pp);
 static inline irqreturn_t dw_handle_msi_irq(struct pcie_port *pp)
 {
 	return IRQ_NONE;
+}
+
+static inline void dw_pcie_msi_init(struct pcie_port *pp)
+{
+}
+
+static inline void dw_pcie_msi_cfg_store(struct pcie_port *pp)
+{
 }
 
 static inline void dw_pcie_msi_init(struct pcie_port *pp)
