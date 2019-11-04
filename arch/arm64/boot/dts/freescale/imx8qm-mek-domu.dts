@@ -250,6 +250,7 @@
 #include "imx8qm-ss-dc.dtsi"
 #include "imx8qm-ss-gpu.dtsi"
 #include "imx8qm-ss-lvds.dtsi"
+#include "imx8qm-ss-mipi.dtsi"
 #include "imx8qm-ss-hdmi.dtsi"
 
 &lvds1_subsys {
