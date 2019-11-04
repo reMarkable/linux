@@ -54,6 +54,7 @@ static const struct drm_encoder_funcs cdns_mhdp_imx_encoder_funcs = {
 };
 
 static struct cdns_plat_data imx8mq_hdmi_drv_data = {
+	.plat_name = "imx8mq-hdmi",
 	.bind	= cdns_hdmi_bind,
 	.unbind	= cdns_hdmi_unbind,
 	.phy_set = cdns_hdmi_phy_set_imx8mq,
@@ -61,6 +62,7 @@ static struct cdns_plat_data imx8mq_hdmi_drv_data = {
 };
 
 static struct cdns_plat_data imx8mq_dp_drv_data = {
+	.plat_name = "imx8mq-dp",
 	.bind	= cdns_dp_bind,
 	.unbind	= cdns_dp_unbind,
 	.phy_set = cdns_dp_phy_set_imx8mq,
@@ -68,6 +70,7 @@ static struct cdns_plat_data imx8mq_dp_drv_data = {
 };
 
 static struct cdns_plat_data imx8qm_hdmi_drv_data = {
+	.plat_name = "imx8qm-hdmi",
 	.bind	= cdns_hdmi_bind,
 	.unbind	= cdns_hdmi_unbind,
 	.phy_set = cdns_hdmi_phy_set_imx8qm,
@@ -81,6 +84,7 @@ static struct cdns_plat_data imx8qm_hdmi_drv_data = {
 };
 
 static struct cdns_plat_data imx8qm_dp_drv_data = {
+	.plat_name = "imx8qm-dp",
 	.bind	= cdns_dp_bind,
 	.unbind	= cdns_dp_unbind,
 	.phy_set = cdns_dp_phy_set_imx8qm,

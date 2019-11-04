@@ -652,6 +652,7 @@ struct cdns_plat_data {
 	int bus_type;
 	int video_format;
 	char is_dp;
+	char *plat_name;
 };
 
 struct cdns_mhdp_device {
