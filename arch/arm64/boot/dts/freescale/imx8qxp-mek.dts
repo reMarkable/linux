@@ -932,7 +932,10 @@
 			map0 {
 				trip = <&pmic_alert0>;
 				cooling-device =
-					<&A35_0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+					<&A35_0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&A35_1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&A35_2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&A35_3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 		};
 	};
