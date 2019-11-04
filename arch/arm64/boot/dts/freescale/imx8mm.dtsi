@@ -1301,7 +1301,7 @@
 			compatible = "fsl,imx8mm-dispmix-sft-rstn";
 			reg = <0x0 0x32e28000 0x0 0x4>;
 			clocks = <&clk IMX8MM_CLK_DISP_APB_ROOT>;
-			clock-names = "disp-apb";
+			clock-names = "disp_apb_root_clk";
 			active_low;
 			power-domains = <&dispmix_pd>;
 			#reset-cells = <1>;
@@ -1311,7 +1311,7 @@
 			compatible = "fsl,imx8mm-dispmix-clk-en";
 			reg = <0x0 0x32e28004 0x0 0x4>;
 			clocks = <&clk IMX8MM_CLK_DISP_APB_ROOT>;
-			clock-names = "disp-apb";
+			clock-names = "disp_apb_root_clk";
 			power-domains = <&dispmix_pd>;
 			#reset-cells = <1>;
 		};
@@ -1320,7 +1320,7 @@
 			compatible = "fsl,imx8mm-dispmix-mipi-rst";
 			reg = <0x0 0x32e28008 0x0 0x4>;
 			clocks = <&clk IMX8MM_CLK_DISP_APB_ROOT>;
-			clock-names = "disp-apb";
+			clock-names = "disp_apb_root_clk";
 			active_low;
 			power-domains = <&dispmix_pd>;
 			#reset-cells = <1>;
