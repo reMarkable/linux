@@ -162,7 +162,6 @@ static int imx_rpmsg_pcm_open(struct snd_pcm_substream *substream)
 	struct fsl_rpmsg_i2s *rpmsg_i2s = dev_get_drvdata(cpu_dai->dev);
 	struct i2s_info      *i2s_info =  &rpmsg_i2s->i2s_info;
 	struct i2s_rpmsg     *rpmsg;
-	struct dmaengine_pcm_runtime_data *prtd;
 	int cmd;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -196,12 +195,6 @@ static int imx_rpmsg_pcm_open(struct snd_pcm_substream *substream)
 
 	i2s_info->send_message(rpmsg, i2s_info);
 
-	prtd = kzalloc(sizeof(*prtd), GFP_KERNEL);
-	if (!prtd)
-		return -ENOMEM;
-
-	substream->runtime->private_data = prtd;
-
 	ret = snd_pcm_hw_constraint_integer(substream->runtime,
 					    SNDRV_PCM_HW_PARAM_PERIODS);
 	if (ret < 0)
@@ -226,8 +219,6 @@ static int imx_rpmsg_pcm_close(struct snd_pcm_substream *substream)
 	struct fsl_rpmsg_i2s *rpmsg_i2s = dev_get_drvdata(cpu_dai->dev);
 	struct i2s_info      *i2s_info =  &rpmsg_i2s->i2s_info;
 	struct i2s_rpmsg     *rpmsg;
-	struct dmaengine_pcm_runtime_data *prtd =
-					substream->runtime->private_data;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		rpmsg = &i2s_info->rpmsg[I2S_TX_CLOSE];
@@ -242,8 +233,6 @@ static int imx_rpmsg_pcm_close(struct snd_pcm_substream *substream)
 	i2s_info->send_message(rpmsg, i2s_info);
 
 	del_timer(&i2s_info->stream_timer[substream->stream].timer);
-
-	kfree(prtd);
 
 	rtd->dai_link->ignore_suspend = 0;
 
