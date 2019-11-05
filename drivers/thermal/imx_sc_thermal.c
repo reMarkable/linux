@@ -230,29 +230,26 @@ static int imx_sc_thermal_probe(struct platform_device *pdev)
 		sensor->temp_passive = trip[0].temperature;
 		sensor->temp_critical = trip[1].temperature;
 
-		/* first thermal zone takes care of system-wide device cooling */
-		if (i == 0) {
-			sensor->cdev = devfreq_cooling_register();
-			if (IS_ERR(sensor->cdev)) {
-				dev_err(&pdev->dev,
-					"failed to register devfreq cooling device: %d\n",
-					ret);
-				return ret;
-			}
+		sensor->cdev = devfreq_cooling_register();
+		if (IS_ERR(sensor->cdev)) {
+			dev_err(&pdev->dev,
+				"failed to register devfreq cooling device: %d\n",
+				ret);
+			return ret;
+		}
 
-			ret = thermal_zone_bind_cooling_device(sensor->tzd,
-				IMX_TRIP_PASSIVE,
-				sensor->cdev,
-				THERMAL_NO_LIMIT,
-				THERMAL_NO_LIMIT,
-				THERMAL_WEIGHT_DEFAULT);
-			if (ret) {
-				dev_err(&sensor->tzd->device,
-					"binding zone %s with cdev %s failed:%d\n",
-					sensor->tzd->type, sensor->cdev->type, ret);
-				devfreq_cooling_unregister(sensor->cdev);
-				return ret;
-			}
+		ret = thermal_zone_bind_cooling_device(sensor->tzd,
+			IMX_TRIP_PASSIVE,
+			sensor->cdev,
+			THERMAL_NO_LIMIT,
+			THERMAL_NO_LIMIT,
+			THERMAL_WEIGHT_DEFAULT);
+		if (ret) {
+			dev_err(&sensor->tzd->device,
+				"binding zone %s with cdev %s failed:%d\n",
+				sensor->tzd->type, sensor->cdev->type, ret);
+			devfreq_cooling_unregister(sensor->cdev);
+			return ret;
 		}
 	}
 
