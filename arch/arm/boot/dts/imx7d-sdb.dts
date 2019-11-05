@@ -105,18 +105,6 @@
 		enable-active-high;
 	};
 
-	reg_brcm: regulator-brcm {
-		compatible = "regulator-fixed";
-		gpio = <&gpio4 21 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		regulator-name = "brcm_reg";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_brcm_reg>;
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		startup-delay-us = <200000>;
-	};
-
 	reg_lcd_3v3: regulator-lcd-3v3 {
 		compatible = "regulator-fixed";
 		regulator-name = "lcd-3v3";
@@ -188,6 +176,13 @@
 		model = "sii902x-audio";
 		cpu-dai = <&sai3>;
 		hdmi-controller = <&sii902x>;
+	};
+
+	usdhc2_pwrseq: usdhc2_pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_brcm_reg>;
+		reset-gpios = <&gpio4 21 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -714,15 +709,24 @@
 };
 
 &usdhc2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
-	pinctrl-0 = <&pinctrl_usdhc2>;
-	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
-	pinctrl-2 = <&pinctrl_usdhc2_200mhz>;
-	wakeup-source;
+	pinctrl-0 = <&pinctrl_usdhc2 &pinctrl_wifi>;
+	pinctrl-1 = <&pinctrl_usdhc2_100mhz &pinctrl_wifi>;
+	pinctrl-2 = <&pinctrl_usdhc2_200mhz &pinctrl_wifi>;
 	keep-power-in-suspend;
 	non-removable;
-	vmmc-supply = <&reg_brcm>;
+	mmc-pwrseq = <&usdhc2_pwrseq>;
+	fsl,tuning-step = <2>;
+	pm-ignore-notify;
+	cap-power-off-card;
 	status = "okay";
+
+	brcmf: bcrmf@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
 };
 
 &usdhc3 {
@@ -1172,6 +1176,12 @@
 				MX7D_PAD_SD3_DATA6__SD3_DATA6		0x5b
 				MX7D_PAD_SD3_DATA7__SD3_DATA7		0x5b
 				MX7D_PAD_SD3_STROBE__SD3_STROBE		0x1b
+			>;
+		};
+
+		pinctrl_wifi: wifigrp {
+			fsl,pins = <
+				MX7D_PAD_ECSPI2_SCLK__GPIO4_IO20	0x19 /* WL_HOST_WAKE */
 			>;
 		};
 	};
