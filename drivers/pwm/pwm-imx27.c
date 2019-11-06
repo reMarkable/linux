@@ -83,6 +83,7 @@
 struct pwm_imx27_chip {
 	struct clk	*clk_ipg;
 	struct clk	*clk_per;
+	struct clk	*clk_32k;
 	void __iomem	*mmio_base;
 	struct pwm_chip	chip;
 };
@@ -94,17 +95,28 @@ static int pwm_imx27_clk_prepare_enable(struct pwm_chip *chip)
 	struct pwm_imx27_chip *imx = to_pwm_imx27_chip(chip);
 	int ret;
 
-	ret = clk_prepare_enable(imx->clk_ipg);
-	if (ret)
-		return ret;
-
-	ret = clk_prepare_enable(imx->clk_per);
-	if (ret) {
-		clk_disable_unprepare(imx->clk_ipg);
-		return ret;
+	if (imx->clk_32k) {
+		ret = clk_prepare_enable(imx->clk_32k);
+		if (ret)
+			goto err1;
 	}
 
+	ret = clk_prepare_enable(imx->clk_ipg);
+	if (ret)
+		goto err2;
+
+	ret = clk_prepare_enable(imx->clk_per);
+	if (ret)
+		goto err3;
+
 	return 0;
+err3:
+	clk_disable_unprepare(imx->clk_ipg);
+err2:
+	if (imx->clk_32k)
+		clk_disable_unprepare(imx->clk_32k);
+err1:
+	return ret;
 }
 
 static void pwm_imx27_clk_disable_unprepare(struct pwm_chip *chip)
@@ -113,6 +125,8 @@ static void pwm_imx27_clk_disable_unprepare(struct pwm_chip *chip)
 
 	clk_disable_unprepare(imx->clk_per);
 	clk_disable_unprepare(imx->clk_ipg);
+	if (imx->clk_32k)
+		clk_disable_unprepare(imx->clk_32k);
 }
 
 static void pwm_imx27_get_state(struct pwm_chip *chip,
@@ -319,6 +333,13 @@ static int pwm_imx27_probe(struct platform_device *pdev)
 				ret);
 
 		return ret;
+	}
+
+	imx->clk_32k = devm_clk_get_optional(&pdev->dev, "32k");
+	if (IS_ERR(imx->clk_32k)) {
+		dev_err(&pdev->dev, "getting 32k clock failed with %ld\n",
+				PTR_ERR(imx->clk_32k));
+		return PTR_ERR(imx->clk_32k);
 	}
 
 	imx->chip.ops = &pwm_imx27_ops;
