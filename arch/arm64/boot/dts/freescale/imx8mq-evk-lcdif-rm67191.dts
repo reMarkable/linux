@@ -86,3 +86,7 @@
 		>;
 	};
 };
+
+&synaptics_dsx_ts {
+	status = "okay";
+};

@@ -186,6 +186,12 @@
 		>;
 	};
 
+	pinctrl_i2c2_synaptics_dsx_io: synaptics_dsx_iogrp {
+		fsl,pins = <
+			MX8MN_IOMUXC_GPIO1_IO09_GPIO1_IO9		0x19
+		>;
+	};
+
 	pinctrl_pdm: pdmgrp {
 		fsl,pins = <
 			MX8MN_IOMUXC_SAI5_MCLK_SAI5_MCLK	0xd6
