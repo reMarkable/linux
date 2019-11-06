@@ -653,6 +653,12 @@ void dw_pcie_setup_rc(struct pcie_port *pp)
 	dw_pcie_setup(pci);
 
 	if (!pp->ops->msi_host_init) {
+		/* Program the msi_data */
+		dw_pcie_wr_own_conf(pp, PCIE_MSI_ADDR_LO, 4,
+				    lower_32_bits((u64)pp->msi_data));
+		dw_pcie_wr_own_conf(pp, PCIE_MSI_ADDR_HI, 4,
+				    upper_32_bits((u64)pp->msi_data));
+
 		num_ctrls = pp->num_vectors / MAX_MSI_IRQS_PER_CTRL;
 
 		/* Initialize IRQ Status array */
