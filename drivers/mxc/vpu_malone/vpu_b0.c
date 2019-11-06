@@ -6510,20 +6510,12 @@ static int __maybe_unused vpu_suspend(struct device *dev)
 
 static bool is_vpu_poweroff(struct vpu_dev *vpudev)
 {
-	void *mu_cr_addr;
-	u_int32 mu_cr;
+	/* Used by check whether vpu is poweroff after suspend
+	 * It shall always be true
+	 * remain this API for unify kernel version 4.19 or implement it later
+	 */
 
-	if (!vpudev)
-		return false;
-
-	mu_cr_addr = vpudev->mu_base_virtaddr + 0x10000 + 0x24;
-	mu_cr = readl_relaxed(mu_cr_addr);
-
-	if (mu_cr == 0)// it mean M0+ is already power off/on
-		return true;
-	else
-		return false;
-
+	return true;
 }
 
 static int resume_vpu_register(struct vpu_dev *vpudev)

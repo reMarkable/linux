@@ -1631,7 +1631,7 @@ static int sw_reset_firmware(struct core_device *core, int resume)
 
 	vpu_dbg(LVL_INFO, "core[%d] sw reset firmware\n", core->id);
 
-	kfifo_free(&core->mu_msg_fifo);
+	kfifo_reset(&core->mu_msg_fifo);
 
 	init_completion(&core->start_cmp);
 	vpu_core_send_cmd(core, 0, GTB_ENC_CMD_FIRM_RESET, 0, NULL);
@@ -5571,14 +5571,14 @@ static int vpu_enc_runtime_resume(struct device *dev)
 	return 0;
 }
 
-static int is_core_activated(struct core_device *core)
+static int is_vpu_enc_poweroff(struct core_device *core)
 {
-	WARN_ON(!core);
+	/* Used by check whether vpu enc is poweroff after suspend
+	 * It shall always be true
+	 * remain this API for unify kernel version 4.19 or implement it later
+	 */
 
-	if (readl_relaxed(core->mu_base_virtaddr + MU_B0_REG_CONTROL) == 0)
-		return false;
-	else
-		return true;
+	return true;
 }
 
 static int is_need_shapshot(struct vpu_ctx *ctx)
@@ -5727,8 +5727,7 @@ static int resume_core(struct core_device *core)
 		resume_instance(core->ctx[i]);
 	}
 
-	/* if the core isn't activated, it means it has been power off and on */
-	if (!is_core_activated(core)) {
+	if (is_vpu_enc_poweroff(core)) {
 		if (!core->vdev->hw_enable)
 			vpu_enc_enable_hw(core->vdev);
 		if (core->snapshot)
