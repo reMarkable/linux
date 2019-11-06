@@ -53,4 +53,4 @@ dtb-$(CONFIG_ARCH_MXC) += imx8qxp-mek.dtb imx8qxp-mek-dsp.dtb imx8qxp-mek-ov5640
 			  imx8qxp-mek-rpmsg.dtb imx8qxp-mek-a0.dtb imx8qxp-lpddr4-val-a0.dtb \
 			  imx8qxp-lpddr4-val.dtb imx8qxp-lpddr4-val-mqs.dtb imx8qxp-ddr3l-val.dtb \
 			  imx8qxp-lpddr4-val-spdif.dtb imx8dxp-lpddr4-val.dtb imx8qxp-17x17-val.dtb \
-			  imx8dx-lpddr4-val.dtb
+			  imx8dx-lpddr4-val.dtb imx8dx-17x17-val.dtb
