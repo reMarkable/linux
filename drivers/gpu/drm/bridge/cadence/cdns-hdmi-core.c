@@ -356,10 +356,16 @@ static int cdns_hdmi_bridge_attach(struct drm_bridge *bridge)
 	drm_connector_init(bridge->dev, connector, &cdns_hdmi_connector_funcs,
 			   DRM_MODE_CONNECTOR_HDMIA);
 
-	if (!strncmp("imx8mq-hdmi", mhdp->plat_data->plat_name, 11))
+	if (!strncmp("imx8mq-hdmi", mhdp->plat_data->plat_name, 11)) {
 		drm_object_attach_property(&connector->base,
 					   config->hdr_output_metadata_property,
 					   0);
+
+		if (!drm_mode_create_colorspace_property(connector))
+			drm_object_attach_property(&connector->base,
+						connector->colorspace_property,
+						0);
+	}
 
 	drm_connector_attach_encoder(connector, encoder);
 
