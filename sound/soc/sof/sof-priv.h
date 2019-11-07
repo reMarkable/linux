@@ -202,6 +202,13 @@ struct snd_sof_dsp_ops {
 	int (*get_window_offset)(struct snd_sof_dev *sdev,
 				 u32 id);/* mandatory for common loader code */
 
+	/* machine driver ops */
+	int (*machine_register)(struct snd_sof_dev *sdev,
+				void *pdata); /* optional */
+	void (*machine_unregister)(struct snd_sof_dev *sdev,
+				   void *pdata); /* optional */
+	int (*machine_check)(struct snd_sof_dev *sdev); /* optional */
+
 	/* DAI ops */
 	struct snd_soc_dai_driver *drv;
 	int num_drv;
@@ -461,6 +468,10 @@ void snd_sof_new_platform_drv(struct snd_sof_dev *sdev);
 int snd_sof_create_page_table(struct device *dev,
 			      struct snd_dma_buffer *dmab,
 			      unsigned char *page_table, size_t size);
+
+int sof_machine_register(struct snd_sof_dev *sdev, void *pdata);
+void sof_machine_unregister(struct snd_sof_dev *sdev, void *pdata);
+int sof_machine_check(struct snd_sof_dev *sdev);
 
 /*
  * Firmware loading.
