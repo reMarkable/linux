@@ -315,7 +315,10 @@ static int sof_pci_probe(struct pci_dev *pci,
 		ret = -ENOMEM;
 		goto release_regions;
 	}
-	ret = sof_nocodec_setup(dev, sof_pdata, mach, desc, ops);
+	mach->drv_name = "sof-nocodec";
+	sof_pdata->fw_filename = desc->nocodec_fw_filename;
+	sof_pdata->tplg_filename = desc->nocodec_tplg_filename;
+	ret = sof_nocodec_setup(dev, ops);
 	if (ret < 0)
 		goto release_regions;
 
