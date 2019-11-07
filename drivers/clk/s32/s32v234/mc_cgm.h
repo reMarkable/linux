@@ -6,11 +6,32 @@
 #ifndef _MC_CGM_H
 #define _MC_CGM_H
 
+#define ARMPLL_PLLDIG(mc_cgm)		(mc_cgm)
+#define ARMPLL_PLLDIG_DFS(mc_cgm)	((mc_cgm) + 0x40)
+#define ARMPLL_PLLDIG_PLLDV_MFD		(50)
+#define ARMPLL_PLLDIG_PLLDV_MFN		(0)
+#define ARMPLL_PLLDIG_PLLDV_RFDPHI0	(1)
+#define ARMPLL_PLLDIG_PLLDV_RFDPHI1	(1)
+#define ARMPLL_PLLDIG_DFS0_MFN		(195)
+#define ARMPLL_PLLDIG_DFS1_MFN		(171)
+#define ARMPLL_PLLDIG_DFS2_MFN		(171)
+
 #define PERIPHPLL_PLLDIG(mc_cgm)	((mc_cgm) + 0x80)
 #define PERIPHPLL_PLLDIG_PLLDV_MFD	(30)
 #define PERIPHPLL_PLLDIG_PLLDV_MFN	(0)
 #define PERIPHPLL_PLLDIG_PLLDV_RFDPHI0	(0x1)
 #define PERIPHPLL_PLLDIG_PLLDV_RFDPHI1	(0x1)
+
+#define ENETPLL_PLLDIG(mc_cgm)		((mc_cgm) + 0x100)
+#define ENETPLL_PLLDIG_DFS(mc_cgm)	((mc_cgm) + 0x100 + 0x40)
+#define ENETPLL_PLLDIG_PLLDV_MFD	(50)
+#define ENETPLL_PLLDIG_PLLDV_MFN	(0)
+#define ENETPLL_PLLDIG_PLLDV_RFDPHI0	(0x1)
+#define ENETPLL_PLLDIG_PLLDV_RFDPHI1	(0x1)
+#define ENETPLL_PLLDIG_DFS0_MFN		(220)
+#define ENETPLL_PLLDIG_DFS1_MFN		(220)
+#define ENETPLL_PLLDIG_DFS2_MFN		(33)
+#define ENETPLL_PLLDIG_DFS3_MFN		(1)
 
 /* MC_CGM_SC_SS */
 #define CGM_SC_SS(mc_cgm)		(((mc_cgm) + 0x7E4))
