@@ -136,6 +136,14 @@
     assigned-clock-rates = <0>, <32768>;
 };
 
+&crypto {
+	status = "disabled";
+};
+
+&dma_apbh {
+	status = "disabled";
+};
+
 &i2c1 {
 	clock-frequency = <400000>;
 	pinctrl-names = "default", "sleep";
@@ -522,6 +530,10 @@
 			};
 		};
 	};
+};
+
+&mu {
+	status = "disabled";
 };
 
 &ocrams {
