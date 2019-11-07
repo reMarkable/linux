@@ -375,14 +375,14 @@
 			maxim,talrt-th2 = /bits/ 16 <0x3200>; /* T1 = 0 deg/T4 = 50 deg */
 			maxim,jeita-curr = /bits/ 16 <0x4350>; /* 50%/100%/81.2% */
 			maxim,jeita-volt = /bits/ 16 <0xa516>; /* 4.15V/4.2V/4.15V */
-			/* maxim,maxim,chargestate0 = /bits/ 16 <0x0a>; */
-			/* maxim,maxim,chargestate1 = /bits/ 16 <0x0a>; */
-			/* maxim,maxim,chargestate2 = /bits/ 16 <0x0a>; */
-			/* maxim,maxim,chargestate3 = /bits/ 16 <0x0a>; */
-			/* maxim,maxim,chargestate4 = /bits/ 16 <0x0a>; */
-			/* maxim,maxim,chargestate5 = /bits/ 16 <0x0a>; */
-			/* maxim,maxim,chargestate6 = /bits/ 16 <0x0a>; */
-			/* maxim,maxim,chargestate7 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate0 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate1 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate2 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate3 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate4 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate5 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate6 = /bits/ 16 <0x0a>; */
+			/* maxim,chargestate7 = /bits/ 16 <0x0a>; */
 			maxim,cell-model-data = /bits/ 16 <
 				0x9d10 0xab90 0xb710 0xb8f0
 				0xba90 0xbc10 0xbd10 0xbe00
