@@ -443,6 +443,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6dl-sabresd.dtb \
 	imx6dl-sabresd-btwifi.dtb \
 	imx6dl-sabresd-hdcp.dtb \
+	imx6dl-sabresd-enetirq.dtb \
 	imx6dl-savageboard.dtb \
 	imx6dl-ts4900.dtb \
 	imx6dl-ts7970.dtb \
@@ -529,6 +530,7 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6q-sabresd-btwifi.dtb \
 	imx6q-sabresd-hdcp.dtb \
 	imx6q-sabresd-uart.dtb \
+	imx6q-sabresd-enetirq.dtb \
 	imx6q-savageboard.dtb \
 	imx6q-sbc6x.dtb \
 	imx6q-tbs2910.dtb \

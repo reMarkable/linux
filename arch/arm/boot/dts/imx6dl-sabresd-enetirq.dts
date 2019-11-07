@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0
 //
+// Copyright (C) 2014 Freescale Semiconductor, Inc.
 // Copyright 2019 NXP
 
-#include "imx6q-sabreauto.dts"
+#include "imx6dl-sabresd.dts"
 
 &fec {
 	pinctrl-0 = <&pinctrl_enet &pinctrl_enet_irq>;
-	interrupts-extended = <&gpio1 6 IRQ_TYPE_LEVEL_HIGH>,
-			      <&gpc 0 119 IRQ_TYPE_LEVEL_HIGH>;
+	interrupts-extended = <&gpio1 6 0x4>, <&gpc 0 119 0x4>;
 };
 
-&mlb {
+&i2c3 {
 	status = "disabled";
 };
