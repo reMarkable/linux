@@ -67,58 +67,20 @@ static void hdmi_lanes_config(struct cdns_mhdp_device *mhdp)
 	cdns_mhdp_reg_write(mhdp, LANES_CONFIG, 0x00400000 | mhdp->lane_mapping);
 }
 
-#define RGB_ALLOWED_COLORIMETRY (BIT(HDMI_EXTENDED_COLORIMETRY_BT2020) |\
-				 BIT(HDMI_EXTENDED_COLORIMETRY_OPRGB))
-#define YCC_ALLOWED_COLORIMETRY (BIT(HDMI_EXTENDED_COLORIMETRY_BT2020) |\
-				 BIT(HDMI_EXTENDED_COLORIMETRY_BT2020_CONST_LUM) |\
-				 BIT(HDMI_EXTENDED_COLORIMETRY_OPYCC_601) |\
-				 BIT(HDMI_EXTENDED_COLORIMETRY_S_YCC_601) |\
-				 BIT(HDMI_EXTENDED_COLORIMETRY_XV_YCC_709) |\
-				 BIT(HDMI_EXTENDED_COLORIMETRY_XV_YCC_601))
 static int hdmi_avi_info_set(struct cdns_mhdp_device *mhdp,
-				struct drm_display_mode *mode)
+			     struct drm_display_mode *mode)
 {
 	struct hdmi_avi_infoframe frame;
-#if 0
-	struct drm_display_info *di = &mhdp->connector.base.display_info;
-	enum hdmi_extended_colorimetry ext_col;
-	u32 sink_col, allowed_col;
-#endif
 	int format = mhdp->video_info.color_fmt;
+	struct drm_connector_state *conn_state = mhdp->connector.base.state;
+	struct drm_display_mode *adj_mode;
+	enum hdmi_quantization_range qr;
 	u8 buf[32];
 	int ret;
 
 	/* Initialise info frame from DRM mode */
-	drm_hdmi_avi_infoframe_from_display_mode(&frame, &mhdp->connector.base, mode);
-
-#if 0 //TODO to DCSS
-	/* Set up colorimetry */
-	allowed_col = format == PXL_RGB ? RGB_ALLOWED_COLORIMETRY :
-						  YCC_ALLOWED_COLORIMETRY;
-
-	sink_col = di->hdmi.colorimetry & allowed_col;
-
-	if (sink_col & BIT(HDMI_EXTENDED_COLORIMETRY_BT2020))
-		ext_col = HDMI_EXTENDED_COLORIMETRY_BT2020;
-	else if (sink_col & BIT(HDMI_EXTENDED_COLORIMETRY_BT2020_CONST_LUM))
-		ext_col = HDMI_EXTENDED_COLORIMETRY_BT2020_CONST_LUM;
-	else if (sink_col & BIT(HDMI_EXTENDED_COLORIMETRY_OPRGB))
-		ext_col = HDMI_EXTENDED_COLORIMETRY_OPRGB;
-	else if (sink_col & BIT(HDMI_EXTENDED_COLORIMETRY_XV_YCC_709))
-		ext_col = HDMI_EXTENDED_COLORIMETRY_XV_YCC_709;
-	else if (sink_col & BIT(HDMI_EXTENDED_COLORIMETRY_OPYCC_601))
-		ext_col = HDMI_EXTENDED_COLORIMETRY_OPYCC_601;
-	else if (sink_col & BIT(HDMI_EXTENDED_COLORIMETRY_S_YCC_601))
-		ext_col = HDMI_EXTENDED_COLORIMETRY_S_YCC_601;
-	else if (sink_col & BIT(HDMI_EXTENDED_COLORIMETRY_XV_YCC_601))
-		ext_col = HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
-	else
-		ext_col = 0;
-
-	frame.colorimetry = sink_col ? HDMI_COLORIMETRY_EXTENDED :
-					  HDMI_COLORIMETRY_NONE;
-	frame.extended_colorimetry = ext_col;
-#endif
+	drm_hdmi_avi_infoframe_from_display_mode(&frame, &mhdp->connector.base,
+						 mode);
 
 	switch (format) {
 	case YCBCR_4_4_4:
@@ -134,6 +96,19 @@ static int hdmi_avi_info_set(struct cdns_mhdp_device *mhdp,
 		frame.colorspace = HDMI_COLORSPACE_RGB;
 		break;
 	}
+
+	drm_hdmi_avi_infoframe_colorspace(&frame, conn_state);
+
+	adj_mode = &mhdp->bridge.base.encoder->crtc->state->adjusted_mode;
+
+	qr = drm_default_rgb_quant_range(adj_mode);
+
+	drm_hdmi_avi_infoframe_quant_range(&frame, &mhdp->connector.base,
+					   adj_mode, qr);
+
+	ret = hdmi_avi_infoframe_check(&frame);
+	if (WARN_ON(ret))
+		return false;
 
 	ret = hdmi_avi_infoframe_pack(&frame, buf + 1, sizeof(buf) - 1);
 	if (ret < 0) {
@@ -404,19 +379,6 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 	struct drm_display_info *display_info = &mhdp->connector.base.display_info;
 	struct video_info *video = &mhdp->video_info;
 
-	switch (display_info->bpc) {
-	case 10:
-		video->color_depth = 10;
-		break;
-	case 6:
-		video->color_depth = 6;
-		break;
-	default:
-		video->color_depth = 8;
-		break;
-	}
-
-	video->color_fmt = PXL_RGB;
 	video->v_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NVSYNC);
 	video->h_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NHSYNC);
 
@@ -428,10 +390,66 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 	mutex_unlock(&mhdp->lock);
 }
 
+bool cdns_hdmi_bridge_mode_fixup(struct drm_bridge *bridge,
+				 const struct drm_display_mode *mode,
+				 struct drm_display_mode *adjusted_mode)
+{
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
+	struct drm_display_info *di = &mhdp->connector.base.display_info;
+	struct video_info *video = &mhdp->video_info;
+	int vic = drm_match_cea_mode(mode);
+
+	video->color_depth = 8;
+	video->color_fmt = PXL_RGB;
+
+	/* for all other platforms, other than imx8mq */
+	if (strncmp("imx8mq-hdmi", mhdp->plat_data->plat_name, 11)) {
+		if (di->bpc == 10 || di->bpc == 6)
+			video->color_depth = di->bpc;
+
+		return true;
+	}
+
+	/* imx8mq */
+	if (vic == 97 || vic == 96) {
+		if (di->hdmi.y420_dc_modes & DRM_EDID_YCBCR420_DC_36)
+			video->color_depth = 12;
+		else if (di->hdmi.y420_dc_modes & DRM_EDID_YCBCR420_DC_30)
+			video->color_depth = 10;
+
+		if (drm_mode_is_420_only(di, mode) ||
+		    (drm_mode_is_420_also(di, mode) &&
+		     video->color_depth > 8)) {
+			video->color_fmt = YCBCR_4_2_0;
+
+			adjusted_mode->private_flags = 1;
+			return true;
+		}
+
+		video->color_depth = 8;
+		return true;
+	}
+
+	/* Any defined maximum tmds clock limit we must not exceed*/
+	if ((di->edid_hdmi_dc_modes & DRM_EDID_HDMI_DC_36) &&
+	    (mode->clock * 3 / 2 <= di->max_tmds_clock))
+		video->color_depth = 12;
+	else if ((di->edid_hdmi_dc_modes & DRM_EDID_HDMI_DC_30) &&
+		 (mode->clock * 5 / 4 <= di->max_tmds_clock))
+		video->color_depth = 10;
+
+	/* 10-bit color depth for the following modes is not supported */
+	if ((vic == 95 || vic == 94 || vic == 93) && video->color_depth == 10)
+		video->color_depth = 8;
+
+	return true;
+}
+
 static const struct drm_bridge_funcs cdns_hdmi_bridge_funcs = {
 	.attach = cdns_hdmi_bridge_attach,
 	.mode_set = cdns_hdmi_bridge_mode_set,
 	.mode_valid = cdns_hdmi_bridge_mode_valid,
+	.mode_fixup = cdns_hdmi_bridge_mode_fixup,
 };
 
 static void hotplug_work_func(struct work_struct *work)
