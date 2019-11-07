@@ -13,6 +13,7 @@
 #include "mc_me.h"
 #include "pll.h"
 #include "src.h"
+#include "dfs.h"
 #include "../clk.h"
 
 struct clk *s32v234_clk_plldig(enum s32v234_plldig_type type, const char *name,
@@ -24,4 +25,7 @@ struct clk *s32v234_clk_plldig_phi(enum s32v234_plldig_type type,
 				   const char *name, const char *parent,
 				   void __iomem *base, u32 phi);
 
+struct clk *s32v234_clk_dfs(enum s32v234_plldig_type type, const char *name,
+			    const char *parent_name,
+			    void __iomem *reg, u8 idx, u32 mfn);
 #endif
