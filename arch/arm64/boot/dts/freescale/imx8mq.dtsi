@@ -755,7 +755,6 @@
 				interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&osc_25m>;
 				clock-names = "per";
-				status = "disabled";
 			};
 		};
 
