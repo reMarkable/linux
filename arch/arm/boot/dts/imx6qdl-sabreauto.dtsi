@@ -450,7 +450,8 @@
 &gpmi {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_gpmi_nand>;
-	status = "okay";
+	/* enable at -gpmi-weim.dts due to pin conflict */
+	status = "disabled";
 };
 
 &hdmi_audio {
