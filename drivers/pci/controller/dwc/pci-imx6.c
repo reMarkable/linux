@@ -1598,14 +1598,9 @@ pm_turnoff_sleep:
 static int imx6_pcie_suspend_noirq(struct device *dev)
 {
 	struct imx6_pcie *imx6_pcie = dev_get_drvdata(dev);
-	struct pcie_port *pp = &imx6_pcie->pci->pp;
 
 	if (!(imx6_pcie->drvdata->flags & IMX6_PCIE_FLAG_SUPPORTS_SUSPEND))
 		return 0;
-
-	if (IS_ENABLED(CONFIG_PCI_MSI))
-		dw_pcie_msi_cfg_store(pp);
-
 	imx6_pcie_pm_turnoff(imx6_pcie);
 	imx6_pcie_ltssm_disable(dev);
 	imx6_pcie_clk_disable(imx6_pcie);
@@ -1626,10 +1621,6 @@ static int imx6_pcie_resume_noirq(struct device *dev)
 	imx6_pcie_init_phy(imx6_pcie);
 	imx6_pcie_deassert_core_reset(imx6_pcie);
 	dw_pcie_setup_rc(pp);
-
-	if (IS_ENABLED(CONFIG_PCI_MSI))
-		dw_pcie_msi_cfg_restore(pp);
-
 	pci_imx_set_msi_en(pp);
 
 	ret = imx6_pcie_establish_link(imx6_pcie);
