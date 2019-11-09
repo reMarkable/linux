@@ -196,9 +196,6 @@ static u32 dcss_dpr_x_pix_wide_adjust(struct dcss_dpr_ch *ch, u32 pix_wide,
 
 	pix_in_64byte = pix_in_64byte_map[ch->pix_size][ch->tile];
 
-	if (pix_format == DRM_FORMAT_P010)
-		pix_wide = pix_wide * 10 / 8;
-
 	div_64byte_mod = pix_wide % pix_in_64byte;
 	offset = (div_64byte_mod == 0) ? 0 : (pix_in_64byte - div_64byte_mod);
 
@@ -392,7 +389,6 @@ static void dcss_dpr_rtram_set(struct dcss_dpr_ch *ch, u32 pix_format)
 	switch (pix_format) {
 	case DRM_FORMAT_NV21:
 	case DRM_FORMAT_NV12:
-	case DRM_FORMAT_P010:
 		ch->rtram_3buf_en = true;
 		ch->rtram_4line_en = false;
 		break;

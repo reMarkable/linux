@@ -770,8 +770,7 @@ void dcss_scaler_setup(struct dcss_scaler *scl, int ch_num,
 		dcss_scaler_yuv_enable(ch, true);
 
 		if (pix_format == DRM_FORMAT_NV12 ||
-		    pix_format == DRM_FORMAT_NV21 ||
-		    pix_format == DRM_FORMAT_P010) {
+		    pix_format == DRM_FORMAT_NV21) {
 			rtr_8line_en = true;
 			src_format = BUF_FMT_YUV420;
 		} else if (pix_format == DRM_FORMAT_UYVY ||
@@ -782,9 +781,6 @@ void dcss_scaler_setup(struct dcss_scaler *scl, int ch_num,
 		}
 
 		use_5_taps = !rtr_8line_en;
-		if (pix_format == DRM_FORMAT_P010)
-			pixel_depth = 30;
-
 	} else {
 		dcss_scaler_yuv_enable(ch, false);
 
