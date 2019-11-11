@@ -945,7 +945,7 @@ static int imx_sata_enable(struct ahci_host_priv *hpriv)
 	} else if (imxpriv->type == AHCI_IMX8QM) {
 		ret = imx8_sata_enable(hpriv);
 		if (ret)
-			return ret;
+			goto disable_clk;
 
 	}
 
