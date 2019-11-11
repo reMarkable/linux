@@ -1835,6 +1835,7 @@ static void brcmf_pcie_setup(struct device *dev, int ret,
 	return;
 
 fail:
+	brcmf_free(dev);
 	device_release_driver(dev);
 }
 
