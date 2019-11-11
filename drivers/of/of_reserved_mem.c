@@ -26,17 +26,36 @@
 static struct reserved_mem reserved_mem[MAX_RESERVED_REGIONS];
 static int reserved_mem_count;
 
-static int __init early_init_dt_alloc_reserved_memory_arch(phys_addr_t size,
-	phys_addr_t align, phys_addr_t start, phys_addr_t end, bool nomap,
-	phys_addr_t *res_base)
+static int __init early_init_dt_alloc_reserved_memory_arch(unsigned long node,
+	phys_addr_t size, phys_addr_t align, phys_addr_t start,
+	phys_addr_t end, bool nomap, phys_addr_t *res_base)
 {
 	phys_addr_t base;
+	phys_addr_t highmem_start = __pa(high_memory - 1) + 1;
 
 	end = !end ? MEMBLOCK_ALLOC_ANYWHERE : end;
 	align = !align ? SMP_CACHE_BYTES : align;
 	base = memblock_find_in_range(start, end, size, align);
 	if (!base)
 		return -ENOMEM;
+
+
+	/*
+	 * Sanity check for the cma reserved region:If the reserved region
+	 * crosses the low/high memory boundary, try to fix it up and then
+	 * fall back to allocate the cma region from the low mememory space.
+	 */
+
+	if (IS_ENABLED(CONFIG_CMA)
+	    && of_flat_dt_is_compatible(node, "shared-dma-pool")
+	    && of_get_flat_dt_prop(node, "reusable", NULL) && !nomap) {
+		if (base < highmem_start && (base + size) > highmem_start) {
+			base = memblock_find_in_range(start, highmem_start,
+						      size, align);
+			if (!base)
+				return -ENOMEM;
+		}
+	}
 
 	*res_base = base;
 	if (nomap)
@@ -131,8 +150,8 @@ static int __init __reserved_mem_alloc_size(unsigned long node,
 			end = start + dt_mem_next_cell(dt_root_size_cells,
 						       &prop);
 
-			ret = early_init_dt_alloc_reserved_memory_arch(size,
-					align, start, end, nomap, &base);
+			ret = early_init_dt_alloc_reserved_memory_arch(node,
+					size, align, start, end, nomap, &base);
 			if (ret == 0) {
 				pr_debug("allocated memory for '%s' node: base %pa, size %ld MiB\n",
 					uname, &base,
@@ -143,8 +162,8 @@ static int __init __reserved_mem_alloc_size(unsigned long node,
 		}
 
 	} else {
-		ret = early_init_dt_alloc_reserved_memory_arch(size, align,
-							0, 0, nomap, &base);
+		ret = early_init_dt_alloc_reserved_memory_arch(node,
+					size, align, 0, 0, nomap, &base);
 		if (ret == 0)
 			pr_debug("allocated memory for '%s' node: base %pa, size %ld MiB\n",
 				uname, &base, (unsigned long)size / SZ_1M);
