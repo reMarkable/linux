@@ -37,6 +37,7 @@
 struct sy7636a {
 	struct device *dev;
 	struct regmap *regmap;
+	unsigned int vcom;
 };
 
 #endif /* __LINUX_MFD_SY7636A_H */
