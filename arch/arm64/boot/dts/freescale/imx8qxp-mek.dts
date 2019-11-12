@@ -299,6 +299,10 @@
 	status = "okay";
 };
 
+&dc0_pc {
+	status = "okay";
+};
+
 &dc0_prg1 {
 	status = "okay";
 };
