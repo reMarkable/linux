@@ -22,6 +22,8 @@ dma_subsys: bus@5a000000 {
 	lpspi0: spi@5a000000 {
 		compatible = "fsl,imx7ulp-spi";
 		reg = <0x5a000000 0x10000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
 		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
 		clocks = <&spi0_lpcg 0>,
@@ -36,6 +38,8 @@ dma_subsys: bus@5a000000 {
 	lpspi2: spi@5a020000 {
 		compatible = "fsl,imx7ulp-spi";
 		reg = <0x5a020000 0x10000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
 		interrupts = <GIC_SPI 218 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-parent = <&gic>;
 		clocks = <&spi2_lpcg 0>,
@@ -44,6 +48,22 @@ dma_subsys: bus@5a000000 {
 		assigned-clocks = <&clk IMX_SC_R_SPI_2 IMX_SC_PM_CLK_PER>;
 		assigned-clock-rates = <60000000>;
 		power-domains = <&pd IMX_SC_R_SPI_2>;
+		status = "disabled";
+	};
+
+	lpspi3: spi@5a030000 {
+		compatible = "fsl,imx7ulp-spi";
+		reg = <0x5a030000 0x10000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&gic>;
+		clocks = <&spi3_lpcg 0>,
+			 <&spi3_lpcg 1>;
+		clock-names = "per", "ipg";
+		assigned-clocks = <&clk IMX_SC_R_SPI_3 IMX_SC_PM_CLK_PER>;
+		assigned-clock-rates = <60000000>;
+		power-domains = <&pd IMX_SC_R_SPI_3>;
 		status = "disabled";
 	};
 
@@ -195,6 +215,18 @@ dma_subsys: bus@5a000000 {
 		clock-output-names = "spi2_lpcg_clk",
 				     "spi2_lpcg_ipg_clk";
 		power-domains = <&pd IMX_SC_R_SPI_2>;
+	};
+
+	spi3_lpcg: clock-controller@5a430000 {
+		compatible = "fsl,imx8qxp-lpcg";
+		reg = <0x5a430000 0x10000>;
+		#clock-cells = <1>;
+		clocks = <&clk IMX_SC_R_SPI_3 IMX_SC_PM_CLK_PER>,
+			 <&dma_ipg_clk>;
+		bit-offset = <0 16>;
+		clock-output-names = "spi3_lpcg_clk",
+				     "spi3_lpcg_ipg_clk";
+		power-domains = <&pd IMX_SC_R_SPI_3>;
 	};
 
 	uart0_lpcg: clock-controller@5a460000 {
