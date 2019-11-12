@@ -498,6 +498,16 @@ char *brcmf_chip_name(u32 id, u32 rev, char *buf, uint len)
 	return buf;
 }
 
+bool brcmf_chip_has_clm_blob(u32 id)
+{
+	bool ret = true;
+
+	if (id == BRCM_CC_4339_CHIP_ID)
+		return false;
+
+	return ret;
+}
+
 static struct brcmf_core *brcmf_chip_add_core(struct brcmf_chip_priv *ci,
 					      u16 coreid, u32 base,
 					      u32 wrapbase)

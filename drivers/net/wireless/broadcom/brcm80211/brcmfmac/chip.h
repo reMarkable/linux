@@ -85,5 +85,6 @@ void brcmf_chip_set_passive(struct brcmf_chip *ci);
 bool brcmf_chip_set_active(struct brcmf_chip *ci, u32 rstvec);
 bool brcmf_chip_sr_capable(struct brcmf_chip *pub);
 char *brcmf_chip_name(u32 chipid, u32 chiprev, char *buf, uint len);
+bool brcmf_chip_has_clm_blob(u32 id);
 
 #endif /* BRCMF_AXIDMP_H */

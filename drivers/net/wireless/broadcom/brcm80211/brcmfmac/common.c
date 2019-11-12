@@ -259,10 +259,12 @@ int brcmf_c_preinit_dcmds(struct brcmf_if *ifp)
 				ri->chipname, sizeof(ri->chipname));
 
 	/* Do any CLM downloading */
-	err = brcmf_c_process_clm_blob(ifp);
-	if (err < 0) {
-		bphy_err(drvr, "download CLM blob file failed, %d\n", err);
-		goto done;
+	if (brcmf_chip_has_clm_blob(bus->chip)) {
+		err = brcmf_c_process_clm_blob(ifp);
+		if (err < 0) {
+			bphy_err(drvr, "download CLM blob file failed, %d\n", err);
+			goto done;
+		}
 	}
 
 	/* query for 'ver' to get version info from firmware */
