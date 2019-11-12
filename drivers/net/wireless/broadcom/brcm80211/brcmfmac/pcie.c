@@ -693,7 +693,7 @@ brcmf_pcie_send_mb_data(struct brcmf_pciedev_info *devinfo, u32 htod_mb_data)
 
 	/* Send mailbox interrupt twice as a hardware workaround */
 	core = brcmf_chip_get_core(devinfo->ci, BCMA_CORE_PCIE2);
-	if (core->rev <= 13)
+	if (core && (core->rev <= 0xd && core->rev != 0xb))
 		pci_write_config_dword(devinfo->pdev, BRCMF_PCIE_REG_SBMBX, 1);
 
 	return 0;
