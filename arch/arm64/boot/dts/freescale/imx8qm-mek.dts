@@ -300,6 +300,10 @@
 	status = "okay";
 };
 
+&dc0_pc {
+	status = "okay";
+};
+
 &dc0_prg1 {
 	status = "okay";
 };
@@ -470,6 +474,10 @@
 			};
 		};
 	};
+};
+
+&dc1_pc {
+	status = "okay";
 };
 
 &dc1_prg1 {
