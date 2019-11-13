@@ -536,10 +536,6 @@
 	status = "disabled";
 };
 
-&ocrams {
-	fsl,enable-lpsr;
-};
-
 &sdma {
 	status = "okay";
 };

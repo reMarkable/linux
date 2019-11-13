@@ -154,7 +154,7 @@ static void __iomem *system_counter_cmp_base;
 static void __iomem *gpio1_base;
 static void (*imx7_suspend_in_ocram_fn)(void __iomem *ocram_vbase);
 struct imx7_cpu_pm_info *pm_info;
-static bool lpsr_enabled;
+static bool lpsr_enabled = true;
 static u32 iomuxc_gpr[MAX_IOMUXC_GPR];
 static u32 uart1_io[MAX_UART_IO];
 static u32 ccm_lpcg[MAX_CCM_LPCG];
@@ -781,9 +781,94 @@ static int imx7_pm_is_resume_from_lpsr(void)
 	return readl_relaxed(lpsr_base);
 }
 
-static int imx7_pm_enter(suspend_state_t state)
+static void imx7_pm_do_suspend(bool lpsr)
 {
 	unsigned int console_saved_reg[10] = {0};
+
+	imx_anatop_pre_suspend();
+	imx_gpcv2_pre_suspend(true);
+	if (imx_gpcv2_is_mf_mix_off()) {
+		/*
+		 * per design requirement, EXSC for PCIe/EIM/PXP
+		 * will need clock to recover RDC setting on
+		 * resume, so enable PCIe/EIM LPCG for RDC
+		 * recovery when M/F mix off
+		 */
+		writel_relaxed(0x3, pm_info->ccm_base.vbase +
+			CCM_EIM_LPCG);
+		writel_relaxed(0x3, pm_info->ccm_base.vbase +
+			CCM_PXP_LPCG);
+		writel_relaxed(0x3, pm_info->ccm_base.vbase +
+			CCM_PCIE_LPCG);
+		/* stop m4 if mix will also be shutdown */
+		if (imx_src_is_m4_enabled() && imx_mu_is_m4_in_stop()) {
+			writel(M4_RCR_HALT,
+				pm_info->src_base.vbase + M4RCR);
+			imx_gpcv2_enable_wakeup_for_m4();
+		}
+		imx7_console_save(console_saved_reg);
+		memcpy(ocram_saved_in_ddr, ocram_base, ocram_size);
+		if (lpsr) {
+			imx7_pm_set_lpsr_resume_addr(pm_info->resume_addr);
+			imx7_console_io_save();
+			memcpy(lpm_ocram_saved_in_ddr, lpm_ocram_base,
+				lpm_ocram_size);
+			imx7_iomuxc_gpr_save();
+			imx7_ccm_save();
+			imx7_gpt_save();
+			imx7_sys_counter_save();
+			imx7_gpio_save();
+		}
+	}
+
+	/* Zzz ... */
+	cpu_suspend(0, imx7_suspend_finish);
+
+	if (imx7_pm_is_resume_from_lpsr()) {
+		imx7_console_io_restore();
+		memcpy(lpm_ocram_base, lpm_ocram_saved_in_ddr,
+			lpm_ocram_size);
+		imx7_iomuxc_gpr_restore();
+		imx7_ccm_restore();
+		imx7_gpt_restore();
+		imx7_sys_counter_restore();
+		imx7_gpio_restore();
+		imx7d_enable_rcosc();
+		imx7_disable_wdog_powerdown();
+	}
+	if (imx_gpcv2_is_mf_mix_off() ||
+		imx7_pm_is_resume_from_lpsr()) {
+		writel_relaxed(0x0, pm_info->ccm_base.vbase +
+			CCM_EIM_LPCG);
+		writel_relaxed(0x0, pm_info->ccm_base.vbase +
+			CCM_PXP_LPCG);
+		writel_relaxed(0x0, pm_info->ccm_base.vbase +
+			CCM_PCIE_LPCG);
+		memcpy(ocram_base, ocram_saved_in_ddr, ocram_size);
+		imx7_console_restore(console_saved_reg);
+		if (imx_src_is_m4_enabled() && imx_mu_is_m4_in_stop()) {
+			imx_gpcv2_disable_wakeup_for_m4();
+			/* restore M4 image */
+			memcpy(lpm_m4tcm_base,
+			    lpm_m4tcm_saved_in_ddr, SZ_32K);
+			/* kick m4 to enable */
+			writel(M4_RCR_GO,
+				pm_info->src_base.vbase + M4RCR);
+			/* offset high bus count for m4 image */
+			request_bus_freq(BUS_FREQ_HIGH);
+			/* restore M4 to run mode */
+			imx_mu_set_m4_run_mode();
+			/* gpc wakeup */
+		}
+	}
+	/* clear LPSR resume address */
+	imx7_pm_set_lpsr_resume_addr(0);
+	imx_anatop_post_resume();
+	imx_gpcv2_post_resume();
+}
+
+static int imx7_pm_enter(suspend_state_t state)
+{
 	u32 val;
 
 	if (!iram_tlb_base_addr) {
@@ -811,99 +896,10 @@ static int imx7_pm_enter(suspend_state_t state)
 
 	switch (state) {
 	case PM_SUSPEND_STANDBY:
-		imx_anatop_pre_suspend();
-		imx_gpcv2_pre_suspend(false);
-
-		/* Zzz ... */
-		if (psci_ops.cpu_suspend)
-			cpu_suspend(1, imx7_suspend_finish);
-		else
-			imx7_suspend_in_ocram_fn(suspend_ocram_base);
-
-		imx_anatop_post_resume();
-		imx_gpcv2_post_resume();
+		imx7_pm_do_suspend(false);
 		break;
 	case PM_SUSPEND_MEM:
-		imx_anatop_pre_suspend();
-		imx_gpcv2_pre_suspend(true);
-		if (imx_gpcv2_is_mf_mix_off()) {
-			/*
-			 * per design requirement, EXSC for PCIe/EIM/PXP
-			 * will need clock to recover RDC setting on
-			 * resume, so enable PCIe/EIM LPCG for RDC
-			 * recovery when M/F mix off
-			 */
-			writel_relaxed(0x3, pm_info->ccm_base.vbase +
-				CCM_EIM_LPCG);
-			writel_relaxed(0x3, pm_info->ccm_base.vbase +
-				CCM_PXP_LPCG);
-			writel_relaxed(0x3, pm_info->ccm_base.vbase +
-				CCM_PCIE_LPCG);
-			/* stop m4 if mix will also be shutdown */
-			if (imx_src_is_m4_enabled() && imx_mu_is_m4_in_stop()) {
-				writel(M4_RCR_HALT,
-					pm_info->src_base.vbase + M4RCR);
-				imx_gpcv2_enable_wakeup_for_m4();
-			}
-			imx7_console_save(console_saved_reg);
-			memcpy(ocram_saved_in_ddr, ocram_base, ocram_size);
-			if (lpsr_enabled) {
-				imx7_pm_set_lpsr_resume_addr(pm_info->resume_addr);
-				imx7_console_io_save();
-				memcpy(lpm_ocram_saved_in_ddr, lpm_ocram_base,
-					lpm_ocram_size);
-				imx7_iomuxc_gpr_save();
-				imx7_ccm_save();
-				imx7_gpt_save();
-				imx7_sys_counter_save();
-				imx7_gpio_save();
-			}
-		}
-
-		/* Zzz ... */
-		cpu_suspend(0, imx7_suspend_finish);
-
-		if (imx7_pm_is_resume_from_lpsr()) {
-			imx7_console_io_restore();
-			memcpy(lpm_ocram_base, lpm_ocram_saved_in_ddr,
-				lpm_ocram_size);
-			imx7_iomuxc_gpr_restore();
-			imx7_ccm_restore();
-			imx7_gpt_restore();
-			imx7_sys_counter_restore();
-			imx7_gpio_restore();
-			imx7d_enable_rcosc();
-			imx7_disable_wdog_powerdown();
-		}
-		if (imx_gpcv2_is_mf_mix_off() ||
-			imx7_pm_is_resume_from_lpsr()) {
-			writel_relaxed(0x0, pm_info->ccm_base.vbase +
-				CCM_EIM_LPCG);
-			writel_relaxed(0x0, pm_info->ccm_base.vbase +
-				CCM_PXP_LPCG);
-			writel_relaxed(0x0, pm_info->ccm_base.vbase +
-				CCM_PCIE_LPCG);
-			memcpy(ocram_base, ocram_saved_in_ddr, ocram_size);
-			imx7_console_restore(console_saved_reg);
-			if (imx_src_is_m4_enabled() && imx_mu_is_m4_in_stop()) {
-				imx_gpcv2_disable_wakeup_for_m4();
-				/* restore M4 image */
-				memcpy(lpm_m4tcm_base,
-				    lpm_m4tcm_saved_in_ddr, SZ_32K);
-				/* kick m4 to enable */
-				writel(M4_RCR_GO,
-					pm_info->src_base.vbase + M4RCR);
-				/* offset high bus count for m4 image */
-				request_bus_freq(BUS_FREQ_HIGH);
-				/* restore M4 to run mode */
-				imx_mu_set_m4_run_mode();
-				/* gpc wakeup */
-			}
-		}
-		/* clear LPSR resume address */
-		imx7_pm_set_lpsr_resume_addr(0);
-		imx_anatop_post_resume();
-		imx_gpcv2_post_resume();
+		imx7_pm_do_suspend(true);
 		break;
 	default:
 		return -EINVAL;
@@ -1222,15 +1218,12 @@ void __init imx7d_pm_init(void)
 		/* save M4 Image to DDR */
 		memcpy(lpm_m4tcm_saved_in_ddr, lpm_m4tcm_base, SZ_32K);
 	}
-	np = of_find_compatible_node(NULL, NULL, "fsl,lpm-sram");
-	if (of_get_property(np, "fsl,enable-lpsr", NULL))
-		lpsr_enabled = true;
 
 	if (psci_ops.cpu_suspend)
 		lpsr_enabled = false;
 
 	if (lpsr_enabled) {
-		pr_info("LPSR mode enabled, DSM will go into LPSR mode!\n");
+		np = of_find_compatible_node(NULL, NULL, "fsl,lpm-sram");
 		lpm_ocram_base = of_iomap(np, 0);
 		WARN_ON(!lpm_ocram_base);
 		WARN_ON(of_address_to_resource(np, 0, &res));
