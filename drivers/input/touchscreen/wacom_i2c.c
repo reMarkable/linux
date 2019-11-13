@@ -459,6 +459,8 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	wacom_of_read(wac_i2c);
 #endif
 
+	device_init_wakeup(&client->dev, true);
+
 	return 0;
 
 err_free_irq:
@@ -492,6 +494,8 @@ static int __maybe_unused wacom_i2c_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 
+	if (device_may_wakeup(dev))
+		enable_irq_wake(client->irq);
 	disable_irq(client->irq);
 	pinctrl_pm_select_sleep_state(dev);
 
@@ -504,6 +508,8 @@ static int __maybe_unused wacom_i2c_resume(struct device *dev)
 
 	pinctrl_pm_select_default_state(dev);
 	enable_irq(client->irq);
+	if (device_may_wakeup(dev))
+		disable_irq_wake(client->irq);
 
 	return wacom_setup_device(client);
 }
