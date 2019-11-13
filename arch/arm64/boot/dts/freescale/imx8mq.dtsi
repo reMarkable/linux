@@ -22,6 +22,7 @@
 	aliases {
 		csi0 = &mipi_csi_1;
 		csi1 = &mipi_csi_2;
+		ethernet0 = &fec1;
 		gpio0 = &gpio1;
 		gpio1 = &gpio2;
 		gpio2 = &gpio3;
