@@ -305,8 +305,8 @@ cdns_hdmi_bridge_mode_valid(struct drm_bridge *bridge,
 			mode->flags & DRM_MODE_FLAG_INTERLACE)
 		return MODE_BAD;
 
-	/* MAX support pixel clock rate 148.5MHz */
-	if (mode->clock > 148500)
+	/* MAX support pixel clock rate 594MHz */
+	if (mode->clock > 594000)
 		return MODE_CLOCK_HIGH;
 
 	/* 4096x2160 is not supported */
