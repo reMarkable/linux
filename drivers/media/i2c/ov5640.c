@@ -111,6 +111,7 @@ enum ov5640_frame_rate {
 	OV5640_15_FPS = 0,
 	OV5640_30_FPS,
 	OV5640_60_FPS,
+	OV5640_07_FPS,
 	OV5640_NUM_FRAMERATES,
 };
 
@@ -352,7 +353,8 @@ static const struct reg_value ov5640_init_setting_30fps_VGA[] = {
 	{0x583b, 0x28, 0, 0}, {0x583c, 0x42, 0, 0}, {0x583d, 0xce, 0, 0},
 	{0x5025, 0x00, 0, 0}, {0x3a0f, 0x30, 0, 0}, {0x3a10, 0x28, 0, 0},
 	{0x3a1b, 0x30, 0, 0}, {0x3a1e, 0x26, 0, 0}, {0x3a11, 0x60, 0, 0},
-	{0x3a1f, 0x14, 0, 0}, {0x3008, 0x02, 0, 0}, {0x3c00, 0x04, 0, 300},
+	{0x3a1f, 0x14, 0, 0}, {0x3008, 0x42, 0, 0}, {0x3c00, 0x04, 0, 300},
+	{0x302c, 0xc2, 0, 0},
 };
 
 static const struct reg_value ov5640_setting_VGA_640_480[] = {
@@ -375,6 +377,7 @@ static const struct reg_value ov5640_setting_VGA_640_480[] = {
 };
 
 static const struct reg_value ov5640_setting_XGA_1024_768[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -389,8 +392,9 @@ static const struct reg_value ov5640_setting_XGA_1024_768[] = {
 	{0x3a0a, 0x00, 0, 0}, {0x3a0b, 0xf6, 0, 0}, {0x3a0e, 0x03, 0, 0},
 	{0x3a0d, 0x04, 0, 0}, {0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0},
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
-	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
+	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x20, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0xa3, 0, 0},
+	{0x3008, 0x02, 0, 10}
 };
 
 static const struct reg_value ov5640_setting_QVGA_320_240[] = {
@@ -470,6 +474,7 @@ static const struct reg_value ov5640_setting_PAL_720_576[] = {
 };
 
 static const struct reg_value ov5640_setting_720P_1280_720[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x07, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -486,6 +491,7 @@ static const struct reg_value ov5640_setting_720P_1280_720[] = {
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x37, 0, 0}, {0x460c, 0x20, 0, 0},
 	{0x3824, 0x04, 0, 0}, {0x5001, 0x83, 0, 0},
+	{0x3008, 0x02, 0, 15},
 };
 
 static const struct reg_value ov5640_setting_1080P_1920_1080[] = {
@@ -521,6 +527,7 @@ static const struct reg_value ov5640_setting_1080P_1920_1080[] = {
 };
 
 static const struct reg_value ov5640_setting_QSXGA_2592_1944[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x11, 0, 0},
@@ -535,8 +542,9 @@ static const struct reg_value ov5640_setting_QSXGA_2592_1944[] = {
 	{0x3a0a, 0x00, 0, 0}, {0x3a0b, 0xf6, 0, 0}, {0x3a0e, 0x03, 0, 0},
 	{0x3a0d, 0x04, 0, 0}, {0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0},
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x06, 0, 0},
-	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
+	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x20, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0x83, 0, 70},
+	{0x3008, 0x02, 0, 20},
 };
 
 /* power-on sensor init reg table */
@@ -1601,6 +1609,15 @@ ov5640_find_mode(struct ov5640_dev *sensor, enum ov5640_frame_rate fr,
 				      ARRAY_SIZE(ov5640_mode_data),
 				      hact, vact,
 				      width, height);
+
+	/*
+	 * DVP mode support 2592x1944@7.5, 1080P@15
+	 */
+	if (sensor->ep.bus_type != V4L2_MBUS_CSI2_DPHY) {
+		if (((mode->id == OV5640_MODE_1080P_1920_1080) && (fr != OV5640_15_FPS)) ||
+		    ((mode->id == OV5640_MODE_QSXGA_2592_1944) && (fr != OV5640_07_FPS)))
+			return NULL;
+	}
 
 	if (!mode ||
 	    (!nearest && (mode->hact != width || mode->vact != height)))
