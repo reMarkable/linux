@@ -48,7 +48,8 @@ dtb-$(CONFIG_ARCH_MXC) += imx8qm-mek.dtb imx8qm-mek-ov5640.dtb \
 			  imx8qm-lpddr4-val-lpspi.dtb imx8qm-lpddr4-val-lpspi-slave.dtb \
 			  imx8qp-lpddr4-val.dtb imx8dm-lpddr4-val.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8qxp-ai_ml.dtb
-dtb-$(CONFIG_ARCH_MXC) += imx8dxl-phantom-mek.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8dxl-phantom-mek.dtb \
+			  imx8dxl-phantom-mek-rpmsg.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8qxp-mek.dtb imx8qxp-mek-dsp.dtb imx8qxp-mek-ov5640.dtb \
 			  imx8qxp-mek-enet2.dtb imx8qxp-mek-enet2-tja1100.dtb imx8qxp-mek-sof.dtb \
 			  imx8qxp-mek-rpmsg.dtb imx8qxp-mek-a0.dtb imx8qxp-lpddr4-val-a0.dtb \
