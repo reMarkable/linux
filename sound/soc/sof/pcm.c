@@ -695,6 +695,11 @@ static int sof_pcm_dai_link_fixup(struct snd_soc_pcm_runtime *rtd,
 		channels->min = dai->dai_config->esai.tdm_slots;
 		channels->max = dai->dai_config->esai.tdm_slots;
 
+		break;
+	case SOF_DAI_IMX_SAI:
+		channels->min = dai->dai_config->sai.tdm_slots;
+		channels->max = dai->dai_config->sai.tdm_slots;
+
 		dev_dbg(sdev->dev,
 			"channels_min: %d channels_max: %d\n",
 			channels->min, channels->max);
