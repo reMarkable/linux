@@ -14,6 +14,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/types.h>
+#include <soc/imx/soc.h>
 
 #include "clk.h"
 
@@ -401,6 +402,8 @@ static int imx8mn_clocks_probe(struct platform_device *pdev)
 	struct device_node *np = dev->of_node;
 	void __iomem *base;
 	int ret;
+
+	check_m4_enabled();
 
 	clks[IMX8MN_CLK_DUMMY] = imx_clk_fixed("dummy", 0);
 	clks[IMX8MN_CLK_24M] = of_clk_get_by_name(np, "osc_24m");
