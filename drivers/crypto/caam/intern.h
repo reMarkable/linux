@@ -86,6 +86,7 @@ struct caam_drv_private {
 	 */
 	u8 total_jobrs;		/* Total Job Rings in device */
 	u8 qi_present;		/* Nonzero if QI present in device */
+	u8 sm_present;		/* Nonzero if Secure Memory is supported */
 	u8 mc_en;		/* Nonzero if MC f/w is active */
 	u8 scu_en;		/* Nonzero if SCU f/w is active */
 	u8 optee_en;		/* Nonzero if OP-TEE f/w is active */
@@ -199,6 +200,24 @@ static inline void caam_qi_algapi_exit(void)
 }
 
 #endif /* CONFIG_CAAM_QI */
+
+#ifdef CONFIG_CRYPTO_DEV_FSL_CAAM_SM
+
+int caam_sm_startup(struct device *dev);
+void caam_sm_shutdown(struct device *dev);
+
+#else
+
+static inline int caam_sm_startup(struct device *dev)
+{
+	return 0;
+}
+
+static inline void caam_sm_shutdown(struct device *dev)
+{
+}
+
+#endif /* CONFIG_CRYPTO_DEV_FSL_CAAM_SM */
 
 #ifdef CONFIG_DEBUG_FS
 static int caam_debugfs_u64_get(void *data, u64 *val)

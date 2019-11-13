@@ -763,6 +763,8 @@ iomap_ctrl:
 		ctrlpriv->sm_size = resource_size(&res_regs);
 	else
 		ctrlpriv->sm_size = PG_SIZE_64K;
+
+	ctrlpriv->sm_present = 1;
 	of_node_put(np);
 
 	if (!reg_access)

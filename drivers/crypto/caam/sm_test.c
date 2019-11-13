@@ -531,6 +531,7 @@ static int __init caam_sm_test_init(void)
 {
 	struct device_node *dev_node;
 	struct platform_device *pdev;
+	struct caam_drv_private *priv;
 	int ret;
 
 	/*
@@ -549,6 +550,12 @@ static int __init caam_sm_test_init(void)
 		return -ENODEV;
 
 	of_node_put(dev_node);
+
+	priv = dev_get_drvdata(&pdev->dev);
+	if (!priv->sm_present) {
+		dev_info(&pdev->dev, "No SM support, skipping tests\n");
+		return -ENODEV;
+	}
 
 	ret = caam_sm_example_init(pdev);
 	if (ret)
