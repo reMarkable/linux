@@ -1119,7 +1119,7 @@ static const struct gpmi_devdata gpmi_devdata_imx7d = {
 	.clks_count = ARRAY_SIZE(gpmi_clks_for_mx7d),
 };
 static const char * gpmi_clks_for_mx8qxp[GPMI_CLK_MAX] = {
-	"gpmi_io_clk", "gpmi_apb_clk", "bch_clk", "bch_apb_clk",
+	"gpmi_clk", "gpmi_apb_clk", "bch_clk", "bch_apb_clk",
 };
 
 static const struct gpmi_devdata gpmi_devdata_imx8qxp = {
@@ -1248,10 +1248,6 @@ static int acquire_resources(struct gpmi_nand_data *this)
 		goto exit_regs;
 
 	ret = acquire_bch_irq(this, bch_irq);
-	if (ret)
-		goto exit_regs;
-
-	ret = acquire_dma_channels(this);
 	if (ret)
 		goto exit_regs;
 
@@ -2706,15 +2702,9 @@ static int gpmi_nand_probe(struct platform_device *pdev)
 	if (ret)
 		goto exit_acquire_resources;
 
-	ret = __gpmi_enable_clk(this, true);
-	if (ret)
-		goto exit_nfc_init;
-
+	pm_runtime_enable(&pdev->dev);
 	pm_runtime_set_autosuspend_delay(&pdev->dev, 500);
 	pm_runtime_use_autosuspend(&pdev->dev);
-	pm_runtime_set_active(&pdev->dev);
-	pm_runtime_enable(&pdev->dev);
-	pm_runtime_get_sync(&pdev->dev);
 
 	ret = gpmi_init(this);
 	if (ret)
