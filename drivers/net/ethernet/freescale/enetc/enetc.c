@@ -20,12 +20,7 @@ netdev_tx_t enetc_xmit(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct enetc_ndev_priv *priv = netdev_priv(ndev);
 	struct enetc_bdr *tx_ring;
-	unsigned long flags;
-	/* pointer to per-cpu ENETC lock for register access issue WA */
-	spinlock_t *lock;
 	int count;
-
-	lock = this_cpu_ptr(&enetc_gregs);
 
 	tx_ring = priv->tx_ring[skb->queue_mapping];
 
@@ -39,11 +34,9 @@ netdev_tx_t enetc_xmit(struct sk_buff *skb, struct net_device *ndev)
 		return NETDEV_TX_BUSY;
 	}
 
-	spin_lock_irqsave(lock, flags);
-
+	read_lock(&enetc_mdio_lock);
 	count = enetc_map_tx_buffs(tx_ring, skb, priv->active_offloads);
-
-	spin_unlock_irqrestore(lock, flags);
+	read_unlock(&enetc_mdio_lock);
 
 	if (unlikely(!count))
 		goto drop_packet_err;
@@ -259,13 +252,9 @@ dma_err:
 static irqreturn_t enetc_msix(int irq, void *data)
 {
 	struct enetc_int_vector	*v = data;
-	unsigned long flags;
-	/* pointer to per-cpu ENETC lock for register access issue WA */
-	spinlock_t *lock;
 	int i;
 
-	lock = this_cpu_ptr(&enetc_gregs);
-	spin_lock_irqsave(lock, flags);
+	read_lock(&enetc_mdio_lock);
 
 	/* disable interrupts */
 	enetc_wr_reg_hot(v->rbier, 0);
@@ -273,7 +262,7 @@ static irqreturn_t enetc_msix(int irq, void *data)
 	for_each_set_bit(i, &v->tx_rings_map, v->count_tx_rings)
 		enetc_wr_reg_hot(v->tbier_base + ENETC_BDR_OFF(i), 0);
 
-	spin_unlock_irqrestore(lock, flags);
+	read_unlock(&enetc_mdio_lock);
 
 	napi_schedule_irqoff(&v->napi);
 
@@ -289,9 +278,6 @@ static int enetc_poll(struct napi_struct *napi, int budget)
 	struct enetc_int_vector
 		*v = container_of(napi, struct enetc_int_vector, napi);
 	bool complete = true;
-	unsigned long flags;
-	/* pointer to per-cpu ENETC lock for register access issue WA */
-	spinlock_t *lock;
 	int work_done;
 	int i;
 
@@ -308,8 +294,7 @@ static int enetc_poll(struct napi_struct *napi, int budget)
 
 	napi_complete_done(napi, work_done);
 
-	lock = this_cpu_ptr(&enetc_gregs);
-	spin_lock_irqsave(lock, flags);
+	read_lock(&enetc_mdio_lock);
 
 	/* enable interrupts */
 	enetc_wr_reg_hot(v->rbier, ENETC_RBIER_RXTIE);
@@ -318,7 +303,7 @@ static int enetc_poll(struct napi_struct *napi, int budget)
 		enetc_wr_reg_hot(v->tbier_base + ENETC_BDR_OFF(i),
 				 ENETC_TBIER_TXTIE);
 
-	spin_unlock_irqrestore(lock, flags);
+	read_unlock(&enetc_mdio_lock);
 
 	return work_done;
 }
@@ -363,18 +348,12 @@ static bool enetc_clean_tx_ring(struct enetc_bdr *tx_ring, int napi_budget)
 	bool do_tstamp;
 	u64 tstamp = 0;
 
-	unsigned long flags;
-	/* pointer to per-cpu ENETC lock for register access issue WA */
-	spinlock_t *lock;
-
-	lock = this_cpu_ptr(&enetc_gregs);
-
 	i = tx_ring->next_to_clean;
 	tx_swbd = &tx_ring->tx_swbd[i];
 
-	spin_lock_irqsave(lock, flags);
+	read_lock(&enetc_mdio_lock);
 	bds_to_clean = enetc_bd_ready_count(tx_ring, i);
-	spin_unlock_irqrestore(lock, flags);
+	read_unlock(&enetc_mdio_lock);
 
 	do_tstamp = false;
 
@@ -417,7 +396,7 @@ static bool enetc_clean_tx_ring(struct enetc_bdr *tx_ring, int napi_budget)
 			tx_swbd = tx_ring->tx_swbd;
 		}
 
-		spin_lock_irqsave(lock, flags);
+		read_lock(&enetc_mdio_lock);
 
 		/* BD iteration loop end */
 		if (is_eof) {
@@ -430,7 +409,7 @@ static bool enetc_clean_tx_ring(struct enetc_bdr *tx_ring, int napi_budget)
 		if (unlikely(!bds_to_clean))
 			bds_to_clean = enetc_bd_ready_count(tx_ring, i);
 
-		spin_unlock_irqrestore(lock, flags);
+		read_unlock(&enetc_mdio_lock);
 	}
 
 	tx_ring->next_to_clean = i;
@@ -516,7 +495,7 @@ static int enetc_refill_rx_ring(struct enetc_bdr *rx_ring, const int buff_cnt)
 }
 
 #ifdef CONFIG_FSL_ENETC_HW_TIMESTAMPING
-/* Must be called with &enetc_gregs spinlock held */
+/* Must be called with the read-side enetc_mdio_lock held */
 static void enetc_get_rx_tstamp(struct net_device *ndev,
 				union enetc_rx_bd *rxbd,
 				struct sk_buff *skb)
@@ -667,12 +646,6 @@ static int enetc_clean_rx_ring(struct enetc_bdr *rx_ring,
 	int rx_frm_cnt = 0, rx_byte_cnt = 0;
 	int cleaned_cnt, i;
 
-	unsigned long flags;
-	/* pointer to per-cpu ENETC lock for register access issue WA */
-	spinlock_t *lock;
-
-	lock = this_cpu_ptr(&enetc_gregs);
-
 	cleaned_cnt = enetc_bd_unused(rx_ring);
 	/* next descriptor to process */
 	i = rx_ring->next_to_clean;
@@ -683,7 +656,7 @@ static int enetc_clean_rx_ring(struct enetc_bdr *rx_ring,
 		u32 bd_status;
 		u16 size;
 
-		spin_lock_irqsave(lock, flags);
+		read_lock(&enetc_mdio_lock);
 
 		if (cleaned_cnt >= ENETC_RXBD_BUNDLE) {
 			int count = enetc_refill_rx_ring(rx_ring, cleaned_cnt);
@@ -694,7 +667,7 @@ static int enetc_clean_rx_ring(struct enetc_bdr *rx_ring,
 		rxbd = ENETC_RXBD(*rx_ring, i);
 		bd_status = le32_to_cpu(rxbd->r.lstatus);
 		if (!bd_status) {
-			spin_unlock_irqrestore(lock, flags);
+			read_unlock(&enetc_mdio_lock);
 			break;
 		}
 
@@ -703,7 +676,7 @@ static int enetc_clean_rx_ring(struct enetc_bdr *rx_ring,
 		size = le16_to_cpu(rxbd->r.buf_len);
 		skb = enetc_map_rx_buff_to_skb(rx_ring, i, size);
 		if (!skb) {
-			spin_unlock_irqrestore(lock, flags);
+			read_unlock(&enetc_mdio_lock);
 			break;
 		}
 
@@ -719,7 +692,7 @@ static int enetc_clean_rx_ring(struct enetc_bdr *rx_ring,
 
 		if (unlikely(bd_status &
 			     ENETC_RXBD_LSTATUS(ENETC_RXBD_ERR_MASK))) {
-			spin_unlock_irqrestore(lock, flags);
+			read_unlock(&enetc_mdio_lock);
 			dev_kfree_skb(skb);
 			while (!(bd_status & ENETC_RXBD_LSTATUS_F)) {
 				dma_rmb();
@@ -763,7 +736,7 @@ static int enetc_clean_rx_ring(struct enetc_bdr *rx_ring,
 
 		enetc_process_skb(rx_ring, skb);
 
-		spin_unlock_irqrestore(lock, flags);
+		read_unlock(&enetc_mdio_lock);
 
 		napi_gro_receive(napi, skb);
 

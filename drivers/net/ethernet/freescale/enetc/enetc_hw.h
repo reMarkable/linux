@@ -325,7 +325,7 @@ struct enetc_hw {
 #define enetc_wr_reg(reg, val)	enetc_wr_reg_wa((reg), (val))
 
 /* accessors for data-path, due to MDIO issue on LS1028 these should be called
- * only under enetc_gregs per-cpu lock
+ * only under the rwlock_t enetc_mdio_lock
  */
 #define enetc_rd_reg_hot(reg)	ioread32((reg))
 #define enetc_wr_reg_hot(reg, val)	iowrite32((val), (reg))
@@ -348,90 +348,45 @@ static inline u64 enetc_rd_reg64(void __iomem *reg)
 }
 #endif
 
-extern DEFINE_PER_CPU(spinlock_t, enetc_gregs);
+extern rwlock_t enetc_mdio_lock;
 
 static inline u32 enetc_rd_reg_wa(void *reg)
 {
-	unsigned long flags;
-	/* pointer to per-cpu ENETC lock for register access issue WA */
-	spinlock_t *lock;
 	u32 val;
 
-	lock = this_cpu_ptr(&enetc_gregs);
-	spin_lock_irqsave(lock, flags);
+	read_lock(&enetc_mdio_lock);
 	val = ioread32(reg);
-	spin_unlock_irqrestore(lock, flags);
+	read_unlock(&enetc_mdio_lock);
 
 	return val;
 }
 
 static inline void enetc_wr_reg_wa(void *reg, u32 val)
 {
-	unsigned long flags;
-	/* pointer to per-cpu ENETC lock for register access issue WA */
-	spinlock_t *lock;
-
-	lock = this_cpu_ptr(&enetc_gregs);
-	spin_lock_irqsave(lock, flags);
+	read_lock(&enetc_mdio_lock);
 	iowrite32(val, reg);
-	spin_unlock_irqrestore(lock, flags);
+	read_unlock(&enetc_mdio_lock);
 }
-
-/* NR_CPUS=256 in ARM64 defconfig and using it as array size triggers stack
- * frame warnings for the functions below.  Use a custom define of 2 for now,
- * LS1028 has just two cores.
- */
-#define ENETC_NR_CPU_LOCKS	2
 
 static inline u32 enetc_rd_reg_wa_single(void *reg)
 {
-	u32 val;
-	int cpu;
-	/* per-cpu ENETC lock array for register access issue WA */
-	spinlock_t *lock[ENETC_NR_CPU_LOCKS];
 	unsigned long flags;
+	u32 val;
 
-	local_irq_save(flags);
-	preempt_disable();
-
-	for_each_online_cpu(cpu) {
-		lock[cpu] = per_cpu_ptr(&enetc_gregs, cpu);
-		spin_lock(lock[cpu]);
-	}
-
+	write_lock_irqsave(&enetc_mdio_lock, flags);
 	val = ioread32(reg);
-
-	for_each_online_cpu(cpu)
-		spin_unlock(lock[cpu]);
-	local_irq_restore(flags);
-
-	preempt_enable();
+	write_unlock_irqrestore(&enetc_mdio_lock, flags);
 
 	return val;
 }
 
 static inline void enetc_wr_reg_wa_single(void *reg, u32 val)
 {
-	int cpu;
-	/* per-cpu ENETC lock array for register access issue WA */
-	spinlock_t *lock[ENETC_NR_CPU_LOCKS];
 	unsigned long flags;
 
-	local_irq_save(flags);
-	preempt_disable();
-
-	for_each_online_cpu(cpu) {
-		lock[cpu] = per_cpu_ptr(&enetc_gregs, cpu);
-		spin_lock(lock[cpu]);
-	}
-
+	write_lock_irqsave(&enetc_mdio_lock, flags);
 	iowrite32(val, reg);
-
-	for_each_online_cpu(cpu)
-		spin_unlock(lock[cpu]);
-	local_irq_restore(flags);
-
-	preempt_enable();
+	write_unlock_irqrestore(&enetc_mdio_lock, flags);
 }
 
 #define enetc_rd(hw, off)		enetc_rd_reg((hw)->reg + (off))
