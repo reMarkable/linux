@@ -46,7 +46,7 @@ struct pwrkey_drv_data {
 
 struct imx_sc_msg_pwrkey {
 	struct imx_sc_rpc_msg hdr;
-	u8 state;
+	u32 state;
 };
 
 static struct pwrkey_drv_data *pdata;
@@ -86,7 +86,7 @@ static void imx_sc_check_for_events(struct work_struct *work)
 	 */
 	imx_scu_call_rpc(pdata->ipcHandle, &msg, true);
 
-	state = msg.state;
+	state = (bool)msg.state;
 	/*
 	 * restore status back if press interrupt received but pin's status
 	 * released, which caused by pressing so quickly.
