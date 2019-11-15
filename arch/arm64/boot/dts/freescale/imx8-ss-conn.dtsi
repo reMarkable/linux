@@ -161,6 +161,20 @@ conn_subsys: bus@5b000000 {
 		status = "disabled";
 	};
 
+	mlb: mlb@5b060000 {
+		compatible = "fsl,imx8qxp-mlb150";
+		reg = <0x5B060000 0x10000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SPI 265 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 266 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&mlb_lpcg 0>,
+			 <&mlb_lpcg 1>,
+			 <&mlb_lpcg 2>;
+		clock-names = "mlb", "hclk", "ipg";
+		power-domains = <&pd IMX_SC_R_MLB_0>;
+		status = "disabled";
+	};
+
 	usb3phynop1: usb3-phy {
 		compatible = "usb-nop-xceiv";
 		clocks = <&usb3_lpcg 4>;
@@ -268,6 +282,20 @@ conn_subsys: bus@5b000000 {
 				     "enet1_lpcg_ipg_clk",
 				     "enet1_lpcg_ipg_s_clk";
 		power-domains = <&pd IMX_SC_R_ENET_1>;
+	};
+
+	mlb_lpcg: clock-controller@5b260000 {
+		compatible = "fsl,imx8qxp-lpcg";
+		reg = <0x5b260000 0x10000>;
+		#clock-cells = <1>;
+		clocks = <&conn_axi_clk>,
+			 <&conn_axi_clk>,
+			 <&conn_ipg_clk>;
+		bit-offset = <0 20 16>;
+		clock-output-names = "mlb_lpcg_clk",
+				     "mlb_lpcg_hclk",
+				     "mlb_lpcg_ipg_clk";
+		power-domains = <&pd IMX_SC_R_MLB_0>;
 	};
 
 	usb2_lpcg: clock-controller@5b270000 {
