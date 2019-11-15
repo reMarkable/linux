@@ -338,6 +338,10 @@
 	status = "okay";
 };
 
+&gpc {
+	fsl,ldo-bypass = <1>;
+};
+
 &hdmi_audio {
 	status = "okay";
 };
