@@ -317,6 +317,52 @@ static int max77818_set_charger_mode(struct max77818_chip *chip,
 	return 0;
 }
 
+static int max77818_get_charger_mode(struct max77818_chip *chip,
+				     int *charger_mode)
+{
+	union power_supply_propval val;
+	int ret;
+
+	if (!chip->charger)
+		return -ENODEV;
+
+	dev_dbg(chip->dev,
+		"Clearing FGCC mode\n");
+
+	ret = max77818_set_fgcc_mode(chip, false, NULL);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to clear FGCC bit in CONFIG register\n");
+		return ret;
+	}
+
+	dev_dbg(chip->dev,
+		"Trying to read charger mode through charger driver\n");
+
+	ret = power_supply_get_property(chip->charger,
+					POWER_SUPPLY_PROP_CHARGER_MODE,
+					&val);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to read charger mode from charger driver\n");
+		return ret;
+	}
+
+	*charger_mode = val.intval;
+
+	dev_dbg(chip->dev,
+		"Restoring FGCC mode\n");
+
+	ret = max77818_set_fgcc_mode(chip, true, NULL);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to set FGCC bit in CONFIG register\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static int max77818_get_property(struct power_supply *psy,
 				 enum power_supply_property psp,
 				 union power_supply_propval *val)
@@ -508,7 +554,9 @@ static int max77818_get_property(struct power_supply *psy,
 		val->intval = data * 5625 / 1000;
 		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
-		val->intval = 0;
+		ret = max77818_get_charger_mode(chip, &val->intval);
+		if (ret)
+			return ret;
 		break;
 	default:
 		return -EINVAL;
