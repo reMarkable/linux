@@ -314,14 +314,16 @@ static int cdns_hdmi_connector_atomic_check(struct drm_connector *connector,
 	struct drm_crtc_state *new_crtc_state;
 
 	if (!blob_equal(new_con_state->hdr_output_metadata,
-			old_con_state->hdr_output_metadata)) {
+			old_con_state->hdr_output_metadata) ||
+	    new_con_state->colorspace != old_con_state->colorspace) {
 		new_crtc_state = drm_atomic_get_crtc_state(state, crtc);
 		if (IS_ERR(new_crtc_state))
 			return PTR_ERR(new_crtc_state);
 
 		new_crtc_state->mode_changed =
 			!new_con_state->hdr_output_metadata ||
-			!old_con_state->hdr_output_metadata;
+			!old_con_state->hdr_output_metadata ||
+			new_con_state->colorspace != old_con_state->colorspace;
 	}
 
 	return 0;
