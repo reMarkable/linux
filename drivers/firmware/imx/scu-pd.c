@@ -200,6 +200,14 @@ static int imx_sc_pd_power(struct generic_pm_domain *domain, bool power_on)
 		dev_err(&domain->dev, "failed to power %s resource %d ret %d\n",
 			power_on ? "up" : "off", pd->rsrc, ret);
 
+	/* keep HDMI TX resource power on */
+	if (power_on && (pd->rsrc == IMX_SC_R_HDMI ||
+					pd->rsrc == IMX_SC_R_HDMI_I2S ||
+					pd->rsrc == IMX_SC_R_HDMI_I2C_0 ||
+					pd->rsrc == IMX_SC_R_HDMI_PLL_0 ||
+					pd->rsrc == IMX_SC_R_HDMI_PLL_1))
+		pd->pd.flags |= GENPD_FLAG_ALWAYS_ON;
+
 	return ret;
 }
 
