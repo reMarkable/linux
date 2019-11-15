@@ -567,23 +567,35 @@ static int max77818_charger_update(struct max77818_charger *chg)
 	}
 
 	ret = regmap_read(chg->regmap, REG_CHG_DTLS_01, &dtls_01);
-	if (ret)
-		goto out;
+	if (!ret) {
+		chg_dtls = dtls_01 & BIT_CHG_DTLS;
 
-	chg_dtls = dtls_01 & BIT_CHG_DTLS;
+		chg->health = max77818_charger_status_map[chg_dtls].health;
+		chg->status = max77818_charger_status_map[chg_dtls].status;
+		chg->charge_type = max77818_charger_status_map[chg_dtls].charge_type;
 
-	chg->health = max77818_charger_status_map[chg_dtls].health;
-	chg->status = max77818_charger_status_map[chg_dtls].status;
-	chg->charge_type = max77818_charger_status_map[chg_dtls].charge_type;
+		if (chg->health != POWER_SUPPLY_HEALTH_UNKNOWN)
+			return 0;
 
-	if (chg->health != POWER_SUPPLY_HEALTH_UNKNOWN)
-		goto out;
+		/* override health by TREG */
+		if ((dtls_01 & BIT_TREG) != 0)
+			chg->health = POWER_SUPPLY_HEALTH_OVERHEAT;
+	}
+	else {
+		/* Just do simple GPIO based check when device is not present on
+		 * the I2C bus, and set the status being used by ONLINE property,
+		 * being used by ...am_i_supplied() call which determines the
+		 * status of other supplies dependent on this supply
+		 */
+		if (chg->charger_mode == POWER_SUPPLY_MODE_ALL_OFF)
+			chg->status = 0;
+		else if(chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY)
+			chg->status = max77818_charger_wcin_present(chg);
+		else
+			chg->status = max77818_charger_chgin_present(chg) ||
+				      max77818_charger_wcin_present(chg);
+	}
 
-	/* override health by TREG */
-	if ((dtls_01 & BIT_TREG) != 0)
-		chg->health = POWER_SUPPLY_HEALTH_OVERHEAT;
-
-out:
 	return 0;
 }
 
