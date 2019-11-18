@@ -1735,10 +1735,6 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 		return imx6_pcie->reset_gpio;
 	}
 
-	ret = regulator_enable(imx6_pcie->epdev_on);
-	if (ret)
-		dev_err(dev, "failed to enable the epdev_on regulator\n");
-
 	/* Fetch clocks */
 	imx6_pcie->pcie_phy = devm_clk_get(dev, "pcie_phy");
 	if (IS_ERR(imx6_pcie->pcie_phy)) {
@@ -1906,6 +1902,10 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	ret = imx6_pcie_attach_pd(dev);
 	if (ret)
 		return ret;
+
+	ret = regulator_enable(imx6_pcie->epdev_on);
+	if (ret)
+		dev_err(dev, "failed to enable the epdev_on regulator\n");
 
 	ret = imx6_add_pcie_port(imx6_pcie, pdev);
 	if (ret < 0)
