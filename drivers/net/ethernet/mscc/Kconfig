@@ -15,7 +15,7 @@ config MSCC_OCELOT_SWITCH
 	tristate "Ocelot switch driver"
 	depends on NET_SWITCHDEV
 	depends on HAS_IOMEM
-	select PHYLIB
+	select PHYLINK
 	select REGMAP_MMIO
 	help
 	  This driver supports the Ocelot network switch device.

@@ -12,8 +12,7 @@
 #include <linux/etherdevice.h>
 #include <linux/if_vlan.h>
 #include <linux/net_tstamp.h>
-#include <linux/phy.h>
-#include <linux/phy/phy.h>
+#include <linux/phylink.h>
 #include <linux/platform_device.h>
 #include <linux/ptp_clock_kernel.h>
 #include <linux/regmap.h>
@@ -65,13 +64,11 @@ struct ocelot_multicast {
 struct ocelot_port_private {
 	struct ocelot_port port;
 	struct net_device *dev;
-	struct phy_device *phy;
+	struct phylink *phylink;
+	struct phylink_config phylink_config;
 	u8 chip_port;
 
 	u8 vlan_aware;
-
-	phy_interface_t phy_mode;
-	struct phy *serdes;
 
 	struct ocelot_port_tc tc;
 };
@@ -83,9 +80,7 @@ void ocelot_port_writel(struct ocelot_port *port, u32 val, u32 reg);
 #define ocelot_field_read(ocelot, reg, val) regmap_field_read((ocelot)->regfields[(reg)], (val))
 
 int ocelot_chip_init(struct ocelot *ocelot, const struct ocelot_ops *ops);
-int ocelot_probe_port(struct ocelot *ocelot, u8 port,
-		      void __iomem *regs,
-		      struct phy_device *phy);
+int ocelot_probe_port(struct ocelot *ocelot, u8 port, void __iomem *regs);
 
 void ocelot_set_cpu_port(struct ocelot *ocelot, int cpu,
 			 enum ocelot_tag_prefix injection,
