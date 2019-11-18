@@ -4937,8 +4937,8 @@ static void release_queue_data(struct vpu_ctx *ctx)
 
 static void enable_csr_reg(struct vpu_dev *This)
 {
-	writel(This->m0_p_fw_space_phy, This->csr_base);
-	writel(0x0, This->csr_base + 4);
+	writel(This->m0_p_fw_space_phy, This->csr_base + CSR_CM0Px_ADDR_OFFSET);
+	writel(0x0, This->csr_base + CSR_CM0Px_CPUWAIT);
 }
 
 static void cleanup_firmware_memory(struct vpu_dev *vpudev)
@@ -6542,12 +6542,13 @@ static int __maybe_unused vpu_suspend(struct device *dev)
 
 static bool is_vpu_poweroff(struct vpu_dev *vpudev)
 {
-	/* Used by check whether vpu is poweroff after suspend
-	 * It shall always be true
-	 * remain this API for unify kernel version 4.19 or implement it later
+	/* the csr register 'CM0Px_CPUWAIT' will be cleared to '1' after
+	 * reset(poweoff then poweron)
 	 */
-
-	return true;
+	if (readl_relaxed(vpudev->csr_base + CSR_CM0Px_CPUWAIT) == 1)
+		return true;
+	else
+		return false;
 }
 
 static int resume_vpu_register(struct vpu_dev *vpudev)

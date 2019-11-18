@@ -3404,8 +3404,8 @@ static int set_vpu_fw_addr(struct vpu_dev *dev, struct core_device *core_dev)
 
 	vpu_enc_mu_enable_rx(core_dev);
 	reg_fw_base = core_dev->reg_csr_base;
-	write_vpu_reg(dev, core_dev->m0_p_fw_space_phy, reg_fw_base);
-	write_vpu_reg(dev, 0x0, reg_fw_base + 4);
+	write_vpu_reg(dev, core_dev->m0_p_fw_space_phy, reg_fw_base + CSR_CM0Px_ADDR_OFFSET);
+	write_vpu_reg(dev, 0x0, reg_fw_base + CSR_CM0Px_CPUWAIT);
 
 	return 0;
 }
@@ -5577,12 +5577,13 @@ static int vpu_enc_runtime_resume(struct device *dev)
 
 static int is_vpu_enc_poweroff(struct core_device *core)
 {
-	/* Used by check whether vpu enc is poweroff after suspend
-	 * It shall always be true
-	 * remain this API for unify kernel version 4.19 or implement it later
+	/* the csr register 'CM0Px_CPUWAIT' will be cleared to '1' after
+	 * reset(poweoff then poweron)
 	 */
-
-	return true;
+	if (read_vpu_reg(core->vdev, core->reg_csr_base + CSR_CM0Px_CPUWAIT) == 1)
+		return 1;
+	else
+		return 0;
 }
 
 static int is_need_shapshot(struct vpu_ctx *ctx)
