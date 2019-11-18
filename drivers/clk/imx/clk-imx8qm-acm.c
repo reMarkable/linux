@@ -19,6 +19,11 @@
 
 #include <dt-bindings/clock/imx8-clock.h>
 
+struct imx8qm_acm_priv {
+	void __iomem *reg;
+	u32 regs[32];
+};
+
 static const char *aud_clk_sels[] = {
 	"aud_rec_clk0_lpcg_clk",
 	"aud_rec_clk1_lpcg_clk",
@@ -96,6 +101,7 @@ static int imx8qm_acm_clk_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
 	struct clk_onecell_data *clk_data;
+	struct imx8qm_acm_priv *priv;
 	struct resource *res;
 	struct clk **clks;
 	void __iomem *base;
@@ -106,6 +112,14 @@ static int imx8qm_acm_clk_probe(struct platform_device *pdev)
 	base = devm_ioremap(dev, res->start, resource_size(res));
 	if (!base)
 		return -ENOMEM;
+
+	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	priv->reg = base;
+
+	platform_set_drvdata(pdev, priv);
 
 	clk_data = kzalloc(sizeof(*clk_data), GFP_KERNEL);
 	if (!clk_data)
@@ -200,10 +214,68 @@ static const struct of_device_id imx8qm_acm_match[] = {
 	{ /* sentinel */ }
 };
 
+static int __maybe_unused imx8qm_acm_suspend(struct device *dev)
+{
+	struct imx8qm_acm_priv *priv = dev_get_drvdata(dev);
+
+	priv->regs[0]  = readl_relaxed(priv->reg + 0x000000);
+	priv->regs[1]  = readl_relaxed(priv->reg + 0x010000);
+	priv->regs[2]  = readl_relaxed(priv->reg + 0x020000);
+	priv->regs[3]  = readl_relaxed(priv->reg + 0x030000);
+	priv->regs[4]  = readl_relaxed(priv->reg + 0x040000);
+	priv->regs[6]  = readl_relaxed(priv->reg + 0x060000);
+	priv->regs[7]  = readl_relaxed(priv->reg + 0x070000);
+	priv->regs[14] = readl_relaxed(priv->reg + 0x0E0000);
+	priv->regs[15] = readl_relaxed(priv->reg + 0x0F0000);
+	priv->regs[16] = readl_relaxed(priv->reg + 0x100000);
+	priv->regs[17] = readl_relaxed(priv->reg + 0x110000);
+	priv->regs[18] = readl_relaxed(priv->reg + 0x120000);
+	priv->regs[19] = readl_relaxed(priv->reg + 0x130000);
+	priv->regs[20] = readl_relaxed(priv->reg + 0x140000);
+	priv->regs[21] = readl_relaxed(priv->reg + 0x150000);
+	priv->regs[26] = readl_relaxed(priv->reg + 0x1A0000);
+	priv->regs[27] = readl_relaxed(priv->reg + 0x1B0000);
+	priv->regs[28] = readl_relaxed(priv->reg + 0x1C0000);
+
+	return 0;
+}
+
+static int __maybe_unused imx8qm_acm_resume(struct device *dev)
+{
+	struct imx8qm_acm_priv *priv = dev_get_drvdata(dev);
+
+	writel_relaxed(priv->regs[0],  priv->reg + 0x000000);
+	writel_relaxed(priv->regs[1],  priv->reg + 0x010000);
+	writel_relaxed(priv->regs[2],  priv->reg + 0x020000);
+	writel_relaxed(priv->regs[3],  priv->reg + 0x030000);
+	writel_relaxed(priv->regs[4],  priv->reg + 0x040000);
+	writel_relaxed(priv->regs[6],  priv->reg + 0x060000);
+	writel_relaxed(priv->regs[7],  priv->reg + 0x070000);
+	writel_relaxed(priv->regs[14], priv->reg + 0x0E0000);
+	writel_relaxed(priv->regs[15], priv->reg + 0x0F0000);
+	writel_relaxed(priv->regs[16], priv->reg + 0x100000);
+	writel_relaxed(priv->regs[17], priv->reg + 0x110000);
+	writel_relaxed(priv->regs[18], priv->reg + 0x120000);
+	writel_relaxed(priv->regs[19], priv->reg + 0x130000);
+	writel_relaxed(priv->regs[20], priv->reg + 0x140000);
+	writel_relaxed(priv->regs[21], priv->reg + 0x150000);
+	writel_relaxed(priv->regs[26], priv->reg + 0x1A0000);
+	writel_relaxed(priv->regs[27], priv->reg + 0x1B0000);
+	writel_relaxed(priv->regs[28], priv->reg + 0x1C0000);
+
+	return 0;
+}
+
+static const struct dev_pm_ops imx8qm_acm_pm_ops = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(imx8qm_acm_suspend,
+				      imx8qm_acm_resume)
+};
+
 static struct platform_driver imx8qm_acm_clk_driver = {
 	.driver = {
 		.name = "imx8qm-acm",
 		.of_match_table = imx8qm_acm_match,
+		.pm = &imx8qm_acm_pm_ops,
 		.suppress_bind_attrs = true,
 	},
 	.probe = imx8qm_acm_clk_probe,
