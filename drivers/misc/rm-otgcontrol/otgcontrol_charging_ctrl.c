@@ -3,11 +3,41 @@
 #include <linux/errno.h>
 #include <linux/power_supply.h>
 
-int otgcontrol_change_otg_charge_mode(struct rm_otgcontrol_data *otgc_data,
-				      int mode)
+/* Copy of the structure defined in
+ * ../drivers/power/supply/power_supply_sysfs.c
+ *
+ * As the power supply API does not define any
+ * methods to access the defined enum strings for
+ * the various properties, a local version is defined
+ * here, as this driver also defines corresponding enumerations locally
+ */
+static const char * const charger_mode_string_list[] = {
+	"Charger", "OTG_supply", "Off"
+};
+
+int otgcontrol_get_otg_charger_modes(struct rm_otgcontrol_data *otgc_data,
+				     char *prop_buf)
 {
-	int ret;
+	int i;
+	int cur_pos = 0;
+
+	for(i = 0;i < ARRAY_SIZE(charger_mode_string_list);i++) {
+		sprintf(&prop_buf[cur_pos],
+			"%s%s",
+			(i > 0) ? " " : "",
+			charger_mode_string_list[i]);
+
+		cur_pos = strlen(prop_buf);
+	}
+	sprintf(&prop_buf[cur_pos], "\n");
+	return strlen(prop_buf);
+}
+
+int otgcontrol_change_otg_charger_mode_int(struct rm_otgcontrol_data *otgc_data,
+					   int mode)
+{
 	union power_supply_propval property_val;
+	int ret;
 
 	switch(mode)
 	{
@@ -65,11 +95,56 @@ int otgcontrol_change_otg_charge_mode(struct rm_otgcontrol_data *otgc_data,
 
 	default:
 		dev_err(otgc_data->dev,
-			"%s: Unable to set OTG1 chargermode (invalid mode %d)",
+			"%s: Unable to set OTG1 chargermode (invalid mode %d)\n",
 			__func__, mode);
 		return -EINVAL;
 	}
 
 	otgc_data->otg1_chargermode = mode;
 	return 0;
+}
+
+int otgcontrol_change_otg_charger_mode_str(struct rm_otgcontrol_data *otgc_data,
+					   const char *buf)
+{
+	int ret, mode, i, buf_len, mode_len;
+
+	/* Remove trailing \n */
+	if (buf[strlen(buf) - 1] == '\n')
+		buf_len = strlen(buf) - 1;
+	else
+		buf_len = strlen(buf);
+
+	ret = kstrtoint(buf, 10, &mode);
+	if (ret < 0) {
+		mode = -1;
+		for (i = 0;i < ARRAY_SIZE(charger_mode_string_list);i++) {
+			mode_len = strlen(charger_mode_string_list[i]);
+			if (!strncmp(charger_mode_string_list[i],
+				     buf,
+				     max(buf_len, mode_len))) {
+				mode = i;
+				break;
+			}
+		}
+		if (mode < 0) {
+			dev_err(otgc_data->dev,
+				"%s: Unable to set OTG1 chargermode "
+				"(invalid mode %s)\n",
+				__func__,
+				buf);
+
+			return -EINVAL;
+		}
+
+	}
+	else if (mode >= ARRAY_SIZE(charger_mode_string_list)) {
+		dev_err(otgc_data->dev,
+			"%s: Unable to set OTG1 chargermode (invalid mode %d)\n",
+			__func__, mode);
+
+		return -EINVAL;
+	}
+
+	return otgcontrol_change_otg_charger_mode_int(otgc_data, mode);
 }

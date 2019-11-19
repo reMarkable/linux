@@ -49,7 +49,7 @@ static ssize_t attribute_show(struct kobject *kobj,
 			      struct kobj_attribute *attr,
 			      char *buf)
 {
-	int var;
+	int count, var;
 	struct rm_otgcontrol_data *otgc_data;
 
 	if (strcmp(attr->attr.name, "otg1_device_connected") == 0) {
@@ -79,12 +79,14 @@ static ssize_t attribute_show(struct kobject *kobj,
 		otgc_data = to_otgcontrol_data(attr,
 					       otg1_chargermode_attribute);
 
-		dev_dbg(otgc_data->dev,
-			"%s: Returning cur otg1_chargermode value (%d)\n",
-			__func__,
-			otgc_data->otg1_chargermode);
+		count = otgcontrol_get_otg_charger_modes(otgc_data, buf);
 
-		var = otgc_data->otg1_chargermode;
+		dev_dbg(otgc_data->dev,
+			"%s: Returning charger mode list: %s\n",
+			__func__,
+			buf);
+
+		return count;
 	}
 	else if (strcmp(attr->attr.name, "otg1_controllermode") == 0) {
 		otgc_data = to_otgcontrol_data(attr,
@@ -126,13 +128,13 @@ static ssize_t attribute_store(struct kobject *kobj,
 	struct rm_otgcontrol_data *otgc_data;
 	int var, ret;
 
-	ret = kstrtoint(buf, 10, &var);
-	if (ret < 0)
-		return ret;
-
 	if (strcmp(attr->attr.name, "otg1_dr_mode") == 0) {
 		otgc_data = to_otgcontrol_data(attr,
 					       otg1_dr_mode_attribute);
+
+		ret = kstrtoint(buf, 10, &var);
+		if (ret < 0)
+			return ret;
 
 		dev_dbg(otgc_data->dev,
 			"%s: Setting new otg1 dr mode (%d)\n",
@@ -146,16 +148,19 @@ static ssize_t attribute_store(struct kobject *kobj,
 		otgc_data = to_otgcontrol_data(attr, otg1_chargermode_attribute);
 
 		dev_dbg(otgc_data->dev,
-			"%s: Setting new otg1 chargermode (%d)\n",
+			"%s: Setting new otg1 chargermode: %s",
 			__func__,
-			var);
+			buf);
 
-		ret = otgcontrol_change_otg_charge_mode(otgc_data,
-							var);
+		ret = otgcontrol_change_otg_charger_mode_str(otgc_data, buf);
 	}
 	else if (strcmp(attr->attr.name, "otg1_controllermode") == 0) {
 		otgc_data = to_otgcontrol_data(attr,
 					       otg1_controllermode_attribute);
+
+		ret = kstrtoint(buf, 10, &var);
+		if (ret < 0)
+			return ret;
 
 		dev_dbg(otgc_data->dev,
 			"%s: Setting new otg1 controllermode (%d)\n",
@@ -169,6 +174,11 @@ static ssize_t attribute_store(struct kobject *kobj,
 	else if (strcmp(attr->attr.name, "otg1_pinctrlstate") == 0) {
 		otgc_data = to_otgcontrol_data(attr,
 					       otg1_pinctrlstate_attribute);
+
+		ret = kstrtoint(buf, 10, &var);
+		if (ret < 0)
+			return ret;
+
 		dev_dbg(otgc_data->dev,
 			"%s: Setting new pinctrlstate (%d)\n",
 			__func__,
