@@ -636,6 +636,13 @@ void *memcpy_dsp(void *dest, const void *src, size_t count)
 	return dest;
 }
 
+static void fsl_dsp_start(struct fsl_dsp *dsp_priv)
+{
+	imx_sc_pm_cpu_start(dsp_priv->dsp_ipcHandle,
+			    IMX_SC_R_DSP, true, dsp_priv->iram);
+
+}
+
 static void dsp_load_firmware(const struct firmware *fw, void *context)
 {
 	struct fsl_dsp *dsp_priv = context;
@@ -710,8 +717,7 @@ static void dsp_load_firmware(const struct firmware *fw, void *context)
 	}
 
 	/* start the core */
-	imx_sc_pm_cpu_start(dsp_priv->dsp_ipcHandle,
-					IMX_SC_R_DSP, true, dsp_priv->iram);
+	fsl_dsp_start(dsp_priv);
 }
 
 /* Initialization of the MU code. */
@@ -774,6 +780,57 @@ static const struct snd_soc_component_driver dsp_soc_platform_drv  = {
 	.compr_ops      = &dsp_platform_compr_ops,
 };
 
+int fsl_dsp_configure_scu(struct fsl_dsp *dsp_priv)
+{
+	int ret;
+
+	ret = imx_scu_get_handle(&dsp_priv->dsp_ipcHandle);
+	if (ret) {
+		dev_err(dsp_priv->dev, "Cannot get scu handle %d\n", ret);
+		return ret;
+	};
+
+	if (dsp_priv->dsp_board_type == DSP_IMX8QXP_TYPE) {
+		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
+					IMX_SC_C_OFS_SEL, 1);
+		if (ret) {
+			dev_err(dsp_priv->dev, "Error system address offset source select\n");
+			return -EIO;
+		}
+
+		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
+					IMX_SC_C_OFS_PERIPH, 0x5A);
+		if (ret) {
+			dev_err(dsp_priv->dev, "Error system address offset of PERIPH %d\n",
+				ret);
+			return -EIO;
+		}
+
+		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
+					IMX_SC_C_OFS_IRQ, 0x51);
+		if (ret) {
+			dev_err(dsp_priv->dev, "Error system address offset of IRQ\n");
+			return -EIO;
+		}
+
+		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
+					IMX_SC_C_OFS_AUDIO, 0x80);
+		if (ret) {
+			dev_err(dsp_priv->dev, "Error system address offset of AUDIO\n");
+			return -EIO;
+		}
+	} else {
+		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
+					IMX_SC_C_OFS_SEL, 0);
+		if (ret) {
+			dev_err(dsp_priv->dev, "Error system address offset source select\n");
+			return -EIO;
+		}
+	}
+
+	return 0;
+}
+
 static int fsl_dsp_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -815,12 +872,6 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	dsp_priv->iram  = dsp_priv->paddr + IRAM_OFFSET;
 	dsp_priv->sram  = dsp_priv->paddr + SYSRAM_OFFSET;
 
-	ret = imx_scu_get_handle(&dsp_priv->dsp_ipcHandle);
-	if (ret) {
-		dev_err(&pdev->dev, "Cannot get scu handle %d\n", ret);
-		return ret;
-	};
-
 	num_domains = of_count_phandle_with_args(np, "power-domains",
 						 "#power-domain-cells");
 	for (i = 0; i < num_domains; i++) {
@@ -839,43 +890,9 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 			return PTR_ERR(link);
 	}
 
-	if (dsp_priv->dsp_board_type == DSP_IMX8QXP_TYPE) {
-		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
-					IMX_SC_C_OFS_SEL, 1);
-		if (ret) {
-			dev_err(&pdev->dev, "Error system address offset source select\n");
-			return -EIO;
-		}
-
-		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
-					IMX_SC_C_OFS_PERIPH, 0x5A);
-		if (ret) {
-			dev_err(&pdev->dev, "Error system address offset of PERIPH %d\n",
-				ret);
-			return -EIO;
-		}
-
-		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
-					IMX_SC_C_OFS_IRQ, 0x51);
-		if (ret) {
-			dev_err(&pdev->dev, "Error system address offset of IRQ\n");
-			return -EIO;
-		}
-
-		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
-					IMX_SC_C_OFS_AUDIO, 0x80);
-		if (ret) {
-			dev_err(&pdev->dev, "Error system address offset of AUDIO\n");
-			return -EIO;
-		}
-	} else {
-		ret = imx_sc_misc_set_control(dsp_priv->dsp_ipcHandle, IMX_SC_R_DSP,
-					IMX_SC_C_OFS_SEL, 0);
-		if (ret) {
-			dev_err(&pdev->dev, "Error system address offset source select\n");
-			return -EIO;
-		}
-	}
+	ret = fsl_dsp_configure_scu(dsp_priv);
+	if (ret < 0)
+		return ret;
 
 	ret = dsp_mu_init(dsp_priv);
 	if (ret)
