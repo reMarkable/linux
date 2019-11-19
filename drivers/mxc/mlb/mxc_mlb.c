@@ -1971,7 +1971,10 @@ static int mxc_mlb150_open(struct inode *inode, struct file *filp)
 	ring_buf_size = pdevinfo->buf_size;
 	buf_size = ring_buf_size * (TRANS_RING_NODES * 2);
 
-	buf_addr = gen_pool_dma_alloc(drvdata->iram_pool, buf_size, &phy_addr);
+	if (drvdata->iram_pool)
+		buf_addr = gen_pool_dma_alloc(drvdata->iram_pool, buf_size, &phy_addr);
+	else
+		buf_addr = NULL;
 	if (!buf_addr) {
 		drvdata->use_iram = false;
 		buf_addr = dma_alloc_coherent(drvdata->dev, buf_size, &phy_addr, GFP_KERNEL);
