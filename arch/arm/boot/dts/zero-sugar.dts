@@ -119,7 +119,7 @@
 		pinctrl-2 = <&pinctrl_one_wire_uart6_rx>;
 		pinctrl-3 = <&pinctrl_one_wire_gpio>;
 		compatible = "rm-otgcontrol";
-		vbus-supply =<&max77818_chg>;
+		vbus-supply =<&max77818_fg>;
 		one-wire-tty-name = "ttymxc5";
 		one-wire-gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
 	};
@@ -338,7 +338,7 @@
 			wcin-stat-gpios = <&gpio6 20 GPIO_ACTIVE_LOW>;
 		};
 
-		fuelgauge {
+		max77818_fg: fuelgauge {
 			compatible = "maxim,max77818-fuelgauge";
 			power-supplies = <&max77818_chg>;
 			maxim,over-heat-temp = <600>; /* tenths of degree Celsius */
