@@ -1219,34 +1219,6 @@
 				interrupt-controller;
 				#interrupt-cells = <1>;
 			};
-
-			dcss: dcss@0x32e00000 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				compatible = "nxp,imx8mq-dcss";
-				reg = <0x32e00000 0x2D000>, <0x32e2f000 0x1000>;
-				interrupts = <6>, <8>, <9>;
-				interrupt-names = "ctx_ld", "ctxld_kick", "vblank";
-				interrupt-parent = <&irqsteer>;
-				clocks = <&clk IMX8MQ_CLK_DISP_APB_ROOT>,
-					 <&clk IMX8MQ_CLK_DISP_AXI_ROOT>,
-					 <&clk IMX8MQ_CLK_DISP_RTRM_ROOT>,
-					 <&clk IMX8MQ_VIDEO2_PLL_OUT>,
-					 <&clk IMX8MQ_CLK_DISP_DTRC>,
-					 <&clk IMX8MQ_VIDEO2_PLL1_REF_SEL>,
-					 <&clk IMX8MQ_CLK_PHY_27MHZ>;
-				clock-names = "apb", "axi", "rtrm", "pix",
-					"dtrc", "pll_src", "pll_phy_ref";
-				assigned-clocks = <&clk IMX8MQ_CLK_DISP_AXI>,
-						  <&clk IMX8MQ_CLK_DISP_RTRM>,
-						  <&clk IMX8MQ_VIDEO2_PLL1_REF_SEL>;
-				assigned-clock-parents = <&clk IMX8MQ_SYS1_PLL_800M>,
-							 <&clk IMX8MQ_SYS1_PLL_800M>,
-							 <&clk IMX8MQ_CLK_27M>;
-				assigned-clock-rates = <800000000>,
-							   <400000000>;
-				status = "disabled";
-			};
 		};
 
 		gpu: gpu@38000000 {
