@@ -152,8 +152,8 @@ static int otgcontrol_reset_fsm(struct rm_otgcontrol_data *otgc_data)
 	/* Initially, set the DR mode to device, shut off the OTG power, and
 	 * mux the onewire at GPIO
 	*/
-	ret = otgcontrol_change_otg_charge_mode(otgc_data,
-						OTG1_CHARGERMODE_CHARGE);
+	ret = otgcontrol_change_otg_charger_mode_int(otgc_data,
+						     OTG1_CHARGERMODE_CHARGE);
 	if (ret > 0) {
 		dev_err(otgc_data->dev,
 			"%s: Failed to reset FSM "
@@ -1375,7 +1375,7 @@ static int otgcontrol_do_device_connected_procedure(
 		"%s: Powering up connected device (if no charger is connected)\n",
 		__func__);
 
-	ret = otgcontrol_change_otg_charge_mode(
+	ret = otgcontrol_change_otg_charger_mode_int(
 				otgc_data,
 				OTG1_CHARGERMODE_OTG); /* OTG POWER ON */
 	if (ret < 0) {
@@ -1508,7 +1508,7 @@ static int otgcontrol_do_device_disconnected_procedure(
 {
 	int ret;
 
-	ret = otgcontrol_change_otg_charge_mode(
+	ret = otgcontrol_change_otg_charger_mode_int(
 				otgc_data,
 				OTG1_CHARGERMODE_CHARGE); /* OTG POWER OFF */
 	if (ret < 0) {
