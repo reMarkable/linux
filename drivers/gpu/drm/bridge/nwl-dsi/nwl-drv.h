@@ -74,6 +74,8 @@ struct nwl_dsi {
 	struct nwl_dsi_transfer *xfer;
 
 	const struct nwl_dsi_platform_data *pdata;
+
+	bool use_dcss;
 };
 
 #endif /* __NWL_DRV_H__ */

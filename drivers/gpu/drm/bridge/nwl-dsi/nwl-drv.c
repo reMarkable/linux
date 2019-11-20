@@ -314,9 +314,6 @@ static int nwl_dsi_plat_enable(struct nwl_dsi *dsi)
 	struct device *dev = dsi->dev;
 	int ret;
 
-	if (dsi->pdata->select_input)
-		dsi->pdata->select_input(dsi);
-
 	ret = nwl_dsi_set_platform_clocks(dsi, true);
 	if (ret < 0)
 		return ret;
@@ -407,10 +404,14 @@ static bool nwl_dsi_bridge_mode_fixup(struct drm_bridge *bridge,
 	if (config->crtc_clock)
 		adjusted->crtc_clock = config->crtc_clock / 1000;
 
-
-	/* At least LCDIF + NWL needs active high sync */
-	adjusted->flags |= (DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC);
-	adjusted->flags &= ~(DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC);
+	if (!dsi->use_dcss) {
+		/* LCDIF + NWL needs active high sync */
+		adjusted->flags |= (DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC);
+		adjusted->flags &= ~(DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC);
+	} else {
+		adjusted->flags &= ~(DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC);
+		adjusted->flags |= (DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC);
+	}
 
 	return true;
 }
@@ -649,6 +650,9 @@ static int imx8mq_dsi_select_input(struct nwl_dsi *dsi)
 		DRM_DEV_ERROR(dsi->dev, "Failed to select input: %d\n", ret);
 
 	of_node_put(remote);
+
+	dsi->use_dcss = use_dcss;
+
 	return ret;
 }
 
@@ -760,6 +764,9 @@ static int nwl_dsi_probe(struct platform_device *pdev)
 	dsi->bridge.funcs = &nwl_dsi_bridge_funcs;
 	dsi->bridge.of_node = dev->of_node;
 	dsi->bridge.timings = &nwl_dsi_timings;
+
+	if (dsi->pdata->select_input)
+		dsi->pdata->select_input(dsi);
 
 	drm_bridge_add(&dsi->bridge);
 
