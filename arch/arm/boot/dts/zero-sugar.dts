@@ -584,11 +584,14 @@
 	non-removable;
 	keep-power-in-suspend;
 	cap-power-off-card;
+	wakeup-source;
 	status = "okay";
 
 	brcmf: bcrmf@1 {
 		reg = <1>;
 		compatible = "brcm,bcm4329-fmac";
+		interrupt-parent = <&gpio1>;
+		interrupts = <8 IRQ_TYPE_LEVEL_LOW>;
 	};
 };
 
@@ -730,6 +733,8 @@
 			MX7D_PAD_SD2_DATA1__SD2_DATA1		0x59
 			MX7D_PAD_SD2_DATA2__SD2_DATA2		0x59
 			MX7D_PAD_SD2_DATA3__SD2_DATA3		0x59
+			/* WIFI_HOST_WAKE */
+			MX7D_PAD_GPIO1_IO08__GPIO1_IO8		0x14
 		>;
 	};
 
