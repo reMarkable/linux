@@ -367,32 +367,53 @@ static bool dcss_plane_needs_setup(struct drm_plane_state *state,
 	       state->rotation != old_state->rotation;
 }
 
-static void dcss_plane_setup_hdr10_pipes(struct dcss_dev *dcss,
-					 struct drm_crtc *crtc,
-					 int ch_num,
-					 const struct drm_format_info *format)
+static void dcss_plane_setup_hdr10_pipes(struct drm_plane *plane)
 {
-	struct dcss_hdr10_pipe_cfg ipipe_cfg, opipe_cfg;
+	struct dcss_dev *dcss = plane->dev->dev_private;
+	struct dcss_plane *dcss_plane = to_dcss_plane(plane);
+	struct drm_plane_state *state = plane->state;
+	struct drm_crtc *crtc = state->crtc;
 	struct dcss_crtc *dcss_crtc = container_of(crtc, struct dcss_crtc,
 						   base);
+	struct drm_framebuffer *fb = state->fb;
+	struct dcss_hdr10_pipe_cfg ipipe_cfg, opipe_cfg;
 
 	opipe_cfg.is_yuv = dcss_crtc->output_is_yuv;
 	opipe_cfg.g = dcss_crtc->opipe_g;
 	opipe_cfg.nl = dcss_crtc->opipe_nl;
 	opipe_cfg.pr = dcss_crtc->opipe_pr;
 
-	ipipe_cfg.is_yuv = format->is_yuv;
-	ipipe_cfg.nl = NL_REC709;
-	ipipe_cfg.pr = PR_FULL;
-	ipipe_cfg.g = G_REC709;
+	ipipe_cfg.is_yuv = fb->format->is_yuv;
 
-	if (format->format == DRM_FORMAT_NV12_10LE40) {
-		ipipe_cfg.nl = NL_REC2084;
+	if (!fb->format->is_yuv) {
+		ipipe_cfg.nl = NL_SRGB;
 		ipipe_cfg.pr = PR_FULL;
-		ipipe_cfg.g = G_REC2020;
+		ipipe_cfg.g = G_ADOBE_ARGB;
+		goto setup;
 	}
 
-	dcss_hdr10_setup(dcss->hdr10, ch_num,  &ipipe_cfg, &opipe_cfg);
+	switch (state->color_encoding) {
+	case DRM_COLOR_YCBCR_BT709:
+		ipipe_cfg.nl = NL_REC709;
+		ipipe_cfg.g = G_REC709;
+		break;
+
+	case DRM_COLOR_YCBCR_BT2020:
+		ipipe_cfg.nl = NL_REC2084;
+		ipipe_cfg.g = G_REC2020;
+		break;
+
+	default:
+		ipipe_cfg.nl = NL_REC709;
+		ipipe_cfg.g = G_REC601_PAL;
+		break;
+	}
+
+	ipipe_cfg.pr = state->color_range;
+
+setup:
+	dcss_hdr10_setup(dcss->hdr10, dcss_plane->ch_num,
+			 &ipipe_cfg, &opipe_cfg);
 }
 
 static void dcss_plane_atomic_update(struct drm_plane *plane,
@@ -455,8 +476,7 @@ static void dcss_plane_atomic_update(struct drm_plane *plane,
 			  dst_w, dst_h,
 			  drm_mode_vrefresh(&crtc_state->mode));
 
-	dcss_plane_setup_hdr10_pipes(dcss, state->crtc,
-				     dcss_plane->ch_num, fb->format);
+	dcss_plane_setup_hdr10_pipes(plane);
 
 	dcss_dtg_plane_pos_set(dcss->dtg, dcss_plane->ch_num,
 			       dst.x1, dst.y1, dst_w, dst_h);
