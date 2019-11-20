@@ -2094,8 +2094,8 @@ static int sdma_init(struct sdma_engine *sdma)
 	/* Be sure SDMA has not started yet */
 	writel_relaxed(0, sdma->regs + SDMA_H_C0PTR);
 
-	ccbsize = MAX_DMA_CHANNELS * sizeof(struct sdma_channel_control)
-		+ sizeof(struct sdma_context_data);
+	ccbsize = MAX_DMA_CHANNELS * (sizeof(struct sdma_channel_control)
+		+ sizeof(struct sdma_context_data));
 
 	if (sdma->iram_pool)
 		sdma->channel_control = gen_pool_dma_alloc(sdma->iram_pool,
