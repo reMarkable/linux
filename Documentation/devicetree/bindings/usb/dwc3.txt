@@ -4,7 +4,21 @@ DWC3- USB3 CONTROLLER. Complies to the generic USB binding properties
       as described in 'usb/generic.txt'
 
 Required properties:
- - compatible: must be "snps,dwc3"
+ - compatible: must be "snps,dwc3" and (if applicable) may contain a
+	chip-specific compatible string in front of it to allow dwc3 driver be
+	able to update cache type configuration accordingly, otherwise
+	Layerscape SoC will encounter USB init failure when adding property
+	dma-coherent on device tree.
+	Example:
+	* "fsl,ls1012a-dwc3", "snps,dwc3"
+	* "fsl,ls1021a-dwc3", "snps,dwc3"
+	* "fsl,ls1028a-dwc3", "snps,dwc3"
+	* "fsl,ls1043a-dwc3", "snps,dwc3"
+	* "fsl,ls1046a-dwc3", "snps,dwc3"
+	* "fsl,ls1088a-dwc3", "snps,dwc3"
+	* "fsl,ls2088a-dwc3", "snps,dwc3"
+	* "fsl,lx2160a-dwc3", "snps,dwc3"
+
  - reg : Address and length of the register set for the device
  - interrupts: Interrupts used by the dwc3 controller.
  - clock-names: should contain "ref", "bus_early", "suspend"
