@@ -1116,6 +1116,8 @@ static int max77818_probe(struct platform_device *pdev)
 	if (!chip)
 		return -ENOMEM;
 
+	mutex_init(&chip->lock);
+
 	chip->dev = dev;
 	chip->regmap = max77818->regmap_fg;
 
