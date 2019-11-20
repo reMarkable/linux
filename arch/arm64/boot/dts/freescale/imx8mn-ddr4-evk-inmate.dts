@@ -102,8 +102,8 @@
 	status = "disabled";
 };
 
-/*/delete-node/ &tmu;*/
-/*/delete-node/ &{/thermal-zones};*/
+/delete-node/ &tmu;
+/delete-node/ &{/thermal-zones};
 &iomuxc {
 	status = "disabled";
 };
