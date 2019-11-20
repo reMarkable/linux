@@ -119,6 +119,7 @@ static int max77818_i2c_probe(struct i2c_client *client,
 			      const struct i2c_device_id *id)
 {
 	struct max77818_dev *me;
+	struct regmap *rp;
 	u32 chip_id, chip_rev;
 	int ret;
 
@@ -164,11 +165,13 @@ static int max77818_i2c_probe(struct i2c_client *client,
 	}
 	i2c_set_clientdata(me->fg, me);
 
-	me->regmap_chg = devm_regmap_init_i2c(me->chg, &max77818_regmap_config);
-	if (IS_ERR(me->regmap_chg)) {
-		ret = PTR_ERR(me->regmap_chg);
+	rp = devm_regmap_init_i2c(me->chg, &max77818_regmap_config);
+	if (IS_ERR(rp)) {
+		ret = PTR_ERR(rp);
 		dev_warn(me->dev, "failed to initialize CHG regmap: %d\n", ret);
 	}
+	else
+		me->regmap_chg = rp;
 
 	me->regmap_fg= devm_regmap_init_i2c(me->fg, &max77818_regmap_config_fg);
 	if (IS_ERR(me->regmap_fg)) {
@@ -218,7 +221,6 @@ static int max77818_i2c_probe(struct i2c_client *client,
 
 del_irqc_chg:
 	regmap_del_irq_chip(me->irq, me->irqc_chg);
-del_irqc_sys:
 	regmap_del_irq_chip(me->irq, me->irqc_sys);
 del_irqc_intsrc:
 	regmap_del_irq_chip(me->irq, me->irqc_intsrc);
