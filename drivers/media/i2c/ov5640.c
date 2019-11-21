@@ -108,10 +108,10 @@ enum ov5640_mode_id {
 };
 
 enum ov5640_frame_rate {
-	OV5640_15_FPS = 0,
+	OV5640_08_FPS = 0,
+	OV5640_15_FPS,
 	OV5640_30_FPS,
 	OV5640_60_FPS,
-	OV5640_07_FPS,
 	OV5640_NUM_FRAMERATES,
 };
 
@@ -151,10 +151,10 @@ MODULE_PARM_DESC(virtual_channel,
 		 "MIPI CSI-2 virtual channel (0..3), default 0");
 
 static const int ov5640_framerates[] = {
+	[OV5640_08_FPS] = 8,
 	[OV5640_15_FPS] = 15,
 	[OV5640_30_FPS] = 30,
 	[OV5640_60_FPS] = 60,
-	[OV5640_07_FPS] = 8,
 };
 
 /* regulator supplies */
@@ -922,6 +922,51 @@ out:
 	return best;
 }
 
+static int ov5640_check_valid_mode(struct ov5640_dev *sensor,
+				   const struct ov5640_mode_info *mode,
+				   enum ov5640_frame_rate rate)
+{
+	struct i2c_client *client = sensor->i2c_client;
+	int ret = 0;
+
+	switch (mode->id) {
+	case OV5640_MODE_QCIF_176_144:
+	case OV5640_MODE_QVGA_320_240:
+	case OV5640_MODE_NTSC_720_480:
+	case OV5640_MODE_PAL_720_576 :
+	case OV5640_MODE_XGA_1024_768:
+	case OV5640_MODE_720P_1280_720:
+		if ((rate != OV5640_15_FPS) &&
+		    (rate != OV5640_30_FPS))
+			ret = -EINVAL;
+		break;
+	case OV5640_MODE_VGA_640_480:
+		if ((rate != OV5640_15_FPS) &&
+		    (rate != OV5640_30_FPS))
+			ret = -EINVAL;
+		break;
+	case OV5640_MODE_1080P_1920_1080:
+		if (sensor->ep.bus_type == V4L2_MBUS_CSI2_DPHY) {
+			if ((rate != OV5640_15_FPS) &&
+			    (rate != OV5640_30_FPS))
+				ret = -EINVAL;
+		 } else {
+			if ((rate != OV5640_15_FPS))
+				ret = -EINVAL;
+		 }
+		break;
+	case OV5640_MODE_QSXGA_2592_1944:
+		if (rate != OV5640_08_FPS)
+			ret = -EINVAL;
+		break;
+	default:
+		dev_err(&client->dev, "Invalid mode (%d)\n", mode->id);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
 /*
  * ov5640_set_mipi_pclk() - Calculate the clock tree configuration values
  *			    for the MIPI CSI-2 output.
@@ -1621,22 +1666,6 @@ ov5640_find_mode(struct ov5640_dev *sensor, enum ov5640_frame_rate fr,
 				      hact, vact,
 				      width, height);
 
-	/*
-	 * DVP mode support 2592x1944@7.5, 1080P@15
-	 */
-	if (sensor->ep.bus_type != V4L2_MBUS_CSI2_DPHY) {
-		if (((mode->id == OV5640_MODE_1080P_1920_1080) && (fr != OV5640_15_FPS)) ||
-		    ((mode->id == OV5640_MODE_QSXGA_2592_1944) && (fr != OV5640_07_FPS)))
-			return NULL;
-	/*
-	 * MIPI mode only support 2592x1944@15
-	 */
-	} else if (sensor->ep.bus_type == V4L2_MBUS_CSI2_DPHY) {
-		if ((mode->id == OV5640_MODE_QSXGA_2592_1944) && (fr != OV5640_15_FPS))
-			return NULL;
-	}
-
-
 	if (!mode ||
 	    (!nearest && (mode->hact != width || mode->vact != height)))
 		return NULL;
@@ -2136,11 +2165,11 @@ static int ov5640_try_frame_interval(struct ov5640_dev *sensor,
 				     u32 width, u32 height)
 {
 	const struct ov5640_mode_info *mode;
-	enum ov5640_frame_rate rate = OV5640_15_FPS;
+	enum ov5640_frame_rate rate = OV5640_08_FPS;
 	int minfps, maxfps, best_fps, fps;
 	int i;
 
-	minfps = ov5640_framerates[OV5640_15_FPS];
+	minfps = ov5640_framerates[OV5640_08_FPS];
 	maxfps = ov5640_framerates[OV5640_60_FPS];
 
 	if (fi->numerator == 0) {
@@ -2876,11 +2905,23 @@ static int ov5640_enum_mbus_code(struct v4l2_subdev *sd,
 static int ov5640_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct ov5640_dev *sensor = to_ov5640_dev(sd);
+	struct i2c_client *client = sensor->i2c_client;
 	int ret = 0;
 
 	mutex_lock(&sensor->lock);
 
 	if (sensor->streaming == !enable) {
+		ret = ov5640_check_valid_mode(sensor,
+					      sensor->current_mode,
+					      sensor->current_fr);
+		if (ret) {
+			dev_err(&client->dev, "Not support WxH@fps=%dx%d@%d\n",
+				sensor->current_mode->hact,
+				sensor->current_mode->vact,
+				ov5640_framerates[sensor->current_fr]);
+			goto out;
+		}
+
 		if (enable && sensor->pending_mode_change) {
 			ret = ov5640_set_mode(sensor);
 			if (ret)
