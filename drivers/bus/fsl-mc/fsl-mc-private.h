@@ -182,14 +182,6 @@ int fsl_mc_msi_domain_alloc_irqs(struct device *dev,
 
 void fsl_mc_msi_domain_free_irqs(struct device *dev);
 
-int __must_check fsl_create_mc_io(struct device *dev,
-				  phys_addr_t mc_portal_phys_addr,
-				  u32 mc_portal_size,
-				  struct fsl_mc_device *dpmcp_dev,
-				  u32 flags, struct fsl_mc_io **new_mc_io);
-
-void fsl_destroy_mc_io(struct fsl_mc_io *mc_io);
-
 bool fsl_mc_is_root_dprc(struct device *dev);
 
 #ifdef CONFIG_FSL_MC_UAPI_SUPPORT
