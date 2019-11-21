@@ -809,6 +809,32 @@ static int mipi_csi2_s_power(struct v4l2_subdev *sd, int on)
 	return v4l2_subdev_call(sen_sd, core, s_power, on);
 }
 
+static int mipi_csi2_g_frame_interval(struct v4l2_subdev *sd,
+				struct v4l2_subdev_frame_interval *interval)
+{
+	struct mxc_mipi_csi2_dev *csi2dev = sd_to_mxc_mipi_csi2_dev(sd);
+	struct v4l2_subdev *sen_sd;
+
+	sen_sd = mxc_get_remote_subdev(csi2dev, __func__);
+	if (!sen_sd)
+		return -EINVAL;
+
+	return v4l2_subdev_call(sen_sd, video, g_frame_interval, interval);
+}
+
+static int mipi_csi2_s_frame_interval(struct v4l2_subdev *sd,
+				struct v4l2_subdev_frame_interval *interval)
+{
+	struct mxc_mipi_csi2_dev *csi2dev = sd_to_mxc_mipi_csi2_dev(sd);
+	struct v4l2_subdev *sen_sd;
+
+	sen_sd = mxc_get_remote_subdev(csi2dev, __func__);
+	if (!sen_sd)
+		return -EINVAL;
+
+	return v4l2_subdev_call(sen_sd, video, s_frame_interval, interval);
+}
+
 static int mipi_csi2_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct mxc_mipi_csi2_dev *csi2dev = sd_to_mxc_mipi_csi2_dev(sd);
@@ -906,7 +932,7 @@ static int mipi_csi2_set_fmt(struct v4l2_subdev *sd,
 	fmt->pad = source_pad->index;
 	ret = v4l2_subdev_call(sen_sd, pad, set_fmt, NULL, fmt);
 	if (ret < 0 && ret != -ENOIOCTLCMD)
-		return -EINVAL;
+		return ret;
 
 	return 0;
 }
@@ -927,7 +953,9 @@ static struct v4l2_subdev_core_ops mipi_csi2_core_ops = {
 };
 
 static struct v4l2_subdev_video_ops mipi_csi2_video_ops = {
-	.s_stream = mipi_csi2_s_stream,
+	.g_frame_interval = mipi_csi2_g_frame_interval,
+	.s_frame_interval = mipi_csi2_s_frame_interval,
+	.s_stream	  = mipi_csi2_s_stream,
 };
 
 static struct v4l2_subdev_ops mipi_csi2_subdev_ops = {
