@@ -563,7 +563,7 @@ static int mxc_pcsi_set_fmt(struct v4l2_subdev *sd,
 	fmt->pad = source_pad->index;
 	ret = v4l2_subdev_call(sen_sd, pad, set_fmt, NULL, fmt);
 	if (ret < 0 && ret != -ENOIOCTLCMD)
-		return -EINVAL;
+		return ret;
 
 	return 0;
 }
@@ -578,6 +578,32 @@ static int mxc_pcsi_s_power(struct v4l2_subdev *sd, int on)
 		return -EINVAL;
 
 	return v4l2_subdev_call(sen_sd, core, s_power, on);
+}
+
+static int mxc_pcsi_g_frame_interval(struct v4l2_subdev *sd,
+				struct v4l2_subdev_frame_interval *interval)
+{
+	struct mxc_parallel_csi_dev *pcsidev = sd_to_mxc_pcsi_dev(sd);
+	struct v4l2_subdev *sen_sd;
+
+	sen_sd = mxc_get_remote_subdev(pcsidev, __func__);
+	if (!sen_sd)
+		return -EINVAL;
+
+	return v4l2_subdev_call(sen_sd, video, g_frame_interval, interval);
+}
+
+static int mxc_pcsi_s_frame_interval(struct v4l2_subdev *sd,
+				struct v4l2_subdev_frame_interval *interval)
+{
+	struct mxc_parallel_csi_dev *pcsidev = sd_to_mxc_pcsi_dev(sd);
+	struct v4l2_subdev *sen_sd;
+
+	sen_sd = mxc_get_remote_subdev(pcsidev, __func__);
+	if (!sen_sd)
+		return -EINVAL;
+
+	return v4l2_subdev_call(sen_sd, video, s_frame_interval, interval);
 }
 
 static int mxc_pcsi_s_stream(struct v4l2_subdev *sd, int enable)
@@ -646,7 +672,9 @@ static struct v4l2_subdev_core_ops pcsi_core_ops = {
 };
 
 static struct v4l2_subdev_video_ops pcsi_video_ops = {
-	.s_stream = mxc_pcsi_s_stream,
+	.g_frame_interval = mxc_pcsi_g_frame_interval,
+	.s_frame_interval = mxc_pcsi_s_frame_interval,
+	.s_stream	  = mxc_pcsi_s_stream,
 };
 
 static struct v4l2_subdev_ops pcsi_subdev_ops = {
