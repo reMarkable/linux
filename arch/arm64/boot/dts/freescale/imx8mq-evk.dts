@@ -126,6 +126,22 @@
 		};
 	};
 
+	sound-hdmi {
+		compatible = "fsl,imx8mq-evk-cdnhdmi",
+				"fsl,imx-audio-cdnhdmi";
+		model = "imx-audio-hdmi";
+		audio-cpu = <&sai4>;
+		protocol = <1>;
+		hdmi-out;
+		constraint-rate = <44100>,
+				<88200>,
+				<176400>,
+				<32000>,
+				<48000>,
+				<96000>,
+				<192000>;
+	};
+
 	sound-spdif {
 		compatible = "fsl,imx-audio-spdif";
 		model = "imx-spdif";
@@ -163,7 +179,6 @@
 		audio-codec = <&ak4497>;
 		status = "disabled";
 	};
-
 };
 
 &A53_0 {
@@ -1053,4 +1068,30 @@
 
 &gpu3d {
 	status = "okay";
+};
+
+&irqsteer {
+	status = "okay";
+};
+
+&dcss {
+	status = "okay";
+	disp-dev = "hdmi_disp";
+
+	port@0 {
+		dcss_out: endpoint {
+			remote-endpoint = <&hdmi_in>;
+		};
+	};
+};
+
+&hdmi {
+	compatible = "cdn,imx8mq-hdmi";
+	lane-mapping = <0xe4>;
+	status = "okay";
+	port@1 {
+		hdmi_in: endpoint {
+			remote-endpoint = <&dcss_out>;
+		};
+	};
 };
