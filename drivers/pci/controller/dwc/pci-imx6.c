@@ -22,6 +22,7 @@
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
 #include <linux/of_address.h>
+#include <linux/of_pci.h>
 #include <linux/pci.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
@@ -33,6 +34,7 @@
 #include <linux/reset.h>
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
+#include "../../pci.h"
 
 #include "pcie-designware.h"
 
@@ -99,6 +101,8 @@ struct imx6_pcie {
 	u32			hsio_cfg;
 	u32			ext_osc;
 	u32			local_addr;
+	u32			hard_wired;
+	u32			dma_unroll_offset;
 	int			link_gen;
 	struct regulator	*vpcie;
 	void __iomem		*phy_base;
@@ -131,6 +135,8 @@ struct imx6_pcie {
 /* PCIe Port Logic registers (memory-mapped) */
 #define PL_OFFSET 0x700
 
+#define PCIE_PHY_DEBUG_R1 (PL_OFFSET + 0x2c)
+
 #define PCIE_PHY_CTRL (PL_OFFSET + 0x114)
 #define PCIE_PHY_CTRL_DATA(x)		FIELD_PREP(GENMASK(15, 0), (x))
 #define PCIE_PHY_CTRL_CAP_ADR		BIT(16)
@@ -142,6 +148,35 @@ struct imx6_pcie {
 #define PCIE_PHY_STAT_ACK		BIT(16)
 
 #define PCIE_LINK_WIDTH_SPEED_CONTROL	0x80C
+
+/* DMA registers */
+#define MAX_PCIE_DMA_CHANNELS	8
+#define DMA_UNROLL_CDM_OFFSET	(0x7 << 19)
+#define DMA_REG_OFFSET		0x970
+#define DMA_CTRL_VIEWPORT_OFF	(DMA_REG_OFFSET + 0x8)
+#define DMA_WRITE_ENGINE_EN_OFF	(DMA_REG_OFFSET + 0xC)
+#define DMA_WRITE_ENGINE_EN	BIT(0)
+#define DMA_WRITE_DOORBELL	(DMA_REG_OFFSET + 0x10)
+#define DMA_READ_ENGINE_EN_OFF	(DMA_REG_OFFSET + 0x2C)
+#define DMA_READ_ENGINE_EN	BIT(0)
+#define DMA_READ_DOORBELL	(DMA_REG_OFFSET + 0x30)
+#define DMA_WRITE_INT_STS	(DMA_REG_OFFSET + 0x4C)
+#define DMA_WRITE_INT_MASK	(DMA_REG_OFFSET + 0x54)
+#define DMA_WRITE_INT_CLR	(DMA_REG_OFFSET + 0x58)
+#define DMA_READ_INT_STS	(DMA_REG_OFFSET + 0xA0)
+#define DMA_READ_INT_MASK	(DMA_REG_OFFSET + 0xA8)
+#define DMA_READ_INT_CLR	(DMA_REG_OFFSET + 0xAC)
+#define DMA_DONE_INT_STS	0xFF
+#define DMA_ABORT_INT_STS	(0xFF << 16)
+#define DMA_VIEWPOT_SEL_OFF	(DMA_REG_OFFSET + 0xFC)
+#define DMA_CHANNEL_CTRL_1	(DMA_REG_OFFSET + 0x100)
+#define DMA_CHANNEL_CTRL_1_LIE	BIT(3)
+#define DMA_CHANNEL_CTRL_2	(DMA_REG_OFFSET + 0x104)
+#define DMA_TRANSFER_SIZE	(DMA_REG_OFFSET + 0x108)
+#define DMA_SAR_LOW		(DMA_REG_OFFSET + 0x10C)
+#define DMA_SAR_HIGH		(DMA_REG_OFFSET + 0x110)
+#define DMA_DAR_LOW		(DMA_REG_OFFSET + 0x114)
+#define DMA_DAR_HIGH		(DMA_REG_OFFSET + 0x118)
 
 /* PHY registers (not memory-mapped) */
 #define PCIE_PHY_ATEOVRD			0x10
@@ -233,6 +268,17 @@ struct imx6_pcie {
 #define IMX8MM_GPR_PCIE_CMN_RST			BIT(18)
 #define IMX8MM_GPR_PCIE_POWER_OFF		BIT(17)
 #define IMX8MM_GPR_PCIE_SSC_EN			BIT(16)
+
+/*
+ * The default value of the reserved ddr memory
+ * used to verify EP/RC memory space access operations.
+ * The layout of the 1G ddr on SD boards
+ * [imx6qdl-sd-ard boards]0x1000_0000 ~ 0x4FFF_FFFF
+ * [imx6sx,imx7d platforms]0x8000_0000 ~ 0xBFFF_FFFF
+ *
+ */
+static u32 ddr_test_region = 0, test_region_size = SZ_2M;
+static bool dma_w_end, dma_r_end, dma_en;
 
 static bool imx6_pcie_readable_reg(struct device *dev, unsigned int reg)
 {
@@ -994,26 +1040,49 @@ static void imx6_pcie_configure_type(struct imx6_pcie *imx6_pcie)
 {
 	unsigned int mask, val;
 
-	if (imx6_pcie->drvdata->variant == IMX8QM ||
-	    imx6_pcie->drvdata->variant == IMX8QXP) {
-		val = IMX8QM_CSR_PCIEA_OFFSET
-			+ imx6_pcie->controller_id * SZ_64K;
-		regmap_update_bits(imx6_pcie->iomuxc_gpr,
-				val, IMX8QM_PCIE_TYPE_MASK,
-				PCI_EXP_TYPE_ROOT_PORT << 24);
-	} else if (imx6_pcie->drvdata->variant == IMX8MQ &&
-	    imx6_pcie->controller_id == 1) {
-		mask   = IMX8MQ_GPR12_PCIE2_CTRL_DEVICE_TYPE;
-		val    = FIELD_PREP(IMX8MQ_GPR12_PCIE2_CTRL_DEVICE_TYPE,
-				    PCI_EXP_TYPE_ROOT_PORT);
-		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
-				mask, val);
+	if (IS_ENABLED(CONFIG_EP_MODE_IN_EP_RC_SYS)) {
+		if (imx6_pcie->drvdata->variant == IMX8QM
+				|| imx6_pcie->drvdata->variant == IMX8QXP) {
+			val = IMX8QM_CSR_PCIEA_OFFSET
+				+ imx6_pcie->controller_id * SZ_64K;
+			regmap_update_bits(imx6_pcie->iomuxc_gpr,
+					val, IMX8QM_PCIE_TYPE_MASK,
+					PCI_EXP_TYPE_ENDPOINT << 24);
+		} else {
+			if (unlikely(imx6_pcie->controller_id))
+				/* iMX8MQ second PCIE */
+				regmap_update_bits(imx6_pcie->iomuxc_gpr,
+						IOMUXC_GPR12,
+						IMX6Q_GPR12_DEVICE_TYPE >> 4,
+						PCI_EXP_TYPE_ENDPOINT << 8);
+			else
+				regmap_update_bits(imx6_pcie->iomuxc_gpr,
+						IOMUXC_GPR12,
+						IMX6Q_GPR12_DEVICE_TYPE,
+						PCI_EXP_TYPE_ENDPOINT << 12);
+		}
 	} else {
-		mask = IMX6Q_GPR12_DEVICE_TYPE;
-		val  = FIELD_PREP(IMX6Q_GPR12_DEVICE_TYPE,
-				  PCI_EXP_TYPE_ROOT_PORT);
-		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
-				mask, val);
+		if (imx6_pcie->drvdata->variant == IMX8QM ||
+		    imx6_pcie->drvdata->variant == IMX8QXP) {
+			val = IMX8QM_CSR_PCIEA_OFFSET
+				+ imx6_pcie->controller_id * SZ_64K;
+			regmap_update_bits(imx6_pcie->iomuxc_gpr,
+					val, IMX8QM_PCIE_TYPE_MASK,
+					PCI_EXP_TYPE_ROOT_PORT << 24);
+		} else if (imx6_pcie->drvdata->variant == IMX8MQ &&
+		    imx6_pcie->controller_id == 1) {
+			mask   = IMX8MQ_GPR12_PCIE2_CTRL_DEVICE_TYPE;
+			val    = FIELD_PREP(IMX8MQ_GPR12_PCIE2_CTRL_DEVICE_TYPE,
+					    PCI_EXP_TYPE_ROOT_PORT);
+			regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
+					mask, val);
+		} else {
+			mask = IMX6Q_GPR12_DEVICE_TYPE;
+			val  = FIELD_PREP(IMX6Q_GPR12_DEVICE_TYPE,
+					  PCI_EXP_TYPE_ROOT_PORT);
+			regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
+					mask, val);
+		}
 	}
 }
 
@@ -1406,6 +1475,20 @@ err_reset_phy:
 	return ret;
 }
 
+static void pci_imx_set_msi_en(struct pcie_port *pp)
+{
+	u16 val;
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+
+	if (pci_msi_enabled()) {
+		val = dw_pcie_readw_dbi(pci, PCIE_RC_IMX6_MSI_CAP +
+					PCI_MSI_FLAGS);
+		val |= PCI_MSI_FLAGS_ENABLE;
+		dw_pcie_writew_dbi(pci, PCIE_RC_IMX6_MSI_CAP + PCI_MSI_FLAGS,
+				   val);
+	}
+}
+
 static int imx6_pcie_host_init(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
@@ -1418,11 +1501,14 @@ static int imx6_pcie_host_init(struct pcie_port *pp)
 	imx6_pcie_init_phy(imx6_pcie);
 	imx6_pcie_deassert_core_reset(imx6_pcie);
 	imx6_setup_phy_mpll(imx6_pcie);
-	dw_pcie_setup_rc(pp);
-	imx6_pcie_establish_link(imx6_pcie);
+	if (!IS_ENABLED(CONFIG_EP_MODE_IN_EP_RC_SYS)) {
+		dw_pcie_setup_rc(pp);
+		pci_imx_set_msi_en(pp);
+		imx6_pcie_establish_link(imx6_pcie);
 
-	if (IS_ENABLED(CONFIG_PCI_MSI))
-		dw_pcie_msi_init(pp);
+		if (IS_ENABLED(CONFIG_PCI_MSI))
+			dw_pcie_msi_init(pp);
+	}
 
 	return 0;
 }
@@ -1474,18 +1560,263 @@ static const struct dw_pcie_ops dw_pcie_ops = {
 	.cpu_addr_fixup = imx6_pcie_cpu_addr_fixup,
 };
 
-static void pci_imx_set_msi_en(struct pcie_port *pp)
+static ssize_t ep_bar0_addr_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
-	u16 val;
-	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	struct imx6_pcie *imx6_pcie = dev_get_drvdata(dev);
+	struct dw_pcie *pci = imx6_pcie->pci;
 
-	if (pci_msi_enabled()) {
-		val = dw_pcie_readw_dbi(pci, PCIE_RC_IMX6_MSI_CAP +
-					PCI_MSI_FLAGS);
-		val |= PCI_MSI_FLAGS_ENABLE;
-		dw_pcie_writew_dbi(pci, PCIE_RC_IMX6_MSI_CAP + PCI_MSI_FLAGS,
-				   val);
+	return sprintf(buf, "imx-pcie-bar0-addr-info start 0x%08x\n",
+			readl(pci->dbi_base + PCI_BASE_ADDRESS_0));
+}
+
+static ssize_t ep_bar0_addr_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	u32 bar_start;
+	struct imx6_pcie *imx6_pcie = dev_get_drvdata(dev);
+	struct dw_pcie *pci = imx6_pcie->pci;
+
+	if (sscanf(buf, "%x\n", &bar_start) != 1)
+		return -EINVAL;
+	writel(bar_start, pci->dbi_base + PCI_BASE_ADDRESS_0);
+
+	return count;
+}
+
+static void imx6_pcie_regions_setup(struct device *dev)
+{
+	struct imx6_pcie *imx6_pcie = dev_get_drvdata(dev);
+	struct dw_pcie *pci = imx6_pcie->pci;
+	struct pcie_port *pp = &pci->pp;
+
+	switch (imx6_pcie->drvdata->variant) {
+	case IMX8QM:
+	case IMX8QXP:
+	case IMX8MQ:
+	case IMX8MM:
+		/*
+		 * RPMSG reserved 4Mbytes, but only used up to 2Mbytes.
+		 * The left 2Mbytes can be used here.
+		 */
+		if (ddr_test_region == 0)
+			dev_err(dev, "invalid ddr test region.\n");
+		break;
+	case IMX6SX:
+	case IMX7D:
+		ddr_test_region = 0xb0000000;
+		break;
+
+	case IMX6Q:
+	case IMX6QP:
+		ddr_test_region = 0x40000000;
+		break;
 	}
+	dev_info(dev, "ddr_test_region is 0x%08x.\n", ddr_test_region);
+
+	dw_pcie_prog_outbound_atu(pci, 0, 0, pp->mem_base,
+				  ddr_test_region, test_region_size);
+}
+
+static DEVICE_ATTR_RW(ep_bar0_addr);
+
+static struct attribute *imx6_pcie_ep_attrs[] = {
+	&dev_attr_ep_bar0_addr.attr,
+	NULL
+};
+
+static struct attribute_group imx6_pcie_attrgroup = {
+	.attrs	= imx6_pcie_ep_attrs,
+};
+
+static void imx6_pcie_setup_ep(struct dw_pcie *pci)
+{
+	int ret;
+	u32 val;
+	u32 lanes;
+	struct device_node *np = pci->dev->of_node;
+
+	ret = of_property_read_u32(np, "num-lanes", &lanes);
+	if (ret)
+		lanes = 0;
+
+	/* set the number of lanes */
+	val = dw_pcie_readl_dbi(pci, PCIE_PORT_LINK_CONTROL);
+	val &= ~PORT_LINK_MODE_MASK;
+	switch (lanes) {
+	case 1:
+		val |= PORT_LINK_MODE_1_LANES;
+		break;
+	default:
+		dev_err(pci->dev, "num-lanes %u: invalid value\n", lanes);
+		return;
+	}
+	dw_pcie_writel_dbi(pci, PCIE_PORT_LINK_CONTROL, val);
+
+	/* set link width speed control register */
+	val = dw_pcie_readl_dbi(pci, PCIE_LINK_WIDTH_SPEED_CONTROL);
+	val &= ~PORT_LOGIC_LINK_WIDTH_MASK;
+	switch (lanes) {
+	case 1:
+		val |= PORT_LOGIC_LINK_WIDTH_1_LANES;
+		break;
+	default:
+		dev_err(pci->dev, "num-lanes %u: invalid value\n", lanes);
+		return;
+	}
+	dw_pcie_writel_dbi(pci, PCIE_LINK_WIDTH_SPEED_CONTROL, val);
+
+	/* get iATU unroll support */
+	val = dw_pcie_readl_dbi(pci, PCIE_ATU_VIEWPORT);
+	if (val == 0xffffffff)
+		pci->iatu_unroll_enabled = 1;
+	dev_info(pci->dev, "iATU unroll: %s\n",
+		pci->iatu_unroll_enabled ? "enabled" : "disabled");
+
+	/* CMD reg:I/O space, MEM space, and Bus Master Enable */
+	writel(readl(pci->dbi_base + PCI_COMMAND)
+			| PCI_COMMAND_IO
+			| PCI_COMMAND_MEMORY
+			| PCI_COMMAND_MASTER,
+			pci->dbi_base + PCI_COMMAND);
+
+	/*
+	 * configure the class_rev(emaluate one memory ram ep device),
+	 * bar0 and bar1 of ep
+	 */
+	writel(0xdeadbeaf, pci->dbi_base + PCI_VENDOR_ID);
+	writel((readl(pci->dbi_base + PCI_CLASS_REVISION) & 0xFFFF)
+			| (PCI_CLASS_MEMORY_RAM	<< 16),
+			pci->dbi_base + PCI_CLASS_REVISION);
+	writel(0xdeadbeaf, pci->dbi_base
+			+ PCI_SUBSYSTEM_VENDOR_ID);
+
+	/* 32bit none-prefetchable 8M bytes memory on bar0 */
+	writel(0x0, pci->dbi_base + PCI_BASE_ADDRESS_0);
+	writel(SZ_8M - 1, pci->dbi_base + (1 << 12)
+			+ PCI_BASE_ADDRESS_0);
+
+	/* None used bar1 */
+	writel(0x0, pci->dbi_base + PCI_BASE_ADDRESS_1);
+	writel(0, pci->dbi_base + (1 << 12) + PCI_BASE_ADDRESS_1);
+
+	/* 4K bytes IO on bar2 */
+	writel(0x1, pci->dbi_base + PCI_BASE_ADDRESS_2);
+	writel(SZ_4K - 1, pci->dbi_base + (1 << 12) +
+			PCI_BASE_ADDRESS_2);
+
+	/*
+	 * 32bit prefetchable 1M bytes memory on bar3
+	 * FIXME BAR MASK3 is not changeable, the size
+	 * is fixed to 256 bytes.
+	 */
+	writel(0x8, pci->dbi_base + PCI_BASE_ADDRESS_3);
+	writel(SZ_1M - 1, pci->dbi_base + (1 << 12)
+			+ PCI_BASE_ADDRESS_3);
+
+	/*
+	 * 64bit prefetchable 1M bytes memory on bar4-5.
+	 * FIXME BAR4,5 are not enabled yet
+	 */
+	writel(0xc, pci->dbi_base + PCI_BASE_ADDRESS_4);
+	writel(SZ_1M - 1, pci->dbi_base + (1 << 12)
+			+ PCI_BASE_ADDRESS_4);
+	writel(0, pci->dbi_base + (1 << 12) + PCI_BASE_ADDRESS_5);
+}
+
+static irqreturn_t imx6_pcie_dma_isr(int irq, void *param)
+{
+	u32 irqs, offset;
+	struct pcie_port *pp = (struct pcie_port *)param;
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	struct imx6_pcie *imx6_pcie = to_imx6_pcie(pci);
+
+	offset = imx6_pcie->dma_unroll_offset;
+
+	/* check write isr */
+	irqs = readl(pci->dbi_base + offset + DMA_WRITE_INT_STS);
+	if (irqs & DMA_DONE_INT_STS) {
+		/* write 1 clear */
+		writel(irqs & DMA_DONE_INT_STS,
+				pci->dbi_base + offset + DMA_WRITE_INT_CLR);
+		dma_w_end = 1;
+	} else if (irqs & DMA_ABORT_INT_STS) {
+		pr_info("imx pcie dma write error 0x%0x.\n", irqs);
+	}
+	/* check read isr */
+	irqs = readl(pci->dbi_base + offset + DMA_READ_INT_STS);
+	if (irqs & DMA_DONE_INT_STS) {
+		/* write 1 clear */
+		writel(irqs & DMA_DONE_INT_STS,
+				pci->dbi_base + offset + DMA_READ_INT_CLR);
+		dma_r_end = 1;
+	} else if (irqs & DMA_ABORT_INT_STS) {
+		pr_info("imx pcie dma read error 0x%0x.", irqs);
+	}
+	return IRQ_HANDLED;
+}
+
+/**
+ * imx6_pcie_local_dma_start - Start one local iMX PCIE DMA.
+ * @pp: the port start the dma transmission.
+ * @dir: direction of the dma, 1 read, 0 write;
+ * @chl: the channel num of the iMX PCIE DMA(0 - 7).
+ * @src: source DMA address.
+ * @dst: destination DMA address.
+ * @len: transfer length.
+ */
+static int imx6_pcie_local_dma_start(struct pcie_port *pp, bool dir,
+		unsigned int chl, dma_addr_t src, dma_addr_t dst,
+		unsigned int len)
+{
+	u32 offset, doorbell, unroll_cal;
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	struct imx6_pcie *imx6_pcie = to_imx6_pcie(pci);
+
+	if (pp == NULL)
+		return -EINVAL;
+	if (chl > MAX_PCIE_DMA_CHANNELS)
+		return -EINVAL;
+
+	offset = imx6_pcie->dma_unroll_offset;
+	/* enable dma engine, dir 1:read. 0:write. */
+	if (dir)
+		writel(DMA_READ_ENGINE_EN,
+				pci->dbi_base + offset
+				+ DMA_READ_ENGINE_EN_OFF);
+	else
+		writel(DMA_WRITE_ENGINE_EN,
+				pci->dbi_base + offset
+				+ DMA_WRITE_ENGINE_EN_OFF);
+	writel(0x0, pci->dbi_base + offset + DMA_WRITE_INT_MASK);
+	writel(0x0, pci->dbi_base + offset + DMA_READ_INT_MASK);
+	 /* ch dir and ch num */
+	if (offset == 0) {
+		writel((dir << 31) | chl, pci->dbi_base + DMA_VIEWPOT_SEL_OFF);
+		writel(DMA_CHANNEL_CTRL_1_LIE,
+				pci->dbi_base + DMA_CHANNEL_CTRL_1);
+		writel(0x0, pci->dbi_base + DMA_CHANNEL_CTRL_2);
+		writel(len, pci->dbi_base + DMA_TRANSFER_SIZE);
+		writel((u32)src, pci->dbi_base + DMA_SAR_LOW);
+		writel(0x0, pci->dbi_base + DMA_SAR_HIGH);
+		writel((u32)dst, pci->dbi_base + DMA_DAR_LOW);
+		writel(0x0, pci->dbi_base + DMA_DAR_HIGH);
+	} else {
+		unroll_cal = DMA_UNROLL_CDM_OFFSET
+			+ 0x200 * (chl + 1) + 0x100 * dir;
+		writel(DMA_CHANNEL_CTRL_1_LIE, pci->dbi_base + unroll_cal);
+		writel(0x0, pci->dbi_base + unroll_cal + 0x4);
+		writel(len, pci->dbi_base + unroll_cal + 0x8);
+		writel((u32)src, pci->dbi_base + unroll_cal + 0xc);
+		writel(0x0, pci->dbi_base + unroll_cal + 0x10);
+		writel((u32)dst, pci->dbi_base + unroll_cal + 0x14);
+		writel(0x0, pci->dbi_base + unroll_cal + 0x18);
+	}
+
+	doorbell = dir ? DMA_READ_DOORBELL : DMA_WRITE_DOORBELL;
+	writel(chl, pci->dbi_base + offset + doorbell);
+
+	return 0;
 }
 
 #ifdef CONFIG_PM_SLEEP
@@ -1691,6 +2022,21 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 
 	if (of_property_read_u32(node, "local-addr", &imx6_pcie->local_addr))
 		imx6_pcie->local_addr = 0;
+	if (of_property_read_u32(node, "hard-wired", &imx6_pcie->hard_wired))
+		imx6_pcie->hard_wired = 0;
+
+	np = of_parse_phandle(node, "reserved-region", 0);
+	if (np) {
+		struct resource res;
+
+		if (of_address_to_resource(np, 0, &res)) {
+			dev_err(dev, "failed to get reserved region address\n");
+			of_node_put(np);
+			return -EINVAL;
+		}
+		ddr_test_region = res.start + SZ_2M;
+		of_node_put(np);
+	}
 
 	/* Fetch GPIOs */
 	imx6_pcie->clkreq_gpio = of_get_named_gpio(node, "clkreq-gpio", 0);
@@ -1907,30 +2253,256 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	if (ret)
 		dev_err(dev, "failed to enable the epdev_on regulator\n");
 
-	ret = imx6_add_pcie_port(imx6_pcie, pdev);
-	if (ret < 0)
-		return ret;
+	if (IS_ENABLED(CONFIG_EP_MODE_IN_EP_RC_SYS)
+			&& (imx6_pcie->hard_wired == 0)) {
+		int i = 0, irq;
+		u32 val, tv_count1, tv_count2;
+		dma_addr_t test_reg1_dma, test_reg2_dma;
+		void *test_reg1, *test_reg2;
+		void __iomem *pcie_arb_base_addr;
+		struct timespec64 tv1s, tv1e, tv2s, tv2e;
+		struct resource_entry *win, *tmp;
+		LIST_HEAD(res);
+		struct pcie_port *pp = &pci->pp;
+		unsigned long timeout = jiffies + msecs_to_jiffies(300000);
 
-	/*
-	 * If the L1SS is enabled, disable the over ride after link up.
-	 * Let the the CLK_REQ# controlled by HW L1SS automatically.
-	 */
-	if ((imx6_pcie->drvdata->flags & IMX6_PCIE_FLAG_SUPPORTS_L1SS) &&
-	    IS_ENABLED(CONFIG_PCIEASPM_POWER_SUPERSAVE)) {
-		switch (imx6_pcie->drvdata->variant) {
-		case IMX8MQ:
-		case IMX8MM:
-			regmap_update_bits(imx6_pcie->iomuxc_gpr,
-					   imx6_pcie_grp_offset(imx6_pcie),
-					   IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN,
-					   0);
-			break;
-		default:
-			break;
-		};
+		/* add attributes for device */
+		imx6_pcie_attrgroup.attrs = imx6_pcie_ep_attrs;
+		ret = sysfs_create_group(&pdev->dev.kobj, &imx6_pcie_attrgroup);
+		if (ret)
+			return -EINVAL;
+
+		ret = devm_of_pci_get_host_bridge_resources(dev, 0, 0xff, &res,
+							    &pp->io_base);
+		if (ret)
+			return ret;
+
+		ret = devm_request_pci_bus_resources(&pdev->dev, &res);
+		if (ret) {
+			dev_err(dev, "missing ranges property\n");
+			pci_free_resource_list(&res);
+			return ret;
+		}
+
+		/* Get the I/O and memory ranges from DT */
+		resource_list_for_each_entry_safe(win, tmp, &res) {
+			switch (resource_type(win->res)) {
+			case IORESOURCE_MEM:
+				pp->mem = win->res;
+				pp->mem->name = "MEM";
+				pp->mem_size = resource_size(pp->mem);
+				pp->mem_bus_addr = pp->mem->start - win->offset;
+				break;
+			}
+		}
+
+		pp->mem_base = pp->mem->start;
+		pp->ops = &imx6_pcie_host_ops;
+		dev_info(dev, " try to initialize pcie ep.\n");
+		ret = imx6_pcie_host_init(pp);
+		if (ret) {
+			dev_info(dev, " fail to initialize pcie ep.\n");
+			return ret;
+		}
+
+		dw_pcie_dbi_ro_wr_en(pci);
+		imx6_pcie_setup_ep(pci);
+		pci_imx_set_msi_en(pp);
+		platform_set_drvdata(pdev, imx6_pcie);
+		imx6_pcie_regions_setup(dev);
+		dw_pcie_dbi_ro_wr_dis(pci);
+
+		/*
+		 * iMX6SX PCIe has the stand-alone power domain.
+		 * refer to the initialization for iMX6SX PCIe,
+		 * release the PCIe PHY reset here,
+		 * before LTSSM enable is set.
+		 */
+		if (imx6_pcie->drvdata->variant == IMX6SX)
+			regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR5,
+					BIT(19), 0 << 19);
+
+		/* assert LTSSM enable */
+		imx6_pcie_ltssm_enable(dev);
+
+		dev_info(dev, "PCIe EP: waiting for link up...\n");
+		/* link is indicated by the bit4 of DB_R1 register */
+		do {
+			usleep_range(10, 20);
+			if (time_after(jiffies, timeout)) {
+				dev_info(dev, "PCIe EP: link down.\n");
+				return 0;
+			}
+			val = readl(pci->dbi_base + PCIE_PHY_DEBUG_R1);
+		} while ((val & 0x10) == 0);
+
+		/* self io test */
+		/* Check the DMA INT exist or not */
+		irq =  platform_get_irq_byname(pdev, "dma");
+		if (irq > 0)
+			dma_en = 1;
+		else
+			dma_en = 0;
+		if (dma_en) {
+			/* configure the DMA INT ISR */
+			ret = request_irq(irq, imx6_pcie_dma_isr,
+					  IRQF_SHARED, "imx-pcie-dma", pp);
+			if (ret) {
+				pr_err("register interrupt %d failed, rc %d\n",
+					irq, ret);
+				dma_en = 0;
+			}
+			test_reg1 = dma_alloc_coherent(dev, test_region_size,
+					&test_reg1_dma, GFP_KERNEL);
+			test_reg2 = dma_alloc_coherent(dev, test_region_size,
+					&test_reg2_dma, GFP_KERNEL);
+			if (!(test_reg1 && test_reg2))
+				dma_en = 0; /* Roll back to PIO. */
+			dma_r_end = dma_w_end = 0;
+
+			val = readl(pci->dbi_base + DMA_CTRL_VIEWPORT_OFF);
+			if (val == 0xffffffff)
+				imx6_pcie->dma_unroll_offset =
+					DMA_UNROLL_CDM_OFFSET - DMA_REG_OFFSET;
+			else
+				imx6_pcie->dma_unroll_offset = 0;
+		}
+
+		if (unlikely(dma_en == 0)) {
+			test_reg1 = devm_kzalloc(&pdev->dev,
+					test_region_size, GFP_KERNEL);
+			if (!test_reg1) {
+				ret = -ENOMEM;
+				return ret;
+			}
+
+			test_reg2 = devm_kzalloc(&pdev->dev,
+					test_region_size, GFP_KERNEL);
+			if (!test_reg2) {
+				ret = -ENOMEM;
+				return ret;
+			}
+		}
+
+		pcie_arb_base_addr = ioremap_nocache(pp->mem_base,
+					test_region_size);
+		if (!pcie_arb_base_addr) {
+			dev_err(dev, "ioremap error in ep io test\n");
+			ret = -ENOMEM;
+			return ret;
+		}
+
+		for (i = 0; i < test_region_size; i = i + 4) {
+			writel(0xE6600D00 + i, test_reg1 + i);
+			writel(0xDEADBEAF, test_reg2 + i);
+		}
+
+		/* PCIe EP start the data transfer after link up */
+		dev_info(dev, "pcie ep: Starting data transfer...\n");
+		ktime_get_real_ts64(&tv1s);
+
+
+		/* EP write the test region to remote RC's DDR memory */
+		if (dma_en) {
+			imx6_pcie_local_dma_start(pp, 0, 0, test_reg1_dma,
+			imx6_pcie_cpu_addr_fixup(imx6_pcie->pci, pp->mem_base),
+					test_region_size);
+			timeout = jiffies + msecs_to_jiffies(300);
+			do {
+				udelay(1);
+				if (time_after(jiffies, timeout)) {
+					dev_info(dev, "dma write no end ...\n");
+					break;
+				}
+			} while (!dma_w_end);
+		} else {
+			memcpy((unsigned int *)pcie_arb_base_addr,
+					(unsigned int *)test_reg1,
+					test_region_size);
+		}
+
+		ktime_get_real_ts64(&tv1e);
+
+		ktime_get_real_ts64(&tv2s);
+		/* EP read the test region back from remote RC's DDR memory */
+		if (dma_en) {
+			imx6_pcie_local_dma_start(pp, 1, 0,
+			imx6_pcie_cpu_addr_fixup(imx6_pcie->pci, pp->mem_base),
+					test_reg2_dma, test_region_size);
+			timeout = jiffies + msecs_to_jiffies(300);
+			do {
+				udelay(1);
+				if (time_after(jiffies, timeout)) {
+					dev_info(dev, "dma read no end\n");
+					break;
+				}
+			} while (!dma_r_end);
+		} else {
+			memcpy((unsigned int *)test_reg2,
+					(unsigned int *)pcie_arb_base_addr,
+					test_region_size);
+		}
+
+		ktime_get_real_ts64(&tv2e);
+		if (memcmp(test_reg2, test_reg1, test_region_size) == 0) {
+			tv_count1 = (tv1e.tv_sec - tv1s.tv_sec)
+				* USEC_PER_SEC
+				+ (tv1e.tv_nsec - tv1s.tv_nsec) / 1000;
+			tv_count2 = (tv2e.tv_sec - tv2s.tv_sec)
+				* USEC_PER_SEC
+				+ (tv2e.tv_nsec - tv2s.tv_nsec) / 1000;
+
+			dev_info(dev, "ep: Data %s transfer is successful.\n",
+					dma_en ? "DMA" : "PIO");
+			dev_info(dev, "ep: Data write %dus speed:%ldMB/s.\n",
+					tv_count1,
+					((test_region_size/1024)
+					   * MSEC_PER_SEC)
+					/(tv_count1));
+			dev_info(dev, "ep: Data read %dus speed:%ldMB/s.\n",
+					tv_count2,
+					((test_region_size/1024)
+					   * MSEC_PER_SEC)
+					/(tv_count2));
+		} else {
+			dev_info(dev, "ep: Data transfer is failed.\n");
+		} /* end of self io test. */
+	} else {
+		ret = imx6_add_pcie_port(imx6_pcie, pdev);
+		if (ret < 0) {
+			if (IS_ENABLED(CONFIG_PCI_IMX6_COMPLIANCE_TEST)) {
+				/* The PCIE clocks wouldn't be turned off */
+				dev_info(dev, "To do the compliance tests.\n");
+				ret = 0;
+			} else {
+				dev_err(dev, "unable to add pcie port.\n");
+			}
+			return ret;
+		}
+
+		if (IS_ENABLED(CONFIG_RC_MODE_IN_EP_RC_SYS)
+				&& (imx6_pcie->hard_wired == 0))
+			imx6_pcie_regions_setup(&pdev->dev);
+
+		/*
+		 * If the L1SS is enabled, disable the over ride after link up.
+		 * Let the the CLK_REQ# controlled by HW L1SS automatically.
+		 */
+		ret = imx6_pcie->drvdata->flags & IMX6_PCIE_FLAG_SUPPORTS_L1SS;
+		if (IS_ENABLED(CONFIG_PCIEASPM_POWER_SUPERSAVE) && (ret > 0)) {
+			switch (imx6_pcie->drvdata->variant) {
+			case IMX8MQ:
+			case IMX8MM:
+				regmap_update_bits(imx6_pcie->iomuxc_gpr,
+					imx6_pcie_grp_offset(imx6_pcie),
+					IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN,
+					0);
+				break;
+			default:
+				break;
+			};
+		}
 	}
-
-	pci_imx_set_msi_en(&pci->pp);
 
 	return 0;
 }
