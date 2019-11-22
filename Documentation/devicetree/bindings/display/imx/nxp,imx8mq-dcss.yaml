@@ -47,6 +47,8 @@ properties:
       - description: RTRAM clock
       - description: Pixel clock, can be driver either by HDMI phy clock or MIPI
       - description: DTRC clock, needed by video decompressor
+      - description: PLL source clock, usually VIDEO2_PLL, used when output is HDMI;
+      - description: PLL PHY reference clock, used when output is HDMI;
 
   clock-names:
     items:
@@ -55,6 +57,8 @@ properties:
       - const: rtrm
       - const: pix
       - const: dtrc
+      - const: pll_src
+      - const: pll_phy_ref
 
   port@0:
     type: object
@@ -71,8 +75,9 @@ examples:
         interrupt-names = "ctx_ld", "ctxld_kick", "vblank";
         interrupt-parent = <&irqsteer>;
         clocks = <&clk 248>, <&clk 247>, <&clk 249>,
-                 <&clk 254>,<&clk 122>;
-        clock-names = "apb", "axi", "rtrm", "pix", "dtrc";
+                 <&clk 254>,<&clk 122>, <&clk 266>, <&clk 267>;
+        clock-names = "apb", "axi", "rtrm", "pix", "dtrc",
+                      "pll_src", "pll_phy_ref";
         assigned-clocks = <&clk 107>, <&clk 109>, <&clk 266>;
         assigned-clock-parents = <&clk 78>, <&clk 78>, <&clk 3>;
         assigned-clock-rates = <800000000>,
