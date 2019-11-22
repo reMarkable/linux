@@ -40,7 +40,8 @@ static void dcss_disable_vblank(struct drm_crtc *crtc)
 
 	dcss_dtg_vblank_irq_enable(dcss->dtg, false);
 
-	dcss_dtg_ctxld_kick_irq_enable(dcss->dtg, false);
+	if (!dcss_dtrc_is_running(dcss->dtrc))
+		dcss_dtg_ctxld_kick_irq_enable(dcss->dtg, false);
 
 	dcss_crtc->irq_enabled = false;
 }

@@ -282,6 +282,11 @@ static int __dcss_ctxld_enable(struct dcss_ctxld *ctxld)
 
 	dcss_scaler_write_sclctrl(dcss->scaler);
 
+	if (dcss_dtrc_is_running(dcss->dtrc)) {
+		dcss_dtrc_switch_banks(dcss->dtrc);
+		ctxld->armed = true;
+	}
+
 	sb_hp_cnt = ctxld->ctx_size[curr_ctx][CTX_SB_HP];
 	sb_lp_cnt = ctxld->ctx_size[curr_ctx][CTX_SB_LP];
 	db_cnt = ctxld->ctx_size[curr_ctx][CTX_DB];
