@@ -1232,8 +1232,11 @@
 					 <&clk IMX8MQ_CLK_DISP_AXI_ROOT>,
 					 <&clk IMX8MQ_CLK_DISP_RTRM_ROOT>,
 					 <&clk IMX8MQ_VIDEO2_PLL_OUT>,
-					 <&clk IMX8MQ_CLK_DISP_DTRC>;
-				clock-names = "apb", "axi", "rtrm", "pix", "dtrc";
+					 <&clk IMX8MQ_CLK_DISP_DTRC>,
+					 <&clk IMX8MQ_VIDEO2_PLL1_REF_SEL>,
+					 <&clk IMX8MQ_CLK_PHY_27MHZ>;
+				clock-names = "apb", "axi", "rtrm", "pix", "dtrc", "pll_src",
+						      "pll_phy_ref";
 				assigned-clocks = <&clk IMX8MQ_CLK_DISP_AXI>,
 						  <&clk IMX8MQ_CLK_DISP_RTRM>,
 						  <&clk IMX8MQ_VIDEO2_PLL1_REF_SEL>;
