@@ -265,7 +265,7 @@ static int felix_get_ts_info(struct dsa_switch *ds, int port,
 static int felix_init_structs(struct felix *felix, int num_phys_ports)
 {
 	struct ocelot *ocelot = &felix->ocelot;
-	resource_size_t base;
+	resource_size_t switch_base;
 	int port, i, err;
 
 	ocelot->num_phys_ports = num_phys_ports;
@@ -281,7 +281,8 @@ static int felix_init_structs(struct felix *felix, int num_phys_ports)
 	ocelot->ops		= felix->info->ops;
 	ocelot->quirks		= felix->info->quirks;
 
-	base = pci_resource_start(felix->pdev, felix->info->pci_bar);
+	switch_base = pci_resource_start(felix->pdev,
+					 felix->info->switch_pci_bar);
 
 	for (i = 0; i < TARGET_MAX; i++) {
 		struct regmap *target;
@@ -292,8 +293,8 @@ static int felix_init_structs(struct felix *felix, int num_phys_ports)
 
 		res = &felix->info->target_io_res[i];
 		res->flags = IORESOURCE_MEM;
-		res->start += base;
-		res->end += base;
+		res->start += switch_base;
+		res->end += switch_base;
 
 		target = ocelot_regmap_init(ocelot, res);
 		if (IS_ERR(target)) {
@@ -327,8 +328,8 @@ static int felix_init_structs(struct felix *felix, int num_phys_ports)
 
 		res = &felix->info->port_io_res[port];
 		res->flags = IORESOURCE_MEM;
-		res->start += base;
-		res->end += base;
+		res->start += switch_base;
+		res->end += switch_base;
 
 		port_regs = devm_ioremap_resource(ocelot->dev, res);
 		if (IS_ERR(port_regs)) {
@@ -340,6 +341,12 @@ static int felix_init_structs(struct felix *felix, int num_phys_ports)
 		ocelot_port->ocelot = ocelot;
 		ocelot_port->regs = port_regs;
 		ocelot->ports[port] = ocelot_port;
+	}
+
+	if (felix->info->mdio_bus_alloc) {
+		err = felix->info->mdio_bus_alloc(ocelot);
+		if (err < 0)
+			return err;
 	}
 
 	return 0;
@@ -377,6 +384,10 @@ static int felix_setup(struct dsa_switch *ds)
 static void felix_teardown(struct dsa_switch *ds)
 {
 	struct ocelot *ocelot = ds->priv;
+	struct felix *felix = ocelot_to_felix(ocelot);
+
+	if (felix->imdio)
+		mdiobus_unregister(felix->imdio);
 
 	/* stop workqueue thread */
 	ocelot_deinit(ocelot);
