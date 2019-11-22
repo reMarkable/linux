@@ -23,6 +23,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/mfd/syscon/imx6q-iomuxc-gpr.h>
 #include <linux/pm_runtime.h>
+#include <linux/busfreq-imx.h>
 
 #include "fsl_dsd.h"
 #include "fsl_sai.h"
@@ -1558,6 +1559,8 @@ static int fsl_sai_runtime_suspend(struct device *dev)
 
 	regcache_cache_only(sai->regmap, true);
 
+	release_bus_freq(BUS_FREQ_AUDIO);
+
 	if (sai->mclk_streams & BIT(SNDRV_PCM_STREAM_CAPTURE))
 		clk_disable_unprepare(sai->mclk_clk[sai->mclk_id[0]]);
 
@@ -1598,6 +1601,8 @@ static int fsl_sai_runtime_resume(struct device *dev)
 		if (ret)
 			goto disable_tx_clk;
 	}
+
+	request_bus_freq(BUS_FREQ_AUDIO);
 
 	if (sai->soc->flags & SAI_FLAG_PMQOS)
 		pm_qos_add_request(&sai->pm_qos_req,
