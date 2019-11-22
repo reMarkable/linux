@@ -484,7 +484,8 @@ static int mxc_pcsi_get_sensor_fmt(struct mxc_parallel_csi_dev *pcsidev)
 	/* Update input frame size and formate  */
 	memcpy(mf, &src_fmt.format, sizeof(struct v4l2_mbus_framefmt));
 
-	if (mf->code == MEDIA_BUS_FMT_YUYV8_2X8)
+	if (mf->code == MEDIA_BUS_FMT_YUYV8_2X8 ||
+	    mf->code == MEDIA_BUS_FMT_UYVY8_2X8)
 		pcsidev->uv_swap = 1;
 
 	dev_dbg(&pcsidev->pdev->dev,
