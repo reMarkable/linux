@@ -1225,8 +1225,9 @@
 				#size-cells = <0>;
 				compatible = "nxp,imx8mq-dcss";
 				reg = <0x32e00000 0x2d000>, <0x32e2f000 0x1000>;
-				interrupts = <6>, <8>, <9>;
-				interrupt-names = "ctx_ld", "ctxld_kick", "vblank";
+				interrupts = <6>, <8>, <9>, <16>, <17>;
+				interrupt-names = "ctx_ld", "ctxld_kick", "vblank",
+								  "dtrc_ch1", "dtrc_ch2";
 				interrupt-parent = <&irqsteer>;
 				clocks = <&clk IMX8MQ_CLK_DISP_APB_ROOT>,
 					 <&clk IMX8MQ_CLK_DISP_AXI_ROOT>,
