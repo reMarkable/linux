@@ -19,6 +19,7 @@
 #include <linux/regmap.h>
 #include <linux/pm_runtime.h>
 #include <linux/pm_domain.h>
+#include <linux/busfreq-imx.h>
 
 #include <sound/asoundef.h>
 #include <sound/dmaengine_pcm.h>
@@ -1561,6 +1562,8 @@ static int fsl_spdif_runtime_resume(struct device *dev)
 			goto disable_spba_clk;
 	}
 
+	request_bus_freq(BUS_FREQ_HIGH);
+
 	regcache_cache_only(spdif_priv->regmap, false);
 	regcache_mark_dirty(spdif_priv->regmap);
 
@@ -1594,6 +1597,8 @@ static int fsl_spdif_runtime_suspend(struct device *dev)
 	regmap_read(spdif_priv->regmap, REG_SPDIF_SRPC,
 			&spdif_priv->regcache_srpc);
 	regcache_cache_only(spdif_priv->regmap, true);
+
+	release_bus_freq(BUS_FREQ_HIGH);
 
 	for (i = 0; i < STC_TXCLK_SRC_MAX; i++)
 		clk_disable_unprepare(spdif_priv->txclk[i]);
