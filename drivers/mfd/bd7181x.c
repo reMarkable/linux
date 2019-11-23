@@ -277,8 +277,8 @@ static void bd7181x_hw_init(struct bd7181x *bd7181x)
 	/* Change the default to turn off LDO3 in SNVS state */
 	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE2, BIT(7));
 
-	/* Turn off BUCK1 (VDD_ARM_1V1) in LPSR mode */
-	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK1_MODE, BIT(1));
+	/* Turn off BUCK1 (VDD_ARM_1V1) in LPSR and SUSPEND mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK1_MODE, BIT(1) | BIT(0));
 
 	/* Turn off BUCK2 (VDD_SOC_1V0) in LPSR mode */
 	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK2_MODE, BIT(1));
@@ -301,11 +301,11 @@ static void bd7181x_hw_init(struct bd7181x *bd7181x)
 	 */
 	bd7181x_set_bits(bd7181x, BD7181X_REG_LDO_MODE2, BIT(1));
 
-	/* Turn off LDO3 (VDDA_USB_3P3) in LPSR mode */
-	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE2, BIT(5));
+	/* Turn off LDO3 (VDDA_USB_3P3) in SNVS, LPSR and SUSPEND mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE2, BIT(7) | BIT(5) | BIT(4));
 
-	/* Turn off LDO4_3V3 (EPD screen) in LPSR mode */
-	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE3, BIT(1));
+	/* Turn off LDO4_3V3 (EPD screen) in LPSR and SUSPEND mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE3, BIT(1) | BIT(0));
 
 	/* Turn off LDO5_1V8 (SD/MMC) in LPSR mode */
 	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE3, BIT(5));
