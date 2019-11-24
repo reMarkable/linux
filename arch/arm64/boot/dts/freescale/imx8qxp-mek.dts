@@ -721,6 +721,7 @@
 			pressure-sensor@60 {
 				compatible = "fsl,mpl3115";
 				reg = <0x60>;
+				interrupt-open-drain;
 			};
 		};
 
