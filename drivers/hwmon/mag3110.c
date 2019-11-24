@@ -450,21 +450,27 @@ static int mag3110_probe(struct i2c_client *client,
 	if (!i2c_check_functionality(adapter,
 				     I2C_FUNC_SMBUS_BYTE |
 				     I2C_FUNC_SMBUS_BYTE_DATA |
-				     I2C_FUNC_SMBUS_I2C_BLOCK))
-		return -EIO;
+				     I2C_FUNC_SMBUS_I2C_BLOCK)) {
+		ret = -EIO;
+		goto error_disable_reg;
+	}
 
 	dev_info(&client->dev, "check mag3110 chip ID\n");
 	ret = mag3110_read_reg(client, MAG3110_WHO_AM_I);
-
 	if (MAG3110_ID != ret) {
 		dev_err(&client->dev,
 			"read chip ID 0x%x is not equal to 0x%x!\n", ret,
 			MAG3110_ID);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto error_disable_reg;
 	}
+
 	data = kzalloc(sizeof(struct mag3110_data), GFP_KERNEL);
-	if (!data)
-		return -ENOMEM;
+	if (!data) {
+		ret = -ENOMEM;
+		goto error_disable_reg;
+	}
+
 	data->client = client;
 	i2c_set_clientdata(client, data);
 	/* Init queue */
@@ -544,15 +550,15 @@ error_rm_poll_dev:
 error_free_poll_dev:
 	input_free_polled_device(data->poll_dev);
 error_rm_hwmon_dev:
-	if (!IS_ERR(vdd))
-		regulator_disable(vdd);
-	if (!IS_ERR(vdd_io))
-		regulator_disable(vdd_io);
-
 	hwmon_device_unregister(data->hwmon_dev);
 
 	kfree(data);
 	mag3110_pdata = NULL;
+error_disable_reg:
+	if (!IS_ERR(vdd))
+		regulator_disable(vdd);
+	if (!IS_ERR(vdd_io))
+		regulator_disable(vdd_io);
 
 	return ret;
 }
