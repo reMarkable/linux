@@ -42,6 +42,7 @@ struct mode_config {
 };
 
 struct nwl_dsi {
+	struct drm_encoder encoder;
 	struct drm_bridge bridge;
 	struct mipi_dsi_host dsi_host;
 	struct drm_bridge *panel_bridge;

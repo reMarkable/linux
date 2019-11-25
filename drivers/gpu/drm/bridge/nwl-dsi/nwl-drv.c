@@ -7,6 +7,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/component.h>
 #include <linux/irq.h>
 #include <linux/mfd/syscon.h>
 #include <linux/module.h>
@@ -22,6 +23,7 @@
 #include <drm/drm_of.h>
 #include <drm/drm_print.h>
 #include <drm/drm_probe_helper.h>
+
 
 #include "nwl-drv.h"
 #include "nwl-dsi.h"
@@ -538,6 +540,16 @@ static const struct drm_bridge_funcs nwl_dsi_bridge_funcs = {
 	.attach	    = nwl_dsi_bridge_attach,
 };
 
+static void nwl_dsi_encoder_destroy(struct drm_encoder *encoder)
+{
+	drm_encoder_cleanup(encoder);
+}
+
+static const struct drm_encoder_funcs nwl_dsi_encoder_funcs = {
+	.destroy = nwl_dsi_encoder_destroy,
+};
+
+
 static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 {
 	struct device_node *np = dsi->dev->of_node;
@@ -613,7 +625,8 @@ static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 	if (IS_ERR(dsi->mux)) {
 		ret = PTR_ERR(dsi->mux);
 		if (ret != -EPROBE_DEFER)
-			DRM_DEV_ERROR(dsi->dev, "Failed to get mux: %d\n", ret);
+			DRM_DEV_ERROR(dsi->dev,
+				      "Failed to get mux: %d\n", ret);
 		return ret;
 	}
 
@@ -632,8 +645,9 @@ static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 
 	dsi->irq = platform_get_irq(pdev, 0);
 	if (dsi->irq < 0) {
-		DRM_DEV_ERROR(dsi->dev, "Failed to get device IRQ: %d\n",
-			      dsi->irq);
+		if (dsi->irq != -EPROBE_DEFER)
+			DRM_DEV_ERROR(dsi->dev, "Failed to get device IRQ: %d\n",
+				      dsi->irq);
 		return dsi->irq;
 	}
 
@@ -673,7 +687,6 @@ static int imx8mq_dsi_select_input(struct nwl_dsi *dsi)
 	return ret;
 }
 
-
 static int imx8mq_dsi_deselect_input(struct nwl_dsi *dsi)
 {
 	int ret;
@@ -684,7 +697,6 @@ static int imx8mq_dsi_deselect_input(struct nwl_dsi *dsi)
 
 	return ret;
 }
-
 
 static int imx8mq_dsi_poweron(struct nwl_dsi *dsi)
 {
@@ -737,6 +749,60 @@ static const struct soc_device_attribute nwl_dsi_quirks_match[] = {
 	{ /* sentinel. */ },
 };
 
+static int nwl_dsi_bind(struct device *dev,
+			struct device *master,
+			void *data)
+{
+	struct drm_device *drm = data;
+	uint32_t crtc_mask;
+	struct nwl_dsi *dsi = dev_get_drvdata(dev);
+	int ret = 0;
+
+	crtc_mask = drm_of_find_possible_crtcs(drm, dev->of_node);
+	/*
+	 * If we failed to find the CRTC(s) which this encoder is
+	 * supposed to be connected to, it's because the CRTC has
+	 * not been registered yet.  Defer probing, and hope that
+	 * the required CRTC is added later.
+	 */
+	if (crtc_mask == 0)
+		return -EPROBE_DEFER;
+
+	dsi->encoder.possible_crtcs = crtc_mask;
+	dsi->encoder.possible_clones = ~0;
+
+	ret = drm_encoder_init(drm,
+			       &dsi->encoder,
+			       &nwl_dsi_encoder_funcs,
+			       DRM_MODE_ENCODER_DSI,
+			       NULL);
+	if (ret) {
+		DRM_DEV_ERROR(dev, "failed to init DSI encoder (%d)\n", ret);
+		return ret;
+	}
+
+	ret = drm_bridge_attach(&dsi->encoder, &dsi->bridge, NULL);
+	if (ret)
+		drm_encoder_cleanup(&dsi->encoder);
+
+	return ret;
+}
+
+static void nwl_dsi_unbind(struct device *dev,
+			   struct device *master,
+			   void *data)
+{
+	struct nwl_dsi *dsi = dev_get_drvdata(dev);
+
+	if (dsi->encoder.dev)
+		drm_encoder_cleanup(&dsi->encoder);
+}
+
+static const struct component_ops nwl_dsi_component_ops = {
+	.bind	= nwl_dsi_bind,
+	.unbind	= nwl_dsi_unbind,
+};
+
 static int nwl_dsi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -753,6 +819,10 @@ static int nwl_dsi_probe(struct platform_device *pdev)
 	dsi->dev = dev;
 	dsi->pdata = pdata;
 
+	attr = soc_device_match(nwl_dsi_quirks_match);
+	if (attr)
+		dsi->quirks = (uintptr_t)attr->data;
+
 	ret = nwl_dsi_parse_dt(dsi);
 	if (ret)
 		return ret;
@@ -760,8 +830,9 @@ static int nwl_dsi_probe(struct platform_device *pdev)
 	ret = devm_request_irq(dev, dsi->irq, nwl_dsi_irq_handler, 0,
 			       dev_name(dev), dsi);
 	if (ret < 0) {
-		DRM_DEV_ERROR(dev, "Failed to request IRQ %d: %d\n", dsi->irq,
-			      ret);
+		if (ret != -EPROBE_DEFER)
+			DRM_DEV_ERROR(dev, "Failed to request IRQ %d: %d\n",
+				      dsi->irq, ret);
 		return ret;
 	}
 
@@ -772,10 +843,6 @@ static int nwl_dsi_probe(struct platform_device *pdev)
 		DRM_DEV_ERROR(dev, "Failed to register MIPI host: %d\n", ret);
 		return ret;
 	}
-
-	attr = soc_device_match(nwl_dsi_quirks_match);
-	if (attr)
-		dsi->quirks = (uintptr_t)attr->data;
 
 	dsi->bridge.driver_private = dsi;
 	dsi->bridge.funcs = &nwl_dsi_bridge_funcs;
@@ -791,7 +858,19 @@ static int nwl_dsi_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(dev, dsi);
 	pm_runtime_enable(dev);
-	return 0;
+
+	if (of_property_read_bool(dev->of_node, "use-disp-ss"))
+		ret = component_add(&pdev->dev, &nwl_dsi_component_ops);
+
+	if (ret) {
+		pm_runtime_disable(dev);
+		drm_bridge_remove(&dsi->bridge);
+		mipi_dsi_host_unregister(&dsi->dsi_host);
+		return ret;
+	}
+
+
+	return ret;
 }
 
 static int nwl_dsi_remove(struct platform_device *pdev)
@@ -806,8 +885,10 @@ static int nwl_dsi_remove(struct platform_device *pdev)
 		devm_kfree(dsi->dev, config);
 	}
 
-	mipi_dsi_host_unregister(&dsi->dsi_host);
 	pm_runtime_disable(&pdev->dev);
+	drm_bridge_remove(&dsi->bridge);
+	mipi_dsi_host_unregister(&dsi->dsi_host);
+
 	return 0;
 }
 
