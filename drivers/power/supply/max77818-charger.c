@@ -446,11 +446,39 @@ update_mode:
 	return 0;
 }
 
+static int max77818_charger_get_charger_mode(struct max77818_charger *chg)
+{
+	int ret;
+	u32 read_val;
+
+	ret = regmap_read(chg->regmap, REG_CHG_CNFG_00, &read_val);
+	if (ret) {
+		dev_err(chg->dev, "failed to read CNFG_00: %d\n", ret);
+		return ret;
+	}
+	switch(read_val & BIT_MODE)
+	{
+	case MODE_ALL_OFF:
+		chg->charger_mode = POWER_SUPPLY_MODE_ALL_OFF;
+		break;
+	case MODE_CHARGER_BUCK:
+		chg->charger_mode = POWER_SUPPLY_MODE_CHARGER;
+		break;
+	case MODE_OTG_BUCK_BOOST:
+		chg->charger_mode = POWER_SUPPLY_MODE_OTG_SUPPLY;
+		break;
+	default:
+		chg->charger_mode = POWER_SUPPLY_MODE_CHARGER;
+		max77818_charger_set_enable(chg, 1);
+	}
+
+	return 0;
+}
+
 static int max77818_charger_initialize(struct max77818_charger *chg)
 {
 	struct device *dev = chg->dev;
 	u8 val, tmpval;
-	u32 read_val;
 	int ret;
 
 	if(IS_ERR_OR_NULL(chg->regmap)) {
@@ -570,25 +598,11 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	/* do initial read from device, to initialize shadow value
 	 * with real value and not assume charger_mode = 0
 	 */
-	ret = regmap_read(chg->regmap, REG_CHG_CNFG_00, &read_val);
+	ret = max77818_charger_get_charger_mode(chg);
 	if (ret) {
-		dev_err(dev, "failed to read CNFG_00: %d\n", ret);
+		dev_err(dev, "failed to read charger_mode from device: %d\n",
+			ret);
 		return ret;
-	}
-	switch(read_val & BIT_MODE)
-	{
-	case MODE_ALL_OFF:
-		chg->charger_mode = POWER_SUPPLY_MODE_ALL_OFF;
-		break;
-	case MODE_CHARGER_BUCK:
-		chg->charger_mode = POWER_SUPPLY_MODE_CHARGER;
-		break;
-	case MODE_OTG_BUCK_BOOST:
-		chg->charger_mode = POWER_SUPPLY_MODE_OTG_SUPPLY;
-		break;
-	default:
-		chg->charger_mode = POWER_SUPPLY_MODE_CHARGER;
-		max77818_charger_set_enable(chg, 1);
 	}
 
 	return 0;
@@ -705,6 +719,13 @@ static int max77818_charger_get_property(struct power_supply *psy,
 		val->intval = max77818_charger_get_input_current(chg);
 		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		ret = max77818_charger_get_charger_mode(chg);
+		if (ret) {
+			dev_warn(chg->dev, "failed to read charger_mode from device: %d\n",
+				ret);
+			ret = -ENODEV;
+			goto out;
+		}
 		val->intval = chg->charger_mode;
 		break;
 	case POWER_SUPPLY_PROP_STATUS_EX:
