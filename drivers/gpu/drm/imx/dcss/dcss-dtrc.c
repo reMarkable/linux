@@ -79,9 +79,6 @@
 #define DCSS_DTRC_PFCR				0xF4
 #define DCSS_DTRC_TOCR				0xF8
 
-#define TRACE_IRQ				(1LL << 48)
-#define TRACE_SWITCH_BANKS			(2LL << 48)
-
 struct dcss_dtrc_ch {
 	struct dcss_dtrc *dtrc;
 
@@ -108,7 +105,6 @@ struct dcss_dtrc_ch {
 
 struct dcss_dtrc {
 	struct device *dev;
-	void __iomem *dtrc_reg;
 
 	struct dcss_dtrc_ch ch[2];
 
@@ -230,14 +226,15 @@ void dcss_dtrc_exit(struct dcss_dtrc *dtrc)
 {
 	int ch_no;
 
-	/* reset the module to default */
-	dcss_writel(HOT_RESET, dtrc->dtrc_reg + DCSS_DTRC_DTCTRL);
-
 	for (ch_no = 0; ch_no < 2; ch_no++) {
 		struct dcss_dtrc_ch *ch = &dtrc->ch[ch_no];
 
-		if (ch->base_reg)
+		if (ch->base_reg) {
+			/* reset the module to default */
+			dcss_writel(HOT_RESET,
+				    ch->base_reg + DCSS_DTRC_DTCTRL);
 			devm_iounmap(dtrc->dev, ch->base_reg);
+		}
 	}
 
 	devm_kfree(dtrc->dev, dtrc);
