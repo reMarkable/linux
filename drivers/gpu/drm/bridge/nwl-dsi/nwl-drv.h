@@ -23,7 +23,16 @@ struct nwl_dsi_platform_data;
 /* Skip DSI bits in SRC on disable to avoid blank display on enable */
 #define SRC_RESET_QUIRK		    BIT(1)
 
-#define NWL_DSI_MAX_PLATFORM_CLOCKS 1
+/* * DPI color coding */
+#define NWL_DSI_DPI_16_BIT_565_PACKED	0
+#define NWL_DSI_DPI_16_BIT_565_ALIGNED	1
+#define NWL_DSI_DPI_16_BIT_565_SHIFTED	2
+#define NWL_DSI_DPI_18_BIT_PACKED	3
+#define NWL_DSI_DPI_18_BIT_ALIGNED	4
+#define NWL_DSI_DPI_24_BIT		5
+
+
+#define NWL_DSI_MAX_PLATFORM_CLOCKS 2
 struct nwl_dsi_plat_clk_config {
 	const char *id;
 	struct clk *clk;
@@ -50,8 +59,10 @@ struct nwl_dsi {
 	struct phy *phy;
 	union phy_configure_opts phy_cfg;
 	unsigned int quirks;
+	unsigned int instance;
 
 	struct regmap *regmap;
+	struct regmap *csr;
 	int irq;
 	struct reset_control *rstc;
 	struct mux_control *mux;
