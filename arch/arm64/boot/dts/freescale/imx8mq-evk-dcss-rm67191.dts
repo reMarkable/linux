@@ -5,12 +5,10 @@
 
 #include "imx8mq-evk.dts"
 
+/delete-node/&hdmi;
+
 &irqsteer {
 	status = "okay";
-};
-
-&hdmi {
-	status = "disabled";
 };
 
 &lcdif {
