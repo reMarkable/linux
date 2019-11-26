@@ -38,6 +38,15 @@ Optional properties:
   The regulator will be enabled when initializing the PCIe host and
   disabled either as part of the init process or when shutting down the
   host.
+- ext_osc: use the external oscillator as ref clock( 1: external OSC is
+  used, 0 internal PLL is used).
+- hard_wired: the PCIe port is hard wired to the EP device(0: one slot
+  is connected).
+- reserved-region: one reserved no-map memory used by PCIe EP/RC
+  validation system.
+- interrupt-names: Optional include the following entries:
+	- "dma": The interrupt that is asserted when an DMA interrupter
+	is received
 
 Additional required properties for imx6sx-pcie:
 - clock names: Must include the following additional entries:
