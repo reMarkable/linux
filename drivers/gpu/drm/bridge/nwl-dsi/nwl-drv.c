@@ -586,6 +586,13 @@ static int nwl_dsi_bridge_attach(struct drm_bridge *bridge)
 	return drm_bridge_attach(bridge->encoder, dsi->panel_bridge, bridge);
 }
 
+static void nwl_dsi_bridge_detach(struct drm_bridge *bridge)
+{
+	struct nwl_dsi *dsi = bridge->driver_private;
+
+	drm_of_panel_bridge_remove(dsi->dev->of_node, 1, 0);
+}
+
 static const struct drm_bridge_funcs nwl_dsi_bridge_funcs = {
 	.pre_enable = nwl_dsi_bridge_pre_enable,
 	.disable    = nwl_dsi_bridge_disable,
@@ -593,6 +600,7 @@ static const struct drm_bridge_funcs nwl_dsi_bridge_funcs = {
 	.mode_set   = nwl_dsi_bridge_mode_set,
 	.mode_valid = nwl_dsi_bridge_mode_valid,
 	.attach	    = nwl_dsi_bridge_attach,
+	.detach	    = nwl_dsi_bridge_detach,
 };
 
 static void nwl_dsi_encoder_destroy(struct drm_encoder *encoder)
@@ -999,6 +1007,14 @@ static int nwl_dsi_bind(struct device *dev,
 	if (ret)
 		drm_encoder_cleanup(&dsi->encoder);
 
+	/*
+	 *  -ENODEV is returned when there is no node connected to us. Since
+	 *  it might be disabled because the device is not actually connected,
+	 *  just cleanup and return 0.
+	 */
+	if (ret == -ENODEV)
+		return 0;
+
 	return ret;
 }
 
@@ -1084,7 +1100,6 @@ static int nwl_dsi_probe(struct platform_device *pdev)
 		mipi_dsi_host_unregister(&dsi->dsi_host);
 		return ret;
 	}
-
 
 	return ret;
 }

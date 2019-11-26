@@ -320,8 +320,9 @@ static int nwl_dsi_host_detach(struct mipi_dsi_host *dsi_host,
 {
 	struct nwl_dsi *dsi = container_of(dsi_host, struct nwl_dsi, dsi_host);
 
-	drm_of_panel_bridge_remove(dsi->dev->of_node, 1, 0);
-	drm_bridge_remove(&dsi->bridge);
+	dsi->lanes = 0;
+	dsi->format = 0;
+	dsi->dsi_mode_flags = 0;
 
 	return 0;
 }
