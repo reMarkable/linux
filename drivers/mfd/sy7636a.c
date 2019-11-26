@@ -15,6 +15,7 @@
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/regmap.h>
+#include <linux/sysfs.h>
 
 #include <linux/mfd/sy7636a.h>
 
@@ -33,6 +34,78 @@ static const struct of_device_id of_sy7636a_match_table[] = {
 	{}
 };
 MODULE_DEVICE_TABLE(of, of_sy7636a_match_table);
+
+static const char *states[] = {
+	"no fault event",
+	"UVP at VP rail",
+	"UVP at VN rail",
+	"UVP at VPOS rail",
+	"UVP at VNEG rail",
+	"UVP at VDDH rail",
+	"UVP at VEE rail",
+	"SCP at VP rail",
+	"SCP at VN rail",
+	"SCP at VPOS rail",
+	"SCP at VNEG rail",
+	"SCP at VDDH rail",
+	"SCP at VEE rail",
+	"SCP at V COM rail",
+	"UVLO",
+	"Thermal shutdown",
+};
+
+static ssize_t state_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	int ret;
+	unsigned int val;
+	struct sy7636a *sy7636a = dev_get_drvdata(dev);
+
+	ret = regmap_read(sy7636a->regmap, SY7636A_REG_FAULT_FLAG, &val);
+	if (ret) {
+		dev_err(sy7636a->dev, "Failed to read from device\n");
+		return ret;
+	}
+
+	val = val >> 1;
+
+	if (val > 0xf) {
+		dev_err(sy7636a->dev, "Unexpected value read from device: %u\n", val);
+		return -EINVAL;
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%s\n", states[val]);
+}
+static DEVICE_ATTR(state, S_IRUGO, state_show, NULL);
+
+static ssize_t powergood_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	int ret;
+	unsigned int val;
+	struct sy7636a *sy7636a = dev_get_drvdata(dev);
+
+	ret = regmap_read(sy7636a->regmap, SY7636A_REG_FAULT_FLAG, &val);
+	if (ret) {
+		dev_err(sy7636a->dev, "Failed to read from device\n");
+		return ret;
+	}
+
+	val &= 0x01;
+
+	return snprintf(buf, PAGE_SIZE, "%s\n", val ? "ON" : "OFF");
+}
+static DEVICE_ATTR(power_good, S_IRUGO, powergood_show, NULL);
+
+static struct attribute *sy7636a_sysfs_attrs[] = {
+	&dev_attr_state.attr,
+	&dev_attr_power_good.attr,
+	NULL,
+};
+
+static const struct attribute_group sy7636a_sysfs_attr_group = {
+	.attrs = sy7636a_sysfs_attrs,
+};
 
 static int sy7636a_probe(struct i2c_client *client,
 			 const struct i2c_device_id *ids)
@@ -56,9 +129,22 @@ static int sy7636a_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, sy7636a);
 
-	return devm_mfd_add_devices(sy7636a->dev, PLATFORM_DEVID_AUTO,
-				    sy7636a_cells, ARRAY_SIZE(sy7636a_cells),
-				    NULL, 0, NULL);
+	ret = sysfs_create_group(&client->dev.kobj, &sy7636a_sysfs_attr_group);
+	if (ret) {
+		dev_err(sy7636a->dev, "Failed to create sysfs attributes\n");
+		return ret;
+	}
+
+	ret = devm_mfd_add_devices(sy7636a->dev, PLATFORM_DEVID_AUTO,
+					sy7636a_cells, ARRAY_SIZE(sy7636a_cells),
+					NULL, 0, NULL);
+	if (ret) {
+		dev_err(sy7636a->dev, "Failed to add mfd devices\n");
+		sysfs_remove_group(&client->dev.kobj, &sy7636a_sysfs_attr_group);
+		return ret;
+	}
+
+	return 0;
 }
 
 static const struct i2c_device_id sy7636a_id_table[] = {
