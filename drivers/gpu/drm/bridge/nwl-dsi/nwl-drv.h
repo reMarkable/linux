@@ -64,7 +64,10 @@ struct nwl_dsi {
 	struct regmap *regmap;
 	struct regmap *csr;
 	int irq;
-	struct reset_control *rstc;
+	struct reset_control *rst_byte;
+	struct reset_control *rst_esc;
+	struct reset_control *rst_dpi;
+	struct reset_control *rst_pclk;
 	struct mux_control *mux;
 
 	/* DSI clocks */
@@ -72,6 +75,7 @@ struct nwl_dsi {
 	struct clk *rx_esc_clk;
 	struct clk *tx_esc_clk;
 	struct clk *pll_clk;
+	struct clk *lcdif_clk;
 	/* Platform dependent clocks */
 	struct nwl_dsi_plat_clk_config clk_config[NWL_DSI_MAX_PLATFORM_CLOCKS];
 

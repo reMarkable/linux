@@ -86,8 +86,9 @@ static const struct regmap_config nwl_dsi_regmap_config = {
 };
 
 struct nwl_dsi_platform_data {
-	int (*poweron)(struct nwl_dsi *dsi);
-	int (*poweroff)(struct nwl_dsi *dsi);
+	int (*pclk_reset)(struct nwl_dsi *dsi, bool reset);
+	int (*mipi_reset)(struct nwl_dsi *dsi, bool reset);
+	int (*dpi_reset)(struct nwl_dsi *dsi, bool reset);
 	int (*select_input)(struct nwl_dsi *dsi);
 	int (*deselect_input)(struct nwl_dsi *dsi);
 	struct nwl_dsi_plat_clk_config clk_config[NWL_DSI_MAX_PLATFORM_CLOCKS];
@@ -341,27 +342,48 @@ static int nwl_dsi_set_platform_clocks(struct nwl_dsi *dsi, bool enable)
 	return result;
 }
 
-static int nwl_dsi_plat_enable(struct nwl_dsi *dsi)
+static void nwl_dsi_bridge_pre_enable(struct drm_bridge *bridge)
 {
-	struct device *dev = dsi->dev;
+	struct nwl_dsi *dsi = bridge_to_dsi(bridge);
 	int ret;
 
-	ret = nwl_dsi_set_platform_clocks(dsi, true);
-	if (ret < 0)
-		return ret;
+	pm_runtime_get_sync(dsi->dev);
 
-	ret = dsi->pdata->poweron(dsi);
-	if (ret < 0)
-		DRM_DEV_ERROR(dev, "Failed to power on DSI: %d\n", ret);
-	return ret;
+	if (dsi->lcdif_clk)
+		clk_prepare_enable(dsi->lcdif_clk);
+
+	if (nwl_dsi_set_platform_clocks(dsi, true) < 0)
+		return;
+
+	/* Perform Step 1 from DSI reset-out instructions */
+	ret = dsi->pdata->pclk_reset(dsi, false);
+	if (ret < 0) {
+		DRM_DEV_ERROR(dsi->dev, "Failed to deassert PCLK: %d\n", ret);
+		return;
+	}
+
+	/* Perform Step 2 from DSI reset-out instructions */
+	nwl_dsi_enable(dsi);
+
+	/* Perform Step 3 from DSI reset-out instructions */
+	ret = dsi->pdata->mipi_reset(dsi, false);
+	if (ret < 0) {
+		DRM_DEV_ERROR(dsi->dev, "Failed to deassert MIPI: %d\n", ret);
+		return;
+	}
+
 }
 
-static void nwl_dsi_plat_disable(struct nwl_dsi *dsi)
+static void nwl_dsi_bridge_enable(struct drm_bridge *bridge)
 {
-	dsi->pdata->poweroff(dsi);
-	nwl_dsi_set_platform_clocks(dsi, false);
-	if (dsi->pdata->deselect_input)
-		dsi->pdata->deselect_input(dsi);
+	struct nwl_dsi *dsi = bridge_to_dsi(bridge);
+	int ret;
+
+	/* Perform Step 5 from DSI reset-out instructions */
+	ret = dsi->pdata->dpi_reset(dsi, false);
+	if (ret < 0)
+		DRM_DEV_ERROR(dsi->dev, "Failed to deassert DPI: %d\n", ret);
+
 }
 
 static void nwl_dsi_bridge_disable(struct drm_bridge *bridge)
@@ -369,7 +391,16 @@ static void nwl_dsi_bridge_disable(struct drm_bridge *bridge)
 	struct nwl_dsi *dsi = bridge_to_dsi(bridge);
 
 	nwl_dsi_disable(dsi);
-	nwl_dsi_plat_disable(dsi);
+
+	dsi->pdata->dpi_reset(dsi, true);
+	dsi->pdata->mipi_reset(dsi, true);
+	dsi->pdata->pclk_reset(dsi, true);
+
+	nwl_dsi_set_platform_clocks(dsi, false);
+
+	if (dsi->lcdif_clk)
+		clk_disable_unprepare(dsi->lcdif_clk);
+
 	pm_runtime_put(dsi->dev);
 }
 
@@ -550,15 +581,6 @@ nwl_dsi_bridge_mode_set(struct drm_bridge *bridge,
 	drm_mode_debug_printmodeline(adjusted);
 }
 
-static void nwl_dsi_bridge_pre_enable(struct drm_bridge *bridge)
-{
-	struct nwl_dsi *dsi = bridge_to_dsi(bridge);
-
-	pm_runtime_get_sync(dsi->dev);
-	nwl_dsi_plat_enable(dsi);
-	nwl_dsi_enable(dsi);
-}
-
 static int nwl_dsi_bridge_attach(struct drm_bridge *bridge)
 {
 	struct nwl_dsi *dsi = bridge->driver_private;
@@ -595,6 +617,7 @@ static void nwl_dsi_bridge_detach(struct drm_bridge *bridge)
 
 static const struct drm_bridge_funcs nwl_dsi_bridge_funcs = {
 	.pre_enable = nwl_dsi_bridge_pre_enable,
+	.enable     = nwl_dsi_bridge_enable,
 	.disable    = nwl_dsi_bridge_disable,
 	.mode_fixup = nwl_dsi_bridge_mode_fixup,
 	.mode_set   = nwl_dsi_bridge_mode_set,
@@ -630,16 +653,15 @@ static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 	}
 
 	id = of_alias_get_id(np, "mipi_dsi");
-	if (id < 0) {
-		dev_err(dsi->dev, "No mipi_dsi alias found!");
-		return id;
+	if (id > 0) {
+		if (id > dsi->pdata->max_instances - 1) {
+			dev_err(dsi->dev,
+				"Too many instances! (cur: %d, max: %d)\n",
+				id, dsi->pdata->max_instances);
+			return -ENODEV;
+		}
+		dsi->instance = id;
 	}
-	if (id > dsi->pdata->max_instances - 1) {
-		dev_err(dsi->dev, "Too many instances! (cur: %d, max: %d)\n",
-			id, dsi->pdata->max_instances);
-		return -ENODEV;
-	}
-	dsi->instance = id;
 
 	/* Platform dependent clocks */
 	memcpy(dsi->clk_config, dsi->pdata->clk_config,
@@ -695,6 +717,15 @@ static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 	if (!IS_ERR(clk))
 		dsi->pll_clk = clk;
 
+	/*
+	 * Usually, we don't need this clock here, but due to a design issue,
+	 * the MIPI Reset Synchronizer block depends on this clock. So, we will
+	 * use this clock when we need to reset (or take out of reset) MIPI PHY
+	 */
+	dsi->lcdif_clk = devm_clk_get(dsi->dev, "lcdif");
+	if (IS_ERR(dsi->lcdif_clk))
+		dsi->lcdif_clk = NULL;
+
 	if (dsi->pdata->mux_present) {
 		dsi->mux = devm_mux_control_get(dsi->dev, NULL);
 		if (IS_ERR(dsi->mux)) {
@@ -724,7 +755,8 @@ static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 		dsi->csr = syscon_regmap_lookup_by_phandle(np, "csr");
 		if (IS_ERR(dsi->csr)) {
 			ret = PTR_ERR(dsi->csr);
-			dev_err(dsi->dev, "Failed to get CSR regmap: %d\n", ret);
+			dev_err(dsi->dev,
+				"Failed to get CSR regmap: %d\n", ret);
 			return ret;
 		}
 	}
@@ -732,21 +764,107 @@ static int nwl_dsi_parse_dt(struct nwl_dsi *dsi)
 	dsi->irq = platform_get_irq(pdev, 0);
 	if (dsi->irq < 0) {
 		if (dsi->irq != -EPROBE_DEFER)
-			DRM_DEV_ERROR(dsi->dev, "Failed to get device IRQ: %d\n",
+			DRM_DEV_ERROR(dsi->dev,
+				      "Failed to get device IRQ: %d\n",
 				      dsi->irq);
 		return dsi->irq;
 	}
 
-	dsi->rstc = devm_reset_control_array_get(dsi->dev, false, true);
-	if (IS_ERR(dsi->rstc)) {
-		DRM_DEV_ERROR(dsi->dev, "Failed to get resets: %ld\n",
-			      PTR_ERR(dsi->rstc));
-		return PTR_ERR(dsi->rstc);
+	/*
+	 * Wee need to manage individual resets, since the order of their usage
+	 * really matters to DSI Host Controller. The order of operation,
+	 * should be like this:
+	 * 1. Deassert pclk reset (this is needed to have access to DSI regs)
+	 * 2. Configure DSI Host and DPHY and enable DPHY
+	 * 3. Deassert ESC and BYTE resets (needed for Host TX operations)
+	 * 4. Send DSI cmds (if the DSI peripheral needs configuration)
+	 * 5. Deassert DPI reset (deasserting DPI reset, enables DPI to receive
+	 *    DPI pixels and start streamming DSI data)
+	 */
+	dsi->rst_pclk = __devm_reset_control_get(dsi->dev,
+						 "pclk", 0, false, true, true);
+	if (IS_ERR(dsi->rst_pclk)) {
+		DRM_DEV_ERROR(dsi->dev, "Failed to get pclk reset: %ld\n",
+			      PTR_ERR(dsi->rst_pclk));
+		return PTR_ERR(dsi->rst_pclk);
+	}
+	dsi->rst_byte = __devm_reset_control_get(dsi->dev,
+						 "byte", 0, false, true, true);
+	if (IS_ERR(dsi->rst_byte)) {
+		DRM_DEV_ERROR(dsi->dev, "Failed to get byte reset: %ld\n",
+			      PTR_ERR(dsi->rst_byte));
+		return PTR_ERR(dsi->rst_byte);
+	}
+	dsi->rst_esc = __devm_reset_control_get(dsi->dev,
+						"esc", 0, false, true, true);
+	if (IS_ERR(dsi->rst_esc)) {
+		DRM_DEV_ERROR(dsi->dev, "Failed to get esc reset: %ld\n",
+			      PTR_ERR(dsi->rst_esc));
+		return PTR_ERR(dsi->rst_esc);
+	}
+	dsi->rst_dpi = __devm_reset_control_get(dsi->dev,
+						"dpi", 0, false, true, true);
+	if (IS_ERR(dsi->rst_dpi)) {
+		DRM_DEV_ERROR(dsi->dev, "Failed to get dpi reset: %ld\n",
+			      PTR_ERR(dsi->rst_dpi));
+		return PTR_ERR(dsi->rst_dpi);
 	}
 
 	of_property_read_u32(np, "fsl,clock-drop-level", &dsi->clk_drop_lvl);
 
 	return 0;
+}
+
+static int imx8mq_dsi_pclk_reset(struct nwl_dsi *dsi, bool reset)
+{
+	int ret = 0;
+
+	if (dsi->rst_pclk) {
+		if (reset)
+			ret = reset_control_assert(dsi->rst_pclk);
+		else
+			ret = reset_control_deassert(dsi->rst_pclk);
+	}
+
+	return ret;
+
+}
+
+static int imx8mq_dsi_mipi_reset(struct nwl_dsi *dsi, bool reset)
+{
+	int ret = 0;
+
+	if (dsi->rst_esc) {
+		if (reset)
+			ret = reset_control_assert(dsi->rst_esc);
+		else
+			ret = reset_control_deassert(dsi->rst_esc);
+	}
+
+	if (dsi->rst_byte) {
+		if (reset)
+			ret = reset_control_assert(dsi->rst_byte);
+		else
+			ret = reset_control_deassert(dsi->rst_byte);
+	}
+
+	return ret;
+
+}
+
+static int imx8mq_dsi_dpi_reset(struct nwl_dsi *dsi, bool reset)
+{
+	int ret = 0;
+
+	if (dsi->rst_dpi) {
+		if (reset)
+			ret = reset_control_assert(dsi->rst_dpi);
+		else
+			ret = reset_control_deassert(dsi->rst_dpi);
+	}
+
+	return ret;
+
 }
 
 static int imx8mq_dsi_select_input(struct nwl_dsi *dsi)
@@ -784,36 +902,11 @@ static int imx8mq_dsi_deselect_input(struct nwl_dsi *dsi)
 	return ret;
 }
 
-static int imx8mq_dsi_poweron(struct nwl_dsi *dsi)
-{
-	int ret = 0;
-
-	/* otherwise the display stays blank */
-	usleep_range(200, 300);
-
-	if (dsi->rstc)
-		ret = reset_control_deassert(dsi->rstc);
-
-	return ret;
-}
-
-static int imx8mq_dsi_poweroff(struct nwl_dsi *dsi)
-{
-	int ret = 0;
-
-	if (dsi->quirks & SRC_RESET_QUIRK)
-		return 0;
-
-	if (dsi->rstc)
-		ret = reset_control_assert(dsi->rstc);
-	return ret;
-}
-
-static int imx8q_dsi_poweron(struct nwl_dsi *dsi)
+static int imx8q_dsi_pclk_reset(struct nwl_dsi *dsi, bool reset)
 {
 	struct imx_sc_ipc *handle;
 	u32 mipi_id, dc_id;
-	u8 mipi_ctrl;
+	u8 ctrl;
 	bool shared_phy = dsi->pdata->shared_phy;
 	int ret = 0;
 
@@ -827,72 +920,80 @@ static int imx8q_dsi_poweron(struct nwl_dsi *dsi)
 	mipi_id = (dsi->instance)?MIPI_ID(1):MIPI_ID(0);
 	dc_id = (!shared_phy && dsi->instance)?DC_ID(1):DC_ID(0);
 	DRM_DEV_DEBUG_DRIVER(dsi->dev,
-			     "Power ON MIPI:%u DC:%u\n", mipi_id, dc_id);
-
-	/* De-assert DPI and MIPI reset bits */
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_PHY_RESET, 0);
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_DPI_RESET, 0);
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_MIPI_RESET, 0);
+			     "Power %s PCLK MIPI:%u DC:%u\n",
+			     (reset)?"OFF":"ON", mipi_id, dc_id);
 
 	if (shared_phy) {
 		ret |= imx_sc_misc_set_control(handle,
-				mipi_id, IMX_SC_C_MODE, 0);
+				mipi_id, IMX_SC_C_MODE, reset);
 		ret |= imx_sc_misc_set_control(handle,
-				mipi_id, IMX_SC_C_DUAL_MODE, 0);
+				mipi_id, IMX_SC_C_DUAL_MODE, reset);
 		ret |= imx_sc_misc_set_control(handle,
-				mipi_id, IMX_SC_C_PXL_LINK_SEL, 0);
+				mipi_id, IMX_SC_C_PXL_LINK_SEL, reset);
 	}
 
 	/* Initialize Pixel Link */
-	mipi_ctrl = (shared_phy && dsi->instance)?PXL_ADDR(2):PXL_ADDR(1);
-	ret |= imx_sc_misc_set_control(handle, dc_id, mipi_ctrl, 0);
+	ctrl = (shared_phy && dsi->instance)?PXL_ADDR(2):PXL_ADDR(1);
+	ret |= imx_sc_misc_set_control(handle, dc_id, ctrl, reset);
 
-	mipi_ctrl = (shared_phy && dsi->instance)?PXL_VLD(2):PXL_VLD(1);
-	ret |= imx_sc_misc_set_control(handle, dc_id, mipi_ctrl, 1);
+	ctrl = (shared_phy && dsi->instance)?PXL_VLD(2):PXL_VLD(1);
+	ret |= imx_sc_misc_set_control(handle, dc_id, ctrl, !reset);
 
-	mipi_ctrl = (shared_phy && dsi->instance)?SYNC_CTRL(1):SYNC_CTRL(0);
-	ret |= imx_sc_misc_set_control(handle, dc_id, mipi_ctrl, 1);
+	ctrl = (shared_phy && dsi->instance)?SYNC_CTRL(1):SYNC_CTRL(0);
+	ret |= imx_sc_misc_set_control(handle, dc_id, ctrl, !reset);
 
-	/* Assert DPI and MIPI reset bits */
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_PHY_RESET, 1);
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_DPI_RESET, 1);
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_MIPI_RESET, 1);
+	return ret;
+}
+
+static int imx8q_dsi_mipi_reset(struct nwl_dsi *dsi, bool reset)
+{
+	struct imx_sc_ipc *handle;
+	u32 mipi_id;
+	int ret = 0;
+
+	ret = imx_scu_get_handle(&handle);
+	if (ret) {
+		DRM_DEV_ERROR(dsi->dev,
+			      "Failed to get scu ipc handle (%d)\n", ret);
+		return ret;
+	}
+
+	mipi_id = (dsi->instance)?MIPI_ID(1):MIPI_ID(0);
+	DRM_DEV_DEBUG_DRIVER(dsi->dev,
+			     "Power %s HOST MIPI:%u\n",
+			     (reset)?"OFF":"ON", mipi_id);
+
+	ret |= imx_sc_misc_set_control(handle, mipi_id,
+				       IMX_SC_C_PHY_RESET, !reset);
+	ret |= imx_sc_misc_set_control(handle, mipi_id,
+				       IMX_SC_C_MIPI_RESET, !reset);
+
+	return ret;
+}
+
+static int imx8q_dsi_dpi_reset(struct nwl_dsi *dsi, bool reset)
+{
+	struct imx_sc_ipc *handle;
+	u32 mipi_id;
+	int ret = 0;
+
+	ret = imx_scu_get_handle(&handle);
+	if (ret) {
+		DRM_DEV_ERROR(dsi->dev,
+			      "Failed to get scu ipc handle (%d)\n", ret);
+		return ret;
+	}
+
+	mipi_id = (dsi->instance)?MIPI_ID(1):MIPI_ID(0);
+	DRM_DEV_DEBUG_DRIVER(dsi->dev,
+			     "Power %s DPI MIPI:%u\n",
+			     (reset)?"OFF":"ON", mipi_id);
 
 	regmap_write(dsi->csr, dsi->pdata->reg_tx_ulps, 0);
 	regmap_write(dsi->csr, dsi->pdata->reg_pxl2dpi, NWL_DSI_DPI_24_BIT);
 
-	return ret;
-}
-
-static int imx8q_dsi_poweroff(struct nwl_dsi *dsi)
-{
-	struct imx_sc_ipc *handle;
-	u32 mipi_id, dc_id;
-	u8 mipi_ctrl;
-	bool shared_phy = dsi->pdata->shared_phy;
-	int ret = 0;
-
-	ret = imx_scu_get_handle(&handle);
-	if (ret) {
-		DRM_DEV_ERROR(dsi->dev,
-			      "Failed to get scu ipc handle (%d)\n", ret);
-		return ret;
-	}
-
-	mipi_id = (dsi->instance)?MIPI_ID(1):MIPI_ID(0);
-	dc_id = (!shared_phy && dsi->instance)?DC_ID(1):DC_ID(0);
-	DRM_DEV_DEBUG_DRIVER(dsi->dev,
-			     "Power OFF MIPI:%u DC:%u\n", mipi_id, dc_id);
-
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_DPI_RESET, 0);
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_MIPI_RESET, 0);
-	ret |= imx_sc_misc_set_control(handle, mipi_id, IMX_SC_C_PHY_RESET, 0);
-
-	mipi_ctrl = (shared_phy && dsi->instance)?SYNC_CTRL(1):SYNC_CTRL(0);
-	ret |= imx_sc_misc_set_control(handle, dc_id, mipi_ctrl, 0);
-
-	mipi_ctrl = (shared_phy && dsi->instance)?PXL_VLD(2):PXL_VLD(1);
-	ret |= imx_sc_misc_set_control(handle, dc_id, mipi_ctrl, 0);
+	ret |= imx_sc_misc_set_control(handle, mipi_id,
+				       IMX_SC_C_DPI_RESET, !reset);
 
 	return ret;
 }
@@ -902,8 +1003,9 @@ static const struct drm_bridge_timings nwl_dsi_timings = {
 };
 
 static const struct nwl_dsi_platform_data imx8mq_dev = {
-	.poweron = &imx8mq_dsi_poweron,
-	.poweroff = &imx8mq_dsi_poweroff,
+	.pclk_reset = &imx8mq_dsi_pclk_reset,
+	.mipi_reset = &imx8mq_dsi_mipi_reset,
+	.dpi_reset = &imx8mq_dsi_dpi_reset,
 	.select_input = &imx8mq_dsi_select_input,
 	.deselect_input = &imx8mq_dsi_deselect_input,
 	.clk_config = {
@@ -913,8 +1015,9 @@ static const struct nwl_dsi_platform_data imx8mq_dev = {
 };
 
 static const struct nwl_dsi_platform_data imx8qm_dev = {
-	.poweron = &imx8q_dsi_poweron,
-	.poweroff = &imx8q_dsi_poweroff,
+	.pclk_reset = &imx8q_dsi_pclk_reset,
+	.mipi_reset = &imx8q_dsi_mipi_reset,
+	.dpi_reset = &imx8q_dsi_dpi_reset,
 	.clk_config = {
 		{ .id = NWL_DSI_CLK_BYPASS, .present = true },
 		{ .id = NWL_DSI_CLK_PIXEL, .present = true },
@@ -926,8 +1029,9 @@ static const struct nwl_dsi_platform_data imx8qm_dev = {
 };
 
 static const struct nwl_dsi_platform_data imx8qx_dev = {
-	.poweron = &imx8q_dsi_poweron,
-	.poweroff = &imx8q_dsi_poweroff,
+	.pclk_reset = &imx8q_dsi_pclk_reset,
+	.mipi_reset = &imx8q_dsi_mipi_reset,
+	.dpi_reset = &imx8q_dsi_dpi_reset,
 	.clk_config = {
 		{ .id = NWL_DSI_CLK_BYPASS, .present = true },
 		{ .id = NWL_DSI_CLK_PIXEL, .present = true },
