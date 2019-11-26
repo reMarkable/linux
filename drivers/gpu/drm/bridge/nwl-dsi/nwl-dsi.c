@@ -301,9 +301,6 @@ static int nwl_dsi_host_attach(struct mipi_dsi_host *dsi_host,
 {
 	struct nwl_dsi *dsi = container_of(dsi_host, struct nwl_dsi, dsi_host);
 	struct device *dev = dsi->dev;
-	struct drm_bridge *bridge;
-	struct drm_panel *panel;
-	int ret;
 
 	DRM_DEV_INFO(dev, "lanes=%u, format=0x%x flags=0x%lx\n", device->lanes,
 		     device->format, device->mode_flags);
@@ -314,20 +311,6 @@ static int nwl_dsi_host_attach(struct mipi_dsi_host *dsi_host,
 	dsi->lanes = device->lanes;
 	dsi->format = device->format;
 	dsi->dsi_mode_flags = device->mode_flags;
-
-	ret = drm_of_find_panel_or_bridge(dsi->dev->of_node, 1, 0, &panel,
-					  &bridge);
-	if (ret)
-		return ret;
-
-	if (panel) {
-		bridge = drm_panel_bridge_add(panel, DRM_MODE_CONNECTOR_DSI);
-		if (IS_ERR(bridge))
-			return PTR_ERR(bridge);
-	}
-
-	dsi->panel_bridge = bridge;
-	drm_bridge_add(&dsi->bridge);
 
 	return 0;
 }

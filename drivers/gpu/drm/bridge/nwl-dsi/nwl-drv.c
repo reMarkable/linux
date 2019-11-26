@@ -505,6 +505,23 @@ static void nwl_dsi_bridge_pre_enable(struct drm_bridge *bridge)
 static int nwl_dsi_bridge_attach(struct drm_bridge *bridge)
 {
 	struct nwl_dsi *dsi = bridge->driver_private;
+	struct drm_bridge *panel_bridge;
+	struct drm_panel *panel;
+	int ret;
+
+	ret = drm_of_find_panel_or_bridge(dsi->dev->of_node, 1, 0, &panel,
+					  &panel_bridge);
+	if (ret)
+		return ret;
+
+	if (panel) {
+		panel_bridge = drm_panel_bridge_add(panel,
+						    DRM_MODE_CONNECTOR_DSI);
+		if (IS_ERR(panel_bridge))
+			return PTR_ERR(panel_bridge);
+	}
+
+	dsi->panel_bridge = panel_bridge;
 
 	if (!dsi->panel_bridge)
 		return -EPROBE_DEFER;
