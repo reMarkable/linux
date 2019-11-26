@@ -53,17 +53,16 @@ struct regulator_desc desc = {
 	.of_match = of_match_ptr("vcom"),
 };
 
-static int sy7636a_regulator_suspend(struct platform_device *pdev,
-		pm_message_t state)
+static int sy7636a_regulator_suspend(struct device *dev)
 {
 	int ret;
 	unsigned int val;
 
-	struct sy7636a *sy7636a = dev_get_drvdata(pdev->dev.parent);
+	struct sy7636a *sy7636a = dev_get_drvdata(dev->parent);
 
 	ret = regmap_read(sy7636a->regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L, &val);
 	if (ret) {
-		dev_warn(&pdev->dev, "Unable to read vcom value, returned %d\n", ret);
+		dev_warn(dev, "Unable to read vcom value, returned %d\n", ret);
 		return ret;
 	}
 
@@ -72,21 +71,21 @@ static int sy7636a_regulator_suspend(struct platform_device *pdev,
 	return 0;
 }
 
-static int sy7636a_regulator_resume(struct platform_device *pdev)
+static int sy7636a_regulator_resume(struct device *dev)
 {
 	int ret;
 
-	struct sy7636a *sy7636a = dev_get_drvdata(pdev->dev.parent);
+	struct sy7636a *sy7636a = dev_get_drvdata(dev->parent);
 
 	if (!sy7636a->vcom || sy7636a->vcom > 0x01FF) {
-		dev_warn(&pdev->dev, "Vcom value invalid, and thus not restored\n");
+		dev_warn(dev, "Vcom value invalid, and thus not restored\n");
 		return -EINVAL;
 	}
 
 	ret = regmap_write(sy7636a->regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L,
 			sy7636a->vcom);
 	if (ret) {
-		dev_warn(&pdev->dev, "Unable to write vcom value, returned %d\n", ret);
+		dev_warn(dev, "Unable to write vcom value, returned %d\n", ret);
 		return ret;
 	}
 
@@ -124,14 +123,18 @@ static const struct platform_device_id sy7636a_regulator_id_table[] = {
 };
 MODULE_DEVICE_TABLE(platform, sy7636a_regulator_id_table);
 
+static const struct dev_pm_ops sy7636a_pm_ops = {
+	.suspend = sy7636a_regulator_suspend,
+	.resume = sy7636a_regulator_resume,
+};
+
 static struct platform_driver sy7636a_regulator_driver = {
 	.driver = {
 		.name = "sy7636a-regulator",
+		.pm = &sy7636a_pm_ops,
 	},
 	.probe = sy7636a_regulator_probe,
 	.id_table = sy7636a_regulator_id_table,
-	.suspend = sy7636a_regulator_suspend,
-	.resume = sy7636a_regulator_resume,
 };
 module_platform_driver(sy7636a_regulator_driver);
 
