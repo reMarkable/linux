@@ -159,7 +159,7 @@ static int dcss_dtrc_irq_config(struct dcss_dtrc *dtrc, int ch_num)
 static int dcss_dtrc_ch_init_all(struct dcss_dtrc *dtrc, u32 dtrc_base)
 {
 	struct dcss_dtrc_ch *ch;
-	int i;
+	int i, ret;
 
 	for (i = 0; i < 2; i++) {
 		ch = &dtrc->ch[i];
@@ -175,7 +175,9 @@ static int dcss_dtrc_ch_init_all(struct dcss_dtrc *dtrc, u32 dtrc_base)
 		ch->ch_num = i;
 		ch->dtrc = dtrc;
 
-		dcss_dtrc_irq_config(dtrc, i);
+		ret = dcss_dtrc_irq_config(dtrc, i);
+		if (ret)
+			return ret;
 	}
 
 	return 0;
@@ -207,11 +209,17 @@ int dcss_dtrc_init(struct dcss_dev *dcss, unsigned long dtrc_base)
 	dtrc->ctx_id = CTX_SB_HP;
 
 	if (dcss_dtrc_ch_init_all(dtrc, dtrc_base)) {
+		struct dcss_dtrc_ch *ch;
 		int i;
 
 		for (i = 0; i < 2; i++) {
-			if (dtrc->ch[i].base_reg)
-				devm_iounmap(dtrc->dev, dtrc->ch[i].base_reg);
+			ch = &dtrc->ch[i];
+
+			if (ch->irq)
+				devm_free_irq(dtrc->dev, ch->irq, ch);
+
+			if (ch->base_reg)
+				devm_iounmap(dtrc->dev, ch->base_reg);
 		}
 
 		devm_kfree(dtrc->dev, dtrc);
