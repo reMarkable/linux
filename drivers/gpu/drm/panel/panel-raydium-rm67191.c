@@ -584,8 +584,11 @@ static int rad_panel_probe(struct mipi_dsi_device *dsi)
 	}
 
 	panel->reset = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
-	if (IS_ERR(panel->reset))
-		return PTR_ERR(panel->reset);
+	if (IS_ERR(panel->reset)) {
+		ret = PTR_ERR(panel->reset);
+		dev_err(dev, "Failed to get reset gpio (%d)\n", ret);
+		return ret;
+	}
 
 	memset(&bl_props, 0, sizeof(bl_props));
 	bl_props.type = BACKLIGHT_RAW;
