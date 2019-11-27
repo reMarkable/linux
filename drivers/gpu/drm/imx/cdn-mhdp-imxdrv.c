@@ -58,6 +58,7 @@ static struct cdns_plat_data imx8mq_hdmi_drv_data = {
 	.bind	= cdns_hdmi_bind,
 	.unbind	= cdns_hdmi_unbind,
 	.phy_set = cdns_hdmi_phy_set_imx8mq,
+	.phy_video_valid = cdns_hdmi_phy_video_valid_imx8mq,
 	.bus_type = BUS_TYPE_NORMAL_APB,
 };
 
@@ -74,6 +75,7 @@ static struct cdns_plat_data imx8qm_hdmi_drv_data = {
 	.bind	= cdns_hdmi_bind,
 	.unbind	= cdns_hdmi_unbind,
 	.phy_set = cdns_hdmi_phy_set_imx8qm,
+	.phy_video_valid = cdns_hdmi_phy_video_valid_imx8qm,
 	.power_on = cdns_mhdp_power_on_imx8qm,
 	.firmware_init = cdns_mhdp_firmware_init_imx8qm,
 	.pclk_rate = cdns_mhdp_pclk_rate_imx8qm,

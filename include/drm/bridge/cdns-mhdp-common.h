@@ -643,6 +643,7 @@ struct cdns_plat_data {
 	void (*plat_deinit)(struct cdns_mhdp_device *mhdp);
 
 	int (*phy_set)(struct cdns_mhdp_device *mhdp);
+	bool (*phy_video_valid)(struct cdns_mhdp_device *mhdp);
 	int (*firmware_init)(struct cdns_mhdp_device *mhdp);
 	void (*pclk_rate)(struct cdns_mhdp_device *mhdp);
 
@@ -675,6 +676,7 @@ struct cdns_mhdp_device {
 
 	struct video_info	video_info;
 	struct drm_display_mode	mode;
+	const struct drm_display_mode	*valid_mode;
 	unsigned int		fw_version;
 
 	struct drm_dp_mst_topology_mgr mst_mgr;

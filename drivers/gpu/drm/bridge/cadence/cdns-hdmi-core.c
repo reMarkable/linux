@@ -352,7 +352,9 @@ static enum drm_mode_status
 cdns_hdmi_bridge_mode_valid(struct drm_bridge *bridge,
 			  const struct drm_display_mode *mode)
 {
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 	enum drm_mode_status mode_status = MODE_OK;
+	int ret;
 
 	/* We don't support double-clocked and Interlaced modes */
 	if (mode->flags & DRM_MODE_FLAG_DBLCLK ||
@@ -367,6 +369,11 @@ cdns_hdmi_bridge_mode_valid(struct drm_bridge *bridge,
 	if (mode->hdisplay > 3840 || mode->vdisplay > 2160)
 		return MODE_BAD_HVALUE;
 
+	mhdp->valid_mode = mode;
+	ret = cdns_mhdp_plat_call(mhdp, phy_video_valid);
+	if (ret == false)
+		return MODE_CLOCK_RANGE;
+
 	return mode_status;
 }
 
@@ -375,7 +382,6 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 				    const struct drm_display_mode *mode)
 {
 	struct cdns_mhdp_device *mhdp = bridge->driver_private;
-	struct drm_display_info *display_info = &mhdp->connector.base.display_info;
 	struct video_info *video = &mhdp->video_info;
 
 	video->v_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NVSYNC);

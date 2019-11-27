@@ -683,6 +683,17 @@ static int hdmi_phy_power_up(struct cdns_mhdp_device *mhdp)
 	return 0;
 }
 
+bool cdns_hdmi_phy_video_valid_imx8mq(struct cdns_mhdp_device *mhdp)
+{
+	u32 rate = mhdp->valid_mode->clock;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(imx8mq_ctrl_table); i++)
+			if(rate == imx8mq_ctrl_table[i].pixel_clk_freq_min)
+				return true;
+	return false;
+}
+
 int cdns_hdmi_phy_set_imx8mq(struct cdns_mhdp_device *mhdp)
 {
 	struct drm_display_mode *mode = &mhdp->mode;
@@ -709,6 +720,18 @@ int cdns_hdmi_phy_set_imx8mq(struct cdns_mhdp_device *mhdp)
 	hdmi_phy_set_vswing(mhdp);
 
 	return true;
+}
+
+bool cdns_hdmi_phy_video_valid_imx8qm(struct cdns_mhdp_device *mhdp)
+{
+	u32 rate = mhdp->valid_mode->clock;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(imx8qm_ctrl_table); i++)
+			if(rate >= imx8qm_ctrl_table[i].pixel_clk_freq_min &&
+				rate <= imx8qm_ctrl_table[i].pixel_clk_freq_max)
+				return true;
+	return false;
 }
 
 int cdns_hdmi_phy_set_imx8qm(struct cdns_mhdp_device *mhdp)
