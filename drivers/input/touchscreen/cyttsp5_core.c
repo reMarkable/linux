@@ -4712,27 +4712,22 @@ static int cyttsp5_core_suspend(struct device *dev)
 {
 	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
 
-	cyttsp5_core_sleep(cd);
-
-	if (IS_DEEP_SLEEP_CONFIGURED(cd->easy_wakeup_gesture))
-		return 0;
-
-	/*
-	 * This will not prevent resume
-	 * Required to prevent interrupts before i2c awake
-	 */
-	disable_irq(cd->irq);
-	cd->irq_disabled = 1;
-
-	if (device_may_wakeup(dev)) {
-		dev_vdbg(dev, "%s Device MAY wakeup\n", __func__);
-		if (!enable_irq_wake(cd->irq))
-			cd->irq_wake = 1;
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		cyttsp5_core_sleep(cd);
+		pinctrl_pm_select_sleep_state(dev);
+		/*
+		 * Disable interrupt here to avoid that pending IRQ makes
+		 * the entering to low power state fail.
+		 */
+		disable_irq(cd->irq);
 	} else {
-		dev_dbg(dev, "%s Device MAY NOT wakeup\n", __func__);
+		/*
+		 * We need it to be a wakeup source for other suspend
+		 * types than 'mem'.
+		 */
+		if (device_may_wakeup(dev))
+			enable_irq_wake(cd->irq);
 	}
-
-	pinctrl_pm_select_sleep_state(dev);
 
 	return 0;
 }
@@ -4741,32 +4736,14 @@ static int cyttsp5_core_resume(struct device *dev)
 {
 	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
 
-	pinctrl_pm_select_default_state(dev);
-
-	if (IS_DEEP_SLEEP_CONFIGURED(cd->easy_wakeup_gesture))
-		goto exit;
-
-	/*
-	 * I2C bus pm does not call suspend if device runtime suspended
-	 * This flag is cover that case
-	 */
-	if (cd->irq_disabled) {
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
 		enable_irq(cd->irq);
-		cd->irq_disabled = 0;
-	}
-
-	if (device_may_wakeup(dev)) {
-		dev_vdbg(dev, "%s Device MAY wakeup\n", __func__);
-		if (cd->irq_wake) {
-			disable_irq_wake(cd->irq);
-			cd->irq_wake = 0;
-		}
+		pinctrl_pm_select_default_state(dev);
+		cyttsp5_core_wake(cd);
 	} else {
-		dev_dbg(dev, "%s Device MAY NOT wakeup\n", __func__);
+		if (device_may_wakeup(dev))
+			disable_irq_wake(cd->irq);
 	}
-
-exit:
-	cyttsp5_core_wake(cd);
 
 	return 0;
 }
