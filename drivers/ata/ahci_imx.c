@@ -94,6 +94,7 @@ enum {
 	IMX8QM_LPCG_PHYX2_PCLK0_MASK		= (0x3 << 16),
 	IMX8QM_LPCG_PHYX2_PCLK1_MASK		= (0x3 << 20),
 	IMX8QM_PHY_APB_RSTN_0			= BIT(0),
+	IMX8QM_PHY_APB_RSTN_1			= BIT(1),
 	IMX8QM_PHY_MODE_SATA			= BIT(19),
 	IMX8QM_PHY_MODE_MASK			= (0xf << 17),
 	IMX8QM_PHY_PIPE_RSTN_0			= BIT(24),
@@ -651,6 +652,13 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 	ret = imx8_sata_clk_enable(imxpriv);
 	if (ret)
 		return ret;
+
+	/* PHYX2 APB reset */
+	regmap_update_bits(imxpriv->gpr,
+			IMX8QM_CSR_PHYX2_OFFSET,
+			IMX8QM_PHY_APB_RSTN_0 | IMX8QM_PHY_APB_RSTN_1,
+			IMX8QM_PHY_APB_RSTN_0 | IMX8QM_PHY_APB_RSTN_1);
+
 	/* Configure PHYx2 PIPE_RSTN */
 	regmap_read(imxpriv->gpr, IMX8QM_CSR_PCIEA_OFFSET +
 			IMX8QM_CSR_PCIE_CTRL2_OFFSET, &val);
@@ -674,20 +682,13 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 				IMX8QM_PHY_PIPE_RSTN_1 |
 				IMX8QM_PHY_PIPE_RSTN_OVERRIDE_1);
 	}
-	if (((reg | val) & IMX8QM_CTRL_LTSSM_ENABLE) == 0) {
-		/* The links of both PCIA and PCIEB of HSIO are down */
-		regmap_update_bits(imxpriv->gpr,
-				IMX8QM_LPCG_PHYX2_OFFSET,
-				IMX8QM_LPCG_PHYX2_PCLK0_MASK |
-				IMX8QM_LPCG_PHYX2_PCLK1_MASK,
-				0);
-	} else {
-		regmap_update_bits(imxpriv->gpr,
-				IMX8QM_LPCG_PHYX2_OFFSET,
-				IMX8QM_LPCG_PHYX2_PCLK0_MASK |
-				IMX8QM_LPCG_PHYX2_PCLK1_MASK,
-				BIT(17) | BIT(21));
-	}
+
+	regmap_update_bits(imxpriv->gpr,
+			IMX8QM_LPCG_PHYX2_OFFSET,
+			IMX8QM_LPCG_PHYX2_PCLK0_MASK |
+			IMX8QM_LPCG_PHYX2_PCLK1_MASK,
+			IMX8QM_LPCG_PHYX2_PCLK0_MASK |
+			IMX8QM_LPCG_PHYX2_PCLK1_MASK);
 
 	/* set PWR_RST and BT_RST of csr_pciea */
 	val = IMX8QM_CSR_PCIEA_OFFSET + IMX8QM_CSR_PCIE_CTRL2_OFFSET;
@@ -758,6 +759,21 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 			IMX8QM_MISC_CLKREQN_IN_OVERRIDE_1 |
 			IMX8QM_MISC_CLKREQN_IN_OVERRIDE_0);
 
+	/* APB reset */
+	regmap_update_bits(imxpriv->gpr,
+			IMX8QM_CSR_PHYX1_OFFSET,
+			IMX8QM_PHY_APB_RSTN_0,
+			IMX8QM_PHY_APB_RSTN_0);
+
+	regmap_update_bits(imxpriv->gpr,
+			IMX8QM_CSR_SATA_OFFSET,
+			IMX8QM_SATA_CTRL_EPCS_TXDEEMP,
+			IMX8QM_SATA_CTRL_EPCS_TXDEEMP);
+	regmap_update_bits(imxpriv->gpr,
+			IMX8QM_CSR_SATA_OFFSET,
+			IMX8QM_SATA_CTRL_EPCS_TXDEEMP_SEL,
+			IMX8QM_SATA_CTRL_EPCS_TXDEEMP_SEL);
+
 	/* clear PHY RST, then set it */
 	regmap_update_bits(imxpriv->gpr,
 			IMX8QM_CSR_SATA_OFFSET,
@@ -768,14 +784,6 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 			IMX8QM_CSR_SATA_OFFSET,
 			IMX8QM_SATA_CTRL_EPCS_PHYRESET_N,
 			IMX8QM_SATA_CTRL_EPCS_PHYRESET_N);
-	regmap_update_bits(imxpriv->gpr,
-			IMX8QM_CSR_SATA_OFFSET,
-			IMX8QM_SATA_CTRL_EPCS_TXDEEMP,
-			IMX8QM_SATA_CTRL_EPCS_TXDEEMP);
-	regmap_update_bits(imxpriv->gpr,
-			IMX8QM_CSR_SATA_OFFSET,
-			IMX8QM_SATA_CTRL_EPCS_TXDEEMP_SEL,
-			IMX8QM_SATA_CTRL_EPCS_TXDEEMP_SEL);
 
 	/* CTRL RST: SET -> delay 1 us -> CLEAR -> SET */
 	regmap_update_bits(imxpriv->gpr,
@@ -791,12 +799,6 @@ static int imx8_sata_enable(struct ahci_host_priv *hpriv)
 			IMX8QM_CSR_SATA_OFFSET,
 			IMX8QM_SATA_CTRL_RESET_N,
 			IMX8QM_SATA_CTRL_RESET_N);
-
-	/* APB reset */
-	regmap_update_bits(imxpriv->gpr,
-			IMX8QM_CSR_PHYX1_OFFSET,
-			IMX8QM_PHY_APB_RSTN_0,
-			IMX8QM_PHY_APB_RSTN_0);
 
 	for (i = 0; i < 100; i++) {
 		reg = IMX8QM_CSR_PHYX1_OFFSET +
