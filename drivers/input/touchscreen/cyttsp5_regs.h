@@ -966,6 +966,10 @@ struct cyttsp5_core_data {
 	struct notifier_block fb_notifier;
 	enum cyttsp5_fb_state fb_state;
 #endif
+	struct notifier_block wacom_notifier;
+	struct timer_list wacom_timer;
+	atomic_t wacom_scanning;
+	struct work_struct wacom_work;
 #ifdef TTHE_TUNER_SUPPORT
 	struct dentry *tthe_debugfs;
 	u8 *tthe_buf;

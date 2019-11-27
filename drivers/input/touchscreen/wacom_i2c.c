@@ -68,6 +68,8 @@
 
 #define WACOM_MAX_DATA_SIZE     22
 
+static ATOMIC_NOTIFIER_HEAD(scanning_notifier);
+
 struct wacom_features {
 	int x_max;
 	int y_max;
@@ -344,8 +346,20 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	input_report_abs(input, ABS_TILT_Y, tilt_y);
 	input_sync(input);
 
+	/* Notify that we are in scanning. */
+	atomic_notifier_call_chain(&scanning_notifier, 0, NULL);
 out:
 	return IRQ_HANDLED;
+}
+
+int wacom_notifier_register(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&scanning_notifier, nb);
+}
+
+int wacom_notifier_unregister(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&scanning_notifier, nb);
 }
 
 static int wacom_i2c_open(struct input_dev *dev)
