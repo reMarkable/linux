@@ -1451,23 +1451,20 @@ static const struct i2c_algorithm i2c_imx_algo = {
 static irqreturn_t i2c_imx_isr(int irq, void *dev_id)
 {
 	struct imx_i2c_struct *i2c_imx = dev_id;
-	unsigned int status, ctl;
-	irqreturn_t irq_status = IRQ_NONE;
+	unsigned int status;
 
 	status = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2SR);
-	ctl = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2CR);
 
 	if (status & I2SR_IIF) {
 		i2c_imx_clr_if_bit(status, i2c_imx);
-		if (ctl & I2CR_MSTA)
-			irq_status = i2c_imx_master_isr(i2c_imx);
 #if IS_ENABLED(CONFIG_I2C_SLAVE)
-		else
-			irq_status = i2c_imx_slave_isr(i2c_imx);
+		if (i2c_imx->slave)
+			return i2c_imx_slave_isr(i2c_imx);
 #endif
+		return i2c_imx_master_isr(i2c_imx);
 	}
 
-	return irq_status;
+	return IRQ_NONE;
 }
 
 static int i2c_imx_probe(struct platform_device *pdev)
