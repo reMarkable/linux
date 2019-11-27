@@ -2811,24 +2811,36 @@ static int ov5640_enum_frame_interval(
 	struct v4l2_subdev_frame_interval_enum *fie)
 {
 	struct ov5640_dev *sensor = to_ov5640_dev(sd);
-	struct v4l2_fract tpf;
-	int ret;
+	int i, j, count;
 
 	if (fie->pad != 0)
 		return -EINVAL;
 	if (fie->index >= OV5640_NUM_FRAMERATES)
 		return -EINVAL;
 
-	tpf.numerator = 1;
-	tpf.denominator = ov5640_framerates[fie->index];
-
-	ret = ov5640_try_frame_interval(sensor, &tpf,
-					fie->width, fie->height);
-	if (ret < 0)
+	if (fie->width == 0 || fie->height == 0 || fie->code == 0) {
+		pr_warn("Please assign pixel format, width and height.\n");
 		return -EINVAL;
+	}
 
-	fie->interval = tpf;
-	return 0;
+	fie->interval.numerator = 1;
+
+	count = 0;
+	for (i = 0; i < OV5640_NUM_FRAMERATES; i++) {
+		for (j = 0; j < OV5640_NUM_MODES; j++) {
+			if (fie->width  == ov5640_mode_data[j].hact &&
+			    fie->height == ov5640_mode_data[j].vact &&
+			    !ov5640_check_valid_mode(sensor, &ov5640_mode_data[j], i))
+				count++;
+
+			if (fie->index == (count - 1)) {
+				fie->interval.denominator = ov5640_framerates[i];
+				return 0;
+			}
+		}
+	}
+
+	return -EINVAL;
 }
 
 static int ov5640_g_frame_interval(struct v4l2_subdev *sd,
