@@ -552,6 +552,10 @@ static int __init caam_sm_test_init(void)
 	of_node_put(dev_node);
 
 	priv = dev_get_drvdata(&pdev->dev);
+	if (!priv) {
+		dev_info(&pdev->dev, "SM driver not ready, aborting tests\n");
+		return -ENODEV;
+	}
 	if (!priv->sm_present) {
 		dev_info(&pdev->dev, "No SM support, skipping tests\n");
 		return -ENODEV;
