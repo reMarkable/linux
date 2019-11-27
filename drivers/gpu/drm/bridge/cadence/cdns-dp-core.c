@@ -435,6 +435,7 @@ static int __cdns_dp_probe(struct platform_device *pdev,
 	}
 
 	mhdp->is_hpd = true;
+	mhdp->is_ls1028a = false;
 
 	mhdp->irq[IRQ_IN] = platform_get_irq_byname(pdev, "plug_in");
 	if (mhdp->irq[IRQ_IN] < 0) {
@@ -449,6 +450,9 @@ static int __cdns_dp_probe(struct platform_device *pdev,
 	}
 
 	cdns_dp_parse_dt(mhdp);
+
+	if (of_device_is_compatible(dev->of_node, "cdn,ls1028a-dp"))
+		mhdp->is_ls1028a = true;
 
 	cdns_mhdp_plat_call(mhdp, power_on);
 
