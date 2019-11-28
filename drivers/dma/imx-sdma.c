@@ -1023,6 +1023,7 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 	case IMX_DMATYPE_CSPI:
 		per_2_emi = sdma->script_addrs->app_2_mcu_addr;
 		emi_2_per = sdma->script_addrs->mcu_2_ecspi_addr;
+		sdmac->is_ram_script = true;
 		break;
 	case IMX_DMATYPE_EXT:
 	case IMX_DMATYPE_SSI:
@@ -1033,6 +1034,7 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 	case IMX_DMATYPE_SSI_DUAL:
 		per_2_emi = sdma->script_addrs->ssish_2_mcu_addr;
 		emi_2_per = sdma->script_addrs->mcu_2_ssish_addr;
+		sdmac->is_ram_script = true;
 		break;
 	case IMX_DMATYPE_SSI_SP:
 	case IMX_DMATYPE_MMC:
@@ -1047,11 +1049,13 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 		per_2_emi = sdma->script_addrs->asrc_2_mcu_addr;
 		emi_2_per = sdma->script_addrs->asrc_2_mcu_addr;
 		per_2_per = sdma->script_addrs->per_2_per_addr;
+		sdmac->is_ram_script = true;
 		break;
 	case IMX_DMATYPE_ASRC_SP:
 		per_2_emi = sdma->script_addrs->shp_2_mcu_addr;
 		emi_2_per = sdma->script_addrs->mcu_2_shp_addr;
 		per_2_per = sdma->script_addrs->per_2_per_addr;
+		sdmac->is_ram_script = true;
 		break;
 	case IMX_DMATYPE_MSHC:
 		per_2_emi = sdma->script_addrs->mshc_2_mcu_addr;
@@ -1069,10 +1073,12 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 		break;
 	case IMX_DMATYPE_HDMI:
 		emi_2_per = sdma->script_addrs->hdmi_dma_addr;
+		sdmac->is_ram_script = true;
 		break;
 	case IMX_DMATYPE_MULTI_SAI:
 		per_2_emi = sdma->script_addrs->sai_2_mcu_addr;
 		emi_2_per = sdma->script_addrs->mcu_2_sai_addr;
+		sdmac->is_ram_script = true;
 	default:
 		break;
 	}
@@ -1081,13 +1087,6 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 	sdmac->pc_to_device = emi_2_per;
 	sdmac->device_to_device = per_2_per;
 	sdmac->pc_to_pc = emi_2_emi;
-
-	if (sdma->ram_code_start &&
-	   ((sdmac->pc_from_device >= sdma->ram_code_start) ||
-	   (sdmac->pc_to_device >= sdma->ram_code_start) ||
-	   (sdmac->device_to_device >= sdma->ram_code_start ||
-	   (sdmac->pc_to_pc >= sdma->ram_code_start))))
-		sdmac->is_ram_script = true;
 }
 
 static int sdma_load_context(struct sdma_channel *sdmac)
@@ -1804,6 +1803,7 @@ static int sdma_config_write(struct dma_chan *chan,
 	struct sdma_channel *sdmac = to_sdma_chan(chan);
 
 	sdmac->watermark_level = 0;
+	sdmac->is_ram_script = false;
 
 	if (direction == DMA_DEV_TO_MEM) {
 		sdmac->per_address = dmaengine_cfg->src_addr;
