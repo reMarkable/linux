@@ -80,15 +80,10 @@ static int sof_of_probe(struct platform_device *pdev)
 	ret = sof_nocodec_setup(dev, ops);
 	if (ret < 0)
 		return ret;
-#else
-	/* TODO: implement case where we actually have a codec */
-	return -ENODEV;
 #endif
 
-	if (mach)
-		mach->mach_params.platform = dev_name(dev);
-
-	sof_pdata->machine = mach;
+	/* TODO: replace machine with info from DT */
+	sof_pdata->machine = NULL;
 	sof_pdata->desc = desc;
 	sof_pdata->dev = &pdev->dev;
 	sof_pdata->platform = dev_name(dev);
