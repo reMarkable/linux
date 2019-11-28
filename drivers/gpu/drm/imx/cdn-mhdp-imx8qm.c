@@ -526,6 +526,9 @@ int cdns_mhdp_firmware_init_imx8qm(struct cdns_mhdp_device *mhdp)
 
 	/* configure HDMI/DP core clock */
 	rate = clk_get_rate(imx_mhdp->clks.clk_core);
+	if (mhdp->is_ls1028a)
+		rate = rate / 4;
+
 	cdns_mhdp_set_fw_clk(&imx_mhdp->mhdp, rate);
 
 	/* un-reset ucpu */
