@@ -231,7 +231,15 @@ static int pf1550_get_fix_voltage(struct regulator_dev *dev)
 	return dev->desc->fixed_uV;
 }
 
+static const int pf1550_ldo13_volts[] = {
+	750000, 800000, 850000, 900000, 950000, 1000000, 1050000, 1100000,
+	1150000, 1200000, 1250000, 1300000, 1350000, 1400000, 1450000, 1500000,
+	1800000, 1900000, 2000000, 2100000, 2200000, 2300000, 2400000, 2500000,
+	2600000, 2700000, 2800000, 2900000, 3000000, 3100000, 3200000, 3300000,
+};
+
 static struct regulator_ops pf1550_sw_ops = {
+	.list_voltage = regulator_list_voltage_linear,
 	.set_voltage = pf1550_set_voltage,
 	.get_voltage = pf1550_get_voltage,
 };
@@ -240,6 +248,16 @@ static struct regulator_ops pf1550_ldo_ops = {
 	.enable = pf1550_enable,
 	.disable = pf1550_disable,
 	.is_enabled = pf1550_is_enabled,
+	.list_voltage = regulator_list_voltage_table,
+	.set_voltage = pf1550_set_voltage,
+	.get_voltage = pf1550_get_voltage,
+};
+
+static struct regulator_ops pf1550_ldo2_ops = {
+	.enable = pf1550_enable,
+	.disable = pf1550_disable,
+	.is_enabled = pf1550_is_enabled,
+	.list_voltage = regulator_list_voltage_linear,
 	.set_voltage = pf1550_set_voltage,
 	.get_voltage = pf1550_get_voltage,
 };
@@ -257,6 +275,9 @@ static struct regulator_desc pf1550_regulators[PF1550_MAX_REGULATOR] = {
 	.of_match = of_match_ptr("SW1"),
 	.id = PF1550_SW1,
 	.ops = &pf1550_sw_ops,
+	.n_voltages = (1387500 - 600000) / 12500 + 1,
+	.min_uV = 600000,
+	.uV_step = 12500,
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 },
@@ -265,6 +286,9 @@ static struct regulator_desc pf1550_regulators[PF1550_MAX_REGULATOR] = {
 	.of_match = of_match_ptr("SW2"),
 	.id = PF1550_SW2,
 	.ops = &pf1550_sw_ops,
+	.n_voltages = (1387500 - 600000) / 12500 + 1,
+	.min_uV = 600000,
+	.uV_step = 12500,
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 },
@@ -273,6 +297,9 @@ static struct regulator_desc pf1550_regulators[PF1550_MAX_REGULATOR] = {
 	.of_match = of_match_ptr("SW3"),
 	.id = PF1550_SW3,
 	.ops = &pf1550_sw_ops,
+	.n_voltages = (3300000 - 1800000) / 100000 + 1,
+	.min_uV = 1800000,
+	.uV_step = 100000,
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 },
@@ -290,6 +317,8 @@ static struct regulator_desc pf1550_regulators[PF1550_MAX_REGULATOR] = {
 	.of_match = of_match_ptr("LDO1"),
 	.id = PF1550_LDO1,
 	.ops = &pf1550_ldo_ops,
+	.n_voltages = ARRAY_SIZE(pf1550_ldo13_volts),
+	.volt_table = pf1550_ldo13_volts,
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 },
@@ -297,7 +326,10 @@ static struct regulator_desc pf1550_regulators[PF1550_MAX_REGULATOR] = {
 	.name = "LDO2",
 	.of_match = of_match_ptr("LDO2"),
 	.id = PF1550_LDO2,
-	.ops = &pf1550_ldo_ops,
+	.ops = &pf1550_ldo2_ops,
+	.n_voltages = (3300000 - 1800000) / 100000 + 1,
+	.min_uV = 1800000,
+	.uV_step = 100000,
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 },
@@ -306,6 +338,8 @@ static struct regulator_desc pf1550_regulators[PF1550_MAX_REGULATOR] = {
 	.of_match = of_match_ptr("LDO3"),
 	.id = PF1550_LDO3,
 	.ops = &pf1550_ldo_ops,
+	.n_voltages = ARRAY_SIZE(pf1550_ldo13_volts),
+	.volt_table = pf1550_ldo13_volts,
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 },
