@@ -404,6 +404,11 @@ enum ocelot_tag_prefix {
 	OCELOT_TAG_PREFIX_LONG,
 };
 
+/* Hardware quirks (differences between switch instantiations) */
+enum {
+	OCELOT_PCS_PERFORMS_RATE_ADAPTATION	= BIT(0),
+};
+
 struct ocelot;
 
 struct ocelot_ops {
@@ -463,6 +468,8 @@ struct ocelot {
 	u64				*stats;
 	struct delayed_work		stats_work;
 	struct workqueue_struct		*stats_queue;
+
+	unsigned long			quirks;
 
 	u8				ptp:1;
 	struct ptp_clock		*ptp_clock;
