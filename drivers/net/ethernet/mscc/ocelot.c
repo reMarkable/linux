@@ -2344,6 +2344,20 @@ void ocelot_set_cpu_port(struct ocelot *ocelot, int cpu,
 }
 EXPORT_SYMBOL(ocelot_set_cpu_port);
 
+/* Entry for PTP over Ethernet (etype 0x88f7)
+ * Action: trap to CPU port
+ */
+static struct ocelot_ace_rule ptp_rule = {
+	.prio		= 1,
+	.type		= OCELOT_ACE_TYPE_ETYPE,
+	.dmac_mc	= OCELOT_VCAP_BIT_1,
+	.action		= OCELOT_ACL_ACTION_TRAP,
+	.frame.etype.etype.value[0]	= 0x88,
+	.frame.etype.etype.value[1]	= 0xf7,
+	.frame.etype.etype.mask[0]	= 0xff,
+	.frame.etype.etype.mask[1]	= 0xff,
+};
+
 int ocelot_init(struct ocelot *ocelot)
 {
 	char queue_name[32];
@@ -2481,6 +2495,13 @@ int ocelot_init(struct ocelot *ocelot)
 				"Timestamp initialization failed\n");
 			return ret;
 		}
+
+		/* Available on all ingress port except CPU port */
+		ptp_rule.ocelot = ocelot;
+		ptp_rule.ingress_port_mask =
+			GENMASK(ocelot->num_phys_ports - 1, 0);
+		ptp_rule.ingress_port_mask &= ~BIT(ocelot->cpu);
+		ocelot_ace_rule_offload_add(&ptp_rule);
 	}
 
 	return 0;
@@ -2495,6 +2516,8 @@ void ocelot_deinit(struct ocelot *ocelot)
 	cancel_delayed_work(&ocelot->stats_work);
 	destroy_workqueue(ocelot->stats_queue);
 	mutex_destroy(&ocelot->stats_lock);
+	if (ocelot->ptp)
+		ocelot_ace_rule_offload_del(&ptp_rule);
 	ocelot_ace_deinit();
 	ocelot_deinit_timestamp(ocelot);
 
