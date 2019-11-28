@@ -8,7 +8,6 @@
 #include <linux/platform_device.h>
 #include <linux/component.h>
 #include <drm/drm_of.h>
-#include <drm/drmP.h>
 
 #include "dcss-dev.h"
 #include "dcss-kms.h"

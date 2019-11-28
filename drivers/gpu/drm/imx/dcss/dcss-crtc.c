@@ -3,8 +3,9 @@
  * Copyright 2019 NXP.
  */
 
-#include <drm/drmP.h>
 #include <drm/drm_atomic_helper.h>
+#include <drm/drm_vblank.h>
+#include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 
 #include "dcss-dev.h"
