@@ -86,7 +86,8 @@ static void imx_sc_check_for_events(struct work_struct *work)
 	 */
 	imx_scu_call_rpc(pdata->ipcHandle, &msg, true);
 
-	state = (bool)msg.state;
+	/* Only care the least 1 byte */
+	state = (bool)(msg.state & 0xff);
 	/*
 	 * restore status back if press interrupt received but pin's status
 	 * released, which caused by pressing so quickly.
