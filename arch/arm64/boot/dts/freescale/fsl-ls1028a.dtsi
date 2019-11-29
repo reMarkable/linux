@@ -764,7 +764,6 @@
 				little-endian;
 			};
 			switch@0,5 {
-				compatible = "mscc,felix-switch";
 				reg = <0x000500 0 0 0 0>;
 				/* IEP INT_B */
 				interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
