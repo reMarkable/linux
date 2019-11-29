@@ -10,6 +10,7 @@
 #include <linux/if_vlan.h>
 #include <linux/regmap.h>
 #include <net/dsa.h>
+#include <net/tsn.h>
 
 #define IFH_INJ_BYPASS			BIT(31)
 #define IFH_INJ_POP_CNT_DISABLE		(3 << 28)
@@ -328,6 +329,10 @@ enum ocelot_reg {
 	PTP_CFG_MISC,
 	PTP_CLK_CFG_ADJ_CFG,
 	PTP_CLK_CFG_ADJ_FREQ,
+	PTP_CUR_NSF,
+	PTP_CUR_NSEC,
+	PTP_CUR_SEC_LSB,
+	PTP_CUR_SEC_MSB,
 	GCB_SOFT_RST = GCB << TARGET_OFFSET,
 };
 
@@ -539,5 +544,50 @@ int ocelot_ptp_gettime64(struct ptp_clock_info *ptp, struct timespec64 *ts);
 int ocelot_port_add_txtstamp_skb(struct ocelot_port *ocelot_port,
 				 struct sk_buff *skb);
 void ocelot_get_txtstamp(struct ocelot *ocelot);
-
+int ocelot_qbv_set(struct ocelot *ocelot, int port_id,
+		   struct tsn_qbv_conf *shaper_config);
+int ocelot_qbv_get(struct ocelot *ocelot, int port_id,
+		   struct tsn_qbv_conf *shaper_config);
+int ocelot_qbv_get_status(struct ocelot *ocelot, int port_id,
+			  struct tsn_qbv_status *qbvstatus);
+int ocelot_cut_thru_set(struct ocelot *ocelot, int port_id, u8 cut_thru);
+int ocelot_cbs_set(struct ocelot *ocelot, int port, u8 tc, u8 bw);
+int ocelot_cbs_get(struct ocelot *ocelot, int port, u8 tc);
+int ocelot_qbu_set(struct ocelot *ocelot, int port, u8 preemptible);
+int ocelot_qbu_get(struct ocelot *ocelot, int port,
+		   struct tsn_preempt_status *c);
+int ocelot_cb_streamid_get(struct ocelot *ocelot, int port, u32 index,
+			   struct tsn_cb_streamid *streamid);
+int ocelot_cb_streamid_set(struct ocelot *ocelot, int port, u32 index,
+			   bool enable, struct tsn_cb_streamid *streamid);
+int ocelot_qci_sfi_get(struct ocelot *ocelot, int port, u32 index,
+		       struct tsn_qci_psfp_sfi_conf *sfi);
+int ocelot_qci_sfi_set(struct ocelot *ocelot, int port, u32 index,
+		       bool enable, struct tsn_qci_psfp_sfi_conf *sfi);
+int ocelot_qci_sfi_counters_get(struct ocelot *ocelot, int port, u32 index,
+			struct tsn_qci_psfp_sfi_counters *sfi_counters);
+int ocelot_qci_max_cap_get(struct ocelot *ocelot,
+			   struct tsn_qci_psfp_stream_param *stream_para);
+int ocelot_qci_sgi_set(struct ocelot *ocelot, int port, u32 index,
+		       struct tsn_qci_psfp_sgi_conf *sgi_conf);
+int ocelot_qci_sgi_get(struct ocelot *ocelot, int port, u32 index,
+		       struct tsn_qci_psfp_sgi_conf *sgi_conf);
+int ocelot_qci_sgi_status_get(struct ocelot *ocelot, int port, u32 index,
+			      struct tsn_psfp_sgi_status *sgi_status);
+int ocelot_qci_fmi_set(struct ocelot *ocelot, int port, u32 index,
+		       bool enable, struct tsn_qci_psfp_fmi *fmi);
+int ocelot_qci_fmi_get(struct ocelot *ocelot, int port, u32 index,
+		       struct tsn_qci_psfp_fmi *fmi,
+		       struct tsn_qci_psfp_fmi_counters *counters);
+int ocelot_seq_gen_set(struct ocelot *ocelot, int port, u32 index,
+		       struct tsn_seq_gen_conf *sg_conf);
+int ocelot_seq_rec_set(struct ocelot *ocelot, int port, u32 index,
+		       struct tsn_seq_rec_conf *sr_conf);
+int ocelot_cb_get(struct ocelot *ocelot, int port, u32 index,
+		  struct tsn_cb_status *c);
+int ocelot_pcp_map_enable(struct ocelot *ocelot, u8 port);
+int ocelot_rtag_parse_enable(struct ocelot *ocelot, u8 port);
+int ocelot_dscp_set(struct ocelot *ocelot, int port,
+		    bool enable, const u8 dscp_ix,
+		    struct tsn_qos_switch_dscp_conf *c);
 #endif

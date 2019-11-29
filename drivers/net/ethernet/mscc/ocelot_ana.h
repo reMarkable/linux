@@ -227,6 +227,11 @@
 #define ANA_TABLES_SFIDACCESS_SFID_TBL_CMD(x)             ((x) & GENMASK(1, 0))
 #define ANA_TABLES_SFIDACCESS_SFID_TBL_CMD_M              GENMASK(1, 0)
 
+#define SFIDACCESS_CMD_IDLE                             0
+#define SFIDACCESS_CMD_READ                             1
+#define SFIDACCESS_CMD_WRITE                            2
+#define SFIDACCESS_CMD_INIT				3
+
 #define ANA_TABLES_SFIDTIDX_SGID_VALID                    BIT(26)
 #define ANA_TABLES_SFIDTIDX_SGID(x)                       (((x) << 18) & GENMASK(25, 18))
 #define ANA_TABLES_SFIDTIDX_SGID_M                        GENMASK(25, 18)
@@ -252,15 +257,23 @@
 #define ANA_SG_CONFIG_REG_3_LIST_LENGTH_M                 GENMASK(18, 16)
 #define ANA_SG_CONFIG_REG_3_LIST_LENGTH_X(x)              (((x) & GENMASK(18, 16)) >> 16)
 #define ANA_SG_CONFIG_REG_3_GATE_ENABLE                   BIT(20)
-#define ANA_SG_CONFIG_REG_3_INIT_IPS(x)                   (((x) << 24) & GENMASK(27, 24))
-#define ANA_SG_CONFIG_REG_3_INIT_IPS_M                    GENMASK(27, 24)
-#define ANA_SG_CONFIG_REG_3_INIT_IPS_X(x)                 (((x) & GENMASK(27, 24)) >> 24)
-#define ANA_SG_CONFIG_REG_3_INIT_GATE_STATE               BIT(28)
+#define ANA_SG_CONFIG_REG_3_INIT_IPS(x)                   (((x) << 21) & GENMASK(24, 21))
+#define ANA_SG_CONFIG_REG_3_INIT_IPS_M                    GENMASK(24, 21)
+#define ANA_SG_CONFIG_REG_3_INIT_IPS_X(x)                 (((x) & GENMASK(24, 21)) >> 21)
+#define ANA_SG_CONFIG_REG_3_IPV_VALID                     BIT(24)
+#define ANA_SG_CONFIG_REG_3_IPV_INVALID(x)		  (((x) << 24) & GENMASK(24, 24))
+#define ANA_SG_CONFIG_REG_3_INIT_IPV(x)                   (((x) << 21) & GENMASK(23, 21))
+#define ANA_SG_CONFIG_REG_3_INIT_IPV_M                    GENMASK(23, 21)
+#define ANA_SG_CONFIG_REG_3_INIT_IPV_X(x)                 (((x) & GENMASK(23, 21)) >> 21)
+#define ANA_SG_CONFIG_REG_3_INIT_GATE_STATE               BIT(25)
 
 #define ANA_SG_GCL_GS_CONFIG_RSZ                          0x4
 
 #define ANA_SG_GCL_GS_CONFIG_IPS(x)                       ((x) & GENMASK(3, 0))
 #define ANA_SG_GCL_GS_CONFIG_IPS_M                        GENMASK(3, 0)
+#define ANA_SG_GCL_GS_CONFIG_IPV_VALID                    BIT(3)
+#define ANA_SG_GCL_GS_CONFIG_IPV(x)                       ((x) & GENMASK(2, 0))
+#define ANA_SG_GCL_GS_CONFIG_IPV_M                        GENMASK(2, 0)
 #define ANA_SG_GCL_GS_CONFIG_GATE_STATE                   BIT(4)
 
 #define ANA_SG_GCL_TI_CONFIG_RSZ                          0x4
@@ -271,6 +284,10 @@
 #define ANA_SG_STATUS_REG_3_IPS(x)                        (((x) << 20) & GENMASK(23, 20))
 #define ANA_SG_STATUS_REG_3_IPS_M                         GENMASK(23, 20)
 #define ANA_SG_STATUS_REG_3_IPS_X(x)                      (((x) & GENMASK(23, 20)) >> 20)
+#define ANA_SG_STATUS_REG_3_IPV_VALID                     BIT(23)
+#define ANA_SG_STATUS_REG_3_IPV(x)                        (((x) << 20) & GENMASK(22, 20))
+#define ANA_SG_STATUS_REG_3_IPV_M                         GENMASK(22, 20)
+#define ANA_SG_STATUS_REG_3_IPV_X(x)                      (((x) & GENMASK(22, 20)) >> 20)
 #define ANA_SG_STATUS_REG_3_CONFIG_PENDING                BIT(24)
 
 #define ANA_PORT_VLAN_CFG_GSZ                             0x100
