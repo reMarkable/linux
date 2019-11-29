@@ -323,6 +323,10 @@ static int dsa_port_setup(struct dsa_port *dp)
 		if (err)
 			break;
 
+		/* Enable TSN function on switch port */
+		if (ds->ops->port_tsn_enable)
+			ds->ops->port_tsn_enable(dp);
+
 		devlink_port_type_eth_set(dlp, dp->slave);
 		break;
 	}

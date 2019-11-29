@@ -9,6 +9,38 @@
 #include <linux/of.h>
 #include <net/dsa.h>
 #include "felix.h"
+#include "felix_tsn.h"
+
+#ifdef CONFIG_MSCC_FELIX_SWITCH_TSN
+const struct tsn_ops switch_tsn_ops = {
+	.device_init			= felix_tsn_init,
+	.get_capability                 = felix_tsn_get_cap,
+	.qbv_set			= felix_qbv_set,
+	.qbv_get			= felix_qbv_get,
+	.qbv_get_status			= felix_qbv_get_status,
+	.qbu_set			= felix_qbu_set,
+	.qbu_get                        = felix_qbu_get,
+	.cb_streamid_set		= felix_cb_streamid_set,
+	.cb_streamid_get		= felix_cb_streamid_get,
+	.cb_streamid_counters_get	= felix_cb_streamid_counters_get,
+	.qci_sfi_set			= felix_qci_sfi_set,
+	.qci_sfi_get			= felix_qci_sfi_get,
+	.qci_sfi_counters_get		= felix_qci_sfi_counters_get,
+	.qci_get_maxcap			= felix_qci_max_cap_get,
+	.qci_sgi_set			= felix_qci_sgi_set,
+	.qci_sgi_get			= felix_qci_sgi_get,
+	.qci_sgi_status_get		= felix_qci_sgi_status_get,
+	.qci_fmi_set			= felix_qci_fmi_set,
+	.qci_fmi_get			= felix_qci_fmi_get,
+	.cbs_set			= felix_cbs_set,
+	.cbs_get			= felix_cbs_get,
+	.ct_set				= felix_cut_thru_set,
+	.cbgen_set			= felix_seq_gen_set,
+	.cbrec_set			= felix_seq_rec_set,
+	.cb_get				= felix_cb_get,
+	.dscp_set			= felix_dscp_set,
+};
+#endif
 
 static enum dsa_tag_protocol felix_get_tag_protocol(struct dsa_switch *ds,
 						    int port)
@@ -137,6 +169,21 @@ static int felix_vlan_del(struct dsa_switch *ds, int port,
 	}
 	return 0;
 }
+
+#ifdef CONFIG_MSCC_FELIX_SWITCH_TSN
+static int felix_tsn_enable(struct dsa_port *dp)
+{
+	struct net_device *dev;
+
+	if (dp->type == DSA_PORT_TYPE_USER) {
+		dev = dp->slave;
+		tsn_port_register(dev,
+				  (struct tsn_ops *)&switch_tsn_ops,
+				  GROUP_OFFSET_SWITCH);
+	}
+	return 0;
+}
+#endif
 
 static int felix_port_enable(struct dsa_switch *ds, int port,
 			     struct phy_device *phy)
@@ -386,6 +433,9 @@ static const struct dsa_switch_ops felix_switch_ops = {
 	.port_hwtstamp_set	= felix_hwtstamp_set,
 	.port_rxtstamp		= felix_rxtstamp,
 	.port_txtstamp		= felix_txtstamp,
+#ifdef CONFIG_MSCC_FELIX_SWITCH_TSN
+	.port_tsn_enable	= felix_tsn_enable,
+#endif
 };
 
 static struct felix_info *felix_instance_tbl[] = {

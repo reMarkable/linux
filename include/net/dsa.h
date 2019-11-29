@@ -545,6 +545,7 @@ struct dsa_switch_ops {
 	 */
 	netdev_tx_t (*port_deferred_xmit)(struct dsa_switch *ds, int port,
 					  struct sk_buff *skb);
+	int	(*port_tsn_enable)(struct dsa_port *dp);
 };
 
 struct dsa_switch_driver {

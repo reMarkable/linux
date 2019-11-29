@@ -9,3 +9,11 @@ config NET_DSA_MSCC_FELIX
 	  the Vitesse / Microsemi / Microchip Ocelot family of switching cores.
 	  It is embedded as a PCIe function of the NXP LS1028A ENETC integrated
 	  endpoint.
+
+config MSCC_FELIX_SWITCH_TSN
+	tristate "TSN on FELIX switch driver"
+	depends on NET_DSA_MSCC_FELIX
+	depends on TSN
+	help
+	  This driver supports TSN on felix switch.
+

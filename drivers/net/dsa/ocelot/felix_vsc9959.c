@@ -176,7 +176,7 @@ static const u32 vsc9959_qsys_regmap[] = {
 	REG(QSYS_QMAXSDU_CFG_6,			0x00f62c),
 	REG(QSYS_QMAXSDU_CFG_7,			0x00f648),
 	REG(QSYS_PREEMPTION_CFG,		0x00f664),
-	REG_RESERVED(QSYS_CIR_CFG),
+	REG(QSYS_CIR_CFG,			0x000000),
 	REG(QSYS_EIR_CFG,			0x000004),
 	REG(QSYS_SE_CFG,			0x000008),
 	REG(QSYS_SE_DWRR_CFG,			0x00000c),
@@ -269,7 +269,7 @@ static const u32 vsc9959_sys_regmap[] = {
 	REG_RESERVED(SYS_MMGT_FAST),
 	REG_RESERVED(SYS_EVENTS_DIF),
 	REG_RESERVED(SYS_EVENTS_CORE),
-	REG_RESERVED(SYS_CNT),
+	REG(SYS_CNT,				0x000000),
 	REG(SYS_PTP_STATUS,			0x000f14),
 	REG(SYS_PTP_TXSTAMP,			0x000f18),
 	REG(SYS_PTP_NXT,			0x000f1c),
@@ -290,6 +290,10 @@ static const u32 vsc9959_ptp_regmap[] = {
 	REG(PTP_CFG_MISC,                  0x0000a0),
 	REG(PTP_CLK_CFG_ADJ_CFG,           0x0000a4),
 	REG(PTP_CLK_CFG_ADJ_FREQ,          0x0000a8),
+	REG(PTP_CUR_NSF,                   0x0000bc),
+	REG(PTP_CUR_NSEC,                  0x0000c0),
+	REG(PTP_CUR_SEC_LSB,               0x0000c4),
+	REG(PTP_CUR_SEC_MSB,               0x0000c8),
 };
 
 static const u32 vsc9959_gcb_regmap[] = {
