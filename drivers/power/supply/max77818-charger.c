@@ -305,11 +305,13 @@ static bool max77818_charger_wcin_present(struct max77818_charger *chg)
 	}
 }
 
-static int max77818_charger_get_input_current(struct max77818_charger *chg)
+static int max77818_charger_get_input_current(struct max77818_charger *chg,
+					      int *input_current)
 {
-	int get_current, quotient, remainder;
+	int quotient, remainder;
 	int steps[3] = { 0, 33, 67 };
 	u32 val = 0;
+	int ret;
 
 	if(IS_ERR_OR_NULL(chg->regmap)) {
 		dev_warn(chg->dev, "unable to read from charger device\n");
@@ -323,34 +325,44 @@ static int max77818_charger_get_input_current(struct max77818_charger *chg)
 		 * active, the configured max input current for the wireless
 		 * charging input is returned
 		 */
-		regmap_read(chg->regmap, REG_CHG_CNFG_10, &val);
+		ret = regmap_read(chg->regmap, REG_CHG_CNFG_10, &val);
+		if (ret) {
+			dev_warn(chg->dev,
+				 "failed to read CNFG_10: %d\n",
+				 ret);
+			return ret;
+		}
 
 		if (val <= 3)
-			get_current = 60;
+			*input_current = 60;
 		else
-			get_current = 60 + (val - 3) * 20;
-
-		return get_current;
+			*input_current = 60 + (val - 3) * 20;
 	} else {
 		/*
 		 * Just return the max wired charging input current in all
 		 * cases where the wireless charging input is not the only
 		 * current active charging input
 		 */
-		regmap_read(chg->regmap, REG_CHG_CNFG_09, &val);
+		ret = regmap_read(chg->regmap, REG_CHG_CNFG_09, &val);
+		if (ret) {
+			dev_warn(chg->dev,
+				 "failed to read CNFG_09: %d\n",
+				 ret);
+			return ret;
+		}
 
 		quotient = val / 3;
 		remainder = val % 3;
 
 		if ((val & BIT_CHGIN_ILIM) < 3)
-			get_current = 100;
+			*input_current = 100;
 		else if ((val & BIT_CHGIN_ILIM) > 0x78)
-			get_current = 4000;
+			*input_current = 4000;
 		else
-			get_current = quotient * 100 + steps[remainder];
-
-		return get_current;
+			*input_current = quotient * 100 + steps[remainder];
 	}
+
+	return 0;
 }
 
 static int
@@ -716,7 +728,13 @@ static int max77818_charger_get_property(struct power_supply *psy,
 		val->intval = chg->charge_type;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
-		val->intval = max77818_charger_get_input_current(chg);
+		ret = max77818_charger_get_input_current(chg, &val->intval);
+		if (ret) {
+			dev_warn(chg->dev, "failed to read max current from device: %d\n",
+				 ret);
+			ret = -ENODEV;
+			goto out;
+		}
 		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		ret = max77818_charger_get_charger_mode(chg);
