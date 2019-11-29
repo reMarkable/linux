@@ -252,13 +252,6 @@
 	};
 };
 
-&clk {
-	assigned-clocks = <&clk IMX8MQ_AUDIO_PLL1_BYPASS>, <&clk IMX8MQ_AUDIO_PLL2_BYPASS>,
-			<&clk IMX8MQ_AUDIO_PLL1>, <&clk IMX8MQ_AUDIO_PLL2>;
-	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1>, <&clk IMX8MQ_AUDIO_PLL2>;
-	assigned-clock-rates = <0>, <0>, <786432000>, <722534400>;
-};
-
 &mipi_csi_1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
