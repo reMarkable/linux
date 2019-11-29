@@ -29,17 +29,11 @@
 static void hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 {
 	struct drm_scdc *scdc = &mhdp->connector.base.display_info.hdmi.scdc;
-	struct drm_display_info *di = &mhdp->connector.base.display_info;
-	u8 buff = 0;
-
-	if (scdc->supported || di->color_formats & DRM_COLOR_FORMAT_YCRCB420)
-		mhdp->hdmi.hdmi_type = MODE_HDMI_2_0;
-	else
-		mhdp->hdmi.hdmi_type = MODE_HDMI_1_4;
+	u8 buff;
 
 	/* check sink support SCDC or not */
-	if (!scdc->supported) {
-		DRM_INFO("Sink does not support SCDC\n");
+	if (scdc->supported != true) {
+		DRM_INFO("Sink Not Support SCDC\n");
 		return;
 	}
 
@@ -49,13 +43,19 @@ static void hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 		 * Enable scrambling and TMDS_Bit_Clock_Ratio
 		 */
 		buff = SCDC_TMDS_BIT_CLOCK_RATIO_BY_40 | SCDC_SCRAMBLING_ENABLE;
+		mhdp->hdmi.hdmi_type = MODE_HDMI_2_0;
 	} else  if (scdc->scrambling.low_rates) {
 		/*
 		 * Enable scrambling and HDMI2.0 when scrambling capability of sink
 		 * be indicated in the HF-VSDB LTE_340Mcsc_scramble bit
 		 */
 		buff = SCDC_SCRAMBLING_ENABLE;
-	}
+		mhdp->hdmi.hdmi_type = MODE_HDMI_2_0;
+	} else {
+		/* Default work in HDMI1.4 */
+		buff = 0;
+		mhdp->hdmi.hdmi_type = MODE_HDMI_1_4;
+	 }
 
 	/* TMDS config */
 	cdns_hdmi_scdc_write(mhdp, 0x20, buff);
