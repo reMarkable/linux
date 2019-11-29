@@ -682,10 +682,8 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 				control |= pcs | TRB_IOC | TRB_ISP;
 		}
 
-		if (sg_iter) {
-			trb->control = control;
-			control = 0;
-		}
+		trb->control = control;
+		control = 0;
 
 		++sg_iter;
 		priv_req->end_trb = priv_ep->enqueue;
@@ -699,7 +697,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 
 	/* give the TD to the consumer*/
 	if (sg_iter == 1)
-		control |= TRB_IOC | TRB_ISP;
+		trb->control |= TRB_IOC | TRB_ISP;
 
 	/*
 	 * Memory barrier - cycle bit must be set before other filds in trb.
@@ -707,9 +705,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 	wmb();
 
 	if (togle_pcs)
-		trb->control = control ^ 1;
-	else
-		trb->control = control;
+		trb->control = trb->control ^ 1;
 
 	doorbell = !!(readl(&priv_dev->regs->ep_cmd) & EP_CMD_DRDY);
 	dma_index = (readl(&priv_dev->regs->ep_traddr) -
