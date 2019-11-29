@@ -29,7 +29,10 @@
 static void hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 {
 	struct drm_scdc *scdc = &mhdp->connector.base.display_info.hdmi.scdc;
-	u8 buff;
+	u8 buff = 0;
+
+	/* Default work in HDMI1.4 */
+	mhdp->hdmi.hdmi_type = MODE_HDMI_1_4;
 
 	/* check sink support SCDC or not */
 	if (scdc->supported != true) {
@@ -51,11 +54,7 @@ static void hdmi_sink_config(struct cdns_mhdp_device *mhdp)
 		 */
 		buff = SCDC_SCRAMBLING_ENABLE;
 		mhdp->hdmi.hdmi_type = MODE_HDMI_2_0;
-	} else {
-		/* Default work in HDMI1.4 */
-		buff = 0;
-		mhdp->hdmi.hdmi_type = MODE_HDMI_1_4;
-	 }
+	}
 
 	/* TMDS config */
 	cdns_hdmi_scdc_write(mhdp, 0x20, buff);
