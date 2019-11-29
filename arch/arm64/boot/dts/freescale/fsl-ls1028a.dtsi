@@ -789,6 +789,8 @@
 					/* internal to-cpu ports */
 					port@4 {
 						reg = <4>;
+						phy-mode = "gmii";
+
 						fixed-link {
 							speed = <1000>;
 							full-duplex;
@@ -797,6 +799,8 @@
 					port@5 {
 						reg = <5>;
 						ethernet = <&enetc_port3>;
+						phy-mode = "gmii";
+
 						fixed-link {
 							speed = <1000>;
 							full-duplex;
