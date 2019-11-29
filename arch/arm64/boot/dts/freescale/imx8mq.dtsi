@@ -623,6 +623,8 @@
 				clock-names = "ckil", "osc_25m", "osc_27m",
 				              "clk_ext1", "clk_ext2",
 				              "clk_ext3", "clk_ext4";
+				assigned-clocks = <&clk IMX8MQ_CLK_NAND_USDHC_BUS>;
+				assigned-clock-parents = <&clk IMX8MQ_SYS1_PLL_266M>;
 			};
 
 			src: reset-controller@30390000 {
