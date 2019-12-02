@@ -99,4 +99,49 @@
 #define ADMA_FLEXCAN_1_LPCG		0x1ce0000
 #define ADMA_FLEXCAN_2_LPCG		0x1cf0000
 
+/* CM40 SS */
+#define CM40_I2C_LPCG			0x60000
+
+/* HSIO SS */
+#define HSIO_PCIEA_LPCG			0x00000
+#define HSIO_PCIEB_LPCG			0x10000
+#define HSIO_SATA0_LPCG			0x20000
+#define HSIO_PHYX2_LPCG			0x30000
+#define HSIO_PHYX1_LPCG			0x40000
+#define HSIO_CRR_0_LPCG			0x50000
+#define HSIO_CRR_1_LPCG			0x60000
+#define HSIO_CRR_2_LPCG			0x70000
+#define HSIO_CRR_3_LPCG			0x80000
+#define HSIO_CRR_4_LPCG			0x90000
+#define HSIO_CRR_5_LPCG			0xa0000
+#define HSIO_GPIO_LPCG			0xb0000
+
+/* IMG SS */
+#define IMG_PDMA0_LPCG			0x00000
+#define IMG_PDMA1_LPCG			0x10000
+#define IMG_PDMA2_LPCG			0x20000
+#define IMG_PDMA3_LPCG			0x30000
+#define IMG_PDMA4_LPCG			0x40000
+#define IMG_PDMA5_LPCG			0x50000
+#define IMG_PDMA6_LPCG			0x60000
+#define IMG_PDMA7_LPCG			0x70000
+#define IMG_MIPI_CSI0_LPCG		0x80000
+#define IMG_MIPI_CSI1_LPCG		0x90000
+
+/* CSI SS */
+#define CSI_CSI0_CORE_LPCG		0x18
+#define CSI_CSI0_ESC_LPCG		0x1C
+#define CSI_CSI0_I2C0_LPCG		0x14
+#define CSI_CSI1_CORE_LPCG		0x18
+#define CSI_CSI1_ESC_LPCG		0x1C
+#define CSI_CSI1_I2C0_LPCG		0x14
+
+/* Parallel Interface SS */
+#define PI_PI0_PIXEL_LPCG		0x18
+#define PI_PI0_IPG_LPCG			0x04
+#define PI_PI0_MISC_LPCG		0x1C
+
+/* DC0 SS */
+/* TODO: ADD DC LPCGs */
+
 #endif /* _IMX8QXP_LPCG_H */

@@ -154,13 +154,18 @@ struct clk *imx8m_clk_composite_flags(const char *name,
 	div->lock = &imx_ccm_lock;
 	div->flags = CLK_DIVIDER_ROUND_CLOSEST;
 
-	gate = kzalloc(sizeof(*gate), GFP_KERNEL);
-	if (!gate)
-		goto fail;
+	/* skip registering the gate ops if M4 is enabled */
+	if (imx_src_is_m4_enabled()) {
+		gate_hw = NULL;
+	} else {
+		gate = kzalloc(sizeof(*gate), GFP_KERNEL);
+		if (!gate)
+			goto fail;
 
-	gate_hw = &gate->hw;
-	gate->reg = reg;
-	gate->bit_idx = PCG_CGC_SHIFT;
+		gate_hw = &gate->hw;
+		gate->reg = reg;
+		gate->bit_idx = PCG_CGC_SHIFT;
+	}
 
 	hw = clk_hw_register_composite(NULL, name, parent_names, num_parents,
 			mux_hw, &clk_mux_ops, div_hw,
