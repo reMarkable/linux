@@ -1770,6 +1770,13 @@ config RTC_DRV_IMX_SC
 	   If you say yes here you get support for the NXP i.MX System
 	   Controller RTC module.
 
+config RTC_DRV_IMX_RPMSG
+	tristate "NXP RPMSG RTC support"
+	depends on OF
+	help
+	   If you say yes here you get support for the NXP RPMSG
+	   RTC module.
+
 config RTC_DRV_SIRFSOC
 	tristate "SiRFSOC RTC"
 	depends on ARCH_SIRF
