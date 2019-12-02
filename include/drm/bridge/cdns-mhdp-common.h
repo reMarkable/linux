@@ -621,7 +621,6 @@ struct cdns_mhdp_connector {
 	struct cdns_mhdp_bridge *bridge;
 };
 
-#ifdef CONFIG_DRM_CDNS_HDMI_CEC
 struct cdns_mhdp_cec {
        struct cec_adapter *adap;
        struct device *dev;
@@ -630,7 +629,6 @@ struct cdns_mhdp_cec {
        struct cec_msg msg;
        struct task_struct *cec_worker;
 };
-#endif
 
 struct cdns_plat_data {
 	/* Vendor PHY support */
@@ -704,9 +702,7 @@ struct cdns_mhdp_device {
 			bool can_mst;
 		} dp;
 		struct _hdmi_data {
-#ifdef CONFIG_DRM_CDNS_HDMI_CEC
 			struct cdns_mhdp_cec cec;
-#endif
 			u32 char_rate;
 			u32 hdmi_type;
 		} hdmi;
