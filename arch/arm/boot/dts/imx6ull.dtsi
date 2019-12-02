@@ -36,21 +36,50 @@
 };
 
 &pxp {
-	compatible = "fsl,imx6ull-pxp";
+	compatible = "fsl,imx6ull-pxp-dma", "fsl,imx7d-pxp-dma";
 	interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>,
-		     <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
+		<GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
+	clocks = <&clks IMX6UL_CLK_DUMMY>, <&clks IMX6UL_CLK_PXP>;
+	clock-names = "pxp_ipg", "pxp_axi";
+	status = "disabled";
 };
 
 &usdhc1 {
 	compatible = "fsl,imx6ull-usdhc", "fsl,imx6sx-usdhc";
+	assigned-clocks = <&clks IMX6UL_CLK_USDHC1_SEL>, <&clks IMX6UL_CLK_USDHC1>;
+	assigned-clock-parents = <&clks IMX6UL_CLK_PLL2_PFD2>;
+	assigned-clock-rates = <0>, <132000000>;
 };
 
 &usdhc2 {
 	compatible = "fsl,imx6ull-usdhc", "fsl,imx6sx-usdhc";
+	assigned-clocks = <&clks IMX6UL_CLK_USDHC2_SEL>, <&clks IMX6UL_CLK_USDHC2>;
+	assigned-clock-parents = <&clks IMX6UL_CLK_PLL2_PFD2>;
+	assigned-clock-rates = <0>, <132000000>;
 };
 
 / {
 	soc {
+		busfreq {
+			compatible = "fsl,imx_busfreq";
+			clocks = <&clks IMX6UL_CLK_PLL2_PFD2>, <&clks IMX6UL_CLK_PLL2_198M>,
+				 <&clks IMX6UL_CLK_PLL2_BUS>, <&clks IMX6UL_CLK_ARM>,
+				 <&clks IMX6UL_CLK_PLL3_USB_OTG>, <&clks IMX6UL_CLK_PERIPH>,
+				 <&clks IMX6UL_CLK_PERIPH_PRE>, <&clks IMX6UL_CLK_PERIPH_CLK2>,
+				 <&clks IMX6UL_CLK_PERIPH_CLK2_SEL>, <&clks IMX6UL_CLK_OSC>,
+				 <&clks IMX6UL_CLK_AHB>, <&clks IMX6UL_CLK_AXI>,
+				 <&clks IMX6UL_CLK_PERIPH2>, <&clks IMX6UL_CLK_PERIPH2_PRE>,
+				 <&clks IMX6UL_CLK_PERIPH2_CLK2>, <&clks IMX6UL_CLK_PERIPH2_CLK2_SEL>,
+				 <&clks IMX6UL_CLK_STEP>, <&clks IMX6UL_CLK_MMDC_P0_FAST>, <&clks IMX6UL_PLL1_BYPASS_SRC>,
+				 <&clks IMX6UL_PLL1_BYPASS>, <&clks IMX6UL_CLK_PLL1_SYS>, <&clks IMX6UL_CLK_PLL1_SW>,
+				 <&clks IMX6UL_CLK_PLL1>;
+			clock-names = "pll2_pfd2_396m", "pll2_198m", "pll2_bus", "arm", "pll3_usb_otg",
+				      "periph", "periph_pre", "periph_clk2", "periph_clk2_sel", "osc",
+				      "ahb", "ocram", "periph2", "periph2_pre", "periph2_clk2", "periph2_clk2_sel",
+				      "step", "mmdc", "pll1_bypass_src", "pll1_bypass", "pll1_sys", "pll1_sw", "pll1";
+			fsl,max_ddr_freq = <400000000>;
+		};
+
 		aips3: aips-bus@2200000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			#address-cells = <1>;
@@ -68,6 +97,13 @@
 				clock-names = "dcp";
 			};
 
+			rngb: rng@2284000 {
+				compatible = "fsl,imx25-rngb";
+				reg = <0x02284000 0x4000>;
+				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clks IMX6UL_CLK_DUMMY>;
+			};
+
 			iomuxc_snvs: iomuxc-snvs@2290000 {
 				compatible = "fsl,imx6ull-iomuxc-snvs";
 				reg = <0x02290000 0x4000>;
@@ -81,6 +117,18 @@
 				clocks = <&clks IMX6UL_CLK_UART8_IPG>,
 					 <&clks IMX6UL_CLK_UART8_SERIAL>;
 				clock-names = "ipg", "per";
+				status = "disabled";
+			};
+
+			epdc: epdc@228c000 {
+				compatible = "fsl,imx7d-epdc";
+				interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>;
+				reg = <0x228c000 0x4000>;
+				clocks = <&clks IMX6ULL_CLK_EPDC_ACLK>,
+					 <&clks IMX6ULL_CLK_EPDC_PIX>;
+				clock-names = "epdc_axi", "epdc_pix";
+				/* Need to fix epdc-ram */
+				/* epdc-ram = <&gpr 0x4 30>; */
 				status = "disabled";
 			};
 		};

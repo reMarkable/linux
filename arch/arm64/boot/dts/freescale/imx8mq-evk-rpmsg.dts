@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright 2019 NXP
+ */
+
+/dts-v1/;
+
+#include "imx8mq-evk.dts"
+
+/ {
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		m4_reserved: m4@0x80000000 {
+			no-map;
+			reg = <0 0x80000000 0 0x1000000>;
+		};
+
+		rpmsg_reserved: rpmsg@0xb8000000 {
+			no-map;
+			reg = <0 0xb8000000 0 0x400000>;
+		};
+
+		rpmsg_dma_reserved:rpmsg_dma@0xb8400000 {
+			compatible = "shared-dma-pool";
+			no-map;
+			reg = <0 0xb8400000 0 0x100000>;
+		};
+	};
+};
+
+/*
+ * Regarding to the HW conflications, the following module should be disabled
+ * when M4 is running on evk board.
+ * gpt1, i2c2, pwm4, tmu, uart2, wdog3
+ */
+
+&i2c2 {
+	status = "disabled";
+};
+
+&pwm4 {
+	status = "disabled";
+};
+
+&rpmsg{
+	/*
+	 * 64K for one rpmsg instance:
+	 * --0xb8000000~0xb800ffff: pingpong
+	 */
+	vdev-nums = <1>;
+	reg = <0x0 0xb8000000 0x0 0x10000>;
+	memory-region = <&rpmsg_dma_reserved>;
+	status = "okay";
+};
+
+&tmu {
+	status = "disabled";
+};
+
+&uart2 {
+	status = "disabled";
+};
+
+&wdog3{
+	status = "disabled";
+};
