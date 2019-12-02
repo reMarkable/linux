@@ -1,0 +1,48 @@
+Freescale i.MX8QXP Parallel Capture Interface
+=========================
+
+parallel interface node
+--------------
+
+This is the device node for the parallel capture interface in i.MX8QXP SoC.
+
+Required properties:
+- compatible    : "fsl,mxc-parallel-csi";
+- reg           : base address and length of the register set for the device;
+- clocks        : list of clock specifiers
+- clock-names   : must contain "pixel", "ipg", "div" and "dpll" entries,
+                  matching entries in the clock property;
+- assigned-clocks      : need to set the parent of pixel clock;
+- assigned-clock-parent: set the pll as the parent of pixel clock;
+- assigned-clock-rates : the value should be 160MHz;
+- power-domains : a phandle to the power domain, see
+- power-domain-name : must contain "pd_pi", "pd_isi_ch0".
+
+port node
+- reg  :  can take the values 0 which mean the port is a sink port
+
+example:
+		parallel_csi: pcsi@58261000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			compatible = "fsl,mxc-parallel-csi";
+			reg = <0x58261000 0x1000>;
+			clocks = <&pi_lpcg IMX_PI_LPCG_PI0_PIXEL_CLK>,
+				 <&pi_lpcg IMX_PI_LPCG_PI0_IPG_CLK>,
+				 <&clk IMX_PARALLEL_PER_DIV_CLK>,
+				 <&clk IMX_PARALLEL_DPLL_CLK>;
+			clock-names = "pixel", "ipg", "div", "dpll";
+			assigned-clocks = <&clk IMX_PARALLEL_PER_DIV_CLK>;
+			assigned-clock-parents = <&clk IMX_PARALLEL_DPLL_CLK>;
+			assigned-clock-rates = <160000000>;  /* 160MHz */
+			power-domains = <&pd IMX_SC_R_PI_0>, <&pd IMX_SC_R_ISI_CH0>;
+			power-domain-names = "pd_pi", "pd_isi_ch0";
+
+			port@0 {
+				reg = <0>;
+				parallel_csi_ep: endpoint {
+					remote-endpoint = <&ov5640_ep>;
+				};
+			};
+		};

@@ -1,0 +1,73 @@
+Freescale i.MX8QXP/QM MIPI CSI2
+=========================
+
+mipi_csi2 node
+--------------
+
+This is the device node for the MIPI CSI-2 receiver core in i.MXQXP/QM SoC.
+
+Required properties:
+
+- compatible    : "fsl,mxc-mipi-csi2";
+- reg           : base address and length of the register set for the device;
+- clocks        : list of clock specifiers, see
+        Documentation/devicetree/bindings/clock/clock-bindings.txt for details;
+- clock-names   : must contain "clk_core", "clk_esc" and "clk_pxl" entries,
+                  matching entries in the clock property;
+- assigned-clock-rates : the value should be 360MHz and 72MHz;
+- power-domains : a phandle to the power domain, see
+          Documentation/devicetree/bindings/power/power_domain.txt for details;
+- power-domain-name : must contain "pd_csi", "pd_isi_ch0".
+
+Optional properties:
+- virtual-channel: whether use mipi csi virtual channel
+
+The device node should contain one 'port' child nodes with one child 'endpoint'
+node, according to the bindings defined in:
+ Documentation/devicetree/bindings/ media/video-interfaces.txt.
+ The following are properties specific to those nodes.
+
+port node
+---------
+
+- reg		  : (required) can take the values 0 which mean the port is a
+		    sink port;
+
+endpoint node
+-------------
+
+- data-lanes    : (required) an array specifying active physical MIPI-CSI2
+		    data input lanes and their mapping to logical lanes; this
+                    shall only be applied to port 0 (sink port), the array's
+                    content is unused only its length is meaningful,
+                    in this case the maximum length supported is 2;
+
+example:
+
+        mipi_csi: csi@58227000 {
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                compatible = "fsl,mxc-mipi-csi2";
+                reg = <0x58227000 0x1000>,
+                      <0x58221000 0x1000>;
+                clocks = <&csi_lpcg IMX_CSI_LPCG_CSI0_CORE_CLK>,
+                         <&csi_lpcg IMX_CSI_LPCG_CSI0_ESC_CLK>,
+                         <&img_lpcg IMX_IMG_LPCG_CSI0_PXL_LINK_CLK>;
+                clock-names = "clk_core", "clk_esc", "clk_pxl";
+                assigned-clocks = <&csi_lpcg IMX_CSI_LPCG_CSI0_CORE_CLK>,
+                                  <&csi_lpcg IMX_CSI_LPCG_CSI0_ESC_CLK>;
+                assigned-clock-rates = <360000000>, <72000000>;
+                power-domains = <&pd IMX_SC_R_CSI_0>, <&pd IMX_SC_R_ISI_CH0>;
+                power-domain-names = "pd_csi", "pd_isi_ch0";
+                status = "okay";
+
+                port@0 {
+                        reg = <0>;
+                        mipi_csi0_ep: endpoint {
+                                remote-endpoint = <&ov5640_mipi_ep>;
+                                data-lanes = <1 2>;
+                        };
+                };
+
+        };
