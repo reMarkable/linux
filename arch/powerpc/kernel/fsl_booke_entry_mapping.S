@@ -174,6 +174,10 @@ skpinv:	addi	r6,r6,1				/* Increment */
 	lis	r6,MAS2_VAL(PAGE_OFFSET, BOOK3E_PAGESZ_64M, M_IF_NEEDED)@h
 	ori	r6,r6,MAS2_VAL(PAGE_OFFSET, BOOK3E_PAGESZ_64M, M_IF_NEEDED)@l
 	mtspr	SPRN_MAS2,r6
+#ifdef ENTRY_DEEPSLEEP_SETUP
+	LOAD_REG_IMMEDIATE(r8, MEMORY_START)
+	ori	r8,r8,(MAS3_SX|MAS3_SW|MAS3_SR)
+#endif
 	mtspr	SPRN_MAS3,r8
 	tlbwe
 
@@ -216,12 +220,18 @@ next_tlb_setup:
 	#error You need to specify the mapping or not use this at all.
 #endif
 
+#ifdef ENTRY_DEEPSLEEP_SETUP
+	LOAD_REG_ADDR(r6, 2f)
+	mfmsr	r7
+	rlwinm	r7,r7,0,~(MSR_IS|MSR_DS)
+#else
 	lis	r7,MSR_KERNEL@h
 	ori	r7,r7,MSR_KERNEL@l
 	bl	1f			/* Find our address */
 1:	mflr	r9
 	rlwimi	r6,r9,0,20,31
 	addi	r6,r6,(2f - 1b)
+#endif
 	mtspr	SPRN_SRR0,r6
 	mtspr	SPRN_SRR1,r7
 	rfi				/* start execution out of TLB1[0] entry */

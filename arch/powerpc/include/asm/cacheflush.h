@@ -42,6 +42,13 @@ extern void flush_dcache_page(struct page *page);
 #define flush_dcache_mmap_lock(mapping)		do { } while (0)
 #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
 
+extern void __flush_disable_L1(void);
+#ifdef CONFIG_FSL_SOC_BOOKE
+extern void flush_dcache_L1(void);
+#else
+#define flush_dcache_L1()			do { } while (0)
+#endif
+
 extern void flush_icache_range(unsigned long, unsigned long);
 extern void flush_icache_user_range(struct vm_area_struct *vma,
 				    struct page *page, unsigned long addr,
