@@ -156,7 +156,8 @@ void stage2_unmap_vm(struct kvm *kvm);
 int kvm_alloc_stage2_pgd(struct kvm *kvm);
 void kvm_free_stage2_pgd(struct kvm *kvm);
 int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
-			  phys_addr_t pa, unsigned long size, bool writable);
+			  phys_addr_t pa, unsigned long size, bool writable,
+			  pgprot_t prot);
 
 int kvm_handle_guest_abort(struct kvm_vcpu *vcpu, struct kvm_run *run);
 
@@ -341,8 +342,16 @@ static inline void __invalidate_icache_guest_page(kvm_pfn_t pfn,
 static inline void __kvm_flush_dcache_pte(pte_t pte)
 {
 	if (!cpus_have_const_cap(ARM64_HAS_STAGE2_FWB)) {
-		struct page *page = pte_page(pte);
-		kvm_flush_dcache_to_poc(page_address(page), PAGE_SIZE);
+		if (pfn_valid(pte_pfn(pte))) {
+			struct page *page = pte_page(pte);
+
+			kvm_flush_dcache_to_poc(page_address(page), PAGE_SIZE);
+		} else {
+			void __iomem *va = ioremap_cache_ns(pte_pfn(pte) << PAGE_SHIFT, PAGE_SIZE);
+
+			kvm_flush_dcache_to_poc(va, PAGE_SIZE);
+			iounmap(va);
+		}
 	}
 }
 
