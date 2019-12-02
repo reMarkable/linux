@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 obj-$(CONFIG_VIDEO_ALLEGRO_DVT)	+= allegro-dvt/
-obj-$(CONFIG_VIDEO_IMX_MEDIA)	+= imx/
+obj-$(CONFIG_VIDEO_IMX_CAPTURE)	+= imx/
 obj-$(CONFIG_VIDEO_MESON_VDEC)	+= meson/vdec/
 obj-$(CONFIG_VIDEO_OMAP4)	+= omap4iss/
 obj-$(CONFIG_VIDEO_SUNXI)	+= sunxi/
