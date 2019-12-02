@@ -1,0 +1,25 @@
+#
+# Codec configuration
+#
+
+menu "MXC VPU(Video Processing Unit) WINDSOR ENCODER support"
+
+config MXC_VPU_WINDSOR
+	  tristate "Support for MXC VPU(Video Processing Unit) WINDSOR ENCODER"
+	  depends on MEDIA_SUPPORT
+	  depends on VIDEO_DEV
+	  depends on VIDEO_V4L2
+	  select VIDEOBUF2_DMA_CONTIG
+	  select VIDEOBUF2_VMALLOC
+	  default y
+	---help---
+	  The VPU codec device provides codec function for H.264 etc.
+
+config MXC_VPU_WINDSOR_DEBUG
+	bool "MXC VPU WINDSOR ENCODER debugging"
+	depends on MXC_VPU_WINDSOR != n
+	help
+	  This is an option for the developers; most people should
+	  say N here.  This enables MXC VPU WINDSOR Encoder driver debugging.
+
+endmenu
