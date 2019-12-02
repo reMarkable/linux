@@ -11,6 +11,7 @@ Required properties:
 Optional properties:
  - brcm,drive-strength : drive strength used for SDIO pins on device in mA
 	(default = 6).
+ - brcm,use_board_type : suffix string for NVRAM
  - interrupts : specifies attributes for the out-of-band interrupt (host-wake).
 	When not specified the device will use in-band SDIO interrupts.
  - interrupt-names : name of the out-of-band interrupt, which must be set

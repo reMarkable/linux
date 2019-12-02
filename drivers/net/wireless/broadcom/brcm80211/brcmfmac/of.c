@@ -18,15 +18,17 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 	struct brcmfmac_sdio_pd *sdio = &settings->bus.sdio;
 	struct device_node *root, *np = dev->of_node;
 	struct property *prop;
+	const char *cp = NULL;
 	int irq;
 	u32 irqf;
-	u32 val;
+	u32 val32;
+	u16 val16;
 
 	/* Set board-type to the first string of the machine compatible prop */
 	root = of_find_node_by_path("/");
 	if (root) {
 		prop = of_find_property(root, "compatible", NULL);
-		settings->board_type = of_prop_next_string(prop, NULL);
+		cp = of_prop_next_string(prop, NULL);
 		of_node_put(root);
 	}
 
@@ -34,8 +36,18 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 	    !of_device_is_compatible(np, "brcm,bcm4329-fmac"))
 		return;
 
-	if (of_property_read_u32(np, "brcm,drive-strength", &val) == 0)
-		sdio->drive_strength = val;
+	if (of_property_read_u32(np, "brcm,drive-strength", &val32) == 0)
+		sdio->drive_strength = val32;
+
+	if (of_property_read_bool(np, "brcm,use_board_type"))
+		settings->board_type = cp;
+
+	sdio->broken_sg_support = of_property_read_bool(np,
+			"brcm,broken_sg_support");
+	if (of_property_read_u16(np, "brcm,sd_head_align", &val16) == 0)
+		sdio->sd_head_align = val16;
+	if (of_property_read_u16(np, "brcm,sd_sgentry_align", &val16) == 0)
+		sdio->sd_sgentry_align = val16;
 
 	/* make sure there are interrupts defined in the node */
 	if (!of_find_property(np, "interrupts", NULL))
