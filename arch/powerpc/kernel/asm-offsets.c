@@ -365,6 +365,9 @@ int main(void)
 	OFFSET(CPU_SPEC_FEATURES, cpu_spec, cpu_features);
 	OFFSET(CPU_SPEC_SETUP, cpu_spec, cpu_setup);
 	OFFSET(CPU_SPEC_RESTORE, cpu_spec, cpu_restore);
+#if defined(CONFIG_E500) || defined(CONFIG_PPC_E500MC)
+	OFFSET(CPU_FLUSH_CACHES, cpu_spec, cpu_flush_caches);
+#endif
 
 	OFFSET(pbe_address, pbe, address);
 	OFFSET(pbe_orig_address, pbe, orig_address);

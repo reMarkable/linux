@@ -85,6 +85,22 @@ extern void __bad_udelay(void);
 			__const_udelay((n) * UDELAY_MULT)) :		\
 	  __udelay(n))
 
+#define spin_event_timeout(condition, timeout, delay)                          \
+({                                                                             \
+	typeof(condition) __ret;                                               \
+	int i = 0;							       \
+	while (!(__ret = (condition)) && (i++ < timeout)) {		       \
+		if (delay)                                                     \
+			udelay(delay);                                         \
+		else                                                           \
+			cpu_relax();					       \
+		udelay(1);						       \
+	}								       \
+	if (!__ret)                                                            \
+		__ret = (condition);                                           \
+	__ret;		                                                       \
+})
+
 /* Loop-based definitions for assembly code. */
 extern void __loop_delay(unsigned long loops);
 extern void __loop_udelay(unsigned long usecs);

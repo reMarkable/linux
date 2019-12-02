@@ -81,6 +81,7 @@ obj-$(CONFIG_CRASH_DUMP)	+= crash_dump.o
 ifneq ($(CONFIG_FA_DUMP)$(CONFIG_PRESERVE_FA_DUMP),)
 obj-y				+= fadump.o
 endif
+obj-$(CONFIG_FSL_SOC)		+= fsl_pm.o
 ifdef CONFIG_PPC32
 obj-$(CONFIG_E500)		+= idle_e500.o
 endif

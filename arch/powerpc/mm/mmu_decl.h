@@ -89,6 +89,12 @@ void print_system_hash_info(void);
 
 #endif /* CONFIG_PPC_MMU_NOHASH */
 
+void settlbcam(int index, unsigned long virt, phys_addr_t phys,
+               unsigned long size, unsigned long flags, unsigned int pid);
+
+void cleartlbcam(unsigned long virt, unsigned int pid);
+
+
 #ifdef CONFIG_PPC32
 
 void hash_preload(struct mm_struct *mm, unsigned long ea);
