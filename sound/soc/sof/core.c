@@ -10,7 +10,6 @@
 
 #include <linux/firmware.h>
 #include <linux/module.h>
-#include <asm/unaligned.h>
 #include <sound/soc.h>
 #include <sound/sof.h>
 #include "sof-priv.h"
@@ -196,67 +195,9 @@ out:
 EXPORT_SYMBOL(snd_sof_get_status);
 
 /*
- * Generic buffer page table creation.
- * Take the each physical page address and drop the least significant unused
- * bits from each (based on PAGE_SIZE). Then pack valid page address bits
- * into compressed page table.
- */
-
-int snd_sof_create_page_table(struct snd_sof_dev *sdev,
-			      struct snd_dma_buffer *dmab,
-			      unsigned char *page_table, size_t size)
-{
-	int i, pages;
-
-	pages = snd_sgbuf_aligned_pages(size);
-
-	dev_dbg(sdev->dev, "generating page table for %p size 0x%zx pages %d\n",
-		dmab->area, size, pages);
-
-	for (i = 0; i < pages; i++) {
-		/*
-		 * The number of valid address bits for each page is 20.
-		 * idx determines the byte position within page_table
-		 * where the current page's address is stored
-		 * in the compressed page_table.
-		 * This can be calculated by multiplying the page number by 2.5.
-		 */
-		u32 idx = (5 * i) >> 1;
-		u32 pfn = snd_sgbuf_get_addr(dmab, i * PAGE_SIZE) >> PAGE_SHIFT;
-		u8 *pg_table;
-
-		dev_vdbg(sdev->dev, "pfn i %i idx %d pfn %x\n", i, idx, pfn);
-
-		pg_table = (u8 *)(page_table + idx);
-
-		/*
-		 * pagetable compression:
-		 * byte 0     byte 1     byte 2     byte 3     byte 4     byte 5
-		 * ___________pfn 0__________ __________pfn 1___________  _pfn 2...
-		 * .... ....  .... ....  .... ....  .... ....  .... ....  ....
-		 * It is created by:
-		 * 1. set current location to 0, PFN index i to 0
-		 * 2. put pfn[i] at current location in Little Endian byte order
-		 * 3. calculate an intermediate value as
-		 *    x = (pfn[i+1] << 4) | (pfn[i] & 0xf)
-		 * 4. put x at offset (current location + 2) in LE byte order
-		 * 5. increment current location by 5 bytes, increment i by 2
-		 * 6. continue to (2)
-		 */
-		if (i & 1)
-			put_unaligned_le32((pg_table[0] & 0xf) | pfn << 4,
-					   pg_table);
-		else
-			put_unaligned_le32(pfn, pg_table);
-	}
-
-	return pages;
-}
-
-/*
  * SOF Driver enumeration.
  */
-static int sof_machine_check(struct snd_sof_dev *sdev)
+int sof_machine_check(struct snd_sof_dev *sdev)
 {
 	struct snd_sof_pdata *plat_data = sdev->pdata;
 #if IS_ENABLED(CONFIG_SND_SOC_SOF_NOCODEC)
@@ -277,8 +218,10 @@ static int sof_machine_check(struct snd_sof_dev *sdev)
 	if (!machine)
 		return -ENOMEM;
 
-	ret = sof_nocodec_setup(sdev->dev, plat_data, machine,
-				plat_data->desc, plat_data->desc->ops);
+	machine->drv_name = "sof-nocodec";
+	plat_data->fw_filename = plat_data->desc->nocodec_fw_filename;
+	plat_data->tplg_filename = plat_data->desc->nocodec_tplg_filename;
+	ret = sof_nocodec_setup(sdev->dev, plat_data->desc->ops);
 	if (ret < 0)
 		return ret;
 
@@ -287,13 +230,45 @@ static int sof_machine_check(struct snd_sof_dev *sdev)
 	return 0;
 #endif
 }
+EXPORT_SYMBOL(sof_machine_check);
+
+int sof_machine_register(struct snd_sof_dev *sdev, void *pdata)
+{
+	struct snd_sof_pdata *plat_data = (struct snd_sof_pdata *)pdata;
+	const char *drv_name;
+	const void *mach;
+	int size;
+
+	drv_name = plat_data->machine->drv_name;
+	mach = (const void *)plat_data->machine;
+	size = sizeof(*plat_data->machine);
+
+	/* register machine driver, pass machine info as pdata */
+	plat_data->pdev_mach =
+		platform_device_register_data(sdev->dev, drv_name,
+					      PLATFORM_DEVID_NONE, mach, size);
+	if (IS_ERR(plat_data->pdev_mach))
+		return PTR_ERR(plat_data->pdev_mach);
+
+	dev_dbg(sdev->dev, "created machine %s\n",
+		dev_name(&plat_data->pdev_mach->dev));
+
+	return 0;
+}
+EXPORT_SYMBOL(sof_machine_register);
+
+void sof_machine_unregister(struct snd_sof_dev *sdev, void *pdata)
+{
+	struct snd_sof_pdata *plat_data = (struct snd_sof_pdata *)pdata;
+
+	if (!IS_ERR_OR_NULL(plat_data->pdev_mach))
+		platform_device_unregister(plat_data->pdev_mach);
+}
+EXPORT_SYMBOL(sof_machine_unregister);
 
 static int sof_probe_continue(struct snd_sof_dev *sdev)
 {
 	struct snd_sof_pdata *plat_data = sdev->pdata;
-	const char *drv_name;
-	const void *mach;
-	int size;
 	int ret;
 
 	/* probe the DSP hardware */
@@ -304,7 +279,7 @@ static int sof_probe_continue(struct snd_sof_dev *sdev)
 	}
 
 	/* check machine info */
-	ret = sof_machine_check(sdev);
+	ret = snd_sof_machine_check(sdev);
 	if (ret < 0) {
 		dev_err(sdev->dev, "error: failed to get machine info %d\n",
 			ret);
@@ -371,22 +346,17 @@ static int sof_probe_continue(struct snd_sof_dev *sdev)
 		goto fw_run_err;
 	}
 
-	drv_name = plat_data->machine->drv_name;
-	mach = (const void *)plat_data->machine;
-	size = sizeof(*plat_data->machine);
-
-	/* register machine driver, pass machine info as pdata */
-	plat_data->pdev_mach =
-		platform_device_register_data(sdev->dev, drv_name,
-					      PLATFORM_DEVID_NONE, mach, size);
-
-	if (IS_ERR(plat_data->pdev_mach)) {
-		ret = PTR_ERR(plat_data->pdev_mach);
+	ret = snd_sof_machine_register(sdev, plat_data);
+	if (ret < 0)
 		goto fw_run_err;
-	}
 
-	dev_dbg(sdev->dev, "created machine %s\n",
-		dev_name(&plat_data->pdev_mach->dev));
+	/*
+	 * Some platforms in SOF, ex: BYT, may not have their platform PM
+	 * callbacks set. Increment the usage count so as to
+	 * prevent the device from entering runtime suspend.
+	 */
+	if (!sof_ops(sdev)->runtime_suspend || !sof_ops(sdev)->runtime_resume)
+		pm_runtime_get_noresume(sdev->dev);
 
 	if (plat_data->sof_probe_complete)
 		plat_data->sof_probe_complete(sdev->dev);
@@ -504,9 +474,7 @@ int snd_sof_device_remove(struct device *dev)
 	 * will remove the component driver and unload the topology
 	 * before freeing the snd_card.
 	 */
-	if (!IS_ERR_OR_NULL(pdata->pdev_mach))
-		platform_device_unregister(pdata->pdev_mach);
-
+	snd_sof_machine_unregister(sdev, pdata);
 	/*
 	 * Unregistering the machine driver results in unloading the topology.
 	 * Some widgets, ex: scheduler, attempt to power down the core they are

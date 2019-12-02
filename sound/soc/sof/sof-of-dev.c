@@ -19,6 +19,7 @@ extern struct snd_sof_dsp_ops sof_imx8_ops;
 static struct sof_dev_desc sof_of_imx8qxp_desc = {
 	.default_fw_path = "imx/sof",
 	.default_tplg_path = "imx/sof-tplg",
+	.default_fw_filename = "sof-imx8.ri",
 	.nocodec_fw_filename = "sof-imx8.ri",
 	.nocodec_tplg_filename = "sof-imx8-nocodec.tplg",
 	.ops = &sof_imx8_ops,
@@ -72,18 +73,17 @@ static int sof_of_probe(struct platform_device *pdev)
 	mach = devm_kzalloc(dev, sizeof(*mach), GFP_KERNEL);
 	if (!mach)
 		return -ENOMEM;
-	ret = sof_nocodec_setup(dev, sof_pdata, mach, desc, ops);
+
+	mach->drv_name = "sof-nocodec";
+	sof_pdata->fw_filename =  desc->nocodec_fw_filename;
+	sof_pdata->tplg_filename = desc->nocodec_tplg_filename;
+	ret = sof_nocodec_setup(dev, ops);
 	if (ret < 0)
 		return ret;
-#else
-	/* TODO: implement case where we actually have a codec */
-	return -ENODEV;
 #endif
 
-	if (mach)
-		mach->mach_params.platform = dev_name(dev);
-
-	sof_pdata->machine = mach;
+	/* TODO: replace machine with info from DT */
+	sof_pdata->machine = NULL;
 	sof_pdata->desc = desc;
 	sof_pdata->dev = &pdev->dev;
 	sof_pdata->platform = dev_name(dev);
@@ -91,6 +91,10 @@ static int sof_of_probe(struct platform_device *pdev)
 	/* TODO: read alternate fw and tplg filenames from DT */
 	sof_pdata->fw_filename_prefix = sof_pdata->desc->default_fw_path;
 	sof_pdata->tplg_filename_prefix = sof_pdata->desc->default_tplg_path;
+
+	sof_pdata->fw_filename =  desc->default_fw_filename;
+	/* FIXME: Add proper value for tplg_filename */
+	sof_pdata->tplg_filename =  desc->nocodec_tplg_filename;
 
 #if IS_ENABLED(CONFIG_SND_SOC_SOF_PROBE_WORK_QUEUE)
 	/* set callback to enable runtime_pm */

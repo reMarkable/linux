@@ -22,7 +22,6 @@ struct snd_sof_dsp_ops;
  */
 struct snd_sof_pdata {
 	const struct firmware *fw;
-	const char *drv_name;
 	const char *name;
 	const char *platform;
 
@@ -88,13 +87,13 @@ struct sof_dev_desc {
 	const char *default_fw_path;
 	const char *default_tplg_path;
 
+	/* default firmware name */
+	const char *default_fw_filename;
+
 	const struct snd_sof_dsp_ops *ops;
 	const struct sof_arch_ops *arch_ops;
 };
 
 int sof_nocodec_setup(struct device *dev,
-		      struct snd_sof_pdata *sof_pdata,
-		      struct snd_soc_acpi_mach *mach,
-		      const struct sof_dev_desc *desc,
 		      const struct snd_sof_dsp_ops *ops);
 #endif

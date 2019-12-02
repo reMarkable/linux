@@ -34,7 +34,7 @@ static int create_page_table(struct snd_pcm_substream *substream,
 	if (!spcm)
 		return -EINVAL;
 
-	return snd_sof_create_page_table(sdev, dmab,
+	return snd_sof_create_page_table(sdev->dev, dmab,
 		spcm->stream[stream].page_table.area, size);
 }
 
@@ -691,6 +691,19 @@ static int sof_pcm_dai_link_fixup(struct snd_soc_pcm_runtime *rtd,
 	case SOF_DAI_INTEL_ALH:
 		/* do nothing for ALH dai_link */
 		break;
+	case SOF_DAI_IMX_ESAI:
+		channels->min = dai->dai_config->esai.tdm_slots;
+		channels->max = dai->dai_config->esai.tdm_slots;
+
+		break;
+	case SOF_DAI_IMX_SAI:
+		channels->min = dai->dai_config->sai.tdm_slots;
+		channels->max = dai->dai_config->sai.tdm_slots;
+
+		dev_dbg(sdev->dev,
+			"channels_min: %d channels_max: %d\n",
+			channels->min, channels->max);
+		break;
 	default:
 		dev_err(sdev->dev, "error: invalid DAI type %d\n",
 			dai->dai_config->type);
@@ -724,14 +737,6 @@ static int sof_pcm_probe(struct snd_soc_component *component)
 		return ret;
 	}
 
-	/*
-	 * Some platforms in SOF, ex: BYT, may not have their platform PM
-	 * callbacks set. Increment the usage count so as to
-	 * prevent the device from entering runtime suspend.
-	 */
-	if (!sof_ops(sdev)->runtime_suspend || !sof_ops(sdev)->runtime_resume)
-		pm_runtime_get_noresume(sdev->dev);
-
 	return ret;
 }
 
@@ -747,7 +752,11 @@ void snd_sof_new_platform_drv(struct snd_sof_dev *sdev)
 	struct snd_sof_pdata *plat_data = sdev->pdata;
 	const char *drv_name;
 
-	drv_name = plat_data->machine->drv_name;
+
+	if (plat_data->machine)
+		drv_name = plat_data->machine->drv_name;
+	else
+		drv_name = "asoc-simple-card";
 
 	pd->name = "sof-audio-component";
 	pd->probe = sof_pcm_probe;
