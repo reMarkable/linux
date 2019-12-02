@@ -193,7 +193,7 @@ int xhci_reset(struct xhci_hcd *xhci)
 	 * Without this delay, the subsequent HC register access,
 	 * may result in a system hang very rarely.
 	 */
-	if (xhci->quirks & XHCI_INTEL_HOST)
+	if (xhci->quirks & (XHCI_INTEL_HOST | XHCI_CDNS_HOST))
 		udelay(1000);
 
 	ret = xhci_handshake(&xhci->op_regs->command,
@@ -5355,6 +5355,7 @@ static const struct hc_driver xhci_hc_driver = {
 	.disable_usb3_lpm_timeout =	xhci_disable_usb3_lpm_timeout,
 	.find_raw_port_number =	xhci_find_raw_port_number,
 	.clear_tt_buffer_complete = xhci_clear_tt_buffer_complete,
+	.submit_single_step_set_feature	= xhci_submit_single_step_set_feature,
 };
 
 void xhci_init_driver(struct hc_driver *drv,
@@ -5371,6 +5372,8 @@ void xhci_init_driver(struct hc_driver *drv,
 			drv->reset = over->reset;
 		if (over->start)
 			drv->start = over->start;
+		if (over->bus_suspend)
+			drv->bus_suspend = over->bus_suspend;
 	}
 }
 EXPORT_SYMBOL_GPL(xhci_init_driver);
