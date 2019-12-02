@@ -1048,8 +1048,10 @@ static int fsl_esai_probe(struct platform_device *pdev)
 				PTR_ERR(esai_priv->spbaclk));
 
 	irq = platform_get_irq(pdev, 0);
-	if (irq < 0)
+	if (irq < 0) {
+		dev_err(&pdev->dev, "no irq for node %s\n", pdev->name);
 		return irq;
+	}
 
 	num_domains = of_count_phandle_with_args(np, "power-domains",
 						 "#power-domain-cells");

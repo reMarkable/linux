@@ -612,8 +612,11 @@ static int atmel_pdmic_probe(struct platform_device *pdev)
 	dd->dev = dev;
 
 	dd->irq = platform_get_irq(pdev, 0);
-	if (dd->irq < 0)
-		return dd->irq;
+	if (dd->irq < 0) {
+		ret = dd->irq;
+		dev_err(dev, "failed to get irq: %d\n", ret);
+		return ret;
+	}
 
 	dd->pclk = devm_clk_get(dev, "pclk");
 	if (IS_ERR(dd->pclk)) {
