@@ -46,6 +46,7 @@
 
 #include <dt-bindings/firmware/imx/rsrc.h>
 #include <linux/firmware/imx/sci.h>
+#include <linux/firmware/imx/svc/rm.h>
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -155,6 +156,11 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 	/* LVDS SS */
 	{ "lvds0", IMX_SC_R_LVDS_0, 1, false, 0 },
 
+	{ "mipi1", IMX_SC_R_MIPI_1, 1, 0 },
+	{ "mipi1-pwm0", IMX_SC_R_MIPI_1_PWM_0, 1, 0 },
+	{ "mipi1-i2c", IMX_SC_R_MIPI_1_I2C_0, 2, 1 },
+	{ "lvds1", IMX_SC_R_LVDS_1, 1, 0 },
+
 	/* DC SS */
 	{ "dc0", IMX_SC_R_DC_0, 1, false, 0 },
 	{ "dc0-pll", IMX_SC_R_DC_0_PLL_0, 2, true, 0 },
@@ -195,6 +201,14 @@ static int imx_sc_pd_power(struct generic_pm_domain *domain, bool power_on)
 		dev_err(&domain->dev, "failed to power %s resource %d ret %d\n",
 			power_on ? "up" : "off", pd->rsrc, ret);
 
+	/* keep HDMI TX resource power on */
+	if (power_on && (pd->rsrc == IMX_SC_R_HDMI ||
+					pd->rsrc == IMX_SC_R_HDMI_I2S ||
+					pd->rsrc == IMX_SC_R_HDMI_I2C_0 ||
+					pd->rsrc == IMX_SC_R_HDMI_PLL_0 ||
+					pd->rsrc == IMX_SC_R_HDMI_PLL_1))
+		pd->pd.flags |= GENPD_FLAG_ALWAYS_ON;
+
 	return ret;
 }
 
@@ -234,6 +248,9 @@ imx_scu_add_pm_domain(struct device *dev, int idx,
 {
 	struct imx_sc_pm_domain *sc_pd;
 	int ret;
+
+	if (!imx_sc_rm_is_resource_owned(pm_ipc_handle, pd_ranges->rsrc + idx))
+		return NULL;
 
 	sc_pd = devm_kzalloc(dev, sizeof(*sc_pd), GFP_KERNEL);
 	if (!sc_pd)
