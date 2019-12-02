@@ -124,8 +124,6 @@ struct fsl_lpspi_data {
 	bool usedma;
 	struct completion dma_rx_completion;
 	struct completion dma_tx_completion;
-
-	int chipselect[0];
 };
 
 static const struct of_device_id fsl_lpspi_dt_ids[] = {
@@ -230,10 +228,8 @@ static int lpspi_unprepare_xfer_hardware(struct spi_controller *controller)
 static int fsl_lpspi_prepare_message(struct spi_controller *controller,
 				     struct spi_message *msg)
 {
-	struct fsl_lpspi_data *fsl_lpspi =
-					spi_controller_get_devdata(controller);
 	struct spi_device *spi = msg->spi;
-	int gpio = fsl_lpspi->chipselect[spi->chip_select];
+	int gpio = controller->cs_gpios[spi->chip_select];
 
 	if (gpio_is_valid(gpio))
 		gpio_direction_output(gpio, spi->mode & SPI_CS_HIGH ? 0 : 1);
@@ -841,9 +837,14 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 	struct spi_imx_master *lpspi_platform_info =
 		dev_get_platdata(&pdev->dev);
 	struct resource *res;
-	int i, ret, irq;
+	int i, ret, irq, num_cs;
 	u32 temp;
 	bool is_slave;
+
+	if (!np && !lpspi_platform_info) {
+		dev_err(&pdev->dev, "can't get the platform data\n");
+		return -EINVAL;
+	}
 
 	is_slave = of_property_read_bool((&pdev->dev)->of_node, "spi-slave");
 	if (is_slave)
@@ -858,30 +859,42 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, controller);
 
+	ret = of_property_read_u32(np, "fsl,spi-num-chipselects", &num_cs);
+	if (ret < 0) {
+		if (lpspi_platform_info) {
+			num_cs = lpspi_platform_info->num_chipselect;
+			controller->num_chipselect = num_cs;
+		}
+	} else {
+		controller->num_chipselect = num_cs;
+	}
+
 	fsl_lpspi = spi_controller_get_devdata(controller);
 	fsl_lpspi->dev = &pdev->dev;
 	fsl_lpspi->is_slave = is_slave;
 
 	if (!fsl_lpspi->is_slave) {
+		controller->cs_gpios = devm_kzalloc(&controller->dev,
+			sizeof(int) * controller->num_chipselect, GFP_KERNEL);
+
 		for (i = 0; i < controller->num_chipselect; i++) {
 			int cs_gpio = of_get_named_gpio(np, "cs-gpios", i);
 
 			if (!gpio_is_valid(cs_gpio) && lpspi_platform_info)
 				cs_gpio = lpspi_platform_info->chipselect[i];
 
-			fsl_lpspi->chipselect[i] = cs_gpio;
+			controller->cs_gpios[i] = cs_gpio;
 			if (!gpio_is_valid(cs_gpio))
 				continue;
 
 			ret = devm_gpio_request(&pdev->dev,
-						fsl_lpspi->chipselect[i],
+						controller->cs_gpios[i],
 						DRIVER_NAME);
 			if (ret) {
 				dev_err(&pdev->dev, "can't get cs gpios\n");
 				goto out_controller_put;
 			}
 		}
-		controller->cs_gpios = fsl_lpspi->chipselect;
 		controller->prepare_message = fsl_lpspi_prepare_message;
 	}
 
