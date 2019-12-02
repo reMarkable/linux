@@ -481,6 +481,7 @@ struct sdma_engine {
 	bool				clk_ratio;
 	struct gen_pool			*iram_pool;
 	bool				fw_loaded;
+	u32				fw_fail;
 	unsigned short			ram_code_start;
 };
 
@@ -1940,8 +1941,17 @@ static void sdma_load_firmware(const struct firmware *fw, void *context)
 	unsigned short *ram_code;
 
 	if (!fw) {
-		dev_info(sdma->dev, "external firmware not found, using ROM firmware\n");
-		/* In this case we just use the ROM firmware. */
+		/* Load firmware once more time if timeout */
+		if (sdma->fw_fail)
+			dev_info(sdma->dev, "external firmware not found, using ROM firmware\n");
+		else {
+			request_firmware_nowait(THIS_MODULE,
+					FW_ACTION_HOTPLUG, sdma->fw_name,
+					sdma->dev, GFP_KERNEL, sdma,
+					sdma_load_firmware);
+			sdma->fw_fail++;
+		}
+
 		return;
 	}
 
