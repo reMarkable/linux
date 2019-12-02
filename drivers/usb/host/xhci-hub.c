@@ -1359,6 +1359,15 @@ int xhci_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			/* 4.19.6 Port Test Modes (USB2 Test Mode) */
 			if (hcd->speed != HCD_USB2)
 				goto error;
+#ifdef CONFIG_USB_HCD_TEST_MODE
+			if (test_mode == EHSET_TEST_SINGLE_STEP_SET_FEATURE) {
+				spin_unlock_irqrestore(&xhci->lock, flags);
+				retval = ehset_single_step_set_feature(hcd,
+								wIndex + 1);
+				spin_lock_irqsave(&xhci->lock, flags);
+				break;
+			}
+#endif
 			if (test_mode > TEST_FORCE_EN || test_mode < TEST_J)
 				goto error;
 			retval = xhci_enter_test_mode(xhci, test_mode, wIndex,
@@ -1637,6 +1646,7 @@ retry:
 	spin_unlock_irqrestore(&xhci->lock, flags);
 	return 0;
 }
+EXPORT_SYMBOL(xhci_bus_suspend);
 
 /*
  * Workaround for missing Cold Attach Status (CAS) if device re-plugged in S3.
@@ -1654,7 +1664,8 @@ static bool xhci_port_missing_cas_quirk(struct xhci_port *port)
 		return false;
 
 	if (((portsc & PORT_PLS_MASK) != XDEV_POLLING) &&
-	    ((portsc & PORT_PLS_MASK) != XDEV_COMP_MODE))
+	    ((portsc & PORT_PLS_MASK) != XDEV_COMP_MODE) &&
+	    ((portsc & PORT_PLS_MASK) != XDEV_RXDETECT))
 		return false;
 
 	/* clear wakeup/change bits, and do a warm port reset */

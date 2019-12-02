@@ -126,12 +126,16 @@ enum ci_revision {
  * @start: start this role
  * @stop: stop this role
  * @irq: irq handler for this role
+ * @suspend: system suspend handler for this role
+ * @resume: system resume handler for this role
  * @name: role name string (host/gadget)
  */
 struct ci_role_driver {
 	int		(*start)(struct ci_hdrc *);
 	void		(*stop)(struct ci_hdrc *);
 	irqreturn_t	(*irq)(struct ci_hdrc *);
+	void		(*suspend)(struct ci_hdrc *);
+	void		(*resume)(struct ci_hdrc *, bool power_lost);
 	const char	*name;
 };
 
@@ -203,6 +207,9 @@ struct hw_bank {
  * @in_lpm: if the core in low power mode
  * @wakeup_int: if wakeup interrupt occur
  * @rev: The revision number for controller
+ * @mutex: protect code from concorrent running
+ * @power_lost_work: work item when controller power is lost
+ * @power_lost_wq: work queue for controller power is lost
  */
 struct ci_hdrc {
 	struct device			*dev;
@@ -256,6 +263,20 @@ struct ci_hdrc {
 	bool				in_lpm;
 	bool				wakeup_int;
 	enum ci_revision		rev;
+	/* register save area for suspend&resume */
+	u32				pm_command;
+	u32				pm_status;
+	u32				pm_intr_enable;
+	u32				pm_frame_index;
+	u32				pm_segment;
+	u32				pm_frame_list;
+	u32				pm_async_next;
+	u32				pm_configured_flag;
+	u32				pm_portsc;
+	u32				pm_usbmode;
+	struct work_struct		power_lost_work;
+	struct workqueue_struct		*power_lost_wq;
+	struct mutex			mutex;
 };
 
 static inline struct ci_role_driver *ci_role(struct ci_hdrc *ci)
@@ -275,9 +296,21 @@ static inline int ci_role_start(struct ci_hdrc *ci, enum ci_role role)
 		return -ENXIO;
 
 	ret = ci->roles[role]->start(ci);
-	if (!ret)
-		ci->role = role;
-	return ret;
+	if (ret)
+		return ret;
+
+	ci->role = role;
+
+	if (ci->usb_phy) {
+		if (role == CI_ROLE_HOST)
+			usb_phy_set_mode(ci->usb_phy,
+					CUR_USB_MODE_HOST);
+		else
+			usb_phy_set_mode(ci->usb_phy,
+					CUR_USB_MODE_DEVICE);
+	}
+
+	return 0;
 }
 
 static inline void ci_role_stop(struct ci_hdrc *ci)
@@ -290,6 +323,9 @@ static inline void ci_role_stop(struct ci_hdrc *ci)
 	ci->role = CI_ROLE_END;
 
 	ci->roles[role]->stop(ci);
+
+	if (ci->usb_phy)
+		usb_phy_set_mode(ci->usb_phy, CUR_USB_MODE_NONE);
 }
 
 static inline enum usb_role ci_role_to_usb_role(struct ci_hdrc *ci)
@@ -453,8 +489,10 @@ u8 hw_port_test_get(struct ci_hdrc *ci);
 void hw_phymode_configure(struct ci_hdrc *ci);
 
 void ci_platform_configure(struct ci_hdrc *ci);
+int hw_controller_reset(struct ci_hdrc *ci);
 
 void dbg_create_files(struct ci_hdrc *ci);
 
 void dbg_remove_files(struct ci_hdrc *ci);
+void ci_hdrc_enter_lpm(struct ci_hdrc *ci, bool enable);
 #endif	/* __DRIVERS_USB_CHIPIDEA_CI_H */

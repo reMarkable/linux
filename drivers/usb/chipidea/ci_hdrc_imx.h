@@ -22,12 +22,19 @@ struct imx_usbmisc_data {
 	unsigned int evdo:1; /* set external vbus divider option */
 	unsigned int ulpi:1; /* connected to an ULPI phy */
 	unsigned int hsic:1; /* HSIC controlller */
+	enum usb_dr_mode available_role;
+	unsigned int ext_id:1; /* ID from exteranl event */
+	unsigned int ext_vbus:1; /* Vbus from exteranl event */
+	int emp_curr_control;
+	int dc_vol_level_adjust;
+	struct usb_phy *usb_phy;
 };
 
 int imx_usbmisc_init(struct imx_usbmisc_data *data);
 int imx_usbmisc_init_post(struct imx_usbmisc_data *data);
-int imx_usbmisc_set_wakeup(struct imx_usbmisc_data *data, bool enabled);
 int imx_usbmisc_hsic_set_connect(struct imx_usbmisc_data *data);
-int imx_usbmisc_hsic_set_clk(struct imx_usbmisc_data *data, bool on);
+int imx_usbmisc_charger_detection(struct imx_usbmisc_data *data, bool connect);
+int imx_usbmisc_suspend(struct imx_usbmisc_data *data, bool wakeup);
+int imx_usbmisc_resume(struct imx_usbmisc_data *data, bool wakeup);
 
 #endif /* __DRIVER_USB_CHIPIDEA_CI_HDRC_IMX_H */

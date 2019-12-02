@@ -3,7 +3,7 @@
  * USBSS device controller driver header file
  *
  * Copyright (C) 2018-2019 Cadence.
- * Copyright (C) 2017-2018 NXP
+ * Copyright (C) 2017-2019 NXP
  *
  * Author: Pawel Laszczak <pawell@cadence.com>
  *         Pawel Jez <pjez@cadence.com>
@@ -20,52 +20,42 @@
 
 /**
  * struct cdns3_usb_regs - device controller registers.
- * @usb_conf:      Global Configuration.
- * @usb_sts:       Global Status.
- * @usb_cmd:       Global Command.
- * @usb_itpn:      ITP/SOF number.
- * @usb_lpm:       Global Command.
- * @usb_ien:       USB Interrupt Enable.
- * @usb_ists:      USB Interrupt Status.
- * @ep_sel:        Endpoint Select.
- * @ep_traddr:     Endpoint Transfer Ring Address.
- * @ep_cfg:        Endpoint Configuration.
- * @ep_cmd:        Endpoint Command.
- * @ep_sts:        Endpoint Status.
- * @ep_sts_sid:    Endpoint Status.
- * @ep_sts_en:     Endpoint Status Enable.
- * @drbl:          Doorbell.
- * @ep_ien:        EP Interrupt Enable.
- * @ep_ists:       EP Interrupt Status.
- * @usb_pwr:       Global Power Configuration.
- * @usb_conf2:     Global Configuration 2.
- * @usb_cap1:      Capability 1.
- * @usb_cap2:      Capability 2.
- * @usb_cap3:      Capability 3.
- * @usb_cap4:      Capability 4.
- * @usb_cap5:      Capability 5.
- * @usb_cap6:      Capability 6.
- * @usb_cpkt1:     Custom Packet 1.
- * @usb_cpkt2:     Custom Packet 2.
- * @usb_cpkt3:     Custom Packet 3.
- * @ep_dma_ext_addr: Upper address for DMA operations.
- * @buf_addr:      Address for On-chip Buffer operations.
- * @buf_data:      Data for On-chip Buffer operations.
- * @buf_ctrl:      On-chip Buffer Access Control.
- * @dtrans:        DMA Transfer Mode.
- * @tdl_from_trb:  Source of TD Configuration.
- * @tdl_beh:       TDL Behavior Configuration.
- * @ep_tdl:        Endpoint TDL.
- * @tdl_beh2:      TDL Behavior 2 Configuration.
- * @dma_adv_td:    DMA Advance TD Configuration.
+ * @usb_conf:      Global Configuration Register.
+ * @usb_sts:       Global Status Register.
+ * @usb_cmd:       Global Command Register.
+ * @usb_itpn:      ITP/SOF number Register.
+ * @usb_lpm:       Global Command Register.
+ * @usb_ien:       USB Interrupt Enable Register.
+ * @usb_ists:      USB Interrupt Status Register.
+ * @ep_sel:        Endpoint Select Register.
+ * @ep_traddr:     Endpoint Transfer Ring Address Register.
+ * @ep_cfg:        Endpoint Configuration Register.
+ * @ep_cmd:        Endpoint Command Register.
+ * @ep_sts:        Endpoint Status Register.
+ * @ep_sts_sid:    Endpoint Status Register.
+ * @ep_sts_en:     Endpoint Status Register Enable.
+ * @drbl:          Doorbell Register.
+ * @ep_ien:        EP Interrupt Enable Register.
+ * @ep_ists:       EP Interrupt Status Register.
+ * @usb_pwr:       Global Power Configuration Register.
+ * @usb_conf2:     Global Configuration Register 2.
+ * @usb_cap1:      Capability Register 1.
+ * @usb_cap2:      Capability Register 2.
+ * @usb_cap3:      Capability Register 3.
+ * @usb_cap4:      Capability Register 4.
+ * @usb_cap5:      Capability Register 5.
+ * @usb_cap6:      Capability Register 6.
+ * @usb_cpkt1:     Custom Packet Register 1.
+ * @usb_cpkt2:     Custom Packet Register 2.
+ * @usb_cpkt3:     Custom Packet Register 3.
  * @reserved1:     Reserved.
- * @cfg_regs:      Configuration.
+ * @cfg_regs:      Configuration registers.
  * @reserved2:     Reserved.
- * @dma_axi_ctrl:  AXI Control.
+ * @dma_axi_ctrl:  AXI Control register.
  * @dma_axi_id:    AXI ID register.
- * @dma_axi_cap:   AXI Capability.
- * @dma_axi_ctrl0: AXI Control 0.
- * @dma_axi_ctrl1: AXI Control 1.
+ * @dma_axi_cap:   AXI Capability register.
+ * @dma_axi_ctrl0: AXI Control 0 register.
+ * @dma_axi_ctrl1: AXI Control 1 register.
  */
 struct cdns3_usb_regs {
 	__le32 usb_conf;
@@ -96,22 +86,12 @@ struct cdns3_usb_regs {
 	__le32 usb_cpkt1;
 	__le32 usb_cpkt2;
 	__le32 usb_cpkt3;
-	__le32 ep_dma_ext_addr;
-	__le32 buf_addr;
-	__le32 buf_data;
-	__le32 buf_ctrl;
-	__le32 dtrans;
-	__le32 tdl_from_trb;
-	__le32 tdl_beh;
-	__le32 ep_tdl;
-	__le32 tdl_beh2;
-	__le32 dma_adv_td;
-	__le32 reserved1[26];
+	__le32 reserved1[36];
 	__le32 cfg_reg1;
 	__le32 dbg_link1;
 	__le32 dbg_link2;
 	__le32 cfg_regs[74];
-	__le32 reserved2[51];
+	__le32 reserved2[34];
 	__le32 dma_axi_ctrl;
 	__le32 dma_axi_id;
 	__le32 dma_axi_cap;
@@ -138,9 +118,9 @@ struct cdns3_usb_regs {
 #define USB_CONF_BENDIAN	BIT(6)
 /* Device software reset. */
 #define USB_CONF_SWRST		BIT(7)
-/* Singular DMA transfer mode. Only for VER < DEV_VER_V3*/
+/* Singular DMA transfer mode. */
 #define USB_CONF_DSING		BIT(8)
-/* Multiple DMA transfers mode. Only for VER < DEV_VER_V3 */
+/* Multiple DMA transfers mode. */
 #define USB_CONF_DMULT		BIT(9)
 /* DMA clock turn-off enable. */
 #define USB_CONF_DMAOFFEN	BIT(10)
@@ -185,6 +165,19 @@ struct cdns3_usb_regs {
 #define USB_CONF_LGO_U2		BIT(30)
 /* SS.Inactive state entry request (used in SS mode) */
 #define USB_CONF_LGO_SSINACT	BIT(31)
+/* USB_CONF2- bitmasks */
+/*
+ * Writing 1 disables TDL calculation basing on TRB feature in controller
+ * for DMULT mode.
+ * Bit supported only for DEV_VER_V2 version.
+ */
+#define USB_CONF2_DIS_TDL_TRB		BIT(1)
+/*
+ * Writing 1 enables TDL calculation basing on TRB feature in controller
+ * for DMULT mode.
+ * Bit supported only for DEV_VER_V2 version.
+ */
+#define USB_CONF2_EN_TDL_TRB		BIT(2)
 
 /* USB_STS - bitmasks */
 /*
@@ -212,7 +205,6 @@ struct cdns3_usb_regs {
  * DMA transfer configuration status.
  * 0 - single request.
  * 1 - multiple TRB chain
- * Supported only for controller version <  DEV_VER_V3
  */
 #define USB_STS_DTRANS_MASK	BIT(3)
 #define USB_STS_DTRANS(p)	((p) & USB_STS_DTRANS_MASK)
@@ -266,13 +258,6 @@ struct cdns3_usb_regs {
 #define USB_STS_IN_RST_MASK	BIT(10)
 #define USB_STS_IN_RST(p)	((p) & USB_STS_IN_RST_MASK)
 /*
- * Status of the "TDL calculation basing on TRB" feature.
- * 0 - disabled
- * 1 - enabled
- * Supported only for DEV_VER_V2 controller version.
- */
-#define USB_STS_TDL_TRB_ENABLED	BIT(11)
-/*
  * Device enable Status.
  * 0 - USB device is disabled (VBUS input is disconnected from internal logic).
  * 1 - USB device is enabled (VBUS input is connected to the internal logic).
@@ -280,7 +265,7 @@ struct cdns3_usb_regs {
 #define USB_STS_DEVS_MASK	BIT(14)
 #define USB_STS_DEVS(p)		((p) & USB_STS_DEVS_MASK)
 /*
- * Address status.
+ * DAddress statuss.
  * 0 - USB device is default state.
  * 1 - USB device is at least in address state.
  */
@@ -365,7 +350,7 @@ struct cdns3_usb_regs {
 #define USB_STS_DMAOFF_MASK	BIT(30)
 #define USB_STS_DMAOFF(p)	((p) & USB_STS_DMAOFF_MASK)
 /*
- * SFR Endian status.
+ * SFR Endian statuss.
  * 0 - Little Endian order (default after hardware reset).
  * 1 - Big Endian order.
  */
@@ -475,7 +460,7 @@ struct cdns3_usb_regs {
 #define USB_IEN_INIT  (USB_IEN_U2RESIEN | USB_ISTS_DIS2I | USB_IEN_CON2IEN \
 		       | USB_IEN_UHRESIEN | USB_IEN_UWRESIEN | USB_IEN_DISIEN \
 		       | USB_IEN_CONIEN | USB_IEN_U3EXTIEN | USB_IEN_L2ENTIEN \
-		       | USB_IEN_L2EXTIEN | USB_IEN_L1ENTIEN | USB_IEN_U3ENTIEN)
+		       | USB_IEN_L2EXTIEN)
 
 /* USB_ISTS - bitmasks */
 /* SS Connection detected. */
@@ -589,20 +574,14 @@ struct cdns3_usb_regs {
 /*
  * Transfer Descriptor Length write  (used only for Bulk Stream capable
  * endpoints in SS mode).
- * Bit Removed from DEV_VER_V3 controller version.
  */
 #define EP_CMD_STDL		BIT(8)
-/*
- * Transfer Descriptor Length (used only in SS mode for bulk endpoints).
- * Bits Removed from DEV_VER_V3 controller version.
- */
+/* Transfer Descriptor Length (used only in SS mode for bulk endpoints). */
 #define EP_CMD_TDL_MASK		GENMASK(15, 9)
-#define EP_CMD_TDL_SET(p)	(((p) << 9) & EP_CMD_TDL_MASK)
-#define EP_CMD_TDL_GET(p)	(((p) & EP_CMD_TDL_MASK) >> 9)
-
+#define EP_CMD_TDL(p)		(((p) << 9) & EP_CMD_TDL_MASK)
 /* ERDY Stream ID value (used in SS mode). */
 #define EP_CMD_ERDY_SID_MASK	GENMASK(31, 16)
-#define EP_CMD_ERDY_SID(p)	(((p) << 16) & EP_CMD_ERDY_SID_MASK)
+#define EP_CMD_ERDY_SID(p)	(((p) << 16) & EP_CMD_SID_MASK)
 
 /* EP_STS - bitmasks */
 /* Setup transfer complete. */
@@ -623,8 +602,8 @@ struct cdns3_usb_regs {
 #define EP_STS_TRBERR		BIT(7)
 /* Not ready (used only in SS mode). */
 #define EP_STS_NRDY		BIT(8)
-/* DMA busy bit. */
-#define EP_STS_DBUSY		BIT(9)
+/* DMA busy. */
+#define EP_STS_DBUSY(p)		((p) & BIT(9))
 /* Endpoint Buffer Empty */
 #define EP_STS_BUFFEMPTY(p)	((p) & BIT(10))
 /* Current Cycle Status */
@@ -702,7 +681,7 @@ struct cdns3_usb_regs {
 #define EP_ISTS_EP_OUT0		BIT(0)
 #define EP_ISTS_EP_IN0		BIT(16)
 
-/* USB_PWR- bitmasks */
+/* EP_PWR- bitmasks */
 /*Power Shut Off capability enable*/
 #define PUSB_PWR_PSO_EN		BIT(0)
 /*Power Shut Off capability disable*/
@@ -721,21 +700,7 @@ struct cdns3_usb_regs {
 /* This bit informs if Fast Registers Access is enabled. */
 #define PUSB_PWR_FST_REG_ACCESS_STAT	BIT(30)
 /* Fast Registers Access Enable. */
-#define PUSB_PWR_FST_REG_ACCESS		BIT(31)
-
-/* USB_CONF2- bitmasks */
-/*
- * Writing 1 disables TDL calculation basing on TRB feature in controller
- * for DMULT mode.
- * Bit supported only for DEV_VER_V2 version.
- */
-#define USB_CONF2_DIS_TDL_TRB		BIT(1)
-/*
- * Writing 1 enables TDL calculation basing on TRB feature in controller
- * for DMULT mode.
- * Bit supported only for DEV_VER_V2 version.
- */
-#define USB_CONF2_EN_TDL_TRB		BIT(2)
+#define PUSB_PWR_FST_REG_ACCESS	BIT(31)
 
 /* USB_CAP1- bitmasks */
 /*
@@ -852,13 +817,6 @@ struct cdns3_usb_regs {
  */
 #define USB_CAP1_OTG_READY(p)	((p) & BIT(27))
 
-/*
- * When set, indicates that controller supports automatic internal TDL
- * calculation basing on the size provided in TRB (TRB[22:17]) for DMULT mode
- * Supported only for DEV_VER_V2 controller version.
- */
-#define USB_CAP1_TDL_FROM_TRB(p)	((p) & BIT(28))
-
 /* USB_CAP2- bitmasks */
 /*
  * The actual size of the connected On-chip RAM memory in kB:
@@ -950,13 +908,6 @@ struct cdns3_usb_regs {
  */
 #define DBG_LINK1_LFPS_GEN_PING_SET		BIT(27)
 
-/* DMA_AXI_CTRL- bitmasks */
-/* The mawprot pin configuration. */
-#define DMA_AXI_CTRL_MARPROT(p) ((p) & GENMASK(2, 0))
-/* The marprot pin configuration. */
-#define DMA_AXI_CTRL_MAWPROT(p) (((p) & GENMASK(2, 0)) << 16)
-#define DMA_AXI_CTRL_NON_SECURE 0x02
-
 #define gadget_to_cdns3_device(g) (container_of(g, struct cdns3_device, gadget))
 
 #define ep_to_cdns3_ep(ep) (container_of(ep, struct cdns3_endpoint, endpoint))
@@ -965,13 +916,9 @@ struct cdns3_usb_regs {
 /*
  * USBSS-DEV DMA interface.
  */
-#define TRBS_PER_SEGMENT	40
+#define TRBS_PER_SEGMENT	150
 
 #define ISO_MAX_INTERVAL	10
-
-#if TRBS_PER_SEGMENT < 2
-#error "Incorrect TRBS_PER_SEGMENT. Minimal Transfer Ring size is 2."
-#endif
 
 /*
  *Only for ISOC endpoints - maximum number of TRBs is calculated as
@@ -1021,16 +968,6 @@ struct cdns3_trb {
  */
 #define TRB_TOGGLE		BIT(1)
 
-/*
- * Short Packet (SP). OUT EPs at DMULT=1 only. Indicates if the TRB was
- * processed while USB short packet was received. No more buffers defined by
- * the TD will be used. DMA will automatically advance to next TD.
- * - Shall be set to 0 by Software when putting TRB on the Transfer Ring
- * - Shall be set to 1 by Controller when Short Packet condition for this TRB
- *   is detected independent if ISP is set or not.
- */
-#define TRB_SP			BIT(1)
-
 /* Interrupt on short packet*/
 #define TRB_ISP			BIT(2)
 /*Setting this bit enables FIFO DMA operation mode*/
@@ -1041,9 +978,7 @@ struct cdns3_trb {
 #define TRB_IOC			BIT(5)
 
 /* stream ID bitmasks. */
-#define TRB_STREAM_ID_BITMASK		GENMASK(31, 16)
-#define TRB_STREAM_ID(p)		((p) << 16)
-#define TRB_FIELD_TO_STREAMID(p)	(((p) & TRB_STREAM_ID_BITMASK) >> 16)
+#define TRB_STREAM_ID(p)	((p) & GENMASK(31, 16))
 
 /* Size of TD expressed in USB packets for HS/FS mode. */
 #define TRB_TDL_HS_SIZE(p)	(((p) << 16) & GENMASK(31, 16))
@@ -1083,7 +1018,6 @@ struct cdns3_trb {
 #define CDNS3_EP_ISO_SS_BURST		3
 #define CDNS3_MAX_NUM_DESCMISS_BUF	32
 #define CDNS3_DESCMIS_BUF_SIZE		2048	/* Bytes */
-#define CDNS3_WA2_NUM_BUFFERS		128
 /*-------------------------------------------------------------------------*/
 /* Used structs */
 
@@ -1094,7 +1028,7 @@ struct cdns3_device;
  * @endpoint: usb endpoint
  * @pending_req_list: list of requests queuing on transfer ring.
  * @deferred_req_list: list of requests waiting for queuing on transfer ring.
- * @wa2_descmiss_req_list: list of requests internally allocated by driver.
+ * @descmiss_req_list: list of requests internally allocated by driver (WA2).
  * @trb_pool: transfer ring - array of transaction buffers
  * @trb_pool_dma: dma address of transfer ring
  * @cdns3_dev: device associated with this endpoint
@@ -1119,8 +1053,7 @@ struct cdns3_endpoint {
 	struct usb_ep		endpoint;
 	struct list_head	pending_req_list;
 	struct list_head	deferred_req_list;
-	struct list_head	wa2_descmiss_req_list;
-	int			wa2_counter;
+	struct list_head	descmiss_req_list;
 
 	struct cdns3_trb	*trb_pool;
 	dma_addr_t		trb_pool_dma;
@@ -1129,19 +1062,17 @@ struct cdns3_endpoint {
 	char			name[20];
 
 #define EP_ENABLED		BIT(0)
-#define EP_STALLED		BIT(1)
-#define EP_STALL_PENDING	BIT(2)
-#define EP_WEDGE		BIT(3)
-#define EP_TRANSFER_STARTED	BIT(4)
-#define EP_UPDATE_EP_TRBADDR	BIT(5)
-#define EP_PENDING_REQUEST	BIT(6)
-#define EP_RING_FULL		BIT(7)
-#define EP_CLAIMED		BIT(8)
-#define EP_DEFERRED_DRDY	BIT(9)
-#define EP_QUIRK_ISO_OUT_EN	BIT(10)
-#define EP_QUIRK_END_TRANSFER	BIT(11)
-#define EP_QUIRK_EXTRA_BUF_DET	BIT(12)
-#define EP_QUIRK_EXTRA_BUF_EN	BIT(13)
+#define EP_STALL		BIT(1)
+#define EP_WEDGE		BIT(2)
+#define EP_TRANSFER_STARTED	BIT(3)
+#define EP_UPDATE_EP_TRBADDR	BIT(4)
+#define EP_PENDING_REQUEST	BIT(5)
+#define EP_RING_FULL		BIT(6)
+#define EP_CLAIMED		BIT(7)
+#define EP_QUIRK_EXTRA_BUF_DET	BIT(8)
+#define EP_QUIRK_EXTRA_BUF_EN	BIT(9)
+#define EP_QUIRK_END_TRANSFER	BIT(10)
+
 	u32			flags;
 
 	struct cdns3_request	*descmis_req;
@@ -1193,7 +1124,7 @@ struct cdns3_aligned_buf {
  * @aligned_buf: object holds information about aligned buffer associated whit
  *               this endpoint
  * @flags: flag specifying special usage of request
- * @list: used by internally allocated request to add to wa2_descmiss_req_list.
+ * @list: used by internally allocated request to add to descmiss_req_list.
  */
 struct cdns3_request {
 	struct usb_request		request;
@@ -1234,7 +1165,8 @@ struct cdns3_request {
  * @ep0_data_dir: direction for control transfer
  * @eps: array of pointers to all endpoints with exclusion ep0
  * @aligned_buf_list: list of aligned buffers internally allocated by driver
- * @aligned_buf_wq: workqueue freeing  no longer used aligned buf.
+ * @run_garbage_colector: infroms that at least one element of aligned_buf_list
+ *                        can be freed
  * @selected_ep: actually selected endpoint. It's used only to improve
  *               performance.
  * @isoch_delay: value from Set Isoch Delay request. Only valid on SS/SSP.
@@ -1246,10 +1178,13 @@ struct cdns3_request {
  * @wake_up_flag: allow device to remote up the host
  * @status_completion_no_call: indicate that driver is waiting for status s
  *     stage completion. It's used in deferred SET_CONFIGURATION request.
- * @onchip_buffers: number of available on-chip buffers.
- * @onchip_used_size: actual size of on-chip memory assigned to endpoints.
+ * @onchip_mem_allocated_size: actual size of on-chip memory assigned
+ *     to endpoints
  * @pending_status_wq: workqueue handling status stage for deferred requests.
+ * @shadow_ep_en: hold information about endpoints that will be enabled
+ *     in soft irq.
  * @pending_status_request: request for which status stage was deferred
+ * @start_gadget: the current role is at CDNS3_ROLE_GADGET
  */
 struct cdns3_device {
 	struct device			*dev;
@@ -1277,12 +1212,11 @@ struct cdns3_device {
 	struct cdns3_endpoint		*eps[CDNS3_ENDPOINTS_MAX_COUNT];
 
 	struct list_head		aligned_buf_list;
-	struct work_struct		aligned_buf_wq;
+	unsigned			run_garbage_colector:1;
 
 	u32				selected_ep;
 	u16				isoch_delay;
 
-	unsigned			wait_for_setup:1;
 	unsigned			u1_allowed:1;
 	unsigned			u2_allowed:1;
 	unsigned			is_selfpowered:1;
@@ -1290,14 +1224,14 @@ struct cdns3_device {
 	int				hw_configured_flag:1;
 	int				wake_up_flag:1;
 	unsigned			status_completion_no_call:1;
-	int				out_mem_is_allocated;
+	int				out_mem_is_allocated:1;
 
 	struct work_struct		pending_status_wq;
 	struct usb_request		*pending_status_request;
-
+	u32				shadow_ep_en;
 	/*in KB */
-	u16				onchip_buffers;
-	u16				onchip_used_size;
+	int				onchip_mem_allocated_size;
+	unsigned			start_gadget:1;
 };
 
 void cdns3_set_register_bit(void __iomem *ptr, u32 mask);
@@ -1317,8 +1251,6 @@ int cdns3_allocate_trb_pool(struct cdns3_endpoint *priv_ep);
 u8 cdns3_ep_addr_to_index(u8 ep_addr);
 int cdns3_gadget_ep_set_wedge(struct usb_ep *ep);
 int cdns3_gadget_ep_set_halt(struct usb_ep *ep, int value);
-void __cdns3_gadget_ep_set_halt(struct cdns3_endpoint *priv_ep);
-int __cdns3_gadget_ep_clear_halt(struct cdns3_endpoint *priv_ep);
 struct usb_request *cdns3_gadget_ep_alloc_request(struct usb_ep *ep,
 						  gfp_t gfp_flags);
 void cdns3_gadget_ep_free_request(struct usb_ep *ep,
@@ -1333,6 +1265,5 @@ int cdns3_init_ep0(struct cdns3_device *priv_dev,
 void cdns3_ep0_config(struct cdns3_device *priv_dev);
 void cdns3_ep_config(struct cdns3_endpoint *priv_ep);
 void cdns3_check_ep0_interrupt_proceed(struct cdns3_device *priv_dev, int dir);
-int __cdns3_gadget_wakeup(struct cdns3_device *priv_dev);
 
 #endif /* __LINUX_CDNS3_GADGET */
