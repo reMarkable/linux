@@ -14,6 +14,9 @@ obj-$(CONFIG_SND_SOC_P1022_RDK) += snd-soc-p1022-rdk.o
 # Freescale SSI/DMA/SAI/SPDIF Support
 snd-soc-fsl-audmix-objs := fsl_audmix.o
 snd-soc-fsl-asrc-objs := fsl_asrc.o fsl_asrc_dma.o
+snd-soc-fsl-dsp-objs := fsl_dsp.o fsl_dsp_proxy.o fsl_dsp_pool.o \
+	fsl_dsp_library_load.o fsl_dsp_xaf_api.o fsl_dsp_cpu.o \
+	fsl_dsp_platform_compress.o
 snd-soc-fsl-sai-objs := fsl_sai.o
 snd-soc-fsl-ssi-y := fsl_ssi.o
 snd-soc-fsl-ssi-$(CONFIG_DEBUG_FS) += fsl_ssi_dbg.o
@@ -27,6 +30,7 @@ snd-soc-fsl-easrc-objs := fsl_easrc.o fsl_easrc_dma.o
 obj-$(CONFIG_SND_SOC_FSL_AUDMIX) += snd-soc-fsl-audmix.o
 snd-soc-fsl-asoc-card-objs := fsl-asoc-card.o
 obj-$(CONFIG_SND_SOC_FSL_ASRC) += snd-soc-fsl-asrc.o
+obj-$(CONFIG_SND_SOC_FSL_DSP) += snd-soc-fsl-dsp.o
 obj-$(CONFIG_SND_SOC_FSL_SAI) += snd-soc-fsl-sai.o
 obj-$(CONFIG_SND_SOC_FSL_SSI) += snd-soc-fsl-ssi.o
 obj-$(CONFIG_SND_SOC_FSL_SPDIF) += snd-soc-fsl-spdif.o
@@ -77,6 +81,7 @@ snd-soc-imx-ak4458-objs := imx-ak4458.o
 snd-soc-imx-ak5558-objs := imx-ak5558.o
 snd-soc-imx-ak4497-objs := imx-ak4497.o
 snd-soc-imx-micfil-objs := imx-micfil.o
+snd-soc-imx-dsp-objs := imx-dsp.o
 
 obj-$(CONFIG_SND_SOC_EUKREA_TLV320) += snd-soc-eukrea-tlv320.o
 obj-$(CONFIG_SND_SOC_PHYCORE_AC97) += snd-soc-phycore-ac97.o
@@ -99,3 +104,4 @@ obj-$(CONFIG_SND_SOC_IMX_AK4458) += snd-soc-imx-ak4458.o
 obj-$(CONFIG_SND_SOC_IMX_AK5558) += snd-soc-imx-ak5558.o
 obj-$(CONFIG_SND_SOC_IMX_AK4497) += snd-soc-imx-ak4497.o
 obj-$(CONFIG_SND_SOC_IMX_MICFIL) += snd-soc-imx-micfil.o
+obj-$(CONFIG_SND_SOC_IMX_DSP) += snd-soc-imx-dsp.o
