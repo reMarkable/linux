@@ -6,7 +6,7 @@
 config NET_VENDOR_FREESCALE
 	bool "Freescale devices"
 	default y
-	depends on FSL_SOC || QUICC_ENGINE || CPM1 || CPM2 || PPC_MPC512x || \
+	depends on FSL_SOC || (QUICC_ENGINE && PPC32) || CPM1 || CPM2 || PPC_MPC512x || \
 		   M523x || M527x || M5272 || M528x || M520x || M532x || \
 		   ARCH_MXC || ARCH_MXS || (PPC_MPC52xx && PPC_BESTCOMM) || \
 		   ARCH_LAYERSCAPE || ARCH_S32 || COMPILE_TEST
@@ -74,7 +74,7 @@ config FSL_XGMAC_MDIO
 
 config UCC_GETH
 	tristate "Freescale QE Gigabit Ethernet"
-	depends on QUICC_ENGINE
+	depends on QUICC_ENGINE && FSL_SOC && PPC32
 	select FSL_PQ_MDIO
 	select PHYLIB
 	---help---

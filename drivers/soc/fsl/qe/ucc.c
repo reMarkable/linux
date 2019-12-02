@@ -35,7 +35,7 @@ int ucc_set_qe_mux_mii_mng(unsigned int ucc_num)
 		return -EINVAL;
 
 	spin_lock_irqsave(&cmxgcr_lock, flags);
-	clrsetbits_be32(&qe_immr->qmx.cmxgcr, QE_CMXGCR_MII_ENET_MNG,
+	qe_clrsetbits32(&qe_immr->qmx.cmxgcr, QE_CMXGCR_MII_ENET_MNG,
 		ucc_num << QE_CMXGCR_MII_ENET_MNG_SHIFT);
 	spin_unlock_irqrestore(&cmxgcr_lock, flags);
 
@@ -80,7 +80,7 @@ int ucc_set_type(unsigned int ucc_num, enum ucc_speed_type speed)
 		return -EINVAL;
 	}
 
-	clrsetbits_8(guemr, UCC_GUEMR_MODE_MASK,
+	qe_clrsetbits8(guemr, UCC_GUEMR_MODE_MASK,
 		UCC_GUEMR_SET_RESERVED3 | speed);
 
 	return 0;
@@ -109,9 +109,9 @@ int ucc_mux_set_grant_tsa_bkpt(unsigned int ucc_num, int set, u32 mask)
 	get_cmxucr_reg(ucc_num, &cmxucr, &reg_num, &shift);
 
 	if (set)
-		setbits32(cmxucr, mask << shift);
+		qe_setbits32(cmxucr, mask << shift);
 	else
-		clrbits32(cmxucr, mask << shift);
+		qe_clrbits32(cmxucr, mask << shift);
 
 	return 0;
 }
@@ -207,7 +207,7 @@ int ucc_set_qe_mux_rxtx(unsigned int ucc_num, enum qe_clock clock,
 	if (mode == COMM_DIR_RX)
 		shift += 4;
 
-	clrsetbits_be32(cmxucr, QE_CMXUCR_TX_CLK_SRC_MASK << shift,
+	qe_clrsetbits32(cmxucr, QE_CMXUCR_TX_CLK_SRC_MASK << shift,
 		clock_bits << shift);
 
 	return 0;
