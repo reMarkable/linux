@@ -1,45 +1,39 @@
-Binding for the Cadence USBSS-DRD controller
+* Cadence USB3 Controller
 
 Required properties:
- - reg: Physical base address and size of the controller's register areas.
-	 Controller has 3 different regions:
-	 - HOST registers area
-	 - DEVICE registers area
-	 - OTG/DRD registers area
- - reg-names - register memory area names:
-	"xhci" - for HOST registers space
-	"dev" - for DEVICE registers space
-	"otg" - for OTG/DRD registers space
- - compatible: Should contain: "cdns,usb3"
- - interrupts: Interrupts used by cdns3 controller:
-	"host" - interrupt used by XHCI driver.
-	"peripheral" - interrupt used by device driver
-	"otg" - interrupt used by DRD/OTG  part of driver
+- compatible: "Cadence,usb3";
+- reg: base address and length of the registers
+- interrupts: interrupt for the USB controller
+- interrupt-parent: the interrupt parent for this module
+- clocks: reference to the USB clock
+- clock-names: the name of clocks
+- cdns3,usbphy: reference to the USB PHY
 
 Optional properties:
- - maximum-speed : valid arguments are "super-speed", "high-speed" and
-                   "full-speed"; refer to usb/generic.txt
- - dr_mode: Should be one of "host", "peripheral" or "otg".
- - phys: reference to the USB PHY
- - phy-names: from the *Generic PHY* bindings;
-	Supported names are:
-	- cdns3,usb2-phy
-	- cdns3,usb3-phy
+- dr_mode: One of "host", "peripheral" or "otg". Defaults to "otg"
+- extcon: extcon phandler for cdns3 device
+- power-domains: the power domain for cdns3 controller and phy
 
- - cdns,on-chip-buff-size : size of memory intended as internal memory for endpoints
-	buffers expressed in KB
+Examples:
 
-Example:
-	usb@f3000000 {
-		compatible = "cdns,usb3";
-		interrupts = <GIC_USB_IRQ 7 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_USB_IRQ  7 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_USB_IRQ  8 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "host", "peripheral", "otg";
-		reg = <0xf3000000 0x10000>,	/* memory area for HOST registers */
-			<0xf3010000 0x10000>,	/* memory area for DEVICE registers */
-			<0xf3020000 0x10000>;	/* memory area for OTG/DRD registers */
-		reg-names = "xhci", "dev", "otg";
-		phys = <&usb2_phy>, <&usb3_phy>;
-		phy-names = "cdns3,usb2-phy", "cnds3,usb3-phy";
-	};
+usbotg3: cdns3@5b110000 {
+	compatible = "Cadence,usb3";
+	reg = <0x0 0x5B110000 0x0 0x10000>,
+		<0x0 0x5B130000 0x0 0x10000>,
+		<0x0 0x5B140000 0x0 0x10000>,
+		<0x0 0x5B160000 0x0 0x40000>;
+	interrupt-parent = <&gic>;
+	interrupts = <GIC_SPI 271 IRQ_TYPE_LEVEL_HIGH>;
+	clocks = <&clk IMX8QM_USB3_LPM_CLK>,
+		<&clk IMX8QM_USB3_BUS_CLK>,
+		<&clk IMX8QM_USB3_ACLK>,
+		<&clk IMX8QM_USB3_IPG_CLK>,
+		<&clk IMX8QM_USB3_CORE_PCLK>;
+	clock-names = "usb3_lpm_clk", "usb3_bus_clk", "usb3_aclk",
+		"usb3_ipg_clk", "usb3_core_pclk";
+	power-domains = <&pd_conn_usb2>;
+	cdns3,usbphy = <&usbphynop1>;
+	dr_mode = "otg";
+	extcon = <&typec_ptn5150>;
+	status = "disabled";
+};

@@ -2,8 +2,7 @@
 /*
  * Cadence USBSS DRD Driver - Gadget Export APIs.
  *
- * Copyright (C) 2017 NXP
- * Copyright (C) 2017-2018 NXP
+ * Copyright (C) 2017-2019 NXP
  *
  * Authors: Peter Chen <peter.chen@nxp.com>
  */
