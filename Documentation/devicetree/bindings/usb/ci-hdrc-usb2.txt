@@ -86,6 +86,7 @@ Optional properties:
   case, the "idle" state needs to pull down the data and strobe pin
   and the "active" state needs to pull up the strobe pin.
 - pinctrl-n: alternate pin modes
+- ci-disable-lpm: Some chipidea hardware need to disable low power mode
 
 i.mx specific properties
 - fsl,usbmisc: phandler of non-core register device, with one
