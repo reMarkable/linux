@@ -6,7 +6,7 @@ config DRM_IMX
 	select DRM_GEM_CMA_HELPER
 	select DRM_KMS_CMA_HELPER
 	depends on DRM && (ARCH_MXC || ARCH_MULTIPLATFORM || COMPILE_TEST)
-	depends on IMX_IPUV3_CORE || IMX_DPU_CORE
+	depends on IMX_IPUV3_CORE || IMX_DPU_CORE || IMX_LCDIF_CORE
 	help
 	  enable i.MX graphics support
 
@@ -68,4 +68,5 @@ config DRM_IMX_CDNS_MHDP
 
 source "drivers/gpu/drm/imx/dpu/Kconfig"
 source "drivers/gpu/drm/imx/ipuv3/Kconfig"
+source "drivers/gpu/drm/imx/lcdif/Kconfig"
 source "drivers/gpu/drm/imx/dcss/Kconfig"
