@@ -44,9 +44,12 @@
  *
  */
 
+#include <linux/arm-smccc.h>
 #include <dt-bindings/firmware/imx/rsrc.h>
+#include <linux/console.h>
 #include <linux/firmware/imx/sci.h>
 #include <linux/io.h>
+#include <linux/irqchip/arm-gic-v3.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -55,6 +58,17 @@
 #include <linux/pm.h>
 #include <linux/pm_domain.h>
 #include <linux/slab.h>
+#include <linux/syscore_ops.h>
+
+#define IMX_WU_MAX_IRQS	(((IMX_SC_R_LAST + 31) / 32 ) * 32 )
+
+#define IMX_SIP_WAKEUP_SRC              0xc2000009
+#define IMX_SIP_WAKEUP_SRC_SCU          0x1
+#define IMX_SIP_WAKEUP_SRC_IRQSTEER     0x2
+
+static u32 wu[IMX_WU_MAX_IRQS];
+static int wu_num;
+static void __iomem *gic_dist_base;
 
 /* SCU Power Mode Protocol definition */
 struct imx_sc_msg_req_set_resource_power_mode {
@@ -85,6 +99,8 @@ struct imx_sc_pd_soc {
 	u8 num_ranges;
 };
 
+int imx_con_rsrc;
+
 static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 	/* LSIO SS */
 	{ "pwm", IMX_SC_R_PWM_0, 8, true, 0 },
@@ -109,14 +125,26 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 	{ "audio-pll0", IMX_SC_R_AUDIO_PLL_0, 1, false, 0 },
 	{ "audio-pll1", IMX_SC_R_AUDIO_PLL_1, 1, false, 0 },
 	{ "audio-clk-0", IMX_SC_R_AUDIO_CLK_0, 1, false, 0 },
-	{ "dma0-ch", IMX_SC_R_DMA_0_CH0, 16, true, 0 },
+	{ "audio-clk-1", IMX_SC_R_AUDIO_CLK_1, 1, false, 0 },
+	{ "mclk-out-0", IMX_SC_R_MCLK_OUT_0, 1, false, 0 },
+	{ "mclk-out-1", IMX_SC_R_MCLK_OUT_1, 1, false, 0 },
+	{ "dma0-ch", IMX_SC_R_DMA_0_CH0, 32, true, 0 },
 	{ "dma1-ch", IMX_SC_R_DMA_1_CH0, 16, true, 0 },
-	{ "dma2-ch", IMX_SC_R_DMA_2_CH0, 5, true, 0 },
+	{ "dma2-ch-0", IMX_SC_R_DMA_2_CH0, 5, true, 0 },
+	{ "dma2-ch-1", IMX_SC_R_DMA_2_CH5, 27, true, 0 },
+	{ "dma3-ch", IMX_SC_R_DMA_3_CH0, 32, true, 0 },
 	{ "asrc0", IMX_SC_R_ASRC_0, 1, false, 0 },
 	{ "asrc1", IMX_SC_R_ASRC_1, 1, false, 0 },
 	{ "esai0", IMX_SC_R_ESAI_0, 1, false, 0 },
+	{ "esai1", IMX_SC_R_ESAI_1, 1, false, 0 },
 	{ "spdif0", IMX_SC_R_SPDIF_0, 1, false, 0 },
+	{ "spdif1", IMX_SC_R_SPDIF_1, 1, false, 0 },
 	{ "sai", IMX_SC_R_SAI_0, 3, true, 0 },
+	{ "sai3", IMX_SC_R_SAI_3, 1, false, 0 },
+	{ "sai4", IMX_SC_R_SAI_4, 1, false, 0 },
+	{ "sai5", IMX_SC_R_SAI_5, 1, false, 0 },
+	{ "sai6", IMX_SC_R_SAI_6, 1, false, 0 },
+	{ "sai7", IMX_SC_R_SAI_7, 1, false, 0 },
 	{ "amix", IMX_SC_R_AMIX, 1, false, 0 },
 	{ "mqs0", IMX_SC_R_MQS_0, 1, false, 0 },
 	{ "dsp", IMX_SC_R_DSP, 1, false, 0 },
@@ -130,6 +158,7 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 	{ "lcd", IMX_SC_R_LCD_0, 1, true, 0 },
 	{ "lcd0-pwm", IMX_SC_R_LCD_0_PWM_0, 1, true, 0 },
 	{ "lpuart", IMX_SC_R_UART_0, 4, true, 0 },
+	{ "sim", IMX_SC_R_EMVSIM_0, 2, true, 0 },
 	{ "lpspi", IMX_SC_R_SPI_0, 4, true, 0 },
 	{ "irqstr_dsp", IMX_SC_R_IRQSTR_DSP, 1, false, 0 },
 
@@ -138,13 +167,22 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 	{ "vpu-pid", IMX_SC_R_VPU_PID0, 8, true, 0 },
 	{ "vpu-dec0", IMX_SC_R_VPU_DEC_0, 1, false, 0 },
 	{ "vpu-enc0", IMX_SC_R_VPU_ENC_0, 1, false, 0 },
+	{ "vpu-enc1", IMX_SC_R_VPU_ENC_1, 1, false, 0 },
+	{ "vpu-mu0", IMX_SC_R_VPU_MU_0, 1, false, 0 },
+	{ "vpu-mu1", IMX_SC_R_VPU_MU_1, 1, false, 0 },
+	{ "vpu-mu2", IMX_SC_R_VPU_MU_2, 1, false, 0 },
 
 	/* GPU SS */
 	{ "gpu0-pid", IMX_SC_R_GPU_0_PID0, 4, true, 0 },
+	{ "gpu1-pid", IMX_SC_R_GPU_1_PID0, 4, true, 0 },
+
 
 	/* HSIO SS */
+	{ "pcie-a", IMX_SC_R_PCIE_A, 1, false, 0 },
+	{ "serdes-0", IMX_SC_R_SERDES_0, 1, false, 0 },
 	{ "pcie-b", IMX_SC_R_PCIE_B, 1, false, 0 },
 	{ "serdes-1", IMX_SC_R_SERDES_1, 1, false, 0 },
+	{ "sata-0", IMX_SC_R_SATA_0, 1, false, 0 },
 	{ "hsio-gpio", IMX_SC_R_HSIO_GPIO, 1, false, 0 },
 
 	/* MIPI SS */
@@ -152,12 +190,65 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 	{ "mipi0-pwm0", IMX_SC_R_MIPI_0_PWM_0, 1, false, 0 },
 	{ "mipi0-i2c", IMX_SC_R_MIPI_0_I2C_0, 2, true, 0 },
 
+	{ "mipi1", IMX_SC_R_MIPI_1, 1, 0 },
+	{ "mipi1-pwm0", IMX_SC_R_MIPI_1_PWM_0, 1, 0 },
+	{ "mipi1-i2c", IMX_SC_R_MIPI_1_I2C_0, 2, 1 },
+
 	/* LVDS SS */
 	{ "lvds0", IMX_SC_R_LVDS_0, 1, false, 0 },
+	{ "lvds0-i2c0", IMX_SC_R_LVDS_0_I2C_0, 1, false, 0 },
+	{ "lvds0-pwm0", IMX_SC_R_LVDS_0_PWM_0, 1, false, 0 },
+
+	{ "lvds1", IMX_SC_R_LVDS_1, 1, false, 0 },
+	{ "lvds1-i2c0", IMX_SC_R_LVDS_1_I2C_0, 1, false, 0 },
+	{ "lvds1-pwm0", IMX_SC_R_LVDS_1_PWM_0, 1, false, 0 },
 
 	/* DC SS */
 	{ "dc0", IMX_SC_R_DC_0, 1, false, 0 },
 	{ "dc0-pll", IMX_SC_R_DC_0_PLL_0, 2, true, 0 },
+	{ "dc0-video", IMX_SC_R_DC_0_VIDEO0, 2, true, 0 },
+
+	{ "dc1", IMX_SC_R_DC_1, 1, false, 0 },
+	{ "dc1-pll", IMX_SC_R_DC_1_PLL_0, 2, true, 0 },
+	{ "dc1-video", IMX_SC_R_DC_1_VIDEO0, 2, true, 0 },
+
+	/* CM40 SS */
+	{ "cm40_i2c", IMX_SC_R_M4_0_I2C, 1, false, 0 },
+	{ "cm40_intmux", IMX_SC_R_M4_0_INTMUX, 1, false, 0 },
+
+	/* CM41 SS */
+	{ "cm41_i2c", IMX_SC_R_M4_1_I2C, 1, false, 0 },
+	{ "cm41_intmux", IMX_SC_R_M4_1_INTMUX, 1, false, 0 },
+
+	/* IMAGE SS */
+	{ "img-pdma", IMX_SC_R_ISI_CH0, 8, true, 0 },
+	{ "img-csi0", IMX_SC_R_CSI_0, 1, false, 0 },
+	{ "img-csi0-i2c0", IMX_SC_R_CSI_0_I2C_0, 1, false, 0 },
+	{ "img-csi0-pwm0", IMX_SC_R_CSI_0_PWM_0, 1, false, 0 },
+	{ "img-csi1", IMX_SC_R_CSI_1, 1, false, 0 },
+	{ "img-csi1-i2c0", IMX_SC_R_CSI_1_I2C_0, 1, false, 0 },
+	{ "img-csi1-pwm0", IMX_SC_R_CSI_1_PWM_0, 1, false, 0 },
+	{ "img-parallel", IMX_SC_R_PI_0, 1, false, 0 },
+	{ "img-parallel-i2c0", IMX_SC_R_PI_0_I2C_0, 1, false, 0 },
+	{ "img-parallel-pwm0", IMX_SC_R_PI_0_PWM_0, 2, true, 0 },
+	{ "img-parallel-pll", IMX_SC_R_PI_0_PLL, 1, false, 0 },
+	{ "img-jpegdec-mp", IMX_SC_R_MJPEG_DEC_MP, 1, false, 0 },
+	{ "img-jpegdec-s0", IMX_SC_R_MJPEG_DEC_S0, 4, true, 0 },
+	{ "img-jpegenc-mp", IMX_SC_R_MJPEG_ENC_MP, 1, false, 0 },
+	{ "img-jpegenc-s0", IMX_SC_R_MJPEG_ENC_S0, 4, true, 0 },
+
+	/* HDMI TX SS */
+	{ "hdmi-tx", IMX_SC_R_HDMI, 1, false, 0},
+	{ "hdmi-tx-i2s", IMX_SC_R_HDMI_I2S, 1, false, 0},
+	{ "hdmi-tx-i2c0", IMX_SC_R_HDMI_I2C_0, 1, false, 0},
+	{ "hdmi-tx-pll0", IMX_SC_R_HDMI_PLL_0, 1, false, 0},
+	{ "hdmi-tx-pll1", IMX_SC_R_HDMI_PLL_1, 1, false, 0},
+
+	/* SECURITY SS */
+	{ "sec-jr", IMX_SC_R_CAAM_JR2, 2, true, 2},
+
+	/* BOARD SS */
+	{ "board", IMX_SC_R_BOARD_R0, 8, true, 0},
 };
 
 static const struct imx_sc_pd_soc imx8qxp_scu_pd = {
@@ -171,6 +262,73 @@ static inline struct imx_sc_pm_domain *
 to_imx_sc_pd(struct generic_pm_domain *genpd)
 {
 	return container_of(genpd, struct imx_sc_pm_domain, pd);
+}
+
+static int imx_pm_domains_suspend(void)
+{
+	struct arm_smccc_res res;
+	u32 offset;
+	int i;
+
+	for (i = 0; i < wu_num; i++) {
+		offset = GICD_ISENABLER + ((wu[i] + 32) / 32) * 4;
+		if (BIT(wu[i] % 32) & readl_relaxed(gic_dist_base + offset)) {
+			arm_smccc_smc(IMX_SIP_WAKEUP_SRC,
+				      IMX_SIP_WAKEUP_SRC_IRQSTEER,
+				      0, 0, 0, 0, 0, 0, &res);
+			return 0;
+		}
+	}
+
+	arm_smccc_smc(IMX_SIP_WAKEUP_SRC,
+		      IMX_SIP_WAKEUP_SRC_SCU,
+		      0, 0, 0, 0, 0, 0, &res);
+
+	return 0;
+}
+
+struct syscore_ops imx_pm_domains_syscore_ops = {
+	.suspend = imx_pm_domains_suspend,
+};
+
+static void imx_sc_pd_enable_irqsteer_wakeup(struct device_node *np)
+{
+	struct device_node *gic_node;
+	unsigned int i;
+
+	wu_num = of_property_count_u32_elems(np, "wakeup-irq");
+	if (wu_num <= 0) {
+		pr_warn("no irqsteer wakeup source supported!\n");
+		return;
+	}
+
+	gic_node = of_find_compatible_node(NULL, NULL, "arm,gic-v3");
+	WARN_ON(!gic_node);
+
+	gic_dist_base = of_iomap(gic_node, 0);
+	WARN_ON(!gic_dist_base);
+
+	for (i = 0; i < wu_num; i++)
+		WARN_ON(of_property_read_u32_index(np, "wakeup-irq", i, &wu[i]));
+
+	register_syscore_ops(&imx_pm_domains_syscore_ops);
+}
+
+static void imx_sc_pd_get_console_rsrc(void)
+{
+	struct of_phandle_args specs;
+	int ret;
+
+	if (!of_stdout)
+		return;
+
+	ret = of_parse_phandle_with_args(of_stdout, "power-domains",
+					 "#power-domain-cells",
+					 0, &specs);
+	if (ret)
+		return;
+
+	imx_con_rsrc = specs.args[0];
 }
 
 static int imx_sc_pd_power(struct generic_pm_domain *domain, bool power_on)
@@ -188,7 +346,12 @@ static int imx_sc_pd_power(struct generic_pm_domain *domain, bool power_on)
 	hdr->size = 2;
 
 	msg.resource = pd->rsrc;
-	msg.mode = power_on ? IMX_SC_PM_PW_MODE_ON : IMX_SC_PM_PW_MODE_LP;
+	msg.mode = power_on ? IMX_SC_PM_PW_MODE_ON : pd->pd.state_idx ?
+		   IMX_SC_PM_PW_MODE_OFF : IMX_SC_PM_PW_MODE_LP;
+
+	/* keep uart console power on for no_console_suspend */
+        if (imx_con_rsrc == pd->rsrc && !console_suspend_enabled && !power_on)
+                return 0;
 
 	ret = imx_scu_call_rpc(pm_ipc_handle, &msg, true);
 	if (ret)
@@ -233,15 +396,31 @@ imx_scu_add_pm_domain(struct device *dev, int idx,
 		      const struct imx_sc_pd_range *pd_ranges)
 {
 	struct imx_sc_pm_domain *sc_pd;
+	struct genpd_power_state *states;
+	bool is_off = true;
 	int ret;
 
 	sc_pd = devm_kzalloc(dev, sizeof(*sc_pd), GFP_KERNEL);
 	if (!sc_pd)
 		return ERR_PTR(-ENOMEM);
 
+	states = devm_kcalloc(dev, 2, sizeof(*states), GFP_KERNEL);
+	if (!states) {
+		devm_kfree(dev, sc_pd);
+		return ERR_PTR(-ENOMEM);
+	}
+
 	sc_pd->rsrc = pd_ranges->rsrc + idx;
 	sc_pd->pd.power_off = imx_sc_pd_power_off;
 	sc_pd->pd.power_on = imx_sc_pd_power_on;
+	sc_pd->pd.flags |= GENPD_FLAG_ACTIVE_WAKEUP;
+	states[0].power_off_latency_ns = 25000;
+	states[0].power_on_latency_ns =  25000;
+	states[1].power_off_latency_ns = 2500000;
+	states[1].power_on_latency_ns =  2500000;
+
+	sc_pd->pd.states = states;
+	sc_pd->pd.state_count = 2;
 
 	if (pd_ranges->postfix)
 		snprintf(sc_pd->name, sizeof(sc_pd->name),
@@ -251,20 +430,26 @@ imx_scu_add_pm_domain(struct device *dev, int idx,
 			 "%s", pd_ranges->name);
 
 	sc_pd->pd.name = sc_pd->name;
+	if (imx_con_rsrc == sc_pd->rsrc) {
+		sc_pd->pd.flags |= GENPD_FLAG_RPM_ALWAYS_ON;
+		is_off = false;
+	}
 
 	if (sc_pd->rsrc >= IMX_SC_R_LAST) {
 		dev_warn(dev, "invalid pd %s rsrc id %d found",
 			 sc_pd->name, sc_pd->rsrc);
 
 		devm_kfree(dev, sc_pd);
+		devm_kfree(dev, states);
 		return NULL;
 	}
 
-	ret = pm_genpd_init(&sc_pd->pd, NULL, true);
+	ret = pm_genpd_init(&sc_pd->pd, NULL, is_off);
 	if (ret) {
 		dev_warn(dev, "failed to init pd %s rsrc id %d",
 			 sc_pd->name, sc_pd->rsrc);
 		devm_kfree(dev, sc_pd);
+		devm_kfree(dev, states);
 		return NULL;
 	}
 
@@ -326,6 +511,9 @@ static int imx_sc_pd_probe(struct platform_device *pdev)
 	if (!pd_soc)
 		return -ENODEV;
 
+	imx_sc_pd_get_console_rsrc();
+	imx_sc_pd_enable_irqsteer_wakeup(pdev->dev.of_node);
+
 	return imx_scu_init_pm_domains(&pdev->dev, pd_soc);
 }
 
@@ -342,7 +530,12 @@ static struct platform_driver imx_sc_pd_driver = {
 	},
 	.probe = imx_sc_pd_probe,
 };
-builtin_platform_driver(imx_sc_pd_driver);
+
+static int __init imx_sc_pd_driver_init(void)
+{
+	return platform_driver_register(&imx_sc_pd_driver);
+}
+subsys_initcall(imx_sc_pd_driver_init);
 
 MODULE_AUTHOR("Dong Aisheng <aisheng.dong@nxp.com>");
 MODULE_DESCRIPTION("IMX SCU Power Domain driver");
