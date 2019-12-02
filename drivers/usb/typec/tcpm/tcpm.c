@@ -29,6 +29,8 @@
 #include <linux/usb/tcpm.h>
 #include <linux/usb/typec_altmode.h>
 #include <linux/workqueue.h>
+#include <linux/extcon.h>
+#include <linux/extcon-provider.h>
 
 #define FOREACH_STATE(S)			\
 	S(INVALID_STATE),			\
@@ -139,6 +141,12 @@ static const char * const tcpm_states[] = {
 	FOREACH_STATE(GENERATE_STRING)
 };
 
+static const unsigned int tcpm_extcon_cable[] = {
+	EXTCON_USB_HOST,
+	EXTCON_USB,
+	EXTCON_NONE,
+};
+
 enum vdm_states {
 	VDM_STATE_ERR_BUSY = -3,
 	VDM_STATE_ERR_SEND = -2,
@@ -193,6 +201,7 @@ struct pd_pps_data {
 
 struct tcpm_port {
 	struct device *dev;
+	struct extcon_dev *edev;
 
 	struct mutex lock;		/* tcpm state machine lock */
 	struct workqueue_struct *wq;
@@ -670,6 +679,20 @@ static int tcpm_mux_set(struct tcpm_port *port, int state,
 		ret = usb_role_switch_set_role(port->role_sw, usb_role);
 		if (ret)
 			return ret;
+	} else if (port->edev) {
+		if (usb_role == USB_ROLE_NONE) {
+			extcon_set_state_sync(port->edev, EXTCON_USB_HOST,
+					      false);
+			extcon_set_state_sync(port->edev, EXTCON_USB, false);
+		} else if (usb_role == USB_ROLE_DEVICE) {
+			extcon_set_state_sync(port->edev, EXTCON_USB_HOST,
+					      false);
+			extcon_set_state_sync(port->edev, EXTCON_USB, true);
+		} else {
+			extcon_set_state_sync(port->edev, EXTCON_USB, false);
+			extcon_set_state_sync(port->edev, EXTCON_USB_HOST,
+					      true);
+		}
 	}
 
 	return typec_set_mode(port->typec_port, state);
@@ -2623,6 +2646,8 @@ static int tcpm_src_attach(struct tcpm_port *port)
 	if (port->attached)
 		return 0;
 
+	tcpm_set_cc(port, tcpm_rp_cc(port));
+
 	ret = tcpm_set_polarity(port, polarity);
 	if (ret < 0)
 		return ret;
@@ -2743,6 +2768,8 @@ static int tcpm_snk_attach(struct tcpm_port *port)
 
 	if (port->attached)
 		return 0;
+
+	tcpm_set_cc(port, TYPEC_CC_RD);
 
 	ret = tcpm_set_polarity(port, port->cc2 != TYPEC_CC_OPEN ?
 				TYPEC_POLARITY_CC2 : TYPEC_POLARITY_CC1);
@@ -3146,7 +3173,11 @@ static void run_state_machine(struct tcpm_port *port)
 		ret = tcpm_snk_attach(port);
 		if (ret < 0)
 			tcpm_set_state(port, SNK_UNATTACHED, 0);
-		else
+		else if (port->port_type == TYPEC_PORT_SRC &&
+			 port->typec_caps.data == TYPEC_PORT_DRD) {
+			tcpm_typec_connect(port);
+			tcpm_log(port, "Keep at SNK_ATTACHED for USB data.");
+		} else
 			tcpm_set_state(port, SNK_STARTUP, 0);
 		break;
 	case SNK_STARTUP:
@@ -4744,7 +4775,7 @@ struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 	mutex_init(&port->lock);
 	mutex_init(&port->swap_lock);
 
-	port->wq = create_singlethread_workqueue(dev_name(dev));
+	port->wq = create_freezable_workqueue(dev_name(dev));
 	if (!port->wq)
 		return ERR_PTR(-ENOMEM);
 	INIT_DELAYED_WORK(&port->state_machine, tcpm_state_machine_work);
@@ -4820,6 +4851,19 @@ struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 		}
 	}
 
+	port->edev = devm_extcon_dev_allocate(port->dev, tcpm_extcon_cable);
+	if (IS_ERR(port->edev)) {
+		dev_err(port->dev, "failed to allocate extcon dev.\n");
+		err = -ENOMEM;
+		goto out_role_sw_put;
+	}
+
+	err = devm_extcon_dev_register(port->dev, port->edev);
+	if (err) {
+		dev_err(port->dev, "failed to register extcon dev.\n");
+		goto out_role_sw_put;
+	}
+
 	mutex_lock(&port->lock);
 	tcpm_init(port);
 	mutex_unlock(&port->lock);
@@ -4839,6 +4883,9 @@ EXPORT_SYMBOL_GPL(tcpm_register_port);
 void tcpm_unregister_port(struct tcpm_port *port)
 {
 	int i;
+
+	cancel_delayed_work_sync(&port->state_machine);
+	cancel_delayed_work_sync(&port->vdm_state_machine);
 
 	tcpm_reset_port(port);
 	for (i = 0; i < ARRAY_SIZE(port->port_altmode); i++)
