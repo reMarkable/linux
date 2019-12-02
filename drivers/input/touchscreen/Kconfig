@@ -47,6 +47,19 @@ config TOUCHSCREEN_ADS7846
 	  To compile this driver as a module, choose M here: the
 	  module will be called ads7846.
 
+config TOUCHSCREEN_CT36X_WLD
+        default y
+        tristate "CT36X based touchscreens for WLD"
+        help
+          Say Y here if you have a touchscreen interface using the
+          CT36X controller, i2c touchscreen
+          controller.
+
+          If unsure, say N (but it's safe to say "Y").
+
+          To compile this driver as a module, choose M here: the
+          module will be called vtl_ts.
+
 config TOUCHSCREEN_AD7877
 	tristate "AD7877 based touchscreens"
 	depends on SPI_MASTER
@@ -362,6 +375,18 @@ config TOUCHSCREEN_EXC3000
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called exc3000.
+
+config TOUCHSCREEN_ELAN_TS
+	tristate "ELAN touchscreen input driver"
+	depends on I2C
+	help
+	  Say Y here if you have an I2C ELAN touchscreen
+	  attached.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called elan-touch.
 
 config TOUCHSCREEN_FUJITSU
 	tristate "Fujitsu serial touchscreen"
@@ -1314,4 +1339,7 @@ config TOUCHSCREEN_IQS5XX
 	  To compile this driver as a module, choose M here: the
 	  module will be called iqs5xx.
 
+source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
 endif
+
+source "drivers/input/touchscreen/focaltech_touch/Kconfig"
