@@ -90,6 +90,13 @@ config SND_SOC_FSL_DSP
 	help
 	  Say Y if you want to add hifi 4 support for the Freescale CPUs.
 	  which is a DSP core for audio processing.
+
+config SND_SOC_FSL_RPMSG_I2S
+	tristate "I2S base on the RPMSG support"
+	depends on HAVE_IMX_RPMSG
+	help
+	  Say Y if you want to add rpmsg i2s support for the Freescale CPUs.
+	  which is depends on the rpmsg.
 	  This option is only useful for out-of-tree drivers since
 	  in-tree drivers select it automatically.
 
@@ -101,6 +108,11 @@ config SND_SOC_FSL_HDMI
 
 config SND_SOC_IMX_PCM_DMA
 	tristate
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+
+config SND_SOC_IMX_PCM_RPMSG
+	tristate
+	depends on HAVE_IMX_RPMSG
 	select SND_SOC_GENERIC_DMAENGINE_PCM
 
 config SND_SOC_IMX_AUDMUX
@@ -404,6 +416,20 @@ config SND_SOC_IMX_MICFIL
 	  Soc Audio support for i.MX boards with micfil
 	  Say Y if you want to add support for SoC audio on
 	  an i.MX board with micfil.
+
+config SND_SOC_IMX_RPMSG
+	tristate "SoC Audio support for i.MX boards with rpmsg"
+	depends on HAVE_IMX_RPMSG
+	select SND_SOC_IMX_PCM_RPMSG
+	select SND_SOC_FSL_RPMSG_I2S
+	select SND_SOC_RPMSG_WM8960
+	select SND_SOC_RPMSG_AK4497
+	select SND_SOC_RPMSG_CS42XX8
+	help
+	  SoC Audio support for i.MX boards with rpmsg.
+	  There should be rpmsg devices defined in other core
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  a rpmsg devices.
 
 config SND_SOC_IMX_ES8328
 	tristate "SoC Audio support for i.MX boards with the ES8328 codec"
