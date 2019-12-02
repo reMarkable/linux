@@ -302,7 +302,8 @@ static int adv7511_cec_parse_dt(struct device *dev, struct adv7511 *adv7511)
 
 int adv7511_cec_init(struct device *dev, struct adv7511 *adv7511)
 {
-	unsigned int offset = adv7511->type == ADV7533 ?
+	unsigned int offset = (adv7511->type == ADV7533 ||
+			       adv7511->type == ADV7535) ?
 						ADV7533_REG_CEC_OFFSET : 0;
 	int ret = adv7511_cec_parse_dt(dev, adv7511);
 

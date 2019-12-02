@@ -555,8 +555,7 @@ static int rad_panel_probe(struct mipi_dsi_device *dsi)
 	panel->dsi = dsi;
 
 	dsi->format = MIPI_DSI_FMT_RGB888;
-	dsi->mode_flags =  MIPI_DSI_MODE_VIDEO_HSE | MIPI_DSI_MODE_VIDEO |
-			   MIPI_DSI_CLOCK_NON_CONTINUOUS;
+	dsi->mode_flags =  MIPI_DSI_MODE_VIDEO_HSE | MIPI_DSI_MODE_VIDEO;
 
 	ret = of_property_read_u32(np, "video-mode", &video_mode);
 	if (!ret) {
@@ -585,8 +584,11 @@ static int rad_panel_probe(struct mipi_dsi_device *dsi)
 	}
 
 	panel->reset = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
-	if (IS_ERR(panel->reset))
-		return PTR_ERR(panel->reset);
+	if (IS_ERR(panel->reset)) {
+		ret = PTR_ERR(panel->reset);
+		dev_err(dev, "Failed to get reset gpio (%d)\n", ret);
+		return ret;
+	}
 
 	memset(&bl_props, 0, sizeof(bl_props));
 	bl_props.type = BACKLIGHT_RAW;

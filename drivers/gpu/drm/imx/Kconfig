@@ -6,7 +6,7 @@ config DRM_IMX
 	select DRM_GEM_CMA_HELPER
 	select DRM_KMS_CMA_HELPER
 	depends on DRM && (ARCH_MXC || ARCH_MULTIPLATFORM || COMPILE_TEST)
-	depends on IMX_IPUV3_CORE
+	depends on IMX_IPUV3_CORE || IMX_DPU_CORE || IMX_LCDIF_CORE
 	help
 	  enable i.MX graphics support
 
@@ -29,9 +29,39 @@ config DRM_IMX_LDB
 	tristate "Support for LVDS displays"
 	depends on DRM_IMX && MFD_SYSCON
 	select DRM_PANEL
+	select PHY_MIXEL_LVDS
+	select PHY_MIXEL_LVDS_COMBO
 	help
 	  Choose this to enable the internal LVDS Display Bridge (LDB)
-	  found on i.MX53 and i.MX6 processors.
+	  found on i.MX53, i.MX6 and i.MX8 processors.
+
+config DRM_IMX_IPUV3
+	tristate
+	depends on DRM_IMX
+	depends on IMX_IPUV3_CORE
+	default y if DRM_IMX=y
+	default m if DRM_IMX=m
+
+config DRM_IMX_IPUV3
+	tristate
+	depends on DRM_IMX
+	depends on IMX_IPUV3_CORE
+	default y if DRM_IMX=y
+	default m if DRM_IMX=m
+
+config DRM_IMX_IPUV3
+	tristate
+	depends on DRM_IMX
+	depends on IMX_IPUV3_CORE
+	default y if DRM_IMX=y
+	default m if DRM_IMX=m
+
+config DRM_IMX_IPUV3
+	tristate
+	depends on DRM_IMX
+	depends on IMX_IPUV3_CORE
+	default y if DRM_IMX=y
+	default m if DRM_IMX=m
 
 config DRM_IMX_HDMI
 	tristate "Freescale i.MX DRM HDMI"
@@ -39,3 +69,27 @@ config DRM_IMX_HDMI
 	depends on DRM_IMX
 	help
 	  Choose this if you want to use HDMI on i.MX6.
+
+config DRM_IMX_SEC_DSIM
+	tristate "Support for Samsung MIPI DSIM displays"
+	depends on DRM_IMX
+	select MFD_SYSCON
+	select DRM_SEC_MIPI_DSIM
+	help
+	  Choose this to enable the internal SEC MIPI DSIM controller
+	  found on i.MX platform.
+
+config DRM_IMX_CDNS_MHDP
+	tristate "NXP i.MX MX8 DRM HDMI/DP"
+	select DRM_CDNS_MHDP
+	select DRM_CDNS_DP
+	select DRM_CDNS_HDMI
+	select DRM_CDNS_AUDIO
+	depends on DRM_IMX
+	help
+	  Choose this if you want to use HDMI on i.MX8.
+
+source "drivers/gpu/drm/imx/dpu/Kconfig"
+source "drivers/gpu/drm/imx/ipuv3/Kconfig"
+source "drivers/gpu/drm/imx/lcdif/Kconfig"
+source "drivers/gpu/drm/imx/dcss/Kconfig"

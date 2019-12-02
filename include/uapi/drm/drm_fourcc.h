@@ -236,6 +236,14 @@ extern "C" {
 #define DRM_FORMAT_NV61		fourcc_code('N', 'V', '6', '1') /* 2x1 subsampled Cb:Cr plane */
 #define DRM_FORMAT_NV24		fourcc_code('N', 'V', '2', '4') /* non-subsampled Cr:Cb plane */
 #define DRM_FORMAT_NV42		fourcc_code('N', 'V', '4', '2') /* non-subsampled Cb:Cr plane */
+/*
+ * A fully packed  2 plane YCbCr
+ * Y1 0-9, Y2 10-19, Y3 20-29, Y4 20-39
+ * ....
+ * U1V1: 0-19, U2V2: 20-39
+ */
+#define DRM_FORMAT_NV12_10LE40	fourcc_code('R', 'K', '2', '0') /* 2x2 subsampled Cr:Cb plane */
+
 
 /*
  * 2 plane YCbCr MSB aligned
@@ -309,6 +317,8 @@ extern "C" {
 #define DRM_FORMAT_MOD_VENDOR_BROADCOM 0x07
 #define DRM_FORMAT_MOD_VENDOR_ARM     0x08
 #define DRM_FORMAT_MOD_VENDOR_ALLWINNER 0x09
+#define DRM_FORMAT_MOD_VENDOR_AMPHION 0xf0
+#define DRM_FORMAT_MOD_VENDOR_VSI     0xf1
 
 /* add more to the end as needed */
 
@@ -486,6 +496,15 @@ extern "C" {
  * therefore halved compared to the non-split super-tiled layout.
  */
 #define DRM_FORMAT_MOD_VIVANTE_SPLIT_SUPER_TILED fourcc_mod_code(VIVANTE, 4)
+
+	/*
+ * Vivante 64x64 super-tiling with compression layout
+ *
+ * This is a tiled layout using 64x64 pixel super-tiles, where each super-tile
+ * contains 8x4 groups of 2x4 tiles of 4x4 pixels each, all in row-major layout
+ * with compression.
+ */
+#define DRM_FORMAT_MOD_VIVANTE_SUPER_TILED_FC	fourcc_mod_code(VIVANTE, 5)
 
 /* NVIDIA frame buffer modifiers */
 
@@ -755,6 +774,42 @@ extern "C" {
  * both in row-major order.
  */
 #define DRM_FORMAT_MOD_ALLWINNER_TILED fourcc_mod_code(ALLWINNER, 1)
+
+/* Amphion tiled layout */
+
+/*
+ * Amphion 8x128 tiling layout
+ *
+ * This is a tiled layout using 8x128 pixel vertical strips, where each strip
+ * contains 1x16 groups of 8x8 pixels in a row-major layout.
+ */
+#define DRM_FORMAT_MOD_AMPHION_TILED fourcc_mod_code(AMPHION, 1)
+
+/* Verisilicon framebuffer modifiers */
+
+/*
+ * Verisilicon 8x4 tiling layout
+ *
+ * This is G1 VPU tiled layout using tiles of 8x4 pixels in a row-major
+ * layout.
+ */
+#define DRM_FORMAT_MOD_VSI_G1_TILED fourcc_mod_code(VSI, 1)
+
+/*
+ * Verisilicon 4x4 tiling layout
+ *
+ * This is G2 VPU tiled layout using tiles of 4x4 pixels in a row-major
+ * layout.
+ */
+#define DRM_FORMAT_MOD_VSI_G2_TILED fourcc_mod_code(VSI, 2)
+
+/*
+ * Verisilicon 4x4 tiling with compression layout
+ *
+ * This is G2 VPU tiled layout using tiles of 4x4 pixels in a row-major
+ * layout with compression.
+ */
+#define DRM_FORMAT_MOD_VSI_G2_TILED_COMPRESSED fourcc_mod_code(VSI, 3)
 
 #if defined(__cplusplus)
 }
