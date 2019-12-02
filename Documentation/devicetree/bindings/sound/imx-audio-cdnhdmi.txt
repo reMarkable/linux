@@ -1,0 +1,16 @@
+Freescale i.MX audio complex with Cadence HDMI
+
+Required properties:
+- compatible : "fsl,imx-audio-cdnhdmi", "fsl,imx8mq-evk-cdnhdmi"
+- model : The user-visible name of this sound complex
+- audio-cpu : The phandle of the i.MX SAI controller
+- protocol : 0 is hdmi,  1 is dp.
+
+Example:
+
+sound-hdmi {
+	compatible = "fsl,imx-audio-cdnhdmi";
+	model = "imx-audio-hdmi";
+	audio-cpu = <&sai4>;
+	protocol = <0>;
+};
