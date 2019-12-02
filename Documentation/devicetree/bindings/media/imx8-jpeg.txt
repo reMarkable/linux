@@ -1,0 +1,107 @@
+Freescale i.MX8QXP/QM JPEG encoder/decoder
+=========================
+
+jpegdec node
+--------------
+
+This is the device node for the JPEG decoder in i.MXQXP/QM SoC, an
+ISO/IEC 10918-1 JPEG standard compliant decoder, for Baseline
+and Extended Sequential DCT modes.
+
+Required properties:
+
+- compatible    : "fsl,imx8-jpgdec";
+- reg           : base address and length of the register set for the device;
+- interrupts    : list of interrupts for jpeg decoder
+- clocks        : list of clock specifiers, see
+        Documentation/devicetree/bindings/clock/clock-bindings.txt for details;
+- assigned-clock-rates : the value should be 200MHz;
+- power-domains : a list of phandle to the power domain, see
+          Documentation/devicetree/bindings/power/power_domain.txt for details;
+
+
+Optional properties:
+- clock-names   : must contain clock names to match entries in the
+                  clock property;
+- power-domain-name : must contain matching names for  entries in the
+                      the power-domains property.
+
+
+example:
+
+		jpegdec: jpegdec@58400000 {
+			compatible = "fsl,imx8-jpgdec";
+			reg = <0x58400000 0x00050000 >;
+			interrupts = <GIC_SPI 309 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 310 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 311 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 312 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&img_jpeg_dec_clk 0>,
+				 <&img_jpeg_dec_clk 1>;
+			clock-names = "per", "ipg";
+			assigned-clocks = <&img_jpeg_dec_clk 0>,
+					  <&img_jpeg_dec_clk 1>;
+			assigned-clock-rates = <200000000>;
+			power-domains = <&pd IMX_SC_R_ISI_CH0>,
+					<&pd IMX_SC_R_MJPEG_DEC_MP>,
+					<&pd IMX_SC_R_MJPEG_DEC_S0>,
+					<&pd IMX_SC_R_MJPEG_DEC_S1>,
+					<&pd IMX_SC_R_MJPEG_DEC_S2>,
+					<&pd IMX_SC_R_MJPEG_DEC_S3>;
+			power-domain-names = "pd_isi_ch0", "pd_dec_mp",
+					     "pd_dec_s0", "pd_dec_s1",
+					     "pd_dec_s2", "pd_dec_s3";
+			status = "disabled";
+
+
+jpegenc node
+--------------
+
+This is the device node for the JPEG encoder in i.MXQXP/QM SoC,
+similar with the JPEG decoder above.
+
+Required properties:
+
+- compatible    : "fsl,imx8-jpgenc";
+- reg           : base address and length of the register set for the device;
+- interrupts    : list of interrupts for jpeg encoder
+- clocks        : list of clock specifiers, see
+        Documentation/devicetree/bindings/clock/clock-bindings.txt for details;
+- assigned-clock-rates : the value should be 200MHz;
+- power-domains : a list of phandle to the power domain, see
+          Documentation/devicetree/bindings/power/power_domain.txt for details;
+
+
+Optional properties:
+- clock-names   : must contain clock names to match entries in the
+                  clock property;
+- power-domain-name : must contain matching names for  entries in the
+                      the power-domains property.
+
+
+example:
+
+		jpegenc: jpegenc@58450000 {
+			compatible = "fsl,imx8-jpgenc";
+			reg = <0x58450000 0x00050000 >;
+			interrupts = <GIC_SPI 305 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 306 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 307 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 308 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&img_jpeg_enc_clk 0>,
+				 <&img_jpeg_enc_clk 1>;
+			clock-names = "per", "ipg";
+			assigned-clocks = <&img_jpeg_enc_clk 0>,
+					  <&img_jpeg_enc_clk 1>;
+			assigned-clock-rates = <200000000>;
+			power-domains = <&pd IMX_SC_R_ISI_CH0>,
+					<&pd IMX_SC_R_MJPEG_ENC_MP>,
+					<&pd IMX_SC_R_MJPEG_ENC_S0>,
+					<&pd IMX_SC_R_MJPEG_ENC_S1>,
+					<&pd IMX_SC_R_MJPEG_ENC_S2>,
+					<&pd IMX_SC_R_MJPEG_ENC_S3>;
+			power-domain-names = "pd_isi_ch0", "pd_enc_mp",
+					     "pd_enc_s0", "pd_enc_s1",
+					     "pd_enc_s2", "pd_enc_s3";
+			status = "disabled";
+		};
