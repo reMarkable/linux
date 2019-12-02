@@ -17,7 +17,18 @@ config MXC_IPU
 	  If you plan to use the Image Processing unit, say
 	  Y here. IPU is needed by Framebuffer and V4L2 drivers.
 
+# drivers common to MXC and MX8 go here:
+
+if ARM64
+source "drivers/mxc/hantro/Kconfig"
+source "drivers/mxc/hantro_845/Kconfig"
+source "drivers/mxc/hantro_845_h1/Kconfig"
+source "drivers/mxc/vpu_malone/Kconfig"
+source "drivers/mxc/vpu_windsor/Kconfig"
+endif
+
 source "drivers/mxc/gpu-viv/Kconfig"
+source "drivers/mxc/vpu/Kconfig"
 source "drivers/mxc/sim/Kconfig"
 source "drivers/mxc/mlb/Kconfig"
 source "drivers/mxc/ipu3/Kconfig"
