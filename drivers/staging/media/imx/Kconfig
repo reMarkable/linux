@@ -88,6 +88,14 @@ config IMX8_MIPI_CSI2_SAM
 	  Enable support for video4linux MIPI CSI2 Samsung driver for
 	  i.MX8MN platform.
 
+config IMX8_PARALLEL_CSI
+	tristate "IMX8 Parallel Capture Controller"
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	default y
+	help
+	  Enable support for video4linux parallel camera sensor interface
+	  driver for i.MX8QM/QXP platform.
+
 config GMSL_MAX9286
 	tristate "GMSL MAX8286"
 	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
