@@ -897,7 +897,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	reserved_node = of_parse_phandle(np, "reserved-region", 0);
+	reserved_node = of_parse_phandle(np, "memory-region", 0);
 	if (!reserved_node) {
 		dev_err(&pdev->dev, "failed to get reserved region node\n");
 		return -ENODEV;
