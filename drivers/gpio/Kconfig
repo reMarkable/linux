@@ -389,6 +389,13 @@ config GPIO_MXS
 	select GPIO_GENERIC
 	select GENERIC_IRQ_CHIP
 
+config GPIO_MXC_PAD_WAKEUP
+	def_bool y
+	depends on IMX_SCU
+	select GPIO_MXC
+	help
+	  Say Y here to enable the imx8 gpio pad wakeup
+
 config GPIO_OCTEON
 	tristate "Cavium OCTEON GPIO"
 	depends on GPIOLIB && CAVIUM_OCTEON_SOC
@@ -567,6 +574,18 @@ config GPIO_VF610
 	select GPIOLIB_IRQCHIP
 	help
 	  Say yes here to support Vybrid vf610 GPIOs.
+
+config GPIO_IMX_RPMSG
+	bool "NXP i.MX7ULP RPMSG GPIO support"
+	depends on ARCH_MXC && RPMSG && GPIOLIB
+	help
+	  This driver support i.MX7ULP RPMSG virtual GPIOs.
+
+config GPIO_IMX_RPMSG
+	bool "NXP i.MX7ULP RPMSG GPIO support"
+	depends on ARCH_MXC && RPMSG && GPIOLIB
+	help
+	  This driver support i.MX7ULP RPMSG virtual GPIOs.
 
 config GPIO_VR41XX
 	tristate "NEC VR4100 series General-purpose I/O Uint support"
