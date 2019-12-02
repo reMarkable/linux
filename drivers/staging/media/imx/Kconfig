@@ -47,6 +47,14 @@ config VIDEO_IMX_CAPTURE
 if VIDEO_IMX_CAPTURE
 menu "i.MX8QXP/QM Camera ISI/MIPI Features support"
 
+config IMX8_MEDIA_DEVICE
+	tristate "IMX8 Media Device Driver"
+	select V4L2_FWNODE
+	default y
+	help
+	  This media device is a virtual device which used to manage
+	  all modules in image subsystem of imx8qxp/qm platform.
+
 config IMX8_ISI_CORE
 	bool "IMX8 Image Sensor Interface Core Driver"
 	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
