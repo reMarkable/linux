@@ -2,13 +2,19 @@
 /*
  * fsl_asrc.h - Freescale ASRC ALSA SoC header file
  *
- * Copyright (C) 2014 Freescale Semiconductor, Inc.
+ * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
  *
  * Author: Nicolin Chen <nicoleotsuka@gmail.com>
  */
 
 #ifndef _FSL_ASRC_H
 #define _FSL_ASRC_H
+
+#include <sound/asound.h>
+#include <uapi/linux/mxc_asrc.h>
+#include <linux/miscdevice.h>
+
+#define ASRC_PAIR_MAX_NUM	(ASRC_PAIR_C + 1)
 
 #define IN	0
 #define OUT	1
@@ -20,7 +26,8 @@
 #define ASRC_FIFO_THRESHOLD_MAX		63
 #define ASRC_DMA_BUFFER_SIZE		(1024 * 48 * 4)
 #define ASRC_MAX_BUFFER_SIZE		(1024 * 48)
-#define ASRC_OUTPUT_LAST_SAMPLE		8
+#define ASRC_OUTPUT_LAST_SAMPLE_MAX	32
+#define ASRC_OUTPUT_LAST_SAMPLE		4
 
 #define IDEAL_RATIO_RATE		1000000
 
@@ -283,106 +290,15 @@
 #define ASRMCR1i_OW16_MASK		(1 << ASRMCR1i_OW16_SHIFT)
 #define ASRMCR1i_OW16(v)		((v) << ASRMCR1i_OW16_SHIFT)
 
-
-enum asrc_pair_index {
-	ASRC_INVALID_PAIR = -1,
-	ASRC_PAIR_A = 0,
-	ASRC_PAIR_B = 1,
-	ASRC_PAIR_C = 2,
-};
-
-#define ASRC_PAIR_MAX_NUM	(ASRC_PAIR_C + 1)
-
-enum asrc_inclk {
-	INCLK_NONE = 0x03,
-	INCLK_ESAI_RX = 0x00,
-	INCLK_SSI1_RX = 0x01,
-	INCLK_SSI2_RX = 0x02,
-	INCLK_SSI3_RX = 0x07,
-	INCLK_SPDIF_RX = 0x04,
-	INCLK_MLB_CLK = 0x05,
-	INCLK_PAD = 0x06,
-	INCLK_ESAI_TX = 0x08,
-	INCLK_SSI1_TX = 0x09,
-	INCLK_SSI2_TX = 0x0a,
-	INCLK_SSI3_TX = 0x0b,
-	INCLK_SPDIF_TX = 0x0c,
-	INCLK_ASRCK1_CLK = 0x0f,
-};
-
-enum asrc_outclk {
-	OUTCLK_NONE = 0x03,
-	OUTCLK_ESAI_TX = 0x00,
-	OUTCLK_SSI1_TX = 0x01,
-	OUTCLK_SSI2_TX = 0x02,
-	OUTCLK_SSI3_TX = 0x07,
-	OUTCLK_SPDIF_TX = 0x04,
-	OUTCLK_MLB_CLK = 0x05,
-	OUTCLK_PAD = 0x06,
-	OUTCLK_ESAI_RX = 0x08,
-	OUTCLK_SSI1_RX = 0x09,
-	OUTCLK_SSI2_RX = 0x0a,
-	OUTCLK_SSI3_RX = 0x0b,
-	OUTCLK_SPDIF_RX = 0x0c,
-	OUTCLK_ASRCK1_CLK = 0x0f,
-};
-
 #define ASRC_CLK_MAX_NUM	16
 
 enum asrc_word_width {
 	ASRC_WIDTH_24_BIT = 0,
 	ASRC_WIDTH_16_BIT = 1,
-	ASRC_WIDTH_8_BIT = 2,
-};
-
-struct asrc_config {
-	enum asrc_pair_index pair;
-	unsigned int channel_num;
-	unsigned int buffer_num;
-	unsigned int dma_buffer_size;
-	unsigned int input_sample_rate;
-	unsigned int output_sample_rate;
-	enum asrc_word_width input_word_width;
-	enum asrc_word_width output_word_width;
-	enum asrc_inclk inclk;
-	enum asrc_outclk outclk;
-};
-
-struct asrc_req {
-	unsigned int chn_num;
-	enum asrc_pair_index index;
-};
-
-struct asrc_querybuf {
-	unsigned int buffer_index;
-	unsigned int input_length;
-	unsigned int output_length;
-	unsigned long input_offset;
-	unsigned long output_offset;
-};
-
-struct asrc_convert_buffer {
-	void *input_buffer_vaddr;
-	void *output_buffer_vaddr;
-	unsigned int input_buffer_length;
-	unsigned int output_buffer_length;
-};
-
-struct asrc_status_flags {
-	enum asrc_pair_index index;
-	unsigned int overload_error;
-};
-
-enum asrc_error_status {
-	ASRC_TASK_Q_OVERLOAD		= 0x01,
-	ASRC_OUTPUT_TASK_OVERLOAD	= 0x02,
-	ASRC_INPUT_TASK_OVERLOAD	= 0x04,
-	ASRC_OUTPUT_BUFFER_OVERFLOW	= 0x08,
-	ASRC_INPUT_BUFFER_UNDERRUN	= 0x10,
+	ASRC_WIDTH_8_BIT  = 2,
 };
 
 struct dma_block {
-	dma_addr_t dma_paddr;
 	void *dma_vaddr;
 	unsigned int length;
 };
@@ -413,6 +329,7 @@ struct fsl_asrc_pair {
 	struct dma_chan *dma_chan[2];
 	struct imx_dma_data dma_data;
 	unsigned int pos;
+	unsigned int pair_streams;
 
 	void *private;
 };
@@ -433,6 +350,7 @@ struct fsl_asrc_pair {
  * @pair: pair pointers
  * @channel_bits: width of ASRCNCR register for each pair
  * @channel_avail: non-occupied channel numbers
+ * @pair_streams:indicat which substream is running
  * @asrc_rate: default sample rate for ASoC Back-Ends
  * @asrc_width: default sample width for ASoC Back-Ends
  * @regcache_cfg: store register value of REG_ASRCFG
@@ -447,19 +365,29 @@ struct fsl_asrc {
 	struct clk *ipg_clk;
 	struct clk *spba_clk;
 	struct clk *asrck_clk[ASRC_CLK_MAX_NUM];
+	unsigned char *clk_map[2];
 	spinlock_t lock;
 
 	struct fsl_asrc_pair *pair[ASRC_PAIR_MAX_NUM];
+	struct miscdevice asrc_miscdev;
 	unsigned int channel_bits;
 	unsigned int channel_avail;
 
 	int asrc_rate;
 	int asrc_width;
+	int dma_type;  /* 0 is sdma, 1 is edma */
 
 	u32 regcache_cfg;
+	char name[20];
 };
+
+#define DMA_SDMA 0
+#define DMA_EDMA 1
 
 #define DRV_NAME "fsl-asrc-dai"
 extern struct snd_soc_component_driver fsl_asrc_component;
 struct dma_chan *fsl_asrc_get_dma_channel(struct fsl_asrc_pair *pair, bool dir);
+int fsl_asrc_request_pair(int channels, struct fsl_asrc_pair *pair);
+void fsl_asrc_release_pair(struct fsl_asrc_pair *pair);
+
 #endif /* _FSL_ASRC_H */

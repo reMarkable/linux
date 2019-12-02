@@ -493,6 +493,11 @@ const struct snd_sof_dsp_ops sof_tng_ops = {
 	.ipc_msg_data	= intel_ipc_msg_data,
 	.ipc_pcm_params	= intel_ipc_pcm_params,
 
+	/* machine driver */
+	.machine_check = sof_machine_check,
+	.machine_register = sof_machine_register,
+	.machine_unregister = sof_machine_unregister,
+
 	/* debug */
 	.debug_map	= byt_debugfs,
 	.debug_map_count	= ARRAY_SIZE(byt_debugfs),
@@ -599,8 +604,11 @@ static int byt_acpi_probe(struct snd_sof_dev *sdev)
 irq:
 	/* register our IRQ */
 	sdev->ipc_irq = platform_get_irq(pdev, desc->irqindex_host_ipc);
-	if (sdev->ipc_irq < 0)
+	if (sdev->ipc_irq < 0) {
+		dev_err(sdev->dev, "error: failed to get IRQ at index %d\n",
+			desc->irqindex_host_ipc);
 		return sdev->ipc_irq;
+	}
 
 	dev_dbg(sdev->dev, "using IRQ %d\n", sdev->ipc_irq);
 	ret = devm_request_threaded_irq(sdev->dev, sdev->ipc_irq,
@@ -653,6 +661,11 @@ const struct snd_sof_dsp_ops sof_byt_ops = {
 
 	.ipc_msg_data	= intel_ipc_msg_data,
 	.ipc_pcm_params	= intel_ipc_pcm_params,
+
+	/* machine driver */
+	.machine_check = sof_machine_check,
+	.machine_register = sof_machine_register,
+	.machine_unregister = sof_machine_unregister,
 
 	/* debug */
 	.debug_map	= byt_debugfs,
@@ -712,6 +725,11 @@ const struct snd_sof_dsp_ops sof_cht_ops = {
 
 	.ipc_msg_data	= intel_ipc_msg_data,
 	.ipc_pcm_params	= intel_ipc_pcm_params,
+
+	/* machine driver */
+	.machine_check = sof_machine_check,
+	.machine_register = sof_machine_register,
+	.machine_unregister = sof_machine_unregister,
 
 	/* debug */
 	.debug_map	= cht_debugfs,

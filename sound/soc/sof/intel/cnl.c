@@ -211,6 +211,11 @@ const struct snd_sof_dsp_ops sof_cnl_ops = {
 	.ipc_msg_data	= hda_ipc_msg_data,
 	.ipc_pcm_params	= hda_ipc_pcm_params,
 
+	/* machine driver */
+	.machine_check = sof_machine_check,
+	.machine_register = sof_machine_register,
+	.machine_unregister = sof_machine_unregister,
+
 	/* debug */
 	.debug_map	= cnl_dsp_debugfs,
 	.debug_map_count	= ARRAY_SIZE(cnl_dsp_debugfs),

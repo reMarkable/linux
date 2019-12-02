@@ -202,6 +202,13 @@ struct snd_sof_dsp_ops {
 	int (*get_window_offset)(struct snd_sof_dev *sdev,
 				 u32 id);/* mandatory for common loader code */
 
+	/* machine driver ops */
+	int (*machine_register)(struct snd_sof_dev *sdev,
+				void *pdata); /* optional */
+	void (*machine_unregister)(struct snd_sof_dev *sdev,
+				   void *pdata); /* optional */
+	int (*machine_check)(struct snd_sof_dev *sdev); /* optional */
+
 	/* DAI ops */
 	struct snd_soc_dai_driver *drv;
 	int num_drv;
@@ -458,9 +465,13 @@ int snd_sof_suspend(struct device *dev);
 
 void snd_sof_new_platform_drv(struct snd_sof_dev *sdev);
 
-int snd_sof_create_page_table(struct snd_sof_dev *sdev,
+int snd_sof_create_page_table(struct device *dev,
 			      struct snd_dma_buffer *dmab,
 			      unsigned char *page_table, size_t size);
+
+int sof_machine_register(struct snd_sof_dev *sdev, void *pdata);
+void sof_machine_unregister(struct snd_sof_dev *sdev, void *pdata);
+int sof_machine_check(struct snd_sof_dev *sdev);
 
 /*
  * Firmware loading.
@@ -542,8 +553,6 @@ int snd_sof_ipc_set_get_comp_data(struct snd_sof_ipc *ipc,
  * There is no snd_sof_free_topology since topology components will
  * be freed by snd_soc_unregister_component,
  */
-int snd_sof_init_topology(struct snd_sof_dev *sdev,
-			  struct snd_soc_tplg_ops *ops);
 int snd_sof_load_topology(struct snd_sof_dev *sdev, const char *file);
 int snd_sof_complete_pipeline(struct snd_sof_dev *sdev,
 			      struct snd_sof_widget *swidget);

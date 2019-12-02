@@ -16,16 +16,14 @@
 
 #define FSL_ASRC_DMABUF_SIZE	(256 * 1024)
 
-static const struct snd_pcm_hardware snd_imx_hardware = {
+static struct snd_pcm_hardware snd_imx_hardware = {
 	.info = SNDRV_PCM_INFO_INTERLEAVED |
 		SNDRV_PCM_INFO_BLOCK_TRANSFER |
 		SNDRV_PCM_INFO_MMAP |
-		SNDRV_PCM_INFO_MMAP_VALID |
-		SNDRV_PCM_INFO_PAUSE |
-		SNDRV_PCM_INFO_RESUME,
+		SNDRV_PCM_INFO_MMAP_VALID,
 	.buffer_bytes_max = FSL_ASRC_DMABUF_SIZE,
 	.period_bytes_min = 128,
-	.period_bytes_max = 65535, /* Limited by SDMA engine */
+	.period_bytes_max = 65532, /* Limited by SDMA engine */
 	.periods_min = 2,
 	.periods_max = 255,
 	.fifo_size = 0,
@@ -148,6 +146,7 @@ static int fsl_asrc_dma_hw_params(struct snd_pcm_substream *substream,
 	struct device *dev_be;
 	u8 dir = tx ? OUT : IN;
 	dma_cap_mask_t mask;
+	enum sdma_peripheral_type be_peripheral_type;
 	int ret;
 
 	/* Fetch the Back-End dma_data from DPCM */
@@ -201,19 +200,43 @@ static int fsl_asrc_dma_hw_params(struct snd_pcm_substream *substream,
 
 	/* Get DMA request of Back-End */
 	tmp_chan = dma_request_slave_channel(dev_be, tx ? "tx" : "rx");
-	tmp_data = tmp_chan->private;
-	pair->dma_data.dma_request = tmp_data->dma_request;
-	dma_release_channel(tmp_chan);
+	if (tmp_chan) {
+		tmp_data = tmp_chan->private;
+		if (tmp_data) {
+			pair->dma_data.dma_request = tmp_data->dma_request;
+			be_peripheral_type = tmp_data->peripheral_type;
+			if (tx && be_peripheral_type == IMX_DMATYPE_SSI_DUAL)
+				pair->dma_data.dst_dualfifo = true;
+			if (!tx && be_peripheral_type == IMX_DMATYPE_SSI_DUAL)
+				pair->dma_data.src_dualfifo = true;
+		}
+		dma_release_channel(tmp_chan);
+	}
 
 	/* Get DMA request of Front-End */
 	tmp_chan = fsl_asrc_get_dma_channel(pair, dir);
-	tmp_data = tmp_chan->private;
-	pair->dma_data.dma_request2 = tmp_data->dma_request;
-	pair->dma_data.peripheral_type = tmp_data->peripheral_type;
-	pair->dma_data.priority = tmp_data->priority;
-	dma_release_channel(tmp_chan);
+	if (tmp_chan) {
+		tmp_data = tmp_chan->private;
+		if (tmp_data) {
+			pair->dma_data.dma_request2 = tmp_data->dma_request;
+			pair->dma_data.peripheral_type =
+				 tmp_data->peripheral_type;
+			pair->dma_data.priority = tmp_data->priority;
+		}
+		dma_release_channel(tmp_chan);
+	}
 
-	pair->dma_chan[dir] = dma_request_channel(mask, filter, &pair->dma_data);
+	/* For sdma DEV_TO_DEV, there is two dma request
+	 * But for emda DEV_TO_DEV, there is only one dma request, which is
+	 * from the BE.
+	 */
+	if (pair->dma_data.dma_request2 != pair->dma_data.dma_request)
+		pair->dma_chan[dir] =
+			dma_request_channel(mask, filter, &pair->dma_data);
+	else
+		pair->dma_chan[dir] =
+			fsl_asrc_get_dma_channel(pair, dir);
+
 	if (!pair->dma_chan[dir]) {
 		dev_err(dev, "failed to request DMA channel for Back-End\n");
 		return -EINVAL;
@@ -223,6 +246,8 @@ static int fsl_asrc_dma_hw_params(struct snd_pcm_substream *substream,
 		buswidth = DMA_SLAVE_BUSWIDTH_2_BYTES;
 	else
 		buswidth = DMA_SLAVE_BUSWIDTH_4_BYTES;
+
+	memset(&config_be, 0, sizeof(config_be));
 
 	config_be.direction = DMA_DEV_TO_DEV;
 	config_be.src_addr_width = buswidth;
@@ -276,6 +301,16 @@ static int fsl_asrc_dma_startup(struct snd_pcm_substream *substream)
 	struct device *dev = component->dev;
 	struct fsl_asrc *asrc_priv = dev_get_drvdata(dev);
 	struct fsl_asrc_pair *pair;
+	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
+	u8 dir = tx ? OUT : IN;
+	struct dma_slave_caps dma_caps;
+	struct dma_chan *tmp_chan;
+	struct snd_dmaengine_dai_dma_data *dma_data;
+	u32 addr_widths = BIT(DMA_SLAVE_BUSWIDTH_1_BYTE) |
+			  BIT(DMA_SLAVE_BUSWIDTH_2_BYTES) |
+			  BIT(DMA_SLAVE_BUSWIDTH_4_BYTES);
+	int ret;
+	int i;
 
 	pair = kzalloc(sizeof(struct fsl_asrc_pair), GFP_KERNEL);
 	if (!pair)
@@ -285,8 +320,78 @@ static int fsl_asrc_dma_startup(struct snd_pcm_substream *substream)
 
 	runtime->private_data = pair;
 
-	snd_pcm_hw_constraint_integer(substream->runtime,
-				      SNDRV_PCM_HW_PARAM_PERIODS);
+	ret = snd_pcm_hw_constraint_integer(substream->runtime,
+			SNDRV_PCM_HW_PARAM_PERIODS);
+	if (ret < 0) {
+		dev_err(dev, "failed to set pcm hw params periods\n");
+		return ret;
+	}
+
+	dma_data = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
+
+	fsl_asrc_request_pair(1, pair);
+
+	tmp_chan = fsl_asrc_get_dma_channel(pair, dir);
+	if (!tmp_chan) {
+		dev_err(dev, "can't get dma channel\n");
+		return -EINVAL;
+	}
+
+	ret = dma_get_slave_caps(tmp_chan, &dma_caps);
+	if (ret == 0) {
+		if (dma_caps.cmd_pause)
+			snd_imx_hardware.info |= SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME;
+		if (dma_caps.residue_granularity <= DMA_RESIDUE_GRANULARITY_SEGMENT)
+			snd_imx_hardware.info |= SNDRV_PCM_INFO_BATCH;
+
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+			addr_widths = dma_caps.dst_addr_widths;
+		else
+			addr_widths = dma_caps.src_addr_widths;
+	}
+
+	/*
+	 * If SND_DMAENGINE_PCM_DAI_FLAG_PACK is set keep
+	 * hw.formats set to 0, meaning no restrictions are in place.
+	 * In this case it's the responsibility of the DAI driver to
+	 * provide the supported format information.
+	 */
+	if (!(dma_data->flags & SND_DMAENGINE_PCM_DAI_FLAG_PACK))
+		/*
+		 * Prepare formats mask for valid/allowed sample types. If the
+		 * dma does not have support for the given physical word size,
+		 * it needs to be masked out so user space can not use the
+		 * format which produces corrupted audio.
+		 * In case the dma driver does not implement the slave_caps the
+		 * default assumption is that it supports 1, 2 and 4 bytes
+		 * widths.
+		 */
+		for (i = 0; i <= SNDRV_PCM_FORMAT_LAST; i++) {
+			int bits = snd_pcm_format_physical_width(i);
+
+			/*
+			 * Enable only samples with DMA supported physical
+			 * widths
+			 */
+			switch (bits) {
+			case 8:
+			case 16:
+			case 24:
+			case 32:
+			case 64:
+				if (addr_widths & (1 << (bits / 8)))
+					snd_imx_hardware.formats |= (1LL << i);
+				break;
+			default:
+				/* Unsupported types */
+				break;
+			}
+		}
+
+	if (tmp_chan)
+		dma_release_channel(tmp_chan);
+	fsl_asrc_release_pair(pair);
+
 	snd_soc_set_runtime_hwparams(substream, &snd_imx_hardware);
 
 	return 0;

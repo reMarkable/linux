@@ -3,6 +3,7 @@
  * wm8962.c  --  WM8962 ALSA SoC Audio driver
  *
  * Copyright 2010-2 Wolfson Microelectronics plc
+ * Copyright 2017 NXP
  *
  * Author: Mark Brown <broonie@opensource.wolfsonmicro.com>
  */
@@ -82,6 +83,7 @@ struct wm8962_priv {
 #endif
 
 	int irq;
+	u32 cache_clocking2_reg;
 };
 
 /* We can't use the same notifier block for more than one supply and
@@ -1777,8 +1779,11 @@ SND_SOC_BYTES("HD Bass Coefficients", WM8962_HDBASS_AI_1, 30),
 
 SOC_DOUBLE("ALC Switch", WM8962_ALC1, WM8962_ALCL_ENA_SHIFT,
 		WM8962_ALCR_ENA_SHIFT, 1, 0),
-SND_SOC_BYTES_MASK("ALC Coefficients", WM8962_ALC1, 4,
+SND_SOC_BYTES_MASK("ALC1", WM8962_ALC1, 1,
 		WM8962_ALCL_ENA_MASK | WM8962_ALCR_ENA_MASK),
+SND_SOC_BYTES("ALC2", WM8962_ALC2, 1),
+SND_SOC_BYTES("ALC3", WM8962_ALC3, 1),
+SND_SOC_BYTES("Noise Gate", WM8962_NOISE_GATE, 1),
 };
 
 static const struct snd_kcontrol_new wm8962_spk_mono_controls[] = {
@@ -2554,11 +2559,17 @@ static int wm8962_hw_params(struct snd_pcm_substream *substream,
 {
 	struct snd_soc_component *component = dai->component;
 	struct wm8962_priv *wm8962 = snd_soc_component_get_drvdata(component);
+	snd_pcm_format_t sample_format = params_format(params);
 	int i;
 	int aif0 = 0;
 	int adctl3 = 0;
 
-	wm8962->bclk = snd_soc_params_to_bclk(params);
+	if (sample_format == SNDRV_PCM_FORMAT_S20_3LE)
+		wm8962->bclk = params_rate(params) *
+				params_channels(params) *
+				params_physical_width(params);
+	else
+		wm8962->bclk = snd_soc_params_to_bclk(params);
 	if (params_channels(params) == 1)
 		wm8962->bclk *= 2;
 
@@ -2788,7 +2799,7 @@ static int fll_factors(struct _fll_div *fll_div, unsigned int Fref,
 
 	if (target % Fref == 0) {
 		fll_div->theta = 0;
-		fll_div->lambda = 0;
+		fll_div->lambda = 1;
 	} else {
 		gcd_fll = gcd(target, fratio * Fref);
 
@@ -2858,7 +2869,7 @@ static int wm8962_set_fll(struct snd_soc_component *component, int fll_id, int s
 		return -EINVAL;
 	}
 
-	if (fll_div.theta || fll_div.lambda)
+	if (fll_div.theta)
 		fll1 |= WM8962_FLL_FRAC;
 
 	/* Stop the FLL while we reconfigure */
@@ -3813,6 +3824,10 @@ static int wm8962_runtime_resume(struct device *dev)
 
 	regcache_sync(wm8962->regmap);
 
+	regmap_update_bits(wm8962->regmap, WM8962_CLOCKING2,
+				WM8962_SYSCLK_SRC_MASK,
+				wm8962->cache_clocking2_reg);
+
 	regmap_update_bits(wm8962->regmap, WM8962_ANTI_POP,
 			   WM8962_STARTUP_BIAS_ENA | WM8962_VMID_BUF_ENA,
 			   WM8962_STARTUP_BIAS_ENA | WM8962_VMID_BUF_ENA);
@@ -3842,6 +3857,9 @@ static int wm8962_runtime_suspend(struct device *dev)
 			   WM8962_STARTUP_BIAS_ENA |
 			   WM8962_VMID_BUF_ENA, 0);
 
+	regmap_read(wm8962->regmap, WM8962_CLOCKING2,
+				&wm8962->cache_clocking2_reg);
+
 	regcache_cache_only(wm8962->regmap, true);
 
 	regulator_bulk_disable(ARRAY_SIZE(wm8962->supplies),
@@ -3854,6 +3872,7 @@ static int wm8962_runtime_suspend(struct device *dev)
 #endif
 
 static const struct dev_pm_ops wm8962_pm = {
+	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend, pm_runtime_force_resume)
 	SET_RUNTIME_PM_OPS(wm8962_runtime_suspend, wm8962_runtime_resume, NULL)
 };
 

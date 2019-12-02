@@ -65,6 +65,14 @@ config SND_SOC_FSL_ESAI
 	  This option is only useful for out-of-tree drivers since
 	  in-tree drivers select it automatically.
 
+config SND_SOC_FSL_DAI
+	tristate "Generic FSL DAI support for Sound Open Firmware"
+	help
+	  Say Y if you want to enable generic FSL DAI support to be used
+	  with Sound Open Firmware. This module takes care of enabling
+	  clocks, power domain, pinctrl for FSL DAIs. The rest of DAI
+	  control is taken care of by SOF firmware.
+
 config SND_SOC_FSL_MICFIL
 	tristate "Pulse Density Modulation Microphone Interface (MICFIL) module support"
 	select REGMAP_MMIO
@@ -74,11 +82,45 @@ config SND_SOC_FSL_MICFIL
 	  Say Y if you want to add Pulse Density Modulation microphone
 	  interface (MICFIL) support for NXP.
 
+config SND_SOC_FSL_EASRC
+	tristate "Enhanced ASRC module support"
+	select REGMAP_MMIO
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	help
+	  Say Y if you want to add Enhanced ASRC support for NXP. The ASRC is
+	  a digital module that converts audio from a source sample rate to a
+	  destination sample rate. It is a new design module compare with the
+	  old ASRC.
+
+config SND_SOC_FSL_DSP
+	tristate "dsp module support"
+	select SND_SOC_COMPRESS
+	help
+	  Say Y if you want to add hifi 4 support for the Freescale CPUs.
+	  which is a DSP core for audio processing.
+
+config SND_SOC_FSL_RPMSG_I2S
+	tristate "I2S base on the RPMSG support"
+	depends on HAVE_IMX_RPMSG
+	help
+	  Say Y if you want to add rpmsg i2s support for the Freescale CPUs.
+	  which is depends on the rpmsg.
+	  This option is only useful for out-of-tree drivers since
+	  in-tree drivers select it automatically.
+
 config SND_SOC_FSL_UTILS
+	tristate
+
+config SND_SOC_FSL_HDMI
 	tristate
 
 config SND_SOC_IMX_PCM_DMA
 	tristate
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+
+config SND_SOC_IMX_PCM_RPMSG
+	tristate
+	depends on HAVE_IMX_RPMSG
 	select SND_SOC_GENERIC_DMAENGINE_PCM
 
 config SND_SOC_IMX_AUDMUX
@@ -98,7 +140,7 @@ config SND_POWERPC_SOC
 
 config SND_IMX_SOC
 	tristate "SoC Audio for Freescale i.MX CPUs"
-	depends on ARCH_MXC || COMPILE_TEST
+	depends on ARCH_MXC || ARCH_MXC_ARM64 || COMPILE_TEST
 	help
 	  Say Y or M if you want to add support for codecs attached to
 	  the i.MX CPUs.
@@ -201,6 +243,11 @@ config SND_SOC_IMX_SSI
 	tristate
 	select SND_SOC_FSL_UTILS
 
+config SND_SOC_IMX_HDMI_DMA
+	bool
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	select SND_SOC_IMX_PCM_DMA
+
 comment "SoC Audio support for Freescale i.MX boards:"
 
 config SND_MXC_SOC_WM1133_EV1
@@ -249,6 +296,149 @@ config SND_SOC_EUKREA_TLV320
 	  Enable I2S based access to the TLV320AIC23B codec attached
 	  to the SSI interface
 
+config SND_SOC_IMX_AK4458
+	tristate "SoC Audio support for i.MX boards with AK4458"
+	depends on OF && I2C
+	select SND_SOC_AK4458_I2C
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_UTILS
+	help
+	  SoC Audio support for i.MX boards with AK4458
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  an AK4458 DAC.
+
+config SND_SOC_IMX_AK5558
+	tristate "SoC Audio support for i.MX boards with AK5558"
+	depends on OF && I2C
+	select SND_SOC_AK5558
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_UTILS
+	help
+	  SoC Audio support for i.MX boards with AK5558
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  an AK5558 ADC.
+
+config SND_SOC_IMX_AK4497
+	tristate "SoC Audio support for i.MX boards with AK4497"
+	depends on OF && I2C
+	select SND_SOC_AK4458
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_UTILS
+	help
+	  SoC Audio support for i.MX boards with AK4497
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  an AK4497 DAC.
+
+config SND_SOC_IMX_WM8960
+	tristate "SoC Audio support for i.MX boards with wm8960"
+	depends on OF && I2C
+	select SND_SOC_WM8960
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_UTILS
+	select SND_KCTL_JACK
+	help
+	  SoC Audio support for i.MX boards with WM8960
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  a wm8960 codec.
+
+config SND_SOC_IMX_WM8524
+	tristate "SoC Audio support for i.MX boards with wm8524"
+	depends on OF && I2C
+	select SND_SOC_WM8524
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_UTILS
+	select SND_KCTL_JACK
+	help
+	  SoC Audio support for i.MX boards with WM8524
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  a wm8524 codec.
+
+config SND_SOC_IMX_SII902X
+	tristate "SoC Audio support for i.MX boards with sii902x"
+	depends on OF && I2C
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_UTILS
+	help
+	 SoC Audio support for i.MX boards with SII902X
+	 Say Y if you want to add support for SoC audio on an i.MX board with
+	 a sii902x.
+
+config SND_SOC_IMX_WM8958
+	tristate "SoC Audio support for i.MX boards with wm8958"
+	depends on OF && I2C
+	select MFD_WM8994
+	select SND_SOC_WM8994
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_UTILS
+	select SND_KCTL_JACK
+	help
+	 SoC Audio support for i.MX boards with WM8958
+	 Say Y if you want to add support for SoC audio on an i.MX board with
+	 a wm8958 codec.
+
+config SND_SOC_IMX_CS42888
+	tristate "SoC Audio support for i.MX boards with cs42888"
+	depends on OF && I2C
+	select SND_SOC_CS42XX8_I2C
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_ESAI
+	select SND_SOC_FSL_ASRC
+	select SND_SOC_FSL_UTILS
+	help
+	 SoC Audio support for i.MX boards with cs42888
+	 Say Y if you want to add support for SoC audio on an i.MX board with
+	 a cs42888 codec.
+
+config SND_SOC_IMX_WM8962
+	tristate "SoC Audio support for i.MX boards with wm8962"
+	depends on OF && I2C && INPUT
+	select SND_SOC_WM8962
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_IMX_AUDMUX
+	select SND_SOC_FSL_SSI
+	select SND_KCTL_JACK
+	help
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  a wm8962 codec.
+
+config SND_SOC_IMX_WM8962_ANDROID
+	tristate "SoC Audio support for i.MX boards with wm8962 in android"
+	depends on SND_SOC_IMX_WM8962=y
+	help
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  a wm8962 codec in android.
+
+config SND_SOC_IMX_MICFIL
+	tristate "SoC Audio support for i.MX boards with micfil"
+	depends on OF && I2C
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_MICFIL
+	help
+	  Soc Audio support for i.MX boards with micfil
+	  Say Y if you want to add support for SoC audio on
+	  an i.MX board with micfil.
+
+config SND_SOC_IMX_RPMSG
+	tristate "SoC Audio support for i.MX boards with rpmsg"
+	depends on HAVE_IMX_RPMSG
+	select SND_SOC_IMX_PCM_RPMSG
+	select SND_SOC_FSL_RPMSG_I2S
+	select SND_SOC_RPMSG_WM8960
+	select SND_SOC_RPMSG_AK4497
+	select SND_SOC_RPMSG_CS42XX8
+	help
+	  SoC Audio support for i.MX boards with rpmsg.
+	  There should be rpmsg devices defined in other core
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  a rpmsg devices.
+
 config SND_SOC_IMX_ES8328
 	tristate "SoC Audio support for i.MX boards with the ES8328 codec"
 	depends on OF && (I2C || SPI)
@@ -271,6 +461,14 @@ config SND_SOC_IMX_SGTL5000
 	help
 	  Say Y if you want to add support for SoC audio on an i.MX board with
 	  a sgtl5000 codec.
+
+config SND_SOC_IMX_MQS
+	tristate "SoC Audio support for i.MX boards with MQS"
+	depends on OF
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_FSL_MQS
+	select SND_SOC_FSL_UTILS
 
 config SND_SOC_IMX_SPDIF
 	tristate "SoC Audio support for i.MX boards with S/PDIF"
@@ -302,7 +500,7 @@ config SND_SOC_FSL_ASOC_CARD
 	help
 	 ALSA SoC Audio support with ASRC feature for Freescale SoCs that have
 	 ESAI/SAI/SSI and connect with external CODECs such as WM8962, CS42888,
-	 CS4271, CS4272 and SGTL5000.
+	 CS4271, CS4272, and SGTL5000.
 	 Say Y if you want to add support for Freescale Generic ASoC Sound Card.
 
 config SND_SOC_IMX_AUDMIX
@@ -313,6 +511,59 @@ config SND_SOC_IMX_AUDMIX
 	  SoC Audio support for i.MX boards with Audio Mixer
 	  Say Y if you want to add support for SoC audio on an i.MX board with
 	  an Audio Mixer.
+
+config SND_SOC_IMX_PDM_MIC
+	tristate "SoC Audio support for i.MX boards with PDM mic on SAI"
+	depends on OF
+	select SND_SOC_IMX_PDM_DMA
+	select SND_SOC_FSL_SAI
+	help
+	  SoC Audio support for i.MX boards with PDM microphones on SAI
+	  Say Y if you want to add support for SoC Audio support for i.MX boards
+	  with PDM microphones on SAI.
+
+config SND_SOC_IMX_DSP
+	tristate "SoC Audio support for i.MX boards with DSP port"
+	select SND_SOC_FSL_DSP
+	select SND_SOC_COMPRESS
+	help
+	  SoC Audio support for i.MX boards with DSP audio
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  IMX DSP.
+
+config SND_SOC_IMX_SI476X
+	tristate "SoC Audio support for i.MX boards with si476x"
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_IMX_AUDMUX
+	select SND_SOC_FSL_SSI
+	select SND_SOC_FSL_UTILS
+	select SND_SOC_SI476X
+	help
+	  SoC Audio support for i.MX boards with SI476x
+	  Say Y if you want to add support for Soc audio for the AMFM Tuner chip
+	  SI476x module.
+
+config SND_SOC_IMX_HDMI
+	tristate "SoC Audio support for i.MX boards with HDMI port"
+	depends on MFD_MXC_HDMI
+	select SND_SOC_IMX_HDMI_DMA
+	select SND_SOC_FSL_HDMI
+	select SND_SOC_HDMI_CODEC
+	help
+	  SoC Audio support for i.MX boards with HDMI audio
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  IMX HDMI.
+
+config SND_SOC_IMX_CDNHDMI
+	tristate "SoC Audio support for i.MX boards with CDN HDMI port"
+	depends on DRM_IMX_CDNS_MHDP
+	select SND_SOC_IMX_PCM_DMA
+	select SND_SOC_FSL_SAI
+	select SND_SOC_HDMI_CODEC
+	help
+	  SoC Audio support for i.MX boards with CDN HDMI audio
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  IMX CDN HDMI.
 
 endif # SND_IMX_SOC
 

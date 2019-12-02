@@ -19,8 +19,20 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/tlv.h>
+#include <linux/regulator/consumer.h>
 
 #include "ak5558.h"
+
+#define AK5558_SLAVE_CKS_AUTO
+
+/* enable debug */
+/* #define AK5558_DEBUG */
+
+#define AK5558_NUM_SUPPLIES 2
+static const char *ak5558_supply_names[AK5558_NUM_SUPPLIES] = {
+	"DVDD",
+	"AVDD",
+};
 
 /* AK5558 Codec Private Data */
 struct ak5558_priv {
@@ -30,6 +42,7 @@ struct ak5558_priv {
 	struct gpio_desc *reset_gpiod; /* Reset & Power down GPIO */
 	int slots;
 	int slot_width;
+	struct regulator_bulk_data supplies[AK5558_NUM_SUPPLIES];
 };
 
 /* ak5558 register cache & default register settings */
@@ -350,6 +363,7 @@ static int ak5558_i2c_probe(struct i2c_client *i2c)
 {
 	struct ak5558_priv *ak5558;
 	int ret = 0;
+	int i;
 
 	ak5558 = devm_kzalloc(&i2c->dev, sizeof(*ak5558), GFP_KERNEL);
 	if (!ak5558)
@@ -366,6 +380,23 @@ static int ak5558_i2c_probe(struct i2c_client *i2c)
 						      GPIOD_OUT_LOW);
 	if (IS_ERR(ak5558->reset_gpiod))
 		return PTR_ERR(ak5558->reset_gpiod);
+
+	for (i = 0; i < ARRAY_SIZE(ak5558->supplies); i++)
+		ak5558->supplies[i].supply = ak5558_supply_names[i];
+
+	ret = devm_regulator_bulk_get(&i2c->dev, ARRAY_SIZE(ak5558->supplies),
+				 ak5558->supplies);
+	if (ret != 0) {
+		dev_err(&i2c->dev, "Failed to request supplies: %d\n", ret);
+		return ret;
+	}
+
+	ret = regulator_bulk_enable(ARRAY_SIZE(ak5558->supplies),
+				    ak5558->supplies);
+	if (ret != 0) {
+		dev_err(&i2c->dev, "Failed to enable supplies: %d\n", ret);
+		return ret;
+	}
 
 	ret = devm_snd_soc_register_component(&i2c->dev,
 				     &soc_codec_dev_ak5558,

@@ -257,6 +257,9 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_WM9705 if (SND_SOC_AC97_BUS || SND_SOC_AC97_BUS_NEW)
 	select SND_SOC_WM9712 if (SND_SOC_AC97_BUS || SND_SOC_AC97_BUS_NEW)
 	select SND_SOC_WM9713 if (SND_SOC_AC97_BUS || SND_SOC_AC97_BUS_NEW)
+	select SND_SOC_RPMSG_WM8960
+	select SND_SOC_RPMSG_CS42XX8
+	select SND_SOC_RPMSG_AK4497
         help
           Normally ASoC codec drivers are only built if a machine driver which
           uses them is also built since they are only usable with a machine
@@ -695,6 +698,9 @@ config SND_SOC_ES8328_SPI
 	tristate "Everest Semi ES8328 CODEC (SPI)"
 	depends on SPI_MASTER
 	select SND_SOC_ES8328
+
+config SND_SOC_FSL_MQS
+	tristate
 
 config SND_SOC_GTM601
 	tristate 'GTM601 UMTS modem audio codec'
@@ -1436,6 +1442,14 @@ config SND_SOC_ZX_AUD96P22
 	depends on I2C
 	select REGMAP_I2C
 
+config SND_SOC_RPMSG_WM8960
+	tristate
+
+config SND_SOC_RPMSG_CS42XX8
+	tristate
+
+config SND_SOC_RPMSG_AK4497
+	tristate
 # Amp
 config SND_SOC_LM4857
 	tristate
