@@ -14,6 +14,8 @@
 
 DEFINE_SPINLOCK(imx_ccm_lock);
 
+bool uart_from_osc;
+
 void imx_unregister_clocks(struct clk *clks[], unsigned int count)
 {
 	unsigned int i;
@@ -133,7 +135,7 @@ void imx_cscmr1_fixup(u32 *val)
 }
 
 static int imx_keep_uart_clocks;
-static struct clk ** const *imx_uart_clocks;
+static bool imx_uart_clks_on;
 
 static int __init imx_keep_uart_clocks_param(char *str)
 {
@@ -146,26 +148,49 @@ __setup_param("earlycon", imx_keep_uart_earlycon,
 __setup_param("earlyprintk", imx_keep_uart_earlyprintk,
 	      imx_keep_uart_clocks_param, 0);
 
-void imx_register_uart_clocks(struct clk ** const clks[])
+static void imx_earlycon_uart_clks_onoff(bool is_on)
 {
-	if (imx_keep_uart_clocks) {
-		int i;
+	struct clk *uart_clk;
+	int i = 0;
 
-		imx_uart_clocks = clks;
-		for (i = 0; imx_uart_clocks[i]; i++)
-			clk_prepare_enable(*imx_uart_clocks[i]);
-	}
+	if (!imx_keep_uart_clocks || (!is_on && !imx_uart_clks_on))
+		return;
+
+	/* only support dt */
+	if (!of_stdout)
+		return;
+
+	do {
+		uart_clk = of_clk_get(of_stdout, i++);
+		if (IS_ERR(uart_clk))
+			break;
+
+		if (is_on)
+			clk_prepare_enable(uart_clk);
+		else
+			clk_disable_unprepare(uart_clk);
+	} while (true);
+
+	if (is_on)
+		imx_uart_clks_on = true;
+}
+
+void imx_register_uart_clocks(void)
+{
+	imx_earlycon_uart_clks_onoff(true);
 }
 
 static int __init imx_clk_disable_uart(void)
 {
-	if (imx_keep_uart_clocks && imx_uart_clocks) {
-		int i;
-
-		for (i = 0; imx_uart_clocks[i]; i++)
-			clk_disable_unprepare(*imx_uart_clocks[i]);
-	}
+	imx_earlycon_uart_clks_onoff(false);
 
 	return 0;
 }
 late_initcall_sync(imx_clk_disable_uart);
+
+static int __init setup_uart_clk(char *uart_rate)
+{
+       uart_from_osc = true;
+       return 1;
+}
+__setup("uart_from_osc", setup_uart_clk);

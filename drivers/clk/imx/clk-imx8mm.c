@@ -12,7 +12,9 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
+#include <linux/slab.h>
 #include <linux/types.h>
+#include <soc/imx/soc.h>
 
 #include "clk.h"
 
@@ -357,13 +359,31 @@ static const char *imx8mm_clko1_sels[] = {"osc_24m", "sys_pll1_800m", "osc_27m",
 static struct clk *clks[IMX8MM_CLK_END];
 static struct clk_onecell_data clk_data;
 
-static struct clk ** const uart_clks[] = {
-	&clks[IMX8MM_CLK_UART1_ROOT],
-	&clks[IMX8MM_CLK_UART2_ROOT],
-	&clks[IMX8MM_CLK_UART3_ROOT],
-	&clks[IMX8MM_CLK_UART4_ROOT],
-	NULL
-};
+static int __init imx_clk_init_on(struct device_node *np,
+				  struct clk * const clks[])
+{
+	u32 *array;
+	int i, ret, elems;
+
+	elems = of_property_count_u32_elems(np, "init-on-array");
+	if (elems < 0)
+		return elems;
+	array = kcalloc(elems, sizeof(elems), GFP_KERNEL);
+	if (IS_ERR_OR_NULL(array))
+		return PTR_ERR(array);
+
+	ret = of_property_read_u32_array(np, "init-on-array", array, elems);
+	if (ret)
+		return ret;
+
+	for (i = 0; i < elems; i++) {
+		ret = clk_prepare_enable(clks[array[i]]);
+		if (ret)
+			pr_err("clk_prepare_enable failed %d\n", array[i]);
+	}
+
+	return 0;
+}
 
 static int imx8mm_clocks_probe(struct platform_device *pdev)
 {
@@ -371,6 +391,8 @@ static int imx8mm_clocks_probe(struct platform_device *pdev)
 	struct device_node *np = dev->of_node;
 	void __iomem *base;
 	int ret;
+
+	check_m4_enabled();
 
 	clks[IMX8MM_CLK_DUMMY] = imx_clk_fixed("dummy", 0);
 	clks[IMX8MM_CLK_24M] = of_clk_get_by_name(np, "osc_24m");
@@ -477,7 +499,7 @@ static int imx8mm_clocks_probe(struct platform_device *pdev)
 	/* BUS */
 	clks[IMX8MM_CLK_MAIN_AXI] = imx8m_clk_composite_critical("main_axi",  imx8mm_main_axi_sels, base + 0x8800);
 	clks[IMX8MM_CLK_ENET_AXI] = imx8m_clk_composite("enet_axi", imx8mm_enet_axi_sels, base + 0x8880);
-	clks[IMX8MM_CLK_NAND_USDHC_BUS] = imx8m_clk_composite_critical("nand_usdhc_bus", imx8mm_nand_usdhc_sels, base + 0x8900);
+	clks[IMX8MM_CLK_NAND_USDHC_BUS] = imx8m_clk_composite("nand_usdhc_bus", imx8mm_nand_usdhc_sels, base + 0x8900);
 	clks[IMX8MM_CLK_VPU_BUS] = imx8m_clk_composite("vpu_bus", imx8mm_vpu_bus_sels, base + 0x8980);
 	clks[IMX8MM_CLK_DISP_AXI] = imx8m_clk_composite("disp_axi", imx8mm_disp_axi_sels, base + 0x8a00);
 	clks[IMX8MM_CLK_DISP_APB] = imx8m_clk_composite("disp_apb", imx8mm_disp_apb_sels, base + 0x8a80);
@@ -650,7 +672,16 @@ static int imx8mm_clocks_probe(struct platform_device *pdev)
 		goto unregister_clks;
 	}
 
-	imx_register_uart_clocks(uart_clks);
+	imx_clk_init_on(np, clks);
+
+	clk_set_parent(clks[IMX8MM_CLK_PCIE1_CTRL], clks[IMX8MM_SYS_PLL2_250M]);
+	clk_set_parent(clks[IMX8MM_CLK_PCIE1_PHY], clks[IMX8MM_SYS_PLL2_100M]);
+
+	clk_set_parent(clks[IMX8MM_CLK_CSI1_CORE], clks[IMX8MM_SYS_PLL2_1000M]);
+	clk_set_parent(clks[IMX8MM_CLK_CSI1_PHY_REF], clks[IMX8MM_SYS_PLL2_1000M]);
+	clk_set_parent(clks[IMX8MM_CLK_CSI1_ESC], clks[IMX8MM_SYS_PLL1_800M]);
+
+	imx_register_uart_clocks();
 
 	return 0;
 
