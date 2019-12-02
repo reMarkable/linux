@@ -22,3 +22,65 @@
 		stdout-path = "serial0:115200n8";
 	};
 };
+
+&ifc {
+	boardctrl: board-control@3,0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "fsl,tetra-fpga", "fsl,fpga-qixis", "simple-bus";
+		reg = <3 0 0x300>;		/* TODO check address */
+		ranges = <0 3 0 0x300>;
+
+		mdio_mux_emi1 {
+			compatible = "mdio-mux-mmioreg", "mdio-mux";
+			mdio-parent-bus = <&emdio1>;
+			reg = <0x54 1>;		/* BRDCFG4 */
+			mux-mask = <0xe0>;	/* EMI1_MDIO */
+
+			#address-cells=<1>;
+			#size-cells = <0>;
+
+			/* Child MDIO buses, one for each riser card:
+			 * reg = 0x0, 0x20, 0x40, 0x60, 0x80, 0xa0.
+			 * VSC8234 PHYs on the riser cards.
+			 */
+
+			mdio_mux3: mdio@60 {
+				reg = <0x60>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				mdio0_phy12: mdio_phy0@1c {
+					reg = <0x1c>;
+					phy-connection-type = "sgmii";
+				};
+				mdio0_phy13: mdio_phy1@1d {
+					reg = <0x1d>;
+					phy-connection-type = "sgmii";
+				};
+				mdio0_phy14: mdio_phy2@1e {
+					reg = <0x1e>;
+					phy-connection-type = "sgmii";
+				};
+				mdio0_phy15: mdio_phy3@1f {
+					reg = <0x1f>;
+					phy-connection-type = "sgmii";
+				};
+			};
+		};
+	};
+};
+
+/* Update DPMAC connections to external PHYs, under SerDes 0x2a_0x49. */
+&dpmac9 {
+	phy-handle = <&mdio0_phy12>;
+};
+&dpmac10 {
+	phy-handle = <&mdio0_phy13>;
+};
+&dpmac11 {
+	phy-handle = <&mdio0_phy14>;
+};
+&dpmac12 {
+	phy-handle = <&mdio0_phy15>;
+};

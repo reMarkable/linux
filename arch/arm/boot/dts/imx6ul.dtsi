@@ -82,10 +82,15 @@
 				 <&clks IMX6UL_CA7_SECONDARY_SEL>,
 				 <&clks IMX6UL_CLK_STEP>,
 				 <&clks IMX6UL_CLK_PLL1_SW>,
-				 <&clks IMX6UL_CLK_PLL1_SYS>;
+				 <&clks IMX6UL_CLK_PLL1_SYS>,
+				 <&clks IMX6UL_PLL1_BYPASS>,
+				 <&clks IMX6UL_CLK_PLL1>,
+				 <&clks IMX6UL_PLL1_BYPASS_SRC>,
+				 <&clks IMX6UL_CLK_OSC>;
 			clock-names = "arm", "pll2_bus",  "pll2_pfd2_396m",
 				      "secondary_sel", "step", "pll1_sw",
-				      "pll1_sys";
+				      "pll1_sys", "pll1_bypass", "pll1",
+				      "pll1_bypass_src", "osc";
 			arm-supply = <&reg_arm>;
 			soc-supply = <&reg_soc>;
 			nvmem-cells = <&cpu_speed_grade>;
@@ -154,9 +159,43 @@
 		interrupt-parent = <&gpc>;
 		ranges;
 
-		ocram: sram@900000 {
+		busfreq {
+			compatible = "fsl,imx_busfreq";
+			clocks = <&clks IMX6UL_CLK_PLL2_PFD2>, <&clks IMX6UL_CLK_PLL2_198M>,
+				 <&clks IMX6UL_CLK_PLL2_BUS>, <&clks IMX6UL_CLK_ARM>,
+				 <&clks IMX6UL_CLK_PLL3_USB_OTG>, <&clks IMX6UL_CLK_PERIPH>,
+				 <&clks IMX6UL_CLK_PERIPH_PRE>, <&clks IMX6UL_CLK_PERIPH_CLK2>,
+				 <&clks IMX6UL_CLK_PERIPH_CLK2_SEL>, <&clks IMX6UL_CLK_OSC>,
+				 <&clks IMX6UL_CLK_AHB>, <&clks IMX6UL_CLK_AXI>,
+				 <&clks IMX6UL_CLK_PERIPH2>, <&clks IMX6UL_CLK_PERIPH2_PRE>,
+				 <&clks IMX6UL_CLK_PERIPH2_CLK2>, <&clks IMX6UL_CLK_PERIPH2_CLK2_SEL>,
+				 <&clks IMX6UL_CLK_STEP>, <&clks IMX6UL_CLK_MMDC_P0_FAST>;
+			clock-names = "pll2_pfd2_396m", "pll2_198m", "pll2_bus", "arm", "pll3_usb_otg",
+				      "periph", "periph_pre", "periph_clk2", "periph_clk2_sel", "osc",
+				      "ahb", "ocram", "periph2", "periph2_pre", "periph2_clk2", "periph2_clk2_sel",
+				      "step", "mmdc";
+			fsl,max_ddr_freq = <400000000>;
+		};
+
+		ocrams: sram@900000 {
+			compatible = "fsl,lpm-sram";
+			reg = <0x900000 0x4000>;
+		};
+
+		ocrams_ddr: sram@904000 {
+			compatible = "fsl,ddr-lpm-sram";
+			reg = <0x904000 0x1000>;
+		};
+
+		ocram: sram@905000 {
 			compatible = "mmio-sram";
-			reg = <0x00900000 0x20000>;
+			reg = <0x00905000 0x1B000>;
+		};
+
+		ocram_optee: sram@918000 {
+			compatible = "fsl,optee-lpm-sram";
+			reg = <0x918000 0x8000>;
+			overw_reg = <&ocram 0x905000 0x13000>;
 		};
 
 		intc: interrupt-controller@a01000 {
@@ -182,6 +221,11 @@
 			#dma-cells = <1>;
 			dma-channels = <4>;
 			clocks = <&clks IMX6UL_CLK_APBHDMA>;
+		};
+
+		caam_sm: caam-sm@100000 {
+			 compatible = "fsl,imx7d-caam-sm", "fsl,imx6q-caam-sm";
+			 reg = <0x100000 0x8000>;
 		};
 
 		gpmi: gpmi-nand@1806000 {
@@ -350,6 +394,31 @@
 					       <&sdma 40 24 0>;
 					dma-names = "rx", "tx";
 					status = "disabled";
+				};
+
+				asrc: asrc@2034000 {
+					compatible = "fsl,imx53-asrc";
+					reg = <0x2034000 0x4000>;
+					interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+					clocks = <&clks IMX6UL_CLK_ASRC_IPG>,
+						<&clks IMX6UL_CLK_ASRC_MEM>, <&clks 0>,
+						<&clks 0>, <&clks 0>, <&clks 0>, <&clks 0>,
+						<&clks 0>, <&clks 0>, <&clks 0>, <&clks 0>,
+						<&clks 0>, <&clks 0>, <&clks 0>, <&clks 0>,
+						<&clks IMX6UL_CLK_SPDIF>, <&clks 0>, <&clks 0>,
+						<&clks IMX6UL_CLK_SPBA>;
+					clock-names = "mem", "ipg", "asrck_0",
+						"asrck_1", "asrck_2", "asrck_3", "asrck_4",
+						"asrck_5", "asrck_6", "asrck_7", "asrck_8",
+						"asrck_9", "asrck_a", "asrck_b", "asrck_c",
+						"asrck_d", "asrck_e", "asrck_f", "spba";
+					dmas = <&sdma 17 23 1>, <&sdma 18 23 1>, <&sdma 19 23 1>,
+						<&sdma 20 23 1>, <&sdma 21 23 1>, <&sdma 22 23 1>;
+					dma-names = "rxa", "rxb", "rxc",
+						    "txa", "txb", "txc";
+					fsl,asrc-rate  = <48000>;
+					fsl,asrc-width = <16>;
+					status = "okay";
 				};
 			};
 
@@ -520,6 +589,9 @@
 					      "enet_clk_ref", "enet_out";
 				fsl,num-tx-queues = <1>;
 				fsl,num-rx-queues = <1>;
+				stop-mode = <&gpr 0x10 4>;
+				fsl,magic-packet;
+				fsl,wakeup_irq = <0>;
 				status = "disabled";
 			};
 
@@ -629,6 +701,20 @@
 				clocks = <&clks IMX6UL_CLK_USBPHY2>;
 				phy-3p0-supply = <&reg_3p0>;
 				fsl,anatop = <&anatop>;
+			};
+
+			irq_sec_vio: caam_secvio {
+				compatible = "fsl,imx6q-caam-secvio";
+				interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+				jtag-tamper = "disabled";
+				watchdog-tamper = "enabled";
+				internal-boot-tamper = "enabled";
+				external-pin-tamper = "disabled";
+			};
+
+			caam_snvs: caam-snvs@20cc000 {
+				compatible = "fsl,imx6q-caam-snvs";
+				reg = <0x20cc000 0x4000>;
 			};
 
 			snvs: snvs@20cc000 {
@@ -855,6 +941,16 @@
 					      "enet_clk_ref", "enet_out";
 				fsl,num-tx-queues = <1>;
 				fsl,num-rx-queues = <1>;
+				stop-mode = <&gpr 0x10 3>;
+				fsl,magic-packet;
+				fsl,wakeup_irq = <0>;
+				status = "disabled";
+			};
+
+			sim1: sim@0218c000 {
+				compatible = "fsl,imx6ul-sim";
+				reg = <0x0218c000 0x4000>;
+				interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
@@ -934,6 +1030,15 @@
 				clocks = <&clks IMX6UL_CLK_MMDC_P0_IPG>;
 			};
 
+			sim2: sim@021b4000 {
+				compatible = "fsl,imx6ul-sim";
+				reg = <0x021b4000 0x4000>;
+				interrupts = <GIC_SPI 113 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clks IMX6UL_CLK_SIM2>;
+				clock-names = "sim";
+				status = "disabled";
+			};
+
 			weim: weim@21b8000 {
 				#address-cells = <2>;
 				#size-cells = <1>;
@@ -966,11 +1071,13 @@
 			};
 
 			csi: csi@21c4000 {
-				compatible = "fsl,imx6ul-csi", "fsl,imx7-csi";
+				compatible = "fsl,imx6ul-csi", "fsl,imx7-csi", "fsl,imx6s-csi";
 				reg = <0x021c4000 0x4000>;
 				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&clks IMX6UL_CLK_CSI>;
-				clock-names = "mclk";
+				clocks = <&clks IMX6UL_CLK_DUMMY>,
+					<&clks IMX6UL_CLK_CSI>,
+					<&clks IMX6UL_CLK_DUMMY>;
+				clock-names = "disp-axi", "csi_mclk", "disp_dcic";
 				status = "disabled";
 			};
 
@@ -986,11 +1093,13 @@
 			};
 
 			pxp: pxp@21cc000 {
-				compatible = "fsl,imx6ul-pxp";
-				reg = <0x021cc000 0x4000>;
+				compatible = "fsl,imx6ul-pxp-dma", "fsl,imx6sl-pxp-dma", "fsl,imx6dl-pxp-dma";
+				reg = <0x21cc000 0x4000>;
 				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&clks IMX6UL_CLK_PXP>;
-				clock-names = "axi";
+				clocks = <&clks IMX6UL_CLK_PXP>,
+					 <&clks IMX6UL_CLK_DUMMY>;
+				clock-names = "pxp-axi", "disp-axi";
+				status = "disabled";
 			};
 
 			qspi: spi@21e0000 {

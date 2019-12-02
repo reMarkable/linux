@@ -173,6 +173,8 @@
 
 /include/ "pq3-etsec2-0.dtsi"
 	enet0: ethernet@b0000 {
+		fsl,pmc-handle = <&etsec1_clk>;
+
 		queue-group@b0000 {
 			fsl,rx-bit-map = <0xff>;
 			fsl,tx-bit-map = <0xff>;
@@ -181,6 +183,8 @@
 
 /include/ "pq3-etsec2-1.dtsi"
 	enet1: ethernet@b1000 {
+		fsl,pmc-handle = <&etsec2_clk>;
+
 		queue-group@b1000 {
 			fsl,rx-bit-map = <0xff>;
 			fsl,tx-bit-map = <0xff>;
@@ -189,6 +193,8 @@
 
 /include/ "pq3-etsec2-2.dtsi"
 	enet2: ethernet@b2000 {
+		fsl,pmc-handle = <&etsec3_clk>;
+
 		queue-group@b2000 {
 			fsl,rx-bit-map = <0xff>;
 			fsl,tx-bit-map = <0xff>;
@@ -201,4 +207,6 @@
 		reg = <0xe0000 0x1000>;
 		fsl,has-rstcr;
 	};
+
+/include/ "pq3-power.dtsi"
 };

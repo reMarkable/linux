@@ -3,7 +3,7 @@
  * Device Tree Include file for Freescale Layerscape-2080A family SoC.
  *
  * Copyright 2016 Freescale Semiconductor, Inc.
- * Copyright 2017 NXP
+ * Copyright 2017-2019 NXP
  *
  * Abhimanyu Saini <abhimanyu.saini@nxp.com>
  *
@@ -24,6 +24,7 @@
 		serial1 = &serial1;
 		serial2 = &serial2;
 		serial3 = &serial3;
+		rtc1 = &ftm_alarm0;
 	};
 
 	cpu: cpus {
@@ -77,50 +78,14 @@
 		mask = <0x2>;
 	};
 
-	thermal-zones {
-		cpu_thermal: cpu-thermal {
-			polling-delay-passive = <1000>;
-			polling-delay = <5000>;
+	#include "fsl-tmu.dtsi"
 
-			thermal-sensors = <&tmu 4>;
-
-			trips {
-				cpu_alert: cpu-alert {
-					temperature = <75000>;
-					hysteresis = <2000>;
-					type = "passive";
-				};
-				cpu_crit: cpu-crit {
-					temperature = <85000>;
-					hysteresis = <2000>;
-					type = "critical";
-				};
-			};
-
-			cooling-maps {
-				map0 {
-					trip = <&cpu_alert>;
-					cooling-device =
-						<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-						<&cpu7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-				};
-			};
-		};
-	};
-
-	timer {
+	timer: timer {
 		compatible = "arm,armv8-timer";
 		interrupts = <1 13 4>, /* Physical Secure PPI, active-low */
 			     <1 14 4>, /* Physical Non-Secure PPI, active-low */
 			     <1 11 4>, /* Virtual PPI, active-low */
 			     <1 10 4>; /* Hypervisor PPI, active-low */
-		fsl,erratum-a008585;
 	};
 
 	pmu {
@@ -560,15 +525,42 @@
 			#interrupt-cells = <2>;
 		};
 
+		/* TODO: WRIOP (CCSR?) */
+		emdio1: mdio@8B96000 { /* WRIOP0: 0x8B8_0000,
+					  * E-MDIO1: 0x1_6000
+					  */
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8B96000 0x0 0x1000>;
+			device_type = "mdio";	/* TODO: is this necessary? */
+			little-endian;	/* force the driver in LE mode */
+
+			/* Not necessary on the QDS, but needed on the RDB */
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		emdio2: mdio@8B97000 { /* WRIOP0: 0x8B8_0000,
+					  * E-MDIO2: 0x1_7000
+					  */
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8B97000 0x0 0x1000>;
+			device_type = "mdio";	/* TODO: is this necessary? */
+			little-endian;	/* force the driver in LE mode */
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
 		i2c0: i2c@2000000 {
 			status = "disabled";
-			compatible = "fsl,vf610-i2c";
+			compatible = "fsl,vf610-i2c", "fsl,ls208xa-vf610-i2c";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x0 0x2000000 0x0 0x10000>;
 			interrupts = <0 34 0x4>; /* Level high type */
 			clock-names = "i2c";
-			clocks = <&clockgen 4 3>;
+			clocks = <&clockgen 4 1>;
+			scl-gpios = <&gpio3 10 0>;
 		};
 
 		i2c1: i2c@2010000 {
@@ -579,7 +571,7 @@
 			reg = <0x0 0x2010000 0x0 0x10000>;
 			interrupts = <0 34 0x4>; /* Level high type */
 			clock-names = "i2c";
-			clocks = <&clockgen 4 3>;
+			clocks = <&clockgen 4 1>;
 		};
 
 		i2c2: i2c@2020000 {
@@ -590,7 +582,7 @@
 			reg = <0x0 0x2020000 0x0 0x10000>;
 			interrupts = <0 35 0x4>; /* Level high type */
 			clock-names = "i2c";
-			clocks = <&clockgen 4 3>;
+			clocks = <&clockgen 4 1>;
 		};
 
 		i2c3: i2c@2030000 {
@@ -601,7 +593,7 @@
 			reg = <0x0 0x2030000 0x0 0x10000>;
 			interrupts = <0 35 0x4>; /* Level high type */
 			clock-names = "i2c";
-			clocks = <&clockgen 4 3>;
+			clocks = <&clockgen 4 1>;
 		};
 
 		ifc: ifc@2240000 {
@@ -633,8 +625,8 @@
 		pcie1: pcie@3400000 {
 			compatible = "fsl,ls2080a-pcie", "fsl,ls2085a-pcie";
 			reg-names = "regs", "config";
-			interrupts = <0 108 0x4>; /* Level high type */
-			interrupt-names = "intr";
+			interrupts = <0 108 0x4>; /* aer interrupt */
+			interrupt-names = "aer";
 			#address-cells = <3>;
 			#size-cells = <2>;
 			device_type = "pci";
@@ -642,6 +634,7 @@
 			num-viewport = <6>;
 			bus-range = <0x0 0xff>;
 			msi-parent = <&its>;
+			iommu-map = <0 &smmu 0 1>;	/* This is fixed-up by u-boot */
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
 			interrupt-map = <0000 0 0 1 &gic 0 0 0 109 4>,
@@ -654,8 +647,8 @@
 		pcie2: pcie@3500000 {
 			compatible = "fsl,ls2080a-pcie", "fsl,ls2085a-pcie";
 			reg-names = "regs", "config";
-			interrupts = <0 113 0x4>; /* Level high type */
-			interrupt-names = "intr";
+			interrupts = <0 113 0x4>; /* aer interrupt */
+			interrupt-names = "aer";
 			#address-cells = <3>;
 			#size-cells = <2>;
 			device_type = "pci";
@@ -663,6 +656,7 @@
 			num-viewport = <6>;
 			bus-range = <0x0 0xff>;
 			msi-parent = <&its>;
+			iommu-map = <0 &smmu 0 1>;	/* This is fixed-up by u-boot */
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
 			interrupt-map = <0000 0 0 1 &gic 0 0 0 114 4>,
@@ -675,8 +669,8 @@
 		pcie3: pcie@3600000 {
 			compatible = "fsl,ls2080a-pcie", "fsl,ls2085a-pcie";
 			reg-names = "regs", "config";
-			interrupts = <0 118 0x4>; /* Level high type */
-			interrupt-names = "intr";
+			interrupts = <0 118 0x4>; /* aer interrupt */
+			interrupt-names = "aer";
 			#address-cells = <3>;
 			#size-cells = <2>;
 			device_type = "pci";
@@ -684,6 +678,7 @@
 			num-viewport = <256>;
 			bus-range = <0x0 0xff>;
 			msi-parent = <&its>;
+			iommu-map = <0 &smmu 0 1>;	/* This is fixed-up by u-boot */
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
 			interrupt-map = <0000 0 0 1 &gic 0 0 0 119 4>,
@@ -696,8 +691,8 @@
 		pcie4: pcie@3700000 {
 			compatible = "fsl,ls2080a-pcie", "fsl,ls2085a-pcie";
 			reg-names = "regs", "config";
-			interrupts = <0 123 0x4>; /* Level high type */
-			interrupt-names = "intr";
+			interrupts = <0 123 0x4>; /* aer interrupt */
+			interrupt-names = "aer";
 			#address-cells = <3>;
 			#size-cells = <2>;
 			device_type = "pci";
@@ -705,6 +700,7 @@
 			num-viewport = <6>;
 			bus-range = <0x0 0xff>;
 			msi-parent = <&its>;
+			iommu-map = <0 &smmu 0 1>;	/* This is fixed-up by u-boot */
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 7>;
 			interrupt-map = <0000 0 0 1 &gic 0 0 0 124 4>,
@@ -741,6 +737,7 @@
 			snps,quirk-frame-length-adjustment = <0x20>;
 			snps,dis_rxdet_inp3_quirk;
 			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+			snps,host-vbus-glitches;
 		};
 
 		usb1: usb3@3110000 {
@@ -752,12 +749,27 @@
 			snps,quirk-frame-length-adjustment = <0x20>;
 			snps,dis_rxdet_inp3_quirk;
 			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+			snps,host-vbus-glitches;
 		};
 
 		ccn@4000000 {
 			compatible = "arm,ccn-504";
 			reg = <0x0 0x04000000 0x0 0x01000000>;
 			interrupts = <0 12 4>;
+		};
+
+		rcpm: rcpm@1e34040 {
+			compatible = "fsl,ls208xa-rcpm", "fsl,qoriq-rcpm-2.1+";
+			reg = <0x0 0x1e34040 0x0 0x18>;
+			#fsl,rcpm-wakeup-cells = <6>;
+			little-endian;
+		};
+
+		ftm_alarm0: timer@2800000 {
+			compatible = "fsl,ls208xa-ftm-alarm";
+			reg = <0x0 0x2800000 0x0 0x10000>;
+			fsl,rcpm-wakeup = <&rcpm 0x0 0x0 0x0 0x0 0x4000 0x0>;
+			interrupts = <0 44 4>;
 		};
 	};
 
@@ -780,5 +792,38 @@
 			compatible = "linaro,optee-tz";
 			method = "smc";
 		};
+	};
+};
+
+#include "fsl-tmu-map1.dtsi"
+#include "fsl-tmu-map2.dtsi"
+#include "fsl-tmu-map3.dtsi"
+&thermal_zones {
+	thermal-zone1 {
+		status = "okay";
+	};
+
+	thermal-zone2{
+		status = "okay";
+	};
+
+	thermal-zone3{
+		status = "okay";
+	};
+
+	thermal-zone4{
+		status = "okay";
+	};
+
+	thermal-zone5{
+		status = "okay";
+	};
+
+	thermal-zone6{
+		status = "okay";
+	};
+
+	thermal-zone7 {
+		status = "okay";
 	};
 };

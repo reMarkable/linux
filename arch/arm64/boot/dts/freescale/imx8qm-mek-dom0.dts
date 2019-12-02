@@ -1,0 +1,268 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2019 NXP
+ */
+
+#include "imx8qm-mek.dts"
+#include "imx8qm-xen.dtsi"
+
+/ {
+	model = "Freescale i.MX8QM MEK";
+	compatible = "fsl,imx8qm-mek", "fsl,imx8qm";
+
+	chosen {
+		#address-cells = <2>;
+		#size-cells = <2>;
+
+		stdout-path = &lpuart0;
+
+		/* Could be updated by U-Boot */
+		module@0 {
+			bootargs = "earlycon=xen console=hvc0 loglevel=8 root=/dev/mmcblk1p2 rw  rootwait";
+			compatible = "xen,linux-zimage", "xen,multiboot-module";
+			reg = <0x00000000 0x80a00000 0x00000000 0xf93a00>;
+               };
+	};
+
+	domu {
+		/*
+		 * There are 5 MUs, 0A is used by Dom0, 1A is used
+		 * by ATF, so for DomU, 2A/3A/4A could be used.
+		 * SC_R_MU_0A
+		 * SC_R_MU_1A
+		 * SC_R_MU_2A
+		 * SC_R_MU_3A
+		 * SC_R_MU_4A
+		 * The rsrcs and pads will be configured by uboot scu_rm cmd
+		 */
+		#address-cells = <1>;
+		#size-cells = <0>;
+		doma {
+			compatible = "xen,domu";
+			/*
+			 * The name entry in VM configuration file
+			 * needs to be same as here.
+			 */
+			domain_name = "DomU";
+			/*
+			 * The reg property will be updated by U-Boot to
+			 * reflect the partition id.
+			 */
+			reg = <0>;
+			init_on_rsrcs = <
+				IMX_SC_R_MU_2A
+			>;
+			rsrcs = <
+				IMX_SC_R_MU_2A
+				IMX_SC_R_GPU_0_PID0
+				IMX_SC_R_GPU_0_PID1
+				IMX_SC_R_GPU_0_PID2
+				IMX_SC_R_GPU_0_PID3
+				IMX_SC_R_LVDS_0
+				IMX_SC_R_LVDS_0_I2C_0
+				IMX_SC_R_LVDS_0_PWM_0
+				IMX_SC_R_DC_0
+				IMX_SC_R_DC_0_BLIT0
+				IMX_SC_R_DC_0_BLIT1
+				IMX_SC_R_DC_0_BLIT2
+				IMX_SC_R_DC_0_BLIT_OUT
+				IMX_SC_R_DC_0_WARP
+				IMX_SC_R_DC_0_VIDEO0
+				IMX_SC_R_DC_0_VIDEO1
+				IMX_SC_R_DC_0_FRAC0
+				IMX_SC_R_DC_0_PLL_0
+				IMX_SC_R_DC_0_PLL_1
+				IMX_SC_R_SDHC_0
+			>;
+			pads = <
+				/* i2c1_lvds1 */
+				IMX8QM_LVDS0_I2C1_SCL
+				IMX8QM_LVDS0_I2C1_SDA
+				/* emmc */
+				IMX8QM_EMMC0_CLK
+				IMX8QM_EMMC0_CMD
+				IMX8QM_EMMC0_DATA0
+				IMX8QM_EMMC0_DATA1
+				IMX8QM_EMMC0_DATA2
+				IMX8QM_EMMC0_DATA3
+				IMX8QM_EMMC0_DATA4
+				IMX8QM_EMMC0_DATA5
+				IMX8QM_EMMC0_DATA6
+				IMX8QM_EMMC0_DATA7
+				IMX8QM_EMMC0_STROBE
+				IMX8QM_EMMC0_RESET_B
+
+				/* lvds pwm */
+				IMX8QM_LVDS0_GPIO00
+			>;
+		};
+	};
+
+
+	/* Interrupt 33 is not used, use it virtual PL031 */
+	rtc0: rtc@23000000 {
+		interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
+		xen,passthrough;
+	};
+};
+
+&{/reserved-memory} {
+		/* global autoconfigured region for contiguous allocations */
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0 0x3c000000>;
+			alloc-ranges = <0 0xa8000000 0 0x58000000>;
+			linux,cma-default;
+		};
+};
+
+&smmu {
+	mmu-masters = <&dpu1 0x13>, <&gpu_3d0 0x15>, <&usdhc1 0x12>;
+};
+
+&gpu_3d0{
+	#stream-id-cells = <1>;
+	iommus = <&smmu>;
+	xen,passthrough;
+};
+
+&gpu_3d1{
+	status = "okay";
+};
+
+&imx8_gpu_ss {
+	cores = <&gpu_3d1>;
+	reg = <0xa8000000 0x58000000>, <0x0 0x10000000>;
+	status = "okay";
+};
+
+&lsio_mu1 {
+	/* not map for dom0, dom0 will mmio trap to xen */
+	xen,no-map;
+};
+
+/ {
+	display-subsystem {
+		compatible = "fsl,imx-display-subsystem";
+		ports = <&dpu2_disp0>, <&dpu2_disp1>;
+	};
+};
+
+&dc0_irqsteer {
+	reg = <0x56000000 0x20000>;
+	xen,passthrough;
+};
+
+&dc0_pc {
+	xen,passthrough;
+};
+
+&dc0_prg1 {
+	xen,passthrough;
+};
+
+&dc0_prg2 {
+	xen,passthrough;
+};
+
+&dc0_prg3 {
+	xen,passthrough;
+};
+
+&dc0_prg4 {
+	xen,passthrough;
+};
+
+&dc0_prg5 {
+	xen,passthrough;
+};
+
+&dc0_prg6 {
+	xen,passthrough;
+};
+
+&dc0_prg7 {
+	xen,passthrough;
+};
+
+&dc0_prg8 {
+	xen,passthrough;
+};
+
+&dc0_prg9 {
+	xen,passthrough;
+};
+
+&dc0_dpr1_channel1 {
+	xen,passthrough;
+};
+
+&dc0_dpr1_channel2 {
+	xen,passthrough;
+};
+
+&dc0_dpr1_channel3 {
+	xen,passthrough;
+};
+
+&dc0_dpr2_channel1 {
+	xen,passthrough;
+};
+
+&dc0_dpr2_channel2 {
+	xen,passthrough;
+};
+
+&dc0_dpr2_channel3 {
+	xen,passthrough;
+};
+
+&dpu1 {
+	xen,passthrough;
+	#stream-id-cells = <1>;
+	iommus = <&smmu>;
+};
+
+&irqsteer_lvds0 {
+	xen,passthrough;
+};
+
+&lvds0_region {
+	xen,passthrough;
+};
+
+&i2c1_lvds0 {
+	xen,passthrough;
+};
+
+&ldb1_phy {
+	xen,passthrough;
+};
+
+&ldb1 {
+	xen,passthrough;
+};
+
+&usdhc1 {
+	xen,passthrough;
+	#stream-id-cells = <1>;
+	iommus = <&smmu>;
+};
+
+&lsio_mu2 {
+	xen,passthrough;
+};
+
+&lsio_gpio1 {
+	xen,shared;
+};
+
+&lsio_gpio4 {
+	xen,shared;
+};
+
+&gpio0_mipi_csi0 {
+	xen,shared;
+};
+

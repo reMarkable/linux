@@ -41,8 +41,40 @@
 			compatible = "arm,cortex-a7";
 			device_type = "cpu";
 			reg = <0>;
+			operating-points = <
+				/* KHz	uV */
+				720000	1125000
+				500210	1025000
+			>;
+			clocks = <&smc1 IMX7ULP_CLK_ARM>,
+				 <&scg1 IMX7ULP_CLK_CORE_DIV>,
+				 <&scg1 IMX7ULP_CLK_SYS_SEL>,
+				 <&scg1 IMX7ULP_CLK_HSRUN_SYS_SEL>,
+				 <&scg1 IMX7ULP_CLK_HSRUN_CORE_DIV>,
+				 <&scg1 IMX7ULP_CLK_SPLL_PFD0>,
+				 <&scg1 IMX7ULP_CLK_SPLL_SEL>,
+				 <&scg1 IMX7ULP_CLK_FIRC>,
+				 <&scg1 IMX7ULP_CLK_SPLL>;
+			clock-names = "arm", "core_div", "sys_sel", "hsrun_sys_sel",
+				      "hsrun_core", "spll_pfd0", "spll_sel", "firc",
+				      "spll";
 		};
 	};
+
+        reserved-memory {
+                #address-cells = <1>;
+                #size-cells = <1>;
+                ranges;
+
+                /* global autoconfigured region for contiguous allocations */
+                linux,cma {
+                        compatible = "shared-dma-pool";
+                        reusable;
+                        size = <0xC000000>;
+                        alignment = <0x2000>;
+                        linux,cma-default;
+                };
+        };
 
 	intc: interrupt-controller@40021000 {
 		compatible = "arm,cortex-a7-gic";
@@ -87,11 +119,14 @@
 		#clock-cells = <0>;
 	};
 
-	mpll: clock-mpll {
-		compatible = "fixed-clock";
-		clock-frequency = <480000000>;
-		clock-output-names = "mpll";
-		#clock-cells = <0>;
+	sram: sram@20000000 {
+		compatible = "fsl,lpm-sram";
+		reg = <0x1fffc000 0x4000>;
+	};
+
+	caam_sm: caam-sm@26000000 {
+		 compatible = "fsl,imx6q-caam-sm";
+		 reg = <0x26000000 0x8000>;
 	};
 
 	ahbbridge0: bus@40000000 {
@@ -129,6 +164,62 @@
 				 <&pcc2 IMX7ULP_CLK_DMA_MUX1>;
 		};
 
+		mu: mu@40220000 {
+			compatible = "fsl,imx7ulp-mu";
+			reg = <0x40220000 0x1000>;
+			interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+			#mbox-cells = <2>;
+		};
+
+		nmi: nmi@40220000 {
+			compatible = "fsl,imx7ulp-nmi";
+			reg = <0x40220000 0x1000>;
+			interrupts = <GIC_SPI 90 IRQ_TYPE_LEVEL_HIGH>;
+			status = "okay";
+		};
+
+		mu_lp: mu_lp@40220000 {
+			compatible = "fsl,imx7ulp-mu-lp", "fsl,imx6sx-mu-lp";
+			reg = <0x40220000 0x1000>;
+			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+			status = "okay";
+		};
+
+		lpspi2: spi@40290000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "fsl,imx7ulp-spi";
+			reg = <0x40290000 0x10000>;
+			interrupts = <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pcc2 IMX7ULP_CLK_LPSPI2>,
+				 <&pcc2 IMX7ULP_CLK_DUMMY>;
+			clock-names = "per", "ipg";
+			assigned-clocks = <&pcc2 IMX7ULP_CLK_LPSPI2>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
+			assigned-clock-rates = <48000000>;
+			dmas = <&edma1 0 26>, <&edma1 0 25>;
+			dma-names = "tx","rx";
+			status = "disabled";
+		};
+
+		lpspi3: spi@402A0000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "fsl,imx7ulp-spi";
+			reg = <0x402A0000 0x10000>;
+			interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pcc2 IMX7ULP_CLK_LPSPI3>,
+				 <&pcc2 IMX7ULP_CLK_DUMMY>;
+			clock-names = "per", "ipg";
+			assigned-clocks = <&pcc2 IMX7ULP_CLK_LPSPI3>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
+			assigned-clock-rates = <48000000>;
+			dmas = <&edma1 0 28>, <&edma1 0 27>;
+			dma-names = "tx","rx";
+			status = "disabled";
+		};
+
 		crypto: crypto@40240000 {
 			compatible = "fsl,sec-v4.0";
 			#address-cells = <1>;
@@ -152,6 +243,31 @@
 			};
 		};
 
+		lpi2c4: lpi2c4@402b0000 {
+			compatible = "fsl,imx7ulp-lpi2c";
+			reg = <0x402b0000 0x10000>;
+			interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pcc2 IMX7ULP_CLK_LPI2C4>,
+				 <&scg1 IMX7ULP_CLK_NIC1_BUS_DIV>;
+			clock-names = "per", "ipg";
+			assigned-clocks = <&pcc2 IMX7ULP_CLK_LPI2C4>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
+			assigned-clock-rates = <48000000>;
+			status = "disabled";
+		};
+
+		lpi2c5: lpi2c5@402c0000 {
+			compatible = "fsl,imx7ulp-lpi2c";
+			reg = <0x402c0000 0x10000>;
+			interrupts = <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pcc2 IMX7ULP_CLK_LPI2C5>,
+				 <&scg1 IMX7ULP_CLK_NIC1_BUS_DIV>;
+			clock-names = "per", "ipg";
+			assigned-clocks = <&pcc2 IMX7ULP_CLK_LPI2C5>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
+			assigned-clock-rates = <48000000>;
+		};
+
 		lpuart4: serial@402d0000 {
 			compatible = "fsl,imx7ulp-lpuart";
 			reg = <0x402d0000 0x1000>;
@@ -171,8 +287,10 @@
 			clocks = <&pcc2 IMX7ULP_CLK_LPUART5>;
 			clock-names = "ipg";
 			assigned-clocks = <&pcc2 IMX7ULP_CLK_LPUART5>;
-			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
 			assigned-clock-rates = <48000000>;
+			dmas = <&edma1 0 20>, <&edma1 0 19>;
+			dma-names = "tx","rx";
 			status = "disabled";
 		};
 
@@ -230,8 +348,9 @@
 				 <&scg1 IMX7ULP_CLK_NIC1_DIV>,
 				 <&pcc2 IMX7ULP_CLK_USDHC0>;
 			clock-names = "ipg", "ahb", "per";
-			assigned-clocks = <&pcc2 IMX7ULP_CLK_USDHC0>;
-			assigned-clock-parents = <&scg1 IMX7ULP_CLK_NIC1_DIV>;
+			assigned-clocks = <&scg1 IMX7ULP_CLK_APLL_PFD1>, <&pcc2 IMX7ULP_CLK_USDHC0>;
+			assigned-clock-parents = <0>, <&scg1 IMX7ULP_CLK_APLL_PFD1>;
+			assigned-clock-rates = <0>, <352800000>;
 			bus-width = <4>;
 			fsl,tuning-start-tap = <20>;
 			fsl,tuning-step = <2>;
@@ -246,8 +365,9 @@
 				 <&scg1 IMX7ULP_CLK_NIC1_DIV>,
 				 <&pcc2 IMX7ULP_CLK_USDHC1>;
 			clock-names = "ipg", "ahb", "per";
-			assigned-clocks = <&pcc2 IMX7ULP_CLK_USDHC1>;
-			assigned-clock-parents = <&scg1 IMX7ULP_CLK_NIC1_DIV>;
+			assigned-clocks = <&scg1 IMX7ULP_CLK_APLL_PFD1>, <&pcc2 IMX7ULP_CLK_USDHC1>;
+			assigned-clock-parents = <0>, <&scg1 IMX7ULP_CLK_APLL_PFD1>;
+			assigned-clock-rates = <0>, <352800000>;
 			bus-width = <4>;
 			fsl,tuning-start-tap = <20>;
 			fsl,tuning-step = <2>;
@@ -258,10 +378,35 @@
 			compatible = "fsl,imx7ulp-scg1";
 			reg = <0x403e0000 0x10000>;
 			clocks = <&rosc>, <&sosc>, <&sirc>,
-				 <&firc>, <&upll>, <&mpll>;
+				 <&firc>, <&upll>;
 			clock-names = "rosc", "sosc", "sirc",
-				      "firc", "upll", "mpll";
+				      "firc", "upll";
 			#clock-cells = <1>;
+		};
+
+		wdog1: wdog@403D0000 {
+			compatible = "fsl,imx7ulp-wdt";
+			reg = <0x403D0000 0x10000>;
+			interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pcc2 IMX7ULP_CLK_WDG1>;
+			assigned-clocks = <&pcc2 IMX7ULP_CLK_WDG1>;
+			assigned-clocks-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
+			/*
+			 * As the 1KHz LPO clock rate is not trimed,the actually clock
+			 * is about 667Hz, so the init timeout 60s should set 40*1000
+			 * in the TOVAL register.
+			 */
+			timeout-sec = <40>;
+		};
+
+		wdog2: wdog@40430000 {
+			compatible = "fsl,imx7ulp-wdt";
+			reg = <0x40430000 0x10000>;
+			interrupts = <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pcc2 IMX7ULP_CLK_WDG2>;
+			assigned-clocks = <&pcc2 IMX7ULP_CLK_WDG2>;
+			assigned-clocks-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
+			timeout-sec = <40>;
 		};
 
 		pcc2: clock-controller@403f0000 {
@@ -276,16 +421,20 @@
 				 <&scg1 IMX7ULP_CLK_APLL_PFD0>,
 				 <&scg1 IMX7ULP_CLK_UPLL>,
 				 <&scg1 IMX7ULP_CLK_SOSC_BUS_CLK>,
-				 <&scg1 IMX7ULP_CLK_MIPI_PLL>,
 				 <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>,
 				 <&scg1 IMX7ULP_CLK_ROSC>,
 				 <&scg1 IMX7ULP_CLK_SPLL_BUS_CLK>;
 			clock-names = "nic1_bus_clk", "nic1_clk", "ddr_clk",
 				      "apll_pfd2", "apll_pfd1", "apll_pfd0",
-				      "upll", "sosc_bus_clk", "mpll",
+				      "upll", "sosc_bus_clk",
 				      "firc_bus_clk", "rosc", "spll_bus_clk";
 			assigned-clocks = <&pcc2 IMX7ULP_CLK_LPTPM5>;
 			assigned-clock-parents = <&scg1 IMX7ULP_CLK_SOSC_BUS_CLK>;
+		};
+
+		pmc1: pmc1@40400000 {
+			compatible = "fsl,imx7ulp-pmc1";
+			reg = <0x40400000 0x1000>;
 		};
 
 		smc1: clock-controller@40410000 {
@@ -309,13 +458,12 @@
 				 <&scg1 IMX7ULP_CLK_APLL_PFD0>,
 				 <&scg1 IMX7ULP_CLK_UPLL>,
 				 <&scg1 IMX7ULP_CLK_SOSC_BUS_CLK>,
-				 <&scg1 IMX7ULP_CLK_MIPI_PLL>,
 				 <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>,
 				 <&scg1 IMX7ULP_CLK_ROSC>,
 				 <&scg1 IMX7ULP_CLK_SPLL_BUS_CLK>;
 			clock-names = "nic1_bus_clk", "nic1_clk", "ddr_clk",
 				      "apll_pfd2", "apll_pfd1", "apll_pfd0",
-				      "upll", "sosc_bus_clk", "mpll",
+				      "upll", "sosc_bus_clk",
 				      "firc_bus_clk", "rosc", "spll_bus_clk";
 		};
 	};
@@ -331,10 +479,11 @@
 			compatible = "fsl,imx7ulp-lpi2c";
 			reg = <0x40a40000 0x10000>;
 			interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&pcc3 IMX7ULP_CLK_LPI2C6>;
-			clock-names = "ipg";
+			clocks = <&pcc3 IMX7ULP_CLK_LPI2C6>,
+				 <&scg1 IMX7ULP_CLK_NIC1_BUS_DIV>;
+			clock-names = "per", "ipg";
 			assigned-clocks = <&pcc3 IMX7ULP_CLK_LPI2C6>;
-			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
 			assigned-clock-rates = <48000000>;
 			status = "disabled";
 		};
@@ -343,10 +492,11 @@
 			compatible = "fsl,imx7ulp-lpi2c";
 			reg = <0x40a50000 0x10000>;
 			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&pcc3 IMX7ULP_CLK_LPI2C7>;
-			clock-names = "ipg";
+			clocks = <&pcc3 IMX7ULP_CLK_LPI2C7>,
+				 <&scg1 IMX7ULP_CLK_NIC1_BUS_DIV>;
+			clock-names = "per", "ipg";
 			assigned-clocks = <&pcc3 IMX7ULP_CLK_LPI2C7>;
-			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
 			assigned-clock-rates = <48000000>;
 			status = "disabled";
 		};
@@ -358,8 +508,10 @@
 			clocks = <&pcc3 IMX7ULP_CLK_LPUART6>;
 			clock-names = "ipg";
 			assigned-clocks = <&pcc3 IMX7ULP_CLK_LPUART6>;
-			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
 			assigned-clock-rates = <48000000>;
+			dmas = <&edma1 0 22>, <&edma1 0 21>;
+			dma-names = "tx","rx";
 			status = "disabled";
 		};
 
@@ -370,8 +522,34 @@
 			clocks = <&pcc3  IMX7ULP_CLK_LPUART7>;
 			clock-names = "ipg";
 			assigned-clocks = <&pcc3 IMX7ULP_CLK_LPUART7>;
-			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC>;
+			assigned-clock-parents = <&scg1 IMX7ULP_CLK_FIRC_BUS_CLK>;
 			assigned-clock-rates = <48000000>;
+			dmas = <&edma1 0 24>, <&edma1 0 23>;
+			dma-names = "tx","rx";
+			status = "disabled";
+		};
+
+		mipi_dsi: mipi_dsi@40a90000 {
+			compatible = "fsl,imx7ulp-mipi-dsi";
+			reg = <0x40a90000 0x1000>;
+			interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pcc3 IMX7ULP_CLK_DSI>;
+			clock-names = "mipi_dsi_clk";
+			data-lanes-num = <2>;
+			phy-ref-clkfreq = <24000000>;
+			max-data-rate  = <800000000>;
+			sim = <&sim>;
+			status = "disabled";
+		};
+
+		lcdif: lcdif@40aa0000 {
+			compatible = "fsl,imx7ulp-lcdif";
+			reg = <0x40aa0000 0x1000>;
+			interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&scg1 IMX7ULP_CLK_DUMMY>,
+				 <&pcc3 IMX7ULP_CLK_LCDIF>,
+				 <&scg1 IMX7ULP_CLK_DUMMY>;
+			clock-names = "axi", "pix", "disp_axi";
 			status = "disabled";
 		};
 
@@ -441,6 +619,28 @@
 			clock-names = "gpio", "port";
 			gpio-ranges = <&iomuxc1 0 96 32>;
 		};
+
+		gpu: gpu@41800000 {
+			compatible = "fsl,imx7ulp-gpu", "fsl,imx6q-gpu";
+			reg = <0x41800000 0x80000>, <0x41880000 0x80000>,
+				<0x60000000 0x40000000>, <0x0 0x4000000>;
+			reg-names = "iobase_3d", "iobase_2d",
+				"phys_baseaddr", "contiguous_mem";
+			interrupts = <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq_3d", "irq_2d";
+			clocks = <&pcc3 IMX7ULP_CLK_GPU3D>,
+				<&scg1 IMX7ULP_CLK_DUMMY>,
+				<&scg1 IMX7ULP_CLK_GPU_DIV>,
+				<&pcc3 IMX7ULP_CLK_GPU2D>,
+				<&scg1 IMX7ULP_CLK_NIC1_DIV>;
+			clock-names = "gpu3d_clk", "gpu3d_shader_clk",
+				"gpu3d_axi_clk", "gpu2d_clk",
+				"gpu2d_axi_clk";
+			assigned-clocks =  <&scg1 IMX7ULP_CLK_APLL_PFD2>, <&pcc3 IMX7ULP_CLK_GPU3D>, <&pcc3 IMX7ULP_CLK_GPU2D>;
+			assigned-clock-parents = <0>, <&scg1 IMX7ULP_CLK_APLL_PFD2>, <&scg1 IMX7ULP_CLK_APLL_PFD2>;
+			assigned-clock-rates = <400000000>, <400000000>, <400000000>;
+		};
 	};
 
 	m4aips1: bus@41080000 {
@@ -449,6 +649,11 @@
 		#size-cells = <1>;
 		reg = <0x41080000 0x80000>;
 		ranges;
+
+		pmc0: pmc0@410a1000 {
+			compatible = "fsl,imx7ulp-pmc0";
+			reg = <0x410a1000 0x1000>;
+		};
 
 		sim: sim@410a3000 {
 			compatible = "fsl,imx7ulp-sim", "syscon";
@@ -461,4 +666,27 @@
 			clocks = <&scg1 IMX7ULP_CLK_DUMMY>;
 		};
 	};
+
+	rpmsg: rpmsg{
+		compatible = "fsl,imx7ulp-rpmsg";
+		/* up to now, the following channels are used in imx rpmsg
+		 * - tx1/rx1: messages channel.
+		 * - general interrupt1: remote proc finish re-init rpmsg stack
+		 *   when A core is partition reset.
+		 */
+		mbox-names = "tx", "rx", "rxdb";
+		mboxes = <&mu 0 1
+			  &mu 1 1
+			  &mu 3 1>;
+		status = "disabled";
+	};
+
+        heartbeat-rpmsg {
+		compatible = "fsl,heartbeat-rpmsg";
+	};
+
+	rtc-rpmsg {
+		compatible = "fsl,imx-rpmsg-rtc";
+	};
+
 };

@@ -175,6 +175,10 @@
 		compatible = "fsl-usb2-dr-v1.6", "fsl-usb2-dr";
 	};
 /include/ "pq3-etsec1-0.dtsi"
+	enet0: ethernet@24000 {
+		fsl,pmc-handle = <&etsec1_clk>;
+
+	};
 /include/ "pq3-etsec1-timer-0.dtsi"
 
 	ptp_clock@24e00 {
@@ -183,7 +187,15 @@
 
 
 /include/ "pq3-etsec1-1.dtsi"
+	enet1: ethernet@25000 {
+		fsl,pmc-handle = <&etsec2_clk>;
+	};
+
 /include/ "pq3-etsec1-2.dtsi"
+	enet2: ethernet@26000 {
+		fsl,pmc-handle = <&etsec3_clk>;
+	};
+
 /include/ "pq3-esdhc-0.dtsi"
 	sdhc@2e000 {
 		compatible = "fsl,p2020-esdhc", "fsl,esdhc";
@@ -198,4 +210,6 @@
 		reg = <0xe0000 0x1000>;
 		fsl,has-rstcr;
 	};
+
+/include/ "pq3-power.dtsi"
 };

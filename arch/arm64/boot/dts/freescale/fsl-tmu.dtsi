@@ -1,0 +1,251 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Device Tree Include file for Thermal Monitor Unit.
+ *
+ * Copyright 2018 NXP
+ *
+ * Tang Yuantian <andy.tang@nxp.com>
+ *
+ */
+
+thermal_zones: thermal-zones {
+	thermal_zone0: thermal-zone0 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 0>;
+		status = "disabled";
+
+		trips {
+			alert0: alert0 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit0: crit0 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert0>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone1 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 1>;
+		status = "disabled";
+
+		trips {
+			alert1: alert1 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit1: crit1 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert1>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone2 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 2>;
+		status = "disabled";
+
+		trips {
+			alert2: alert2 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit2: crit2 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert2>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone3 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 3>;
+		status = "disabled";
+
+		trips {
+			alert3: alert3 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit3: crit3 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert3>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone4 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 4>;
+		status = "disabled";
+
+		trips {
+			alert4: alert4 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit4: crit4 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert4>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone5 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 5>;
+		status = "disabled";
+
+		trips {
+			alert5: alert5 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit5: crit5 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert5>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone6 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 6>;
+		status = "disabled";
+
+		trips {
+			alert6: alert6 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit6: crit6 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert6>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone7 {
+		polling-delay-passive = <1000>;
+		polling-delay = <5000>;
+		thermal-sensors = <&tmu 7>;
+		status = "disabled";
+
+		trips {
+			alert7: alert7 {
+				temperature = <75000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			crit7: crit7 {
+				temperature = <85000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&alert7>;
+				cooling-device =
+					<&cooling_map0 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+};

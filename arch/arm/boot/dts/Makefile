@@ -435,8 +435,16 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6dl-rex-basic.dtb \
 	imx6dl-riotboard.dtb \
 	imx6dl-sabreauto.dtb \
+	imx6dl-sabreauto-enetirq.dtb \
+	imx6dl-sabreauto-flexcan1.dtb \
+	imx6dl-sabreauto-ecspi.dtb \
+	imx6dl-sabreauto-gpmi-weim.dtb \
 	imx6dl-sabrelite.dtb \
 	imx6dl-sabresd.dtb \
+	imx6dl-sabresd-ldo.dtb \
+	imx6dl-sabresd-btwifi.dtb \
+	imx6dl-sabresd-hdcp.dtb \
+	imx6dl-sabresd-enetirq.dtb \
 	imx6dl-savageboard.dtb \
 	imx6dl-ts4900.dtb \
 	imx6dl-ts7970.dtb \
@@ -514,8 +522,17 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6q-pistachio.dtb \
 	imx6q-rex-pro.dtb \
 	imx6q-sabreauto.dtb \
+	imx6q-sabreauto-enetirq.dtb \
+	imx6q-sabreauto-flexcan1.dtb \
+	imx6q-sabreauto-ecspi.dtb \
+	imx6q-sabreauto-gpmi-weim.dtb \
 	imx6q-sabrelite.dtb \
 	imx6q-sabresd.dtb \
+	imx6q-sabresd-ldo.dtb \
+	imx6q-sabresd-btwifi.dtb \
+	imx6q-sabresd-hdcp.dtb \
+	imx6q-sabresd-uart.dtb \
+	imx6q-sabresd-enetirq.dtb \
 	imx6q-savageboard.dtb \
 	imx6q-sbc6x.dtb \
 	imx6q-tbs2910.dtb \
@@ -541,7 +558,13 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6qp-nitrogen6_som2.dtb \
 	imx6qp-phytec-mira-rdk-nand.dtb \
 	imx6qp-sabreauto.dtb \
+	imx6qp-sabreauto-flexcan1.dtb \
+	imx6qp-sabreauto-ecspi.dtb \
+	imx6qp-sabreauto-gpmi-weim.dtb \
 	imx6qp-sabresd.dtb \
+	imx6qp-sabresd-ldo.dtb \
+	imx6qp-sabresd-btwifi.dtb \
+	imx6qp-sabresd-hdcp.dtb \
 	imx6qp-tx6qp-8037.dtb \
 	imx6qp-tx6qp-8037-mb7.dtb \
 	imx6qp-tx6qp-8137.dtb \
@@ -550,21 +573,45 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
 	imx6qp-zii-rdu2.dtb
 dtb-$(CONFIG_SOC_IMX6SL) += \
 	imx6sl-evk.dtb \
+	imx6sl-evk-ldo.dtb \
+	imx6sl-evk-csi.dtb \
+	imx6sl-evk-uart.dtb \
+	imx6sl-evk-btwifi.dtb \
 	imx6sl-warp.dtb
 dtb-$(CONFIG_SOC_IMX6SLL) += \
-	imx6sll-evk.dtb
+	imx6sll-evk.dtb \
+	imx6sll-evk-reva.dtb \
+	imx6sll-evk-btwifi.dtb
 dtb-$(CONFIG_SOC_IMX6SX) += \
 	imx6sx-nitrogen6sx.dtb \
 	imx6sx-sabreauto.dtb \
 	imx6sx-sdb-reva.dtb \
+	imx6sx-sdb-reva-ldo.dtb \
 	imx6sx-sdb-sai.dtb \
 	imx6sx-sdb.dtb \
+	imx6sx-sdb-ldo.dtb \
+	imx6sx-sdb-emmc.dtb \
+	imx6sx-sdb-lcdif1.dtb \
+	imx6sx-sdb-m4.dtb \
+	imx6sx-sdb-mqs.dtb \
+	imx6sx-sdb-btwifi.dtb \
 	imx6sx-softing-vining-2000.dtb \
 	imx6sx-udoo-neo-basic.dtb \
 	imx6sx-udoo-neo-extended.dtb \
 	imx6sx-udoo-neo-full.dtb
 dtb-$(CONFIG_SOC_IMX6UL) += \
 	imx6ul-14x14-evk.dtb \
+	imx6ul-14x14-evk-csi.dtb \
+	imx6ul-14x14-evk-emmc.dtb \
+	imx6ul-14x14-evk-btwifi.dtb \
+	imx6ul-14x14-evk-btwifi-oob.dtb \
+	imx6ul-14x14-evk-ecspi-slave.dtb \
+	imx6ul-14x14-evk-ecspi.dtb \
+	imx6ul-14x14-evk-gpmi-weim.dtb \
+	imx6ul-9x9-evk.dtb \
+	imx6ul-9x9-evk-ldo.dtb \
+	imx6ul-9x9-evk-btwifi.dtb \
+	imx6ul-9x9-evk-btwifi-oob.dtb \
 	imx6ul-ccimx6ulsbcexpress.dtb \
 	imx6ul-ccimx6ulsbcpro.dtb \
 	imx6ul-geam.dtb \
@@ -581,12 +628,23 @@ dtb-$(CONFIG_SOC_IMX6UL) += \
 	imx6ul-tx6ul-0011.dtb \
 	imx6ul-tx6ul-mainboard.dtb \
 	imx6ull-14x14-evk.dtb \
+	imx6ull-14x14-evk-emmc.dtb \
+	imx6ull-14x14-evk-btwifi.dtb \
+	imx6ull-14x14-evk-btwifi-oob.dtb \
+	imx6ull-14x14-evk-gpmi-weim.dtb \
+	imx6ull-9x9-evk.dtb \
+	imx6ull-9x9-evk-ldo.dtb \
+	imx6ull-9x9-evk-btwifi.dtb \
+	imx6ull-9x9-evk-btwifi-oob.dtb \
 	imx6ull-colibri-eval-v3.dtb \
 	imx6ull-colibri-wifi-eval-v3.dtb \
 	imx6ull-phytec-segin-ff-rdk-nand.dtb \
 	imx6ull-phytec-segin-ff-rdk-emmc.dtb \
 	imx6ull-phytec-segin-lc-rdk-nand.dtb \
-	imx6ulz-14x14-evk.dtb
+	imx6ulz-14x14-evk.dtb \
+	imx6ulz-14x14-evk-btwifi.dtb \
+	imx6ulz-14x14-evk-gpmi-weim.dtb \
+	imx6ulz-14x14-evk-emmc.dtb
 dtb-$(CONFIG_SOC_IMX7D) += \
 	imx7d-cl-som-imx7.dtb \
 	imx7d-colibri-emmc-eval-v3.dtb \
@@ -598,15 +656,33 @@ dtb-$(CONFIG_SOC_IMX7D) += \
 	imx7d-pico-pi.dtb \
 	imx7d-sbc-imx7.dtb \
 	imx7d-sdb.dtb \
+	imx7d-sdb-epdc.dtb \
+	imx7d-sdb-mipi-dsi.dtb \
+	imx7d-sdb-gpmi-weim.dtb \
+	imx7d-sdb-m4.dtb \
+	imx7d-sdb-qspi.dtb \
 	imx7d-sdb-reva.dtb \
 	imx7d-sdb-sht11.dtb \
+	imx7d-12x12-lpddr3-val.dtb \
+	imx7d-12x12-lpddr3-val-sai.dtb \
 	imx7d-zii-rmu2.dtb \
 	imx7d-zii-rpu2.dtb \
 	imx7s-colibri-eval-v3.dtb \
 	imx7s-mba7.dtb \
 	imx7s-warp.dtb
 dtb-$(CONFIG_SOC_IMX7ULP) += \
-	imx7ulp-evk.dtb
+	imx7ulp-evk.dtb \
+	imx7ulp-evk-ft5416.dtb \
+	imx7ulp-evk-mipi.dtb \
+	imx7ulp-evkb.dtb \
+	imx7ulp-evkb-emmc.dtb \
+	imx7ulp-evkb-sd1.dtb \
+	imx7ulp-evkb-spi-slave.dtb \
+	imx7ulp-evkb-sensors-to-i2c5.dtb \
+	imx7ulp-evkb-lpuart.dtb \
+	imx7ulp-evkb-mipi.dtb \
+	imx7ulp-evkb-rm68200-wxga.dtb \
+	imx7ulp-evkb-rm68191-qhd.dtb
 dtb-$(CONFIG_SOC_LS1021A) += \
 	ls1021a-moxa-uc-8410a.dtb \
 	ls1021a-qds.dtb \
