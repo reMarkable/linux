@@ -108,7 +108,8 @@ enum ov5640_mode_id {
 };
 
 enum ov5640_frame_rate {
-	OV5640_15_FPS = 0,
+	OV5640_08_FPS = 0,
+	OV5640_15_FPS,
 	OV5640_30_FPS,
 	OV5640_60_FPS,
 	OV5640_NUM_FRAMERATES,
@@ -150,6 +151,7 @@ MODULE_PARM_DESC(virtual_channel,
 		 "MIPI CSI-2 virtual channel (0..3), default 0");
 
 static const int ov5640_framerates[] = {
+	[OV5640_08_FPS] = 8,
 	[OV5640_15_FPS] = 15,
 	[OV5640_30_FPS] = 30,
 	[OV5640_60_FPS] = 60,
@@ -352,10 +354,12 @@ static const struct reg_value ov5640_init_setting_30fps_VGA[] = {
 	{0x583b, 0x28, 0, 0}, {0x583c, 0x42, 0, 0}, {0x583d, 0xce, 0, 0},
 	{0x5025, 0x00, 0, 0}, {0x3a0f, 0x30, 0, 0}, {0x3a10, 0x28, 0, 0},
 	{0x3a1b, 0x30, 0, 0}, {0x3a1e, 0x26, 0, 0}, {0x3a11, 0x60, 0, 0},
-	{0x3a1f, 0x14, 0, 0}, {0x3008, 0x02, 0, 0}, {0x3c00, 0x04, 0, 300},
+	{0x3a1f, 0x14, 0, 0}, {0x3008, 0x42, 0, 0}, {0x3c00, 0x04, 0, 300},
+	{0x302c, 0xc2, 0, 0},
 };
 
 static const struct reg_value ov5640_setting_VGA_640_480[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -372,9 +376,11 @@ static const struct reg_value ov5640_setting_VGA_640_480[] = {
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0xa3, 0, 0},
+	{0x3008, 0x02, 0, 10},
 };
 
 static const struct reg_value ov5640_setting_XGA_1024_768[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -389,11 +395,13 @@ static const struct reg_value ov5640_setting_XGA_1024_768[] = {
 	{0x3a0a, 0x00, 0, 0}, {0x3a0b, 0xf6, 0, 0}, {0x3a0e, 0x03, 0, 0},
 	{0x3a0d, 0x04, 0, 0}, {0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0},
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
-	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
+	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x20, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0xa3, 0, 0},
+	{0x3008, 0x02, 0, 10}
 };
 
 static const struct reg_value ov5640_setting_QVGA_320_240[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -410,9 +418,11 @@ static const struct reg_value ov5640_setting_QVGA_320_240[] = {
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0xa3, 0, 0},
+	{0x3008, 0x02, 0, 10},
 };
 
 static const struct reg_value ov5640_setting_QCIF_176_144[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -429,9 +439,11 @@ static const struct reg_value ov5640_setting_QCIF_176_144[] = {
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0xa3, 0, 0},
+	{0x3008, 0x02, 0, 10},
 };
 
 static const struct reg_value ov5640_setting_NTSC_720_480[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -448,9 +460,11 @@ static const struct reg_value ov5640_setting_NTSC_720_480[] = {
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0xa3, 0, 0},
+	{0x3008, 0x02, 0, 10},
 };
 
 static const struct reg_value ov5640_setting_PAL_720_576[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -467,9 +481,11 @@ static const struct reg_value ov5640_setting_PAL_720_576[] = {
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0xa3, 0, 0},
+	{0x3008, 0x02, 0, 10},
 };
 
 static const struct reg_value ov5640_setting_720P_1280_720[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x07, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x31, 0, 0},
@@ -486,6 +502,7 @@ static const struct reg_value ov5640_setting_720P_1280_720[] = {
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x02, 0, 0},
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x37, 0, 0}, {0x460c, 0x20, 0, 0},
 	{0x3824, 0x04, 0, 0}, {0x5001, 0x83, 0, 0},
+	{0x3008, 0x02, 0, 15},
 };
 
 static const struct reg_value ov5640_setting_1080P_1920_1080[] = {
@@ -517,10 +534,11 @@ static const struct reg_value ov5640_setting_1080P_1920_1080[] = {
 	{0x3a0e, 0x03, 0, 0}, {0x3a0d, 0x04, 0, 0}, {0x3a14, 0x04, 0, 0},
 	{0x3a15, 0x60, 0, 0}, {0x4407, 0x04, 0, 0},
 	{0x460b, 0x37, 0, 0}, {0x460c, 0x20, 0, 0}, {0x3824, 0x04, 0, 0},
-	{0x4005, 0x1a, 0, 0}, {0x3008, 0x02, 0, 0},
+	{0x4005, 0x1a, 0, 0}, {0x3008, 0x02, 0, 10},
 };
 
 static const struct reg_value ov5640_setting_QSXGA_2592_1944[] = {
+	{0x3008, 0x42, 0, 0},
 	{0x3c07, 0x08, 0, 0},
 	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
 	{0x3814, 0x11, 0, 0},
@@ -535,8 +553,9 @@ static const struct reg_value ov5640_setting_QSXGA_2592_1944[] = {
 	{0x3a0a, 0x00, 0, 0}, {0x3a0b, 0xf6, 0, 0}, {0x3a0e, 0x03, 0, 0},
 	{0x3a0d, 0x04, 0, 0}, {0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0},
 	{0x4001, 0x02, 0, 0}, {0x4004, 0x06, 0, 0},
-	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
+	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x20, 0, 0},
 	{0x3824, 0x02, 0, 0}, {0x5001, 0x83, 0, 70},
+	{0x3008, 0x02, 0, 20},
 };
 
 /* power-on sensor init reg table */
@@ -903,6 +922,51 @@ out:
 	return best;
 }
 
+static int ov5640_check_valid_mode(struct ov5640_dev *sensor,
+				   const struct ov5640_mode_info *mode,
+				   enum ov5640_frame_rate rate)
+{
+	struct i2c_client *client = sensor->i2c_client;
+	int ret = 0;
+
+	switch (mode->id) {
+	case OV5640_MODE_QCIF_176_144:
+	case OV5640_MODE_QVGA_320_240:
+	case OV5640_MODE_NTSC_720_480:
+	case OV5640_MODE_PAL_720_576 :
+	case OV5640_MODE_XGA_1024_768:
+	case OV5640_MODE_720P_1280_720:
+		if ((rate != OV5640_15_FPS) &&
+		    (rate != OV5640_30_FPS))
+			ret = -EINVAL;
+		break;
+	case OV5640_MODE_VGA_640_480:
+		if ((rate != OV5640_15_FPS) &&
+		    (rate != OV5640_30_FPS))
+			ret = -EINVAL;
+		break;
+	case OV5640_MODE_1080P_1920_1080:
+		if (sensor->ep.bus_type == V4L2_MBUS_CSI2_DPHY) {
+			if ((rate != OV5640_15_FPS) &&
+			    (rate != OV5640_30_FPS))
+				ret = -EINVAL;
+		 } else {
+			if ((rate != OV5640_15_FPS))
+				ret = -EINVAL;
+		 }
+		break;
+	case OV5640_MODE_QSXGA_2592_1944:
+		if (rate != OV5640_08_FPS)
+			ret = -EINVAL;
+		break;
+	default:
+		dev_err(&client->dev, "Invalid mode (%d)\n", mode->id);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
 /*
  * ov5640_set_mipi_pclk() - Calculate the clock tree configuration values
  *			    for the MIPI CSI-2 output.
@@ -1260,7 +1324,7 @@ static int ov5640_set_stream_dvp(struct ov5640_dev *sensor, bool on)
 	 * 2:	 MIPI enable
 	 */
 	ret = ov5640_write_reg(sensor,
-			       OV5640_REG_IO_MIPI_CTRL00, on ? 0x18 : 0);
+			       OV5640_REG_IO_MIPI_CTRL00, on ? 0x58 : 0);
 	if (ret)
 		return ret;
 
@@ -2010,7 +2074,7 @@ static int ov5640_set_power(struct ov5640_dev *sensor, bool on)
 		 * [2] = 0	: MIPI interface disabled
 		 */
 		ret = ov5640_write_reg(sensor,
-				       OV5640_REG_IO_MIPI_CTRL00, 0x40);
+				       OV5640_REG_IO_MIPI_CTRL00, 0x45);
 		if (ret)
 			goto power_off;
 
@@ -2101,11 +2165,11 @@ static int ov5640_try_frame_interval(struct ov5640_dev *sensor,
 				     u32 width, u32 height)
 {
 	const struct ov5640_mode_info *mode;
-	enum ov5640_frame_rate rate = OV5640_15_FPS;
+	enum ov5640_frame_rate rate = OV5640_08_FPS;
 	int minfps, maxfps, best_fps, fps;
 	int i;
 
-	minfps = ov5640_framerates[OV5640_15_FPS];
+	minfps = ov5640_framerates[OV5640_08_FPS];
 	maxfps = ov5640_framerates[OV5640_60_FPS];
 
 	if (fi->numerator == 0) {
@@ -2154,10 +2218,10 @@ static int ov5640_get_fmt(struct v4l2_subdev *sd,
 	else
 		fmt = &sensor->fmt;
 
+	fmt->reserved[1] = (sensor->current_fr == OV5640_30_FPS) ? 30 : 15;
 	format->format = *fmt;
 
 	mutex_unlock(&sensor->lock);
-
 	return 0;
 }
 
@@ -2175,6 +2239,7 @@ static int ov5640_try_fmt_internal(struct v4l2_subdev *sd,
 		return -EINVAL;
 	fmt->width = mode->hact;
 	fmt->height = mode->vact;
+	memset(fmt->reserved, 0, sizeof(fmt->reserved));
 
 	if (new_mode)
 		*new_mode = mode;
@@ -2233,6 +2298,8 @@ static int ov5640_set_fmt(struct v4l2_subdev *sd,
 	if (mbus_fmt->code != sensor->fmt.code)
 		sensor->pending_fmt_change = true;
 
+	if (sensor->pending_mode_change || sensor->pending_fmt_change)
+		sensor->fmt = *mbus_fmt;
 out:
 	mutex_unlock(&sensor->lock);
 	return ret;
@@ -2744,24 +2811,36 @@ static int ov5640_enum_frame_interval(
 	struct v4l2_subdev_frame_interval_enum *fie)
 {
 	struct ov5640_dev *sensor = to_ov5640_dev(sd);
-	struct v4l2_fract tpf;
-	int ret;
+	int i, j, count;
 
 	if (fie->pad != 0)
 		return -EINVAL;
 	if (fie->index >= OV5640_NUM_FRAMERATES)
 		return -EINVAL;
 
-	tpf.numerator = 1;
-	tpf.denominator = ov5640_framerates[fie->index];
-
-	ret = ov5640_try_frame_interval(sensor, &tpf,
-					fie->width, fie->height);
-	if (ret < 0)
+	if (fie->width == 0 || fie->height == 0 || fie->code == 0) {
+		pr_warn("Please assign pixel format, width and height.\n");
 		return -EINVAL;
+	}
 
-	fie->interval = tpf;
-	return 0;
+	fie->interval.numerator = 1;
+
+	count = 0;
+	for (i = 0; i < OV5640_NUM_FRAMERATES; i++) {
+		for (j = 0; j < OV5640_NUM_MODES; j++) {
+			if (fie->width  == ov5640_mode_data[j].hact &&
+			    fie->height == ov5640_mode_data[j].vact &&
+			    !ov5640_check_valid_mode(sensor, &ov5640_mode_data[j], i))
+				count++;
+
+			if (fie->index == (count - 1)) {
+				fie->interval.denominator = ov5640_framerates[i];
+				return 0;
+			}
+		}
+	}
+
+	return -EINVAL;
 }
 
 static int ov5640_g_frame_interval(struct v4l2_subdev *sd,
@@ -2838,11 +2917,23 @@ static int ov5640_enum_mbus_code(struct v4l2_subdev *sd,
 static int ov5640_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct ov5640_dev *sensor = to_ov5640_dev(sd);
+	struct i2c_client *client = sensor->i2c_client;
 	int ret = 0;
 
 	mutex_lock(&sensor->lock);
 
 	if (sensor->streaming == !enable) {
+		ret = ov5640_check_valid_mode(sensor,
+					      sensor->current_mode,
+					      sensor->current_fr);
+		if (ret) {
+			dev_err(&client->dev, "Not support WxH@fps=%dx%d@%d\n",
+				sensor->current_mode->hact,
+				sensor->current_mode->vact,
+				ov5640_framerates[sensor->current_fr]);
+			goto out;
+		}
+
 		if (enable && sensor->pending_mode_change) {
 			ret = ov5640_set_mode(sensor);
 			if (ret)
@@ -2894,6 +2985,17 @@ static const struct v4l2_subdev_ops ov5640_subdev_ops = {
 	.core = &ov5640_core_ops,
 	.video = &ov5640_video_ops,
 	.pad = &ov5640_pad_ops,
+};
+
+static int ov5640_link_setup(struct media_entity *entity,
+			   const struct media_pad *local,
+			   const struct media_pad *remote, u32 flags)
+{
+	return 0;
+}
+
+static const struct media_entity_operations ov5640_sd_media_ops = {
+	.link_setup = ov5640_link_setup,
 };
 
 static int ov5640_get_regulators(struct ov5640_dev *sensor)
@@ -3035,6 +3137,7 @@ static int ov5640_probe(struct i2c_client *client)
 	sensor->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE |
 			    V4L2_SUBDEV_FL_HAS_EVENTS;
 	sensor->pad.flags = MEDIA_PAD_FL_SOURCE;
+	sensor->sd.entity.ops = &ov5640_sd_media_ops;
 	sensor->sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
 	ret = media_entity_pads_init(&sensor->sd.entity, 1, &sensor->pad);
 	if (ret)
