@@ -270,7 +270,6 @@ static int wacom_setup_device(struct i2c_client *client)
 		return -EIO;
 	}
 
-
 	return 0;
 }
 
@@ -506,9 +505,7 @@ static int __maybe_unused wacom_i2c_resume(struct device *dev)
 	pinctrl_pm_select_default_state(dev);
 	enable_irq(client->irq);
 
-	wacom_setup_device(client);
-
-	return 0;
+	return wacom_setup_device(client);
 }
 
 static SIMPLE_DEV_PM_OPS(wacom_i2c_pm, wacom_i2c_suspend, wacom_i2c_resume);
