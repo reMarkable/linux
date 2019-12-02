@@ -9,6 +9,8 @@ Required properties:
       "fsl,imx53-sdma"
       "fsl,imx6q-sdma"
       "fsl,imx7d-sdma"
+      "fsl,imx6sx-sdma"
+      "fsl,imx6ul-sdma"
       "fsl,imx8mq-sdma"
   The -to variants should be preferred since they allow to determine the
   correct ROM script addresses needed for the driver to work without additional
@@ -51,14 +53,23 @@ The full ID of peripheral types can be found below.
 	22	SSI Dual FIFO	(needs firmware ver >= 2)
 	23	Shared ASRC
 	24	SAI
+	25	HDMI Audio
 
-The third cell specifies the transfer priority as below.
+The third cell specifies the transfer priority and software done
+as below.
+
+	Bit31: sw_done
+	Bit15~Bit8: selector
+	Bit7~Bit0: priority level
 
 	ID	transfer priority
 	-------------------------
 	0	High
 	1	Medium
 	2	Low
+
+For example: 0x80000000 means sw_done enabled for done0 sector and
+	High priority for PDM on i.mx8mm.
 
 Optional properties:
 
