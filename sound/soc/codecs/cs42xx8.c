@@ -17,6 +17,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
+#include <linux/pm_domain.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <sound/tlv.h>
@@ -43,7 +44,8 @@ struct cs42xx8_priv {
 	struct regmap *regmap;
 	struct clk *clk;
 
-	bool slave_mode;
+	bool slave_mode[2];
+	bool is_tdm;
 	unsigned long sysclk;
 	u32 tx_channels;
 	struct gpio_desc *gpiod_reset;
@@ -131,7 +133,6 @@ static const struct snd_soc_dapm_widget cs42xx8_dapm_widgets[] = {
 	SND_SOC_DAPM_INPUT("AIN2L"),
 	SND_SOC_DAPM_INPUT("AIN2R"),
 
-	SND_SOC_DAPM_SUPPLY("PWR", CS42XX8_PWRCTL, 0, 1, NULL, 0),
 };
 
 static const struct snd_soc_dapm_widget cs42xx8_adc3_dapm_widgets[] = {
@@ -145,35 +146,28 @@ static const struct snd_soc_dapm_route cs42xx8_dapm_routes[] = {
 	/* Playback */
 	{ "AOUT1L", NULL, "DAC1" },
 	{ "AOUT1R", NULL, "DAC1" },
-	{ "DAC1", NULL, "PWR" },
 
 	{ "AOUT2L", NULL, "DAC2" },
 	{ "AOUT2R", NULL, "DAC2" },
-	{ "DAC2", NULL, "PWR" },
 
 	{ "AOUT3L", NULL, "DAC3" },
 	{ "AOUT3R", NULL, "DAC3" },
-	{ "DAC3", NULL, "PWR" },
 
 	{ "AOUT4L", NULL, "DAC4" },
 	{ "AOUT4R", NULL, "DAC4" },
-	{ "DAC4", NULL, "PWR" },
 
 	/* Capture */
 	{ "ADC1", NULL, "AIN1L" },
 	{ "ADC1", NULL, "AIN1R" },
-	{ "ADC1", NULL, "PWR" },
 
 	{ "ADC2", NULL, "AIN2L" },
 	{ "ADC2", NULL, "AIN2R" },
-	{ "ADC2", NULL, "PWR" },
 };
 
 static const struct snd_soc_dapm_route cs42xx8_adc3_dapm_routes[] = {
 	/* Capture */
 	{ "ADC3", NULL, "AIN3L" },
 	{ "ADC3", NULL, "AIN3R" },
-	{ "ADC3", NULL, "PWR" },
 };
 
 struct cs42xx8_ratios {
@@ -218,6 +212,8 @@ static int cs42xx8_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	struct cs42xx8_priv *cs42xx8 = snd_soc_component_get_drvdata(component);
 	u32 val;
 
+	cs42xx8->is_tdm = false;
+
 	/* Set DAI format */
 	switch (format & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_LEFT_J:
@@ -231,6 +227,7 @@ static int cs42xx8_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		break;
 	case SND_SOC_DAIFMT_DSP_A:
 		val = CS42XX8_INTF_DAC_DIF_TDM | CS42XX8_INTF_ADC_DIF_TDM;
+		cs42xx8->is_tdm = true;
 		break;
 	default:
 		dev_err(component->dev, "unsupported dai format\n");
@@ -241,17 +238,21 @@ static int cs42xx8_set_dai_fmt(struct snd_soc_dai *codec_dai,
 			   CS42XX8_INTF_DAC_DIF_MASK |
 			   CS42XX8_INTF_ADC_DIF_MASK, val);
 
-	/* Set master/slave audio interface */
-	switch (format & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBS_CFS:
-		cs42xx8->slave_mode = true;
-		break;
-	case SND_SOC_DAIFMT_CBM_CFM:
-		cs42xx8->slave_mode = false;
-		break;
-	default:
-		dev_err(component->dev, "unsupported master/slave mode\n");
-		return -EINVAL;
+	if (cs42xx8->slave_mode[0] == cs42xx8->slave_mode[1]) {
+		/* Set master/slave audio interface */
+		switch (format & SND_SOC_DAIFMT_MASTER_MASK) {
+		case SND_SOC_DAIFMT_CBS_CFS:
+			cs42xx8->slave_mode[0] = true;
+			cs42xx8->slave_mode[1] = true;
+			break;
+		case SND_SOC_DAIFMT_CBM_CFM:
+			cs42xx8->slave_mode[0] = false;
+			cs42xx8->slave_mode[1] = false;
+			break;
+		default:
+			dev_err(component->dev, "unsupported master/slave mode\n");
+			return -EINVAL;
+		}
 	}
 
 	return 0;
@@ -281,7 +282,7 @@ static int cs42xx8_hw_params(struct snd_pcm_substream *substream,
 
 	/* Get functional mode for tx and rx according to rate */
 	for (i = 0; i < 2; i++) {
-		if (cs42xx8->slave_mode) {
+		if (cs42xx8->slave_mode[i]) {
 			fm[i] = CS42XX8_FM_AUTO;
 		} else {
 			if (rate[i] < 50000) {
@@ -335,6 +336,16 @@ static int cs42xx8_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	cs42xx8->rate[tx] = params_rate(params);
+
+	if (cs42xx8->is_tdm && !cs42xx8->slave_mode[tx]) {
+		dev_err(component->dev, "TDM mode is unsupported in master mode\n");
+		return -EINVAL;
+	}
+
+	if (cs42xx8->is_tdm && (cs42xx8->sysclk < 256 * cs42xx8->rate[tx])) {
+		dev_err(component->dev, "unsupported sysclk for TDM mode\n");
+		return -EINVAL;
+	}
 
 	mask = CS42XX8_FUNCMOD_MFREQ_MASK;
 	val = cs42xx8_ratios[i].mfreq;
@@ -459,6 +470,8 @@ const struct regmap_config cs42xx8_regmap_config = {
 	.volatile_reg = cs42xx8_volatile_register,
 	.writeable_reg = cs42xx8_writeable_register,
 	.cache_type = REGCACHE_RBTREE,
+	.use_single_read = true,
+	.use_single_write = true,
 };
 EXPORT_SYMBOL_GPL(cs42xx8_regmap_config);
 
@@ -482,7 +495,8 @@ static int cs42xx8_component_probe(struct snd_soc_component *component)
 
 	/* Mute all DAC channels */
 	regmap_write(cs42xx8->regmap, CS42XX8_DACMUTE, CS42XX8_DACMUTE_ALL);
-
+	regmap_update_bits(cs42xx8->regmap, CS42XX8_PWRCTL,
+			CS42XX8_PWRCTL_PDN_MASK, 0);
 	return 0;
 }
 
@@ -521,9 +535,11 @@ EXPORT_SYMBOL_GPL(cs42xx8_of_match);
 
 int cs42xx8_probe(struct device *dev, struct regmap *regmap)
 {
+	struct device_node *np = dev->of_node;
 	const struct of_device_id *of_id;
 	struct cs42xx8_priv *cs42xx8;
 	int ret, val, i;
+	int num_domains = 0;
 
 	if (IS_ERR(regmap)) {
 		ret = PTR_ERR(regmap);
@@ -562,6 +578,36 @@ int cs42xx8_probe(struct device *dev, struct regmap *regmap)
 	}
 
 	cs42xx8->sysclk = clk_get_rate(cs42xx8->clk);
+
+	num_domains = of_count_phandle_with_args(np, "power-domains",
+						 "#power-domain-cells");
+	for (i = 0; i < num_domains; i++) {
+		struct device *pd_dev;
+		struct device_link *link;
+
+		pd_dev = dev_pm_domain_attach_by_id(dev, i);
+		if (IS_ERR(pd_dev))
+			return PTR_ERR(pd_dev);
+
+		link = device_link_add(dev, pd_dev,
+			DL_FLAG_STATELESS |
+			DL_FLAG_PM_RUNTIME |
+			DL_FLAG_RPM_ACTIVE);
+		if (IS_ERR(link))
+			return PTR_ERR(link);
+	}
+
+	if (of_property_read_bool(np, "fsl,txm-rxs")) {
+		/* 0 --  rx,  1 -- tx */
+		cs42xx8->slave_mode[0] = true;
+		cs42xx8->slave_mode[1] = false;
+	}
+
+	if (of_property_read_bool(np, "fsl,txs-rxm")) {
+		/* 0 --  rx,  1 -- tx */
+		cs42xx8->slave_mode[0] = false;
+		cs42xx8->slave_mode[1] = true;
+	}
 
 	for (i = 0; i < ARRAY_SIZE(cs42xx8->supplies); i++)
 		cs42xx8->supplies[i].supply = cs42xx8_supply_names[i];
