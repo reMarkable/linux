@@ -13,6 +13,11 @@
 	model = "LS1012A QDS Board";
 	compatible = "fsl,ls1012a-qds", "fsl,ls1012a";
 
+	aliases {
+		ethernet0 = &pfe_mac0;
+		ethernet1 = &pfe_mac1;
+	};
+
 	sys_mclk: clock-mclk {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -55,6 +60,10 @@
 			system-clock-frequency = <24576000>;
 		};
 	};
+};
+
+&pcie {
+	status = "okay";
 };
 
 &dspi {
@@ -128,10 +137,66 @@
 	};
 };
 
+&pfe {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	pfe_mac0: ethernet@0 {
+		compatible = "fsl,pfe-gemac-port";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x0>;	/* GEM_ID */
+		fsl,mdio-mux-val = <0x2>;
+		phy-mode = "sgmii-2500";
+		phy-handle = <&sgmii_phy1>;
+	};
+
+	pfe_mac1: ethernet@1 {
+		compatible = "fsl,pfe-gemac-port";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x1>;	/* GEM_ID */
+		fsl,mdio-mux-val = <0x3>;
+		phy-mode = "sgmii-2500";
+		phy-handle = <&sgmii_phy2>;
+	};
+
+	mdio@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		sgmii_phy1: ethernet-phy@1 {
+			compatible = "ethernet-phy-ieee802.3-c45";
+			reg = <0x1>;
+		};
+
+		sgmii_phy2: ethernet-phy@2 {
+			compatible = "ethernet-phy-ieee802.3-c45";
+			reg = <0x2>;
+		};
+	};
+};
+
 &sai2 {
 	status = "okay";
 };
 
 &sata {
 	status = "okay";
+};
+
+&qspi {
+	status = "okay";
+	qflash0: s25fs512s@0 {
+		compatible = "spansion,m25p80";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		spi-max-frequency = <20000000>;
+		m25p,fast-read;
+		reg = <0>;
+		spi-rx-bus-width = <2>;
+		spi-tx-bus-width = <2>;
+	};
+
 };

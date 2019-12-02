@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Device Tree Include file for Thermal Monitor Unit.
+ *
+ * Copyright 2018 NXP
+ *
+ * Tang Yuantian <andy.tang@nxp.com>
+ *
+ */
+
+&thermal_zones {
+	thermal-zone0 {
+		cooling-maps {
+			map1 {
+				trip = <&alert0>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone1 {
+		cooling-maps {
+			map1 {
+				trip = <&alert1>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone2 {
+		cooling-maps {
+			map1 {
+				trip = <&alert2>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone3 {
+		cooling-maps {
+			map1 {
+				trip = <&alert3>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone4 {
+		cooling-maps {
+			map1 {
+				trip = <&alert4>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone5 {
+		cooling-maps {
+			map1 {
+				trip = <&alert5>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone6 {
+		cooling-maps {
+			map1 {
+				trip = <&alert6>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	thermal-zone7 {
+		cooling-maps {
+			map1 {
+				trip = <&alert7>;
+				cooling-device =
+					<&cooling_map1 THERMAL_NO_LIMIT
+					THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+};

@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Device Tree Include file for LS1028A QDS board, serdes 9999
+ *
+ * Copyright 2019 NXP
+ *
+ */
+
+&mdio_slot1 {
+	/* VSC8234 */
+	slot1_sgmii0: ethernet-phy@1c {
+		reg = <0x1c>;
+	};
+	slot1_sgmii1: ethernet-phy@1d {
+		reg = <0x1d>;
+	};
+	slot1_sgmii2: ethernet-phy@1e {
+		reg = <0x1e>;
+	};
+	slot1_sgmii3: ethernet-phy@1f {
+		reg = <0x1f>;
+	};
+};
+
+&mdio_slot2 {
+	/* VSC8234 */
+	slot2_sgmii0: ethernet-phy@1c {
+		reg = <0x1c>;
+	};
+	slot2_sgmii1: ethernet-phy@1d {
+		reg = <0x1d>;
+	};
+	slot2_sgmii2: ethernet-phy@1e {
+		reg = <0x1e>;
+	};
+	slot2_sgmii3: ethernet-phy@1f {
+		reg = <0x1f>;
+	};
+};
+
+/* l2switch ports */
+&switch_port0 {
+	phy-handle = <&slot1_sgmii0>;
+	phy-connection-type = "sgmii";
+};
+
+&switch_port1 {
+	phy-handle = <&slot2_sgmii0>;
+	phy-connection-type = "sgmii";
+};
+
+&switch_port2 {
+	phy-handle = <&slot1_sgmii2>;
+	phy-connection-type = "sgmii";
+};
+
+&switch_port3 {
+	phy-handle = <&slot1_sgmii3>;
+	phy-connection-type = "sgmii";
+};
