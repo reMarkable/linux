@@ -744,6 +744,14 @@ config MFD_MAX14577
 	  additional drivers must be enabled in order to use the functionality
 	  of the device.
 
+config MFD_MAX17135
+	tristate "Maxim MAX17135 EPD PMIC core"
+	depends on I2C
+
+	help
+	  This is the MAX17135 PMIC support. It includes
+	  core support for communication with the MAX17135 chip.
+
 config MFD_MAX77620
 	bool "Maxim Semiconductor MAX77620 and MAX20024 PMIC Support"
 	depends on I2C=y
@@ -1973,6 +1981,14 @@ config MFD_STMFX
 	  This driver provides common support for accessing the device,
 	  additional drivers must be enabled in order to use the functionality
 	  of the device.
+
+config MFD_PCA9450
+	bool "PCA9450 Power Management chip"
+	depends on I2C=y
+	select MFD_CORE
+	help
+	  if you say yes here you get support for the PCA9450
+	  Power Management chips.
 
 menu "Multimedia Capabilities Port drivers"
 	depends on ARCH_SA1100
