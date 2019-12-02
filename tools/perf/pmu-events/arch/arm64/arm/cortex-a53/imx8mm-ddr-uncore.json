@@ -1,0 +1,142 @@
+[
+    {
+	"PublicDescription": "Calculate bytes all masters read from DDR based on read-cycles event. DDR interface generates 2 up and 2 down edges in an internal clock cycle, can pass 4 beats of data. 4 bytes of each beat if DDR burst width is 32 bit.",
+	"BriefDescription": "imx8mm: bytes of all masters read from ddr0",
+	"MetricName": "imx8mm-ddr0-all-r",
+	"MetricExpr": "imx8_ddr0\\/read\\-cycles\\/ * 4 * 4",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "Calculate bytes all masters wirte to DDR based on write-cycles event. DDR interface generates 2 up and 2 down edges in an internal clock cycle, can pass 4 beats of data. 4 bytes of each beat if DDR burst width is 32 bit.",
+	"BriefDescription": "imx8mm: bytes of all masters write to ddr0",
+	"MetricName": "imx8mm-ddr0-all-w",
+	"MetricExpr": "imx8_ddr0\\/write\\-cycles\\/ * 4 * 4",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bursts of A53 CORE read from DDR",
+	"BriefDescription": "imx8mm: bursts of a53 core read from ddr0",
+	"MetricName": "imx8mm-ddr0-a53-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of A53 CORE write to DDR",
+	"BriefDescription": "imx8mm: bursts of a53 core write to ddr0",
+	"MetricName": "imx8mm-ddr0-a53-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bursts of GPU 3D read from DDR",
+	"BriefDescription": "imx8mm: bursts of gpu 3d read from ddr0",
+	"MetricName": "imx8mm-ddr0-3d-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0001\\,axi\\_id\\=0x000c\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of GPU 3D write to DDR",
+	"BriefDescription": "imx8mm: bursts of gpu 3d write to ddr0",
+	"MetricName": "imx8mm-ddr0-3d-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0001\\,axi\\_id\\=0x000c\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of GPU 2D read from DDR",
+	"BriefDescription": "imx8mm: bursts of gpu 2d read from ddr0",
+	"MetricName": "imx8mm-ddr0-2d-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0001\\,axi\\_id\\=0x0004\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of GPU 2D write to DDR",
+	"BriefDescription": "imx8mm: bursts of gpu 2d write to ddr0",
+	"MetricName": "imx8mm-ddr0-2d-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0001\\,axi\\_id\\=0x0004\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bursts of DISPMIX read from DDR",
+	"BriefDescription": "imx8mm: bursts of dispmix lcdif1 read from ddr0",
+	"MetricName": "imx8mm-ddr0-dispmix-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of DISPMIX write to DDR",
+	"BriefDescription": "imx8mm: bursts of dispmix write to ddr0",
+	"MetricName": "imx8mm-ddr0-dispmix-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bursts of VPU read from DDR",
+	"BriefDescription": "imx8mm: bursts of vpu read from ddr0",
+	"MetricName": "imx8mm-ddr0-vpu-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of VPU write to DDR",
+	"BriefDescription": "imx8mm: bursts of vpu write to ddr0",
+	"MetricName": "imx8mm-ddr0-vpu-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bursts of HSIOMIX read from DDR",
+	"BriefDescription": "imx8mm: bursts of hsiomix read from ddr0",
+	"MetricName": "imx8mm-ddr0-hsiomix-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of HSIOMIX write to DDR",
+	"BriefDescription": "imx8mm: bursts of hsiomix write to ddr0",
+	"MetricName": "imx8mm-ddr0-hsiomix-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bursts of GIC read from DDR",
+	"BriefDescription": "imx8mm: bursts of gic read from ddr0",
+	"MetricName": "imx8mm-ddr0-gic-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0006\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of GIC write to DDR",
+	"BriefDescription": "imx8mm: bursts of gic write to ddr0",
+	"MetricName": "imx8mm-ddr0-gic-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0006\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bursts of SUPERMIX read from DDR",
+	"BriefDescription": "imx8mm: bursts of supermix read from ddr0",
+	"MetricName": "imx8mm-ddr0-supermix-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x000f\\,axi\\_id\\=0x0010\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    },
+    {
+	"PublicDescription": "bursts of SUPERMIX write to DDR",
+	"BriefDescription": "imx8mm: bursts of supermix write to ddr0",
+	"MetricName": "imx8mm-ddr0-supermix-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x000f\\,axi\\_id\\=0x0010\\/",
+	"MetricGroup": "i.MX8MM_DDR_MON"
+    }
+]

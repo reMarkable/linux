@@ -296,15 +296,13 @@ static void metricgroup__print_strlist(struct strlist *metrics, bool raw)
 void metricgroup__print(bool metrics, bool metricgroups, char *filter,
 			bool raw, bool details)
 {
-	struct pmu_events_map *map = perf_pmu__find_map(NULL);
+	struct pmu_events_map *map;
+	struct perf_pmu *pmu;
 	struct pmu_event *pe;
 	int i;
 	struct rblist groups;
 	struct rb_node *node, *next;
 	struct strlist *metriclist = NULL;
-
-	if (!map)
-		return;
 
 	if (!metricgroups) {
 		metriclist = strlist__new(NULL, NULL);
@@ -312,67 +310,75 @@ void metricgroup__print(bool metrics, bool metricgroups, char *filter,
 			return;
 	}
 
-	rblist__init(&groups);
-	groups.node_new = mep_new;
-	groups.node_cmp = mep_cmp;
-	groups.node_delete = mep_delete;
-	for (i = 0; ; i++) {
-		const char *g;
-		pe = &map->table[i];
+	pmu = NULL;
+	while ((pmu = perf_pmu__scan(pmu)) != NULL) {
+		map = perf_pmu__find_map(pmu);
 
-		if (!pe->name && !pe->metric_group && !pe->metric_name)
-			break;
-		if (!pe->metric_expr)
+		if (!map)
 			continue;
-		g = pe->metric_group;
-		if (!g && pe->metric_name) {
-			if (pe->name)
+
+		rblist__init(&groups);
+		groups.node_new = mep_new;
+		groups.node_cmp = mep_cmp;
+		groups.node_delete = mep_delete;
+		for (i = 0; ; i++) {
+			const char *g;
+			pe = &map->table[i];
+
+			if (!pe->name && !pe->metric_group && !pe->metric_name)
+				break;
+			if (!pe->metric_expr)
 				continue;
-			g = "No_group";
-		}
-		if (g) {
-			char *omg;
-			char *mg = strdup(g);
-
-			if (!mg)
-				return;
-			omg = mg;
-			while ((g = strsep(&mg, ";")) != NULL) {
-				struct mep *me;
-				char *s;
-
-				g = skip_spaces(g);
-				if (*g == 0)
-					g = "No_group";
-				if (filter && !strstr(g, filter))
+			g = pe->metric_group;
+			if (!g && pe->metric_name) {
+				if (pe->name)
 					continue;
-				if (raw)
-					s = (char *)pe->metric_name;
-				else {
-					if (asprintf(&s, "%s\n%*s%s]",
-						     pe->metric_name, 8, "[", pe->desc) < 0)
-						return;
+				g = "No_group";
+			}
+			if (g) {
+				char *omg;
+				char *mg = strdup(g);
 
-					if (details) {
+				if (!mg)
+					return;
+				omg = mg;
+				while ((g = strsep(&mg, ";")) != NULL) {
+					struct mep *me;
+					char *s;
+
+					g = skip_spaces(g);
+					if (*g == 0)
+						g = "No_group";
+					if (filter && !strstr(g, filter))
+						continue;
+					if (raw)
+						s = (char *)pe->metric_name;
+					else {
 						if (asprintf(&s, "%s\n%*s%s]",
-							     s, 8, "[", pe->metric_expr) < 0)
+							     pe->metric_name, 8, "[", pe->desc) < 0)
 							return;
+
+						if (details) {
+							if (asprintf(&s, "%s\n%*s%s]",
+								     s, 8, "[", pe->metric_expr) < 0)
+								return;
+						}
+					}
+
+					if (!s)
+						continue;
+
+					if (!metricgroups) {
+						strlist__add(metriclist, s);
+					} else {
+						me = mep_lookup(&groups, g);
+						if (!me)
+							continue;
+						strlist__add(me->metrics, s);
 					}
 				}
-
-				if (!s)
-					continue;
-
-				if (!metricgroups) {
-					strlist__add(metriclist, s);
-				} else {
-					me = mep_lookup(&groups, g);
-					if (!me)
-						continue;
-					strlist__add(me->metrics, s);
-				}
+				free(omg);
 			}
-			free(omg);
 		}
 	}
 
@@ -397,15 +403,12 @@ void metricgroup__print(bool metrics, bool metricgroups, char *filter,
 }
 
 static int metricgroup__add_metric(const char *metric, struct strbuf *events,
+				   struct pmu_events_map *map,
 				   struct list_head *group_list)
 {
-	struct pmu_events_map *map = perf_pmu__find_map(NULL);
 	struct pmu_event *pe;
 	int ret = -EINVAL;
 	int i, j;
-
-	if (!map)
-		return 0;
 
 	for (i = 0; ; i++) {
 		pe = &map->table[i];
@@ -468,6 +471,7 @@ static int metricgroup__add_metric(const char *metric, struct strbuf *events,
 }
 
 static int metricgroup__add_metric_list(const char *list, struct strbuf *events,
+					struct pmu_events_map *map,
 				        struct list_head *group_list)
 {
 	char *llist, *nlist, *p;
@@ -482,7 +486,7 @@ static int metricgroup__add_metric_list(const char *list, struct strbuf *events,
 	strbuf_addf(events, "%s", "");
 
 	while ((p = strsep(&llist, ",")) != NULL) {
-		ret = metricgroup__add_metric(p, events, group_list);
+		ret = metricgroup__add_metric(p, events, map, group_list);
 		if (ret == -EINVAL) {
 			fprintf(stderr, "Cannot find metric or group `%s'\n",
 					p);
@@ -514,14 +518,25 @@ int metricgroup__parse_groups(const struct option *opt,
 	struct parse_events_error parse_error;
 	struct evlist *perf_evlist = *(struct evlist **)opt->value;
 	struct strbuf extra_events;
+	struct pmu_events_map *map;
+	struct perf_pmu *pmu;
 	LIST_HEAD(group_list);
 	int ret;
 
 	if (metric_events->nr_entries == 0)
 		metricgroup__rblist_init(metric_events);
-	ret = metricgroup__add_metric_list(str, &extra_events, &group_list);
-	if (ret)
-		return ret;
+
+	pmu = NULL;
+	while ((pmu = perf_pmu__scan(pmu)) != NULL) {
+		map = perf_pmu__find_map(pmu);
+		if (!map)
+			continue;
+
+		ret = metricgroup__add_metric_list(str, &extra_events, map, &group_list);
+		if (ret)
+			return ret;
+	}
+
 	pr_debug("adding %s\n", extra_events.buf);
 	memset(&parse_error, 0, sizeof(struct parse_events_error));
 	ret = parse_events(perf_evlist, extra_events.buf, &parse_error);
@@ -539,22 +554,28 @@ out:
 
 bool metricgroup__has_metric(const char *metric)
 {
-	struct pmu_events_map *map = perf_pmu__find_map(NULL);
+	struct pmu_events_map *map;
+	struct perf_pmu *pmu;
 	struct pmu_event *pe;
 	int i;
 
-	if (!map)
-		return false;
+	pmu = NULL;
+	while ((pmu = perf_pmu__scan(pmu)) != NULL) {
+		map = perf_pmu__find_map(pmu);
 
-	for (i = 0; ; i++) {
-		pe = &map->table[i];
-
-		if (!pe->name && !pe->metric_group && !pe->metric_name)
-			break;
-		if (!pe->metric_expr)
+		if (!map)
 			continue;
-		if (match_metric(pe->metric_name, metric))
-			return true;
+
+		for (i = 0; ; i++) {
+			pe = &map->table[i];
+
+			if (!pe->name && !pe->metric_group && !pe->metric_name)
+				break;
+			if (!pe->metric_expr)
+				continue;
+			if (match_metric(pe->metric_name, metric))
+				return true;
+		}
 	}
 	return false;
 }

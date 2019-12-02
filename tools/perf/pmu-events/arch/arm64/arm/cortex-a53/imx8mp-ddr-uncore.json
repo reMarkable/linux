@@ -1,0 +1,441 @@
+[
+    {
+	"PublicDescription": "bytes of all masters read from DDR",
+	"BriefDescription": "imx8mp: bytes of all masters read from ddr0",
+	"MetricName": "imx8mp-ddr0-all-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of all masters write to DDR",
+	"BriefDescription": "imx8mp: bytes of all masters write to ddr0",
+	"MetricName": "imx8mp-ddr0-all-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of A53 CORE read from DDR",
+	"BriefDescription": "imx8mp: bytes of a53 core read from ddr0",
+	"MetricName": "imx8mp-ddr0-a53-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of A53 CORE write to DDR",
+	"BriefDescription": "imx8mp: bytes of a53 core write to ddr0",
+	"MetricName": "imx8mp-ddr0-a53-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of GIC read from DDR",
+	"BriefDescription": "imx8mp: bytes of gic core read from ddr0",
+	"MetricName": "imx8mp-ddr0-gic-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0012\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of GIC write to DDR",
+	"BriefDescription": "imx8mp: bytes of gic write to ddr0",
+	"MetricName": "imx8mp-ddr0-gic-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0012\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of SUPERMIX read from DDR",
+	"BriefDescription": "imx8mp: bytes of supermix core read from ddr0",
+	"MetricName": "imx8mp-ddr0-supermix-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x000f\\,axi\\_id\\=0x0020\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of SUPERMIX write to DDR",
+	"BriefDescription": "imx8mp: bytes of supermix write to ddr0",
+	"MetricName": "imx8mp-ddr0-supermix-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x000f\\,axi\\_id\\=0x0020\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of GPU 3D read from DDR",
+	"BriefDescription": "imx8mp: bytes of gpu 3d read from ddr0",
+	"MetricName": "imx8mp-ddr0-3d-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0010\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of GPU 3D write to DDR",
+	"BriefDescription": "imx8mp: bytes of gpu 3d write to ddr0",
+	"MetricName": "imx8mp-ddr0-3d-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0010\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of GPU 2D read from DDR",
+	"BriefDescription": "imx8mp: bytes of gpu 2d read from ddr0",
+	"MetricName": "imx8mp-ddr0-2d-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0011\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of GPU 2D write to DDR",
+	"BriefDescription": "imx8mp: bytes of gpu 2d write to ddr0",
+	"MetricName": "imx8mp-ddr0-2d-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0011\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of DISPLAY LCDIF1 read from DDR",
+	"BriefDescription": "imx8mp: bytes of display lcdif1 read from ddr0",
+	"MetricName": "imx8mp-ddr0-lcdif1-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0008\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY LCDIF1 write to DDR",
+	"BriefDescription": "imx8mp: bytes of display lcdif1 write to ddr0",
+	"MetricName": "imx8mp-ddr0-lcdif1-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0008\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY LCDIF2 read from DDR",
+	"BriefDescription": "imx8mp: bytes of display lcdif2 read from ddr0",
+	"MetricName": "imx8mp-ddr0-lcdif2-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0009\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY LCDIF2 write to DDR",
+	"BriefDescription": "imx8mp: bytes of display lcdif2 write to ddr0",
+	"MetricName": "imx8mp-ddr0-lcdif2-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0009\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISI1 read from DDR",
+	"BriefDescription": "imx8mp: bytes of display isi1 read from ddr0",
+	"MetricName": "imx8mp-ddr0-isi1-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000a\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISI1 write to DDR",
+	"BriefDescription": "imx8mp: bytes of display isi1 write to ddr0",
+	"MetricName": "imx8mp-ddr0-isi1-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000a\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISI2 read from DDR",
+	"BriefDescription": "imx8mp: bytes of display isi2 read from ddr0",
+	"MetricName": "imx8mp-ddr0-isi2-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000b\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISI2 write to DDR",
+	"BriefDescription": "imx8mp: bytes of display isi2 write to ddr0",
+	"MetricName": "imx8mp-ddr0-isi2-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000b\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISI3 read from DDR",
+	"BriefDescription": "imx8mp: bytes of display isi3 read from ddr0",
+	"MetricName": "imx8mp-ddr0-isi3-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000c\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISI3 write to DDR",
+	"BriefDescription": "imx8mp: bytes of display isi3 write to ddr0",
+	"MetricName": "imx8mp-ddr0-isi3-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000c\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISP1 read from DDR",
+	"BriefDescription": "imx8mp: bytes of display isp1 read from ddr0",
+	"MetricName": "imx8mp-ddr0-isp1-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000d\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISP1 write to DDR",
+	"BriefDescription": "imx8mp: bytes of display isp1 write to ddr0",
+	"MetricName": "imx8mp-ddr0-isp1-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000d\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISP2 read from DDR",
+	"BriefDescription": "imx8mp: bytes of display isp2 read from ddr0",
+	"MetricName": "imx8mp-ddr0-isp2-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000e\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY ISP2 write to DDR",
+	"BriefDescription": "imx8mp: bytes of display isp2 write to ddr0",
+	"MetricName": "imx8mp-ddr0-isp2-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000e\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY DEWARP read from DDR",
+	"BriefDescription": "imx8mp: bytes of display dewarp read from ddr0",
+	"MetricName": "imx8mp-ddr0-dewarp-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000f\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of DISPLAY DEWARP write to DDR",
+	"BriefDescription": "imx8mp: bytes of display dewarp write to ddr0",
+	"MetricName": "imx8mp-ddr0-dewarp-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000f\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of VPU1 read from DDR",
+	"BriefDescription": "imx8mp: bytes of vpu1 read from ddr0",
+	"MetricName": "imx8mp-ddr0-vpu1-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001c\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of VPU1 write to DDR",
+	"BriefDescription": "imx8mp: bytes of vpu1 write to ddr0",
+	"MetricName": "imx8mp-ddr0-vpu1-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001c\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of VPU2 read from DDR",
+	"BriefDescription": "imx8mp: bytes of vpu2 read from ddr0",
+	"MetricName": "imx8mp-ddr0-vpu2-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001d\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of VPU2 write to DDR",
+	"BriefDescription": "imx8mp: bytes of vpu2 write to ddr0",
+	"MetricName": "imx8mp-ddr0-vpu2-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001d\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of VPU3 read from DDR",
+	"BriefDescription": "imx8mp: bytes of vpu3 read from ddr0",
+	"MetricName": "imx8mp-ddr0-vpu3-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001e\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of VPU3 write to DDR",
+	"BriefDescription": "imx8mp: bytes of vpu3 write to ddr0",
+	"MetricName": "imx8mp-ddr0-vpu3-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001e\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of NPU read from DDR",
+	"BriefDescription": "imx8mp: bytes of npu read from ddr0",
+	"MetricName": "imx8mp-ddr0-npu-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0013\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of NPU write to DDR",
+	"BriefDescription": "imx8mp: bytes of npu write to ddr0",
+	"MetricName": "imx8mp-ddr0-npu-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0013\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of USB1 read from DDR",
+	"BriefDescription": "imx8mp: bytes of usb1 read from ddr0",
+	"MetricName": "imx8mp-ddr0-usb1-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0018\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of USB1 write to DDR",
+	"BriefDescription": "imx8mp: bytes of usb1 write to ddr0",
+	"MetricName": "imx8mp-ddr0-usb1-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0018\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of USB2 read from DDR",
+	"BriefDescription": "imx8mp: bytes of usb2 read from ddr0",
+	"MetricName": "imx8mp-ddr0-usb2-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0019\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of USB2 write to DDR",
+	"BriefDescription": "imx8mp: bytes of usb2 write to ddr0",
+	"MetricName": "imx8mp-ddr0-usb2-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0019\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of PCI read from DDR",
+	"BriefDescription": "imx8mp: bytes of pci read from ddr0",
+	"MetricName": "imx8mp-ddr0-pci-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001a\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of PCI write to DDR",
+	"BriefDescription": "imx8mp: bytes of pci write to ddr0",
+	"MetricName": "imx8mp-ddr0-pci-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001a\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+
+    {
+	"PublicDescription": "bytes of HDMI1 read from DDR",
+	"BriefDescription": "imx8mp: bytes of hdmi1 read from ddr0",
+	"MetricName": "imx8mp-ddr0-hdmi1-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0014\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of HDMI1 write to DDR",
+	"BriefDescription": "imx8mp: bytes of hdmi1 write to ddr0",
+	"MetricName": "imx8mp-ddr0-hdmi1-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0014\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of HDMI2 read from DDR",
+	"BriefDescription": "imx8mp: bytes of hdmi2 read from ddr0",
+	"MetricName": "imx8mp-ddr0-hdmi2-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0015\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of HDMI2 write to DDR",
+	"BriefDescription": "imx8mp: bytes of hdmi2 write to ddr0",
+	"MetricName": "imx8mp-ddr0-hdmi2-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0015\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of HDMI3 read from DDR",
+	"BriefDescription": "imx8mp: bytes of hdmi3 read from ddr0",
+	"MetricName": "imx8mp-ddr0-hdmi3-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0016\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of HDMI3 write to DDR",
+	"BriefDescription": "imx8mp: bytes of hdmi3 write to ddr0",
+	"MetricName": "imx8mp-ddr0-hdmi3-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0016\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+
+    {
+	"PublicDescription": "bytes of AUDIO1 read from DDR",
+	"BriefDescription": "imx8mp: bytes of audio1 read from ddr0",
+	"MetricName": "imx8mp-ddr0-audio1-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO1 write to DDR",
+	"BriefDescription": "imx8mp: bytes of audio1 write to ddr0",
+	"MetricName": "imx8mp-ddr0-audio1-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO2 read from DDR",
+	"BriefDescription": "imx8mp: bytes of audio2 read from ddr0",
+	"MetricName": "imx8mp-ddr0-audio2-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO2 write to DDR",
+	"BriefDescription": "imx8mp: bytes of audio2 write to ddr0",
+	"MetricName": "imx8mp-ddr0-audio2-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO3 read from DDR",
+	"BriefDescription": "imx8mp: bytes of audio3 read from ddr0",
+	"MetricName": "imx8mp-ddr0-audio3-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO3 write to DDR",
+	"BriefDescription": "imx8mp: bytes of audio3 write to ddr0",
+	"MetricName": "imx8mp-ddr0-audio3-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO4 read from DDR",
+	"BriefDescription": "imx8mp: bytes of audio4 read from ddr0",
+	"MetricName": "imx8mp-ddr0-audio4-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0004\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO4 write to DDR",
+	"BriefDescription": "imx8mp: bytes of audio4 write to ddr0",
+	"MetricName": "imx8mp-ddr0-audio4-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0004\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO5 read from DDR",
+	"BriefDescription": "imx8mp: bytes of audio5 read from ddr0",
+	"MetricName": "imx8mp-ddr0-audio5-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0005\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO5 write to DDR",
+	"BriefDescription": "imx8mp: bytes of audio5 write to ddr0",
+	"MetricName": "imx8mp-ddr0-audio5-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0005\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO6 read from DDR",
+	"BriefDescription": "imx8mp: bytes of audio6 read from ddr0",
+	"MetricName": "imx8mp-ddr0-audio6-r",
+	"MetricExpr": "imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0006\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    },
+    {
+	"PublicDescription": "bytes of AUDIO6 write to DDR",
+	"BriefDescription": "imx8mp: bytes of audio6 write to ddr0",
+	"MetricName": "imx8mp-ddr0-audio6-w",
+	"MetricExpr": "imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0006\\/",
+	"MetricGroup": "i.MX8MP_DDR_MON"
+    }
+]
