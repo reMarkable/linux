@@ -1636,7 +1636,7 @@ static int do_register_framebuffer(struct fb_info *fb_info)
 	fb_add_videomode(&mode, &fb_info->modelist);
 	registered_fb[i] = fb_info;
 
-#ifdef CONFIG_GUMSTIX_AM200EPD
+#if (defined CONFIG_GUMSTIX_AM200EPD) || (defined CONFIG_FB_MXC_HDMI) || (defined CONFIG_FB_MXS_SII902X)
 	{
 		struct fb_event event;
 		event.info = fb_info;
@@ -1704,7 +1704,7 @@ static void do_unregister_framebuffer(struct fb_info *fb_info)
 	registered_fb[fb_info->node] = NULL;
 	num_registered_fb--;
 	fb_cleanup_device(fb_info);
-#ifdef CONFIG_GUMSTIX_AM200EPD
+#if (defined CONFIG_GUMSTIX_AM200EPD) || (defined CONFIG_FB_MXC_HDMI) || (defined CONFIG_FB_MXS_SII902X)
 	{
 		struct fb_event event;
 		event.info = fb_info;
@@ -1868,13 +1868,25 @@ EXPORT_SYMBOL(unregister_framebuffer);
  */
 void fb_set_suspend(struct fb_info *info, int state)
 {
+#ifdef CONFIG_FB_MXC_HDMI
+	struct fb_event event;
+#endif
 	WARN_CONSOLE_UNLOCKED();
 
+#ifdef CONFIG_FB_MXC_HDMI
+	event.info = info;
+#endif
 	if (state) {
+#ifdef CONFIG_FB_MXC_HDMI
+		fb_notifier_call_chain(FB_EVENT_SUSPEND, &event);
+#endif
 		fbcon_suspended(info);
 		info->state = FBINFO_STATE_SUSPENDED;
 	} else {
 		info->state = FBINFO_STATE_RUNNING;
+#ifdef CONFIG_FB_MXC_HDMI
+		fb_notifier_call_chain(FB_EVENT_RESUME, &event);
+#endif
 		fbcon_resumed(info);
 	}
 }
