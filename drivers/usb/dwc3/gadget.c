@@ -270,7 +270,7 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 {
 	const struct usb_endpoint_descriptor *desc = dep->endpoint.desc;
 	struct dwc3		*dwc = dep->dwc;
-	u32			timeout = 1000;
+	u32			timeout = 2000;
 	u32			saved_config = 0;
 	u32			reg;
 
@@ -3343,6 +3343,10 @@ int dwc3_gadget_init(struct dwc3 *dwc)
 	dwc->gadget.sg_supported	= true;
 	dwc->gadget.name		= "dwc3-gadget";
 	dwc->gadget.lpm_capable		= true;
+	dwc->gadget.is_otg		= (dwc->dr_mode == USB_DR_MODE_OTG) &&
+					  (dwc->otg_caps.hnp_support ||
+					   dwc->otg_caps.srp_support ||
+					   dwc->otg_caps.adp_support);
 
 	/*
 	 * FIXME We might be setting max_speed to <SUPER, however versions
