@@ -27,3 +27,13 @@ config IMX_SCU_PD
 	depends on IMX_SCU
 	help
 	  The System Controller Firmware (SCFW) based power domain driver.
+
+config IMX_SECO_MU
+	tristate "i.MX Security Controller (SECO) support"
+	depends on IMX_SCU && IMX_MBOX && MAILBOX
+
+	help
+	  It is possible to use APIs exposed by the SECO like HSM and SHE using the
+	  SAB protocol via the shared Messaging Unit. This driver exposes these
+	  interfaces via a set of file descriptors allowing to configure shared
+	  memory, send and receive messages.
