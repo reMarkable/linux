@@ -506,6 +506,8 @@ static int __maybe_unused wacom_i2c_resume(struct device *dev)
 	pinctrl_pm_select_default_state(dev);
 	enable_irq(client->irq);
 
+	wacom_setup_device(client);
+
 	return 0;
 }
 
