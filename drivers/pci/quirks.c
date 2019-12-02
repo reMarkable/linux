@@ -1355,6 +1355,10 @@ DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_VENDOR_ID_AL, PCI_ANY_ID,
    occur when mode detecting */
 DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_VENDOR_ID_VIA, PCI_ANY_ID,
 				PCI_CLASS_STORAGE_IDE, 8, quirk_no_ata_d3);
+/* Quirk the CYW4356 WIFI chip because the firmware still doesn't support
+   D3 mode */
+DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_VENDOR_ID_BROADCOM, 0x43ec,
+				PCI_CLASS_NETWORK_OTHER, 8, quirk_no_ata_d3);
 
 /*
  * This was originally an Alpha-specific thing, but it really fits here.
@@ -2448,6 +2452,11 @@ DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_VIA, PCI_DEVICE_ID_VIA_VT3351, quirk_disab
 DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_VIA, PCI_DEVICE_ID_VIA_VT3364, quirk_disable_all_msi);
 DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_VIA, PCI_DEVICE_ID_VIA_8380_0, quirk_disable_all_msi);
 DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_SI, 0x0761, quirk_disable_all_msi);
+DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_BROADCOM, 0x43ec, quirk_disable_all_msi);
+DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_BROADCOM, 0x43ef, quirk_disable_all_msi);
+DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_MARVELL_EXT, 0x2b42, quirk_disable_all_msi);
+DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_MARVELL_EXT, 0x2b43, quirk_disable_all_msi);
+DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_MARVELL_EXT, 0x2b44, quirk_disable_all_msi);
 
 /* Disable MSI on chipsets that are known to not support it */
 static void quirk_disable_msi(struct pci_dev *dev)
