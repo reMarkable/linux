@@ -1022,8 +1022,8 @@ static const struct nwl_dsi_platform_data imx8qm_dev = {
 		{ .id = NWL_DSI_CLK_BYPASS, .present = true },
 		{ .id = NWL_DSI_CLK_PIXEL, .present = true },
 	},
-	.reg_tx_ulps = 0x1000,
-	.reg_pxl2dpi = 0x1004,
+	.reg_tx_ulps = 0x00,
+	.reg_pxl2dpi = 0x04,
 	.max_instances = 2,
 	.shared_phy = false,
 };
@@ -1036,8 +1036,8 @@ static const struct nwl_dsi_platform_data imx8qx_dev = {
 		{ .id = NWL_DSI_CLK_BYPASS, .present = true },
 		{ .id = NWL_DSI_CLK_PIXEL, .present = true },
 	},
-	.reg_tx_ulps = 0x1030,
-	.reg_pxl2dpi = 0x1040,
+	.reg_tx_ulps = 0x30,
+	.reg_pxl2dpi = 0x40,
 	.max_instances = 2,
 	.shared_phy = true,
 };
