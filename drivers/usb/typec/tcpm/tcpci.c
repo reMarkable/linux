@@ -416,6 +416,8 @@ irqreturn_t tcpci_irq(struct tcpci *tcpci)
 	if (status & TCPC_ALERT_POWER_STATUS) {
 		unsigned int reg;
 
+		/* Read power status to clear the event */
+		regmap_read(tcpci->regmap, TCPC_POWER_STATUS, &reg);
 		regmap_read(tcpci->regmap, TCPC_POWER_STATUS_MASK, &reg);
 
 		/*
