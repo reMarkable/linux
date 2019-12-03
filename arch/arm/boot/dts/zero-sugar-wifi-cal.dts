@@ -1,0 +1,6 @@
+#include "zero-sugar.dts"
+
+&usdhc2 {
+	wifi-host;
+	/delete-node/ bcrmf@1;
+};
