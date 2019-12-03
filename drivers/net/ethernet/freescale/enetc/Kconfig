@@ -60,3 +60,13 @@ config FSL_ENETC_QOS
 	  enable/disable from user space via Qos commands(tc). In the kernel
 	  side, it can be loaded by Qos driver. Currently, it is only support
 	  taprio(802.1Qbv) and Credit Based Shaper(802.1Qbu).
+
+config ENETC_TSN
+	bool "TSN Support for NXP ENETC driver"
+	default n
+	depends on TSN && FSL_ENETC
+	help
+	  This driver supports TSN on Freescale ENETC driver. Provide
+	  interface to config the tsn capabilities of ENETC. The interface link
+	  to the /net/tsn/* and include/net/tsn.h. User space refer the
+	  include/uapi/linux/tsn.h.
