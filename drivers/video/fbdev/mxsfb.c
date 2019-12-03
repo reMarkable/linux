@@ -1620,8 +1620,7 @@ static void overlayfb_enable(struct mxsfb_layer *ofb)
 {
 	struct mxsfb_info *fbi = ofb->fbi;
 
-	if (!lock_fb_info(fbi->fb_info))
-		return;
+	lock_fb_info(fbi->fb_info);
 
 	if (fbi->cur_blank == FB_BLANK_UNBLANK) {
 		mxsfb_disable_controller(fbi->fb_info);
@@ -1876,8 +1875,7 @@ static int overlayfb_set_par(struct fb_info *info)
 	if (ofb->video_mem_size < size)
 		return -EINVAL;
 
-	if (!lock_fb_info(fbi->fb_info))
-		return -EINVAL;
+	lock_fb_info(fbi->fb_info);
 
 	if (fbi->cur_blank != FB_BLANK_UNBLANK) {
 		clk_enable_pix(fbi);
@@ -1894,8 +1892,7 @@ static int overlayfb_set_par(struct fb_info *info)
 	if (ofb->blank_state == FB_BLANK_UNBLANK)
 		ofb->ops->enable(ofb);
 
-	if (!lock_fb_info(fbi->fb_info))
-		return -EINVAL;
+	lock_fb_info(fbi->fb_info);
 
 	if (fbi->cur_blank != FB_BLANK_UNBLANK) {
 		clk_disable_disp_axi(fbi);
@@ -1919,8 +1916,7 @@ static int overlayfb_blank(int blank, struct fb_info *info)
 	if (ofb->blank_state == blank)
 		return 0;
 
-	if (!lock_fb_info(fbi->fb_info))
-		return -EINVAL;
+	lock_fb_info(fbi->fb_info);
 
 	if (fbi->cur_blank != FB_BLANK_UNBLANK) {
 		clk_enable_pix(fbi);
@@ -1941,8 +1937,7 @@ static int overlayfb_blank(int blank, struct fb_info *info)
 		break;
 	}
 
-	if (!lock_fb_info(fbi->fb_info))
-		return -EINVAL;
+	lock_fb_info(fbi->fb_info);
 
 	if (fbi->cur_blank != FB_BLANK_UNBLANK) {
 		clk_disable_disp_axi(fbi);
@@ -1966,8 +1961,7 @@ static int overlayfb_pan_display(struct fb_var_screeninfo *var,
 
 	init_completion(&fbi->flip_complete);
 
-	if (!lock_fb_info(fbi->fb_info))
-		return -EINVAL;
+	lock_fb_info(fbi->fb_info);
 
 	if (fbi->cur_blank != FB_BLANK_UNBLANK) {
 		unlock_fb_info(fbi->fb_info);
