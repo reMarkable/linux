@@ -2051,10 +2051,10 @@ static int mxsfb_overlay_map_video_memory(struct mxsfb_info *fbi,
 	BUG_ON(!fb->fix.smem_len);
 
 	ofb->video_mem_size = fb->fix.smem_len;
-	ofb->video_mem = dma_alloc_writecombine(ofb->dev,
-						ofb->video_mem_size,
-						(dma_addr_t *)&ofb->video_mem_phys,
-						GFP_DMA | GFP_KERNEL);
+	ofb->video_mem = dma_alloc_wc(ofb->dev,
+				      ofb->video_mem_size,
+				      (dma_addr_t *)&ofb->video_mem_phys,
+				      GFP_DMA | GFP_KERNEL);
 
 	if (ofb->video_mem == NULL) {
 		dev_err(ofb->dev, "Unable to allocate overlay fb memory\n");
@@ -2126,8 +2126,8 @@ static void mxsfb_overlay_exit(struct mxsfb_info *fbi)
 
 	if (ofb->registered) {
 		if (ofb->video_mem)
-			dma_free_writecombine(ofb->dev, ofb->video_mem_size,
-					ofb->video_mem, ofb->video_mem_phys);
+			dma_free_wc(ofb->dev, ofb->video_mem_size,
+				    ofb->video_mem, ofb->video_mem_phys);
 
 		unregister_framebuffer(ofb->ol_fb);
 		framebuffer_release(ofb->ol_fb);
