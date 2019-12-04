@@ -282,6 +282,8 @@ static int wacom_setup_device(struct i2c_client *client)
 
 static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 {
+	ktime_t timestamp = ktime_get();
+
 	struct wacom_i2c *wac_i2c = dev_id;
 	struct input_dev *input = wac_i2c->input;
 	struct wacom_features *features = &wac_i2c->features;
@@ -344,6 +346,7 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	input_report_abs(input, ABS_DISTANCE, distance);
 	input_report_abs(input, ABS_TILT_X, tilt_x);
 	input_report_abs(input, ABS_TILT_Y, tilt_y);
+	input_set_timestamp(input, timestamp);
 	input_sync(input);
 
 	/* Notify that we are in scanning. */
