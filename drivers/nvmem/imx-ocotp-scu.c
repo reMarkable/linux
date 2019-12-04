@@ -188,10 +188,10 @@ static int imx_scu_ocotp_write(void *context, unsigned int offset,
 	int ret;
 
 	/* allow only writing one complete OTP word at a time */
-	if ((bytes != 4) || (offset % 4))
+	if (bytes != 4)
 		return -EINVAL;
 
-	index = offset >> 2;
+	index = offset;
 
 	if (in_hole(context, index))
 		return -EINVAL;
