@@ -36,6 +36,13 @@ struct input_value {
 	__s32 value;
 };
 
+enum input_clock_type {
+	INPUT_CLK_REAL = 0,
+	INPUT_CLK_MONO,
+	INPUT_CLK_BOOT,
+	INPUT_CLK_MAX
+};
+
 /**
  * struct input_dev - represents an input device
  * @name: name of the device
@@ -117,6 +124,8 @@ struct input_value {
  * @vals: array of values queued in the current frame
  * @devres_managed: indicates that devices is managed with devres framework
  *	and needs not be explicitly unregistered or freed.
+ * @timestamp: storage for a timestamp set by input_set_timestamp called
+ *  by a driver
  */
 struct input_dev {
 	const char *name;
@@ -187,6 +196,8 @@ struct input_dev {
 	struct input_value *vals;
 
 	bool devres_managed;
+
+	ktime_t timestamp[INPUT_CLK_MAX];
 };
 #define to_input_dev(d) container_of(d, struct input_dev, dev)
 
@@ -384,6 +395,32 @@ int input_open_device(struct input_handle *);
 void input_close_device(struct input_handle *);
 
 int input_flush_device(struct input_handle *handle, struct file *file);
+
+/**
+ * input_set_timestamp - set timestamp for input events
+ * @dev: input device to set timestamp for
+ * @timestamp: the time at which the event has occurred
+ *   in CLOCK_MONOTONIC
+ *
+ * This function is intended to provide to the input system a more
+ * accurate time of when an event actually occurred. The driver should
+ * call this function as soon as a timestamp is acquired ensuring
+ * clock conversions in input_set_timestamp are done correctly.
+ *
+ * The system entering a suspend between timestamp acquisition and
+ * calling input_set_timestamp can result in inaccurate conversions.
+ *
+ */
+static inline void input_set_timestamp(struct input_dev *dev,
+	ktime_t timestamp)
+{
+	dev->timestamp[INPUT_CLK_MONO] = timestamp;
+	dev->timestamp[INPUT_CLK_REAL] = ktime_mono_to_real(timestamp);
+	dev->timestamp[INPUT_CLK_BOOT] = ktime_mono_to_any(
+		timestamp, TK_OFFS_BOOT);
+}
+
+ktime_t *input_get_timestamp(struct input_dev *dev);
 
 void input_event(struct input_dev *dev, unsigned int type, unsigned int code, int value);
 void input_inject_event(struct input_handle *handle, unsigned int type, unsigned int code, int value);
