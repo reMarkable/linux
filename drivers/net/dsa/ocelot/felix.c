@@ -530,7 +530,7 @@ static int felix_pci_probe(struct pci_dev *pdev,
 		}
 	}
 
-	felix = kzalloc(sizeof(struct felix), GFP_KERNEL);
+	felix = devm_kzalloc(&pdev->dev, sizeof(*felix), GFP_KERNEL);
 	if (!felix) {
 		err = -ENOMEM;
 		dev_err(&pdev->dev, "Failed to allocate driver memory\n");
@@ -577,11 +577,9 @@ static int felix_pci_probe(struct pci_dev *pdev,
 	return 0;
 
 err_register_ds:
-	kfree(ds);
 err_alloc_ds:
 err_alloc_irq:
 err_alloc_felix:
-	kfree(felix);
 err_dma:
 	pci_disable_device(pdev);
 err_pci_enable:
@@ -595,9 +593,6 @@ static void felix_pci_remove(struct pci_dev *pdev)
 	felix = pci_get_drvdata(pdev);
 
 	dsa_unregister_switch(felix->ds);
-
-	kfree(felix->ds);
-	kfree(felix);
 
 	pci_disable_device(pdev);
 }
