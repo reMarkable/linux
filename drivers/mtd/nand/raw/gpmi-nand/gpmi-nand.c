@@ -717,7 +717,9 @@ static void gpmi_nfc_apply_timings(struct gpmi_nand_data *this)
 	void __iomem *gpmi_regs = r->gpmi_regs;
 	unsigned int dll_wait_time_us;
 
+	clk_disable_unprepare(r->clock[0]);
 	clk_set_rate(r->clock[0], hw->clk_rate);
+	clk_prepare_enable(r->clock[0]);
 
 	writel(hw->timing0, gpmi_regs + HW_GPMI_TIMING0);
 	writel(hw->timing1, gpmi_regs + HW_GPMI_TIMING1);
@@ -2231,7 +2233,7 @@ static int gpmi_init_last(struct gpmi_nand_data *this)
 	if ((GPMI_IS_MX6(this) || GPMI_IS_MX8(this))  &&
 		((bch_geo->gf_len * bch_geo->ecc_strength) % 8) == 0) {
 		ecc->read_subpage = gpmi_ecc_read_subpage;
-		chip->options |= NAND_SUBPAGE_READ;
+		chip->options |= NAND_SUBPAGE_READ | NAND_BBM_FIRSTPAGE | NAND_BBM_SECONDPAGE;
 	}
 
 	return 0;
