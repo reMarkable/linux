@@ -96,8 +96,6 @@ static void dcss_crtc_atomic_enable(struct drm_crtc *crtc,
 
 	pm_runtime_get_sync(dcss->dev);
 
-	dcss_enable_vblank(crtc);
-
 	vm.pixelclock = mode->crtc_clock * 1000;
 
 	dcss_dtg_sync_set(dcss->dtg, &vm);
@@ -111,6 +109,8 @@ static void dcss_crtc_atomic_enable(struct drm_crtc *crtc,
 	dcss_ss_enable(dcss->ss);
 	dcss_dtg_enable(dcss->dtg, true, NULL);
 	dcss_ctxld_enable(dcss->ctxld);
+
+	dcss_enable_vblank(crtc);
 
 	reinit_completion(&dcss_crtc->en_completion);
 	wait_for_completion_timeout(&dcss_crtc->en_completion,

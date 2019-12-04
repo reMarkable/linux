@@ -134,6 +134,8 @@ static int dcss_dpr_ch_init_all(struct dcss_dpr *dpr, unsigned long dpr_base)
 
 		ch->dpr = dpr;
 		ch->ch_num = i;
+
+		dcss_writel(0xff, ch->base_reg + DCSS_DPR_IRQ_MASK);
 	}
 
 	return 0;

@@ -141,6 +141,9 @@ static int dcss_dtg_irq_config(struct dcss_dtg *dtg,
 		return dtg->ctxld_kick_irq;
 	}
 
+	dcss_update(0, LINE0_IRQ | LINE1_IRQ,
+		    dtg->base_reg + DCSS_DTG_INT_MASK);
+
 	ret = devm_request_irq(dtg->dev, dtg->ctxld_kick_irq,
 			       dcss_dtg_irq_handler,
 			       IRQF_TRIGGER_HIGH,
@@ -153,8 +156,6 @@ static int dcss_dtg_irq_config(struct dcss_dtg *dtg,
 	disable_irq(dtg->ctxld_kick_irq);
 
 	dtg->ctxld_kick_irq_en = false;
-
-	dcss_update(LINE0_IRQ, LINE0_IRQ, dtg->base_reg + DCSS_DTG_INT_MASK);
 
 	return 0;
 }
@@ -407,19 +408,21 @@ void dcss_dtg_ch_enable(struct dcss_dtg *dtg, int ch_num, bool en)
 void dcss_dtg_vblank_irq_enable(struct dcss_dtg *dtg, bool en)
 {
 	u32 status;
-
-	dcss_update(LINE1_IRQ, LINE1_IRQ, dtg->base_reg + DCSS_DTG_INT_MASK);
+	u32 mask = en ? LINE1_IRQ : 0;
 
 	if (en) {
 		status = dcss_readl(dtg->base_reg + DCSS_DTG_INT_STATUS);
 		dcss_writel(status & LINE1_IRQ,
 			    dtg->base_reg + DCSS_DTG_INT_CONTROL);
 	}
+
+	dcss_update(mask, LINE1_IRQ, dtg->base_reg + DCSS_DTG_INT_MASK);
 }
 
 void dcss_dtg_ctxld_kick_irq_enable(struct dcss_dtg *dtg, bool en)
 {
 	u32 status;
+	u32 mask = en ? LINE0_IRQ : 0;
 
 	if (en) {
 		status = dcss_readl(dtg->base_reg + DCSS_DTG_INT_STATUS);
@@ -429,7 +432,7 @@ void dcss_dtg_ctxld_kick_irq_enable(struct dcss_dtg *dtg, bool en)
 				    dtg->base_reg + DCSS_DTG_INT_CONTROL);
 			enable_irq(dtg->ctxld_kick_irq);
 			dtg->ctxld_kick_irq_en = true;
-			return;
+			goto mask_unmask;
 		}
 
 		return;
@@ -440,6 +443,9 @@ void dcss_dtg_ctxld_kick_irq_enable(struct dcss_dtg *dtg, bool en)
 
 	disable_irq_nosync(dtg->ctxld_kick_irq);
 	dtg->ctxld_kick_irq_en = false;
+
+mask_unmask:
+	dcss_update(mask, LINE0_IRQ, dtg->base_reg + DCSS_DTG_INT_MASK);
 }
 
 void dcss_dtg_vblank_irq_clear(struct dcss_dtg *dtg)
