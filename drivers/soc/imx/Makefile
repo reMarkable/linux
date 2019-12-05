@@ -6,3 +6,4 @@ obj-$(CONFIG_ARM64) += soc-imx8.o
 obj-$(CONFIG_IMX_SCU_SOC) += soc-imx-scu.o
 obj-$(CONFIG_IMX8M_PM_DOMAINS) += imx8m_pm_domains.o
 obj-y	+= mu/
+obj-${CONFIG_SECVIO_SC} += secvio/
