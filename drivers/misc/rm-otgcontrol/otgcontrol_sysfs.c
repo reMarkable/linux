@@ -56,13 +56,14 @@ static ssize_t attribute_show(struct kobject *kobj,
 		otgc_data = to_otgcontrol_data(attr,
 					       otg1_device_connected_attribute);
 
+		/* ID = 0 ==> DEVICE CONNECTED */
+		var = !otgcontrol_get_current_gpio_state(otgc_data);
+
 		dev_dbg(otgc_data->dev,
 			"%s: Returning cur otg1_device_connected value (%d)\n",
 			__func__,
-			SYNC_GET_FLAG(otgc_data->otg1_device_connected,
-				      &otgc_data->lock));
+			var);
 
-		var = otgc_data->otg1_device_connected;
 	}
 	else if (strcmp(attr->attr.name, "otg1_dr_mode") == 0) {
 		otgc_data = to_otgcontrol_data(attr,
