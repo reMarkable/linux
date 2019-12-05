@@ -623,6 +623,7 @@ static int mipi_csi2_probe(struct platform_device *pdev)
 	csi2dev->running = 0;
 	csi2dev->flags = MXC_MIPI_CSI2_PM_POWERED;
 	pm_runtime_enable(&pdev->dev);
+	mipi_csi2_clk_disable(csi2dev);
 
 	return 0;
 
@@ -678,7 +679,6 @@ static int __maybe_unused mipi_csi2_pm_suspend(struct device *dev)
 		dev_warn(dev, "running, prevent entering suspend.\n");
 		return -EAGAIN;
 	}
-	mipi_csi2_clk_disable(csi2dev);
 	csi2dev->flags &= ~MXC_MIPI_CSI2_PM_POWERED;
 	csi2dev->flags |= MXC_MIPI_CSI2_PM_SUSPENDED;
 
@@ -692,12 +692,6 @@ static int __maybe_unused mipi_csi2_pm_resume(struct device *dev)
 
 	if (csi2dev->flags & MXC_MIPI_CSI2_PM_POWERED)
 		return 0;
-
-	ret = mipi_csi2_clk_enable(csi2dev);
-	if (ret < 0) {
-		dev_info(dev, "%s:%d fail\n", __func__, __LINE__);
-		return -EAGAIN;
-	}
 
 	csi2dev->flags |= MXC_MIPI_CSI2_PM_POWERED;
 	csi2dev->flags &= ~MXC_MIPI_CSI2_PM_SUSPENDED;
