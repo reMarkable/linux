@@ -157,7 +157,8 @@ int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
 
 int otgcontrol_get_current_gpio_state(struct rm_otgcontrol_data *otgc_data)
 {
-	return gpiod_get_raw_value(otgc_data->pdata->one_wire_gpio);
+	return SYNC_GET_FLAG(gpiod_get_raw_value(otgc_data->pdata->one_wire_gpio),
+			     &otgc_data->lock);
 }
 
 const char *otgcontrol_gpio_state_name(int state)
