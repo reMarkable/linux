@@ -26,7 +26,7 @@
 		reg = <0>;
 		pinctrl-0 = <&pinctrl_mipi_dsi_0_1_en>;
 		pinctrl-names = "default";
-		reset-gpios = <&lsio_gpio1 6 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&lsio_gpio1 7 GPIO_ACTIVE_LOW>;
 		dsi-lanes = <4>;
 		video-mode = <2>;
 		width-mm = <68>;
@@ -66,7 +66,6 @@
 
 		compatible = "raydium,rm67191";
 		reg = <0>;
-		reset-gpios = <&lsio_gpio1 7 GPIO_ACTIVE_LOW>;
 		dsi-lanes = <4>;
 		video-mode = <2>;
 		width-mm = <68>;
