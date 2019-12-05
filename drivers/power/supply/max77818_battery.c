@@ -253,7 +253,7 @@ static int max77818_set_fgcc_mode(struct max77818_chip *chip, bool enabled, bool
 	ret = regmap_update_bits(chip->regmap,
 				 MAX17042_CONFIG,
 				 CONFIG_FGCC_BIT,
-				 enabled ? : CONFIG_FGCC_BIT : 0x0000);
+				 enabled ? CONFIG_FGCC_BIT : 0x0000);
 	if (ret) {
 		dev_err(chip->dev,
 			"Failed to %s FGCC bit in CONFIG register\n",
