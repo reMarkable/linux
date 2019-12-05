@@ -12,7 +12,7 @@
  * here, as this driver also defines corresponding enumerations locally
  */
 static const char * const charger_mode_string_list[] = {
-	"Charger", "OTG_supply", "Off"
+	"Charger", "OTG Supply", "Off"
 };
 
 int otgcontrol_get_otg_charger_modes(struct rm_otgcontrol_data *otgc_data,
