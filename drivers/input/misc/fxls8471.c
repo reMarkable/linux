@@ -538,6 +538,8 @@ int fxls8471_driver_init(struct fxls8471_data *pdata)
 		}
 	}
 	fxls8471_device_init(pdata);
+	fxls8471_set_delay(pdata, atomic_read(&pdata->delay));
+
 	printk("fxls8471 device driver probe successfully\n");
 	return 0;
 err_register_irq:
