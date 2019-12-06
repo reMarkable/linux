@@ -33,6 +33,17 @@ static u32 mask;
 
 static void syscon_poweroff(void)
 {
+	/*
+	 * To get GPIO1/2 LPSR wakeup work, we have commit 57673afb8d27
+	 * ("zero-sugar: init SNVS for LPSR GPIO wakeup") in U-Boot to
+	 * set bit 7 of SNVS register 0x48.  Unfortunately, it brings us
+	 * a side effect, that is setting TOP (Turn off System Power) bit
+	 * of SNVS LPCR register results in an immeidate reset instead of
+	 * poweroff.  To work around the issue, let's clear the bit right
+	 * before setting TOP bit for powering system off.
+	 */
+	regmap_update_bits(map, 0x48, BIT(7), 0);
+
 	/* Issue the poweroff */
 	regmap_update_bits(map, offset, mask, value);
 
