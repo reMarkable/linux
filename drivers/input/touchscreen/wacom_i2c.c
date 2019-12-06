@@ -25,6 +25,7 @@
 #include <linux/reset.h>
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
+#include <linux/suspend.h>
 
 // Bitmasks (for data[3])
 #define WACOM_TIP_SWITCH_bm         (1 << 0)
@@ -515,11 +516,16 @@ static int wacom_i2c_remove(struct i2c_client *client)
 static int __maybe_unused wacom_i2c_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct wacom_i2c *wac_i2c = i2c_get_clientdata(client);
+
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		regulator_disable(wac_i2c->vdd);
+		pinctrl_pm_select_sleep_state(dev);
+	}
 
 	if (device_may_wakeup(dev))
 		enable_irq_wake(client->irq);
 	disable_irq(client->irq);
-	pinctrl_pm_select_sleep_state(dev);
 
 	return 0;
 }
@@ -527,13 +533,26 @@ static int __maybe_unused wacom_i2c_suspend(struct device *dev)
 static int __maybe_unused wacom_i2c_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct wacom_i2c *wac_i2c = i2c_get_clientdata(client);
+	int ret;
 
-	pinctrl_pm_select_default_state(dev);
 	enable_irq(client->irq);
 	if (device_may_wakeup(dev))
 		disable_irq_wake(client->irq);
 
-	return wacom_setup_device(client);
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		pinctrl_pm_select_default_state(dev);
+
+		ret = regulator_enable(wac_i2c->vdd);
+		if (ret)
+			return ret;
+
+		ret = wacom_setup_device(client);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
 }
 
 static SIMPLE_DEV_PM_OPS(wacom_i2c_pm, wacom_i2c_suspend, wacom_i2c_resume);
