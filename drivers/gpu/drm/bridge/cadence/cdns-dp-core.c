@@ -329,6 +329,8 @@ static void cdn_hdp_bridge_enable(struct drm_bridge *bridge)
 	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 	int ret;
 
+	drm_dp_link_power_up(&mhdp->dp.aux, &mhdp->dp.link);
+
 	/* Link trainning */
 	ret = cdns_mhdp_train_link(mhdp);
 	if (ret) {
@@ -348,7 +350,6 @@ static void cdn_hdp_bridge_disable(struct drm_bridge *bridge)
 	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 
 	cdns_mhdp_set_video_status(mhdp, CONTROL_VIDEO_IDLE);
-	drm_dp_link_power_down(&mhdp->dp.aux, &mhdp->dp.link);
 }
 
 static const struct drm_bridge_funcs cdns_dp_bridge_funcs = {
