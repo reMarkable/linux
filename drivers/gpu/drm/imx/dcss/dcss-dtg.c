@@ -260,8 +260,6 @@ void dcss_dtg_sync_set(struct dcss_dtg *dtg, struct videomode *vm)
 			 (actual_clk / 1000), (pixclock / 1000));
 	}
 
-	msleep(50);
-
 	dcss_dtg_write(dtg, ((dtg_lrc_y << TC_Y_POS) | dtg_lrc_x),
 		       DCSS_DTG_TC_DTG);
 	dcss_dtg_write(dtg, ((dis_ulc_y << TC_Y_POS) | dis_ulc_x),
