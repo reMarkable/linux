@@ -178,19 +178,6 @@ static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp)
 		return;
 	}
 
-	/* Link trainning */
-	ret = cdns_mhdp_train_link(mhdp);
-	if (ret) {
-		DRM_DEV_ERROR(mhdp->dev, "Failed link train %d\n", ret);
-		return;
-	}
-
-	ret = cdns_mhdp_set_video_status(mhdp, CONTROL_VIDEO_VALID);
-	if (ret) {
-		DRM_DEV_ERROR(mhdp->dev, "Failed to valid video %d\n", ret);
-		return;
-	}
-
 	return;
 }
 
@@ -339,6 +326,21 @@ static void cdns_dp_bridge_mode_set(struct drm_bridge *bridge,
 
 static void cdn_hdp_bridge_enable(struct drm_bridge *bridge)
 {
+	struct cdns_mhdp_device *mhdp = bridge->driver_private;
+	int ret;
+
+	/* Link trainning */
+	ret = cdns_mhdp_train_link(mhdp);
+	if (ret) {
+		DRM_DEV_ERROR(mhdp->dev, "Failed link train %d\n", ret);
+		return;
+	}
+
+	ret = cdns_mhdp_set_video_status(mhdp, CONTROL_VIDEO_VALID);
+	if (ret) {
+		DRM_DEV_ERROR(mhdp->dev, "Failed to valid video %d\n", ret);
+		return;
+	}
 }
 
 static void cdn_hdp_bridge_disable(struct drm_bridge *bridge)
@@ -366,11 +368,7 @@ static void hotplug_work_func(struct work_struct *work)
 	drm_helper_hpd_irq_event(connector->dev);
 
 	if (connector->status == connector_status_connected) {
-		/* reset video mode after cable plugin */
-		mutex_lock(&mhdp->lock);
-		cdns_dp_mode_set(mhdp);
-		mutex_unlock(&mhdp->lock);
-
+		/* Cable connedted  */
 		DRM_INFO("HDMI/DP Cable Plug In\n");
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
