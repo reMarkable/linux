@@ -3603,6 +3603,7 @@ static const struct of_device_id synaptics_rmi4_dt_ids[] = {
 	{ .compatible = "synaptics_dsx" },
 	{ /* sentinel */},
 };
+MODULE_DEVICE_TABLE(of, synaptics_rmi4_dt_ids);
 
 static struct i2c_driver synaptics_rmi4_driver = {
 	.driver = {
