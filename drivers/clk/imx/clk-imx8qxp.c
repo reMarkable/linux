@@ -18,21 +18,21 @@
 #include "clk-scu.h"
 
 static const char *pll0_sels[] = {
-	"dummy",
+	"clk_dummy",
 	"pi_dpll_clk",
-	"dummy",
-	"dummy",
-	"dummy",
+	"clk_dummy",
+	"clk_dummy",
+	"clk_dummy",
 };
 
 static const char *enet0_rgmii_txc_sels[] = {
 	"enet0_ref_div",
-	"dummy",
+	"clk_dummy",
 };
 
 static const char *enet1_rgmii_txc_sels[] = {
 	"enet1_ref_div",
-	"dummy",
+	"clk_dummy",
 };
 
 static const char *dc0_sels[] = {
@@ -52,10 +52,10 @@ static const char *dc1_sels[] = {
 };
 
 static const char *hdmi_sels[] = {
-	"dummy",
+	"clk_dummy",
 	"hdmi_dig_pll_clk",
-	"dummy",
-	"dummy",
+	"clk_dummy",
+	"clk_dummy",
 	"hdmi_av_pll_clk",
 };
 
