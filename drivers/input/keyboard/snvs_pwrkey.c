@@ -85,12 +85,19 @@ static irqreturn_t imx_snvs_pwrkey_interrupt(int irq, void *dev_id)
 {
 	struct platform_device *pdev = dev_id;
 	struct pwrkey_drv_data *pdata = platform_get_drvdata(pdev);
+	struct input_dev *input = pdata->input;
 	u32 lp_status;
 
 	pm_wakeup_event(pdata->input->dev.parent, 0);
 
 	if (pdata->clk)
 		clk_enable(pdata->clk);
+
+	if (pdata->suspended) {
+		pdata->keystate = 1;
+		input_event(input, EV_KEY, pdata->keycode, 1);
+		input_sync(input);
+	}
 
 	regmap_read(pdata->snvs, SNVS_LPSR_REG, &lp_status);
 	if (lp_status & SNVS_LPSR_SPO)
