@@ -17,14 +17,6 @@
 
 #include "clk-scu.h"
 
-static const char *sdhc0_sels[] = {
-	"dummy",
-	"conn_pll0_clk",
-	"conn_pll1_clk",
-	"dummy",
-	"dummy",
-};
-
 static const char *pll0_sels[] = {
 	"dummy",
 	"pi_dpll_clk",
@@ -147,7 +139,7 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	imx_clk_scu("audio_rec_clk1_clk", IMX_SC_R_AUDIO_PLL_1, IMX_SC_PM_CLK_MISC1);
 
 	/* Connectivity */
-	imx_clk_scu2("sdhc0_clk", sdhc0_sels, ARRAY_SIZE(sdhc0_sels), IMX_SC_R_SDHC_0, IMX_SC_PM_CLK_PER);
+	imx_clk_scu("sdhc0_clk", IMX_SC_R_SDHC_0, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("sdhc1_clk", IMX_SC_R_SDHC_1, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("sdhc2_clk", IMX_SC_R_SDHC_2, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("enet0_root_clk", IMX_SC_R_ENET_0, IMX_SC_PM_CLK_PER);
