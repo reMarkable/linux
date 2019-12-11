@@ -1076,7 +1076,7 @@ static int ov5640_set_dvp_pclk(struct ov5640_dev *sensor, unsigned long rate)
 			 &bit_div, &pclk_div);
 
 	if (bit_div == 2)
-		bit_div = 8;
+		bit_div = 0xA;
 
 	ret = ov5640_mod_reg(sensor, OV5640_REG_SC_PLL_CTRL0,
 			     0x0f, bit_div);
