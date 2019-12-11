@@ -259,25 +259,19 @@ static int fsl_sai_set_mclk_rate(struct snd_soc_dai *dai, int clk_id,
 	if (pll) {
 		npll = (do_div(ratio, 8000) ? sai->pll11k_clk : sai->pll8k_clk);
 		if (!clk_is_match(pll, npll)) {
-			if (sai->mclk_streams == 0) {
-				ret = clk_set_parent(p, npll);
-				if (ret < 0)
-					dev_warn(dai->dev,
-						"failed to set parent %s: %d\n",
-						__clk_get_name(npll), ret);
-			} else {
-				dev_err(dai->dev,
-					"PLL %s is in use by a running stream.\n",
-					__clk_get_name(pll));
-				return -EINVAL;
-			}
+			ret = clk_set_parent(p, npll);
+			if (ret < 0)
+				dev_warn(dai->dev,
+					 "failed to set parent %s: %d\n",
+					 __clk_get_name(npll), ret);
 		}
 	}
 
 	ret = clk_set_rate(sai->mclk_clk[clk_id], freq);
 	if (ret < 0)
 		dev_err(dai->dev, "failed to set clock rate (%u): %d\n",
-				freq, ret);
+			freq, ret);
+
 	return ret;
 }
 
@@ -298,7 +292,7 @@ static int fsl_sai_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
 	if (dir == SND_SOC_CLOCK_IN)
 		return 0;
 
-	if (freq > 0) {
+	if (freq > 0 && clk_id != FSL_SAI_CLK_BUS) {
 		if (clk_id < 0 || clk_id >= FSL_SAI_MCLK_MAX) {
 			dev_err(cpu_dai->dev, "Unknown clock id: %d\n", clk_id);
 			return -EINVAL;
@@ -309,9 +303,11 @@ static int fsl_sai_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
 			return -EINVAL;
 		}
 
-		ret = fsl_sai_set_mclk_rate(cpu_dai, clk_id, freq);
-		if (ret < 0)
-			return ret;
+		if (sai->mclk_streams == 0) {
+			ret = fsl_sai_set_mclk_rate(cpu_dai, clk_id, freq);
+			if (ret < 0)
+				return ret;
+		}
 	}
 
 	ret = fsl_sai_set_dai_sysclk_tr(cpu_dai, clk_id, freq,
@@ -469,11 +465,12 @@ static int fsl_sai_set_dai_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 	return ret;
 }
 
-static int fsl_sai_check_ver(struct snd_soc_dai *cpu_dai)
+static int fsl_sai_check_ver(struct device *dev)
 {
-	struct fsl_sai *sai = dev_get_drvdata(cpu_dai->dev);
+	struct fsl_sai *sai = dev_get_drvdata(dev);
 	unsigned char offset = sai->soc->reg_offset;
 	unsigned int val;
+	int ret;
 
 	if (FSL_SAI_TCSR(offset) == FSL_SAI_VERID)
 		return 0;
@@ -481,16 +478,21 @@ static int fsl_sai_check_ver(struct snd_soc_dai *cpu_dai)
 	if (sai->verid.loaded)
 		return 0;
 
-	sai->verid.loaded = true;
-	regmap_read(sai->regmap, FSL_SAI_VERID, &val);
-	dev_dbg(cpu_dai->dev, "VERID: 0x%016X\n", val);
+	ret = regmap_read(sai->regmap, FSL_SAI_VERID, &val);
+	if (ret < 0)
+		return ret;
+
+	dev_dbg(dev, "VERID: 0x%016X\n", val);
 
 	sai->verid.id = (val & FSL_SAI_VER_ID_MASK) >> FSL_SAI_VER_ID_SHIFT;
 	sai->verid.extfifo_en = (val & FSL_SAI_VER_EFIFO_EN);
 	sai->verid.timestamp_en = (val & FSL_SAI_VER_TSTMP_EN);
 
-	regmap_read(sai->regmap, FSL_SAI_PARAM, &val);
-	dev_dbg(cpu_dai->dev, "PARAM: 0x%016X\n", val);
+	ret = regmap_read(sai->regmap, FSL_SAI_PARAM, &val);
+	if (ret < 0)
+		return ret;
+
+	dev_dbg(dev, "PARAM: 0x%016X\n", val);
 
 	/* max slots per frame, power of 2 */
 	sai->param.spf = 1 <<
@@ -503,10 +505,12 @@ static int fsl_sai_check_ver(struct snd_soc_dai *cpu_dai)
 	/* number of datalines implemented */
 	sai->param.dln = val & FSL_SAI_PAR_DLN_MASK;
 
-	dev_dbg(cpu_dai->dev,
+	dev_dbg(dev,
 		"Version: 0x%08X, SPF: %u, WPF: %u, DLN: %u\n",
 		sai->verid.id, sai->param.spf, sai->param.wpf, sai->param.dln
 	);
+
+	sai->verid.loaded = true;
 
 	return 0;
 }
@@ -524,8 +528,6 @@ static int fsl_sai_set_bclk(struct snd_soc_dai *dai, bool tx, u32 freq)
 	/* Don't apply to slave mode */
 	if (sai->slave_mode[tx])
 		return 0;
-
-	fsl_sai_check_ver(dai);
 
 	for (id = 0; id < FSL_SAI_MCLK_MAX; id++) {
 		clk_rate = clk_get_rate(sai->mclk_clk[id]);
@@ -990,17 +992,94 @@ static const struct snd_soc_dai_ops fsl_sai_pcm_dai_ops = {
 	.shutdown	= fsl_sai_shutdown,
 };
 
+static const char
+	*en_sl[] = { "Disabled", "Enabled", },
+	*inc_sl[] = { "On enabled and bitcount increment", "On enabled", };
+
+static const struct soc_enum tstmp_enum[] = {
+SOC_ENUM_SINGLE(FSL_SAI_TTCTL, 0, ARRAY_SIZE(en_sl), en_sl),
+SOC_ENUM_SINGLE(FSL_SAI_RTCTL, 0, ARRAY_SIZE(en_sl), en_sl),
+SOC_ENUM_SINGLE(FSL_SAI_TTCTL, 1, ARRAY_SIZE(inc_sl), inc_sl),
+SOC_ENUM_SINGLE(FSL_SAI_RTCTL, 1, ARRAY_SIZE(inc_sl), inc_sl),
+};
+
+int fsl_sai_get_reg(struct snd_kcontrol *kcontrol,
+		    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct soc_mreg_control *mc =
+		(struct soc_mreg_control *)kcontrol->private_value;
+	bool pm_active = pm_runtime_active(component->dev);
+	unsigned int regval;
+	int ret;
+
+	if (pm_active)
+		regcache_cache_bypass(component->regmap, true);
+
+	ret = snd_soc_component_read(component, mc->regbase, &regval);
+
+	if (pm_active)
+		regcache_cache_bypass(component->regmap, false);
+
+	if (ret < 0)
+		return ret;
+
+	ucontrol->value.integer.value[0] = regval;
+
+	return 0;
+}
+
+#define SOC_SINGLE_REG_RO(xname, xreg) \
+{	.iface = SNDRV_CTL_ELEM_IFACE_PCM, .name = (xname), \
+	.access = SNDRV_CTL_ELEM_ACCESS_READ | \
+		  SNDRV_CTL_ELEM_ACCESS_VOLATILE, \
+	.info = snd_soc_info_xr_sx, .get = fsl_sai_get_reg, \
+	.private_value = (unsigned long)&(struct soc_mreg_control) \
+		{ .regbase = xreg, .regcount = 1, .nbits = 32, \
+		  .invert = 0, .min = 0, .max = 0xffffffff, } }
+
+static const struct snd_kcontrol_new fsl_sai_pb_ctrls[] = {
+	SOC_ENUM("Playback Timestamp Control", tstmp_enum[0]),
+	SOC_ENUM("Playback Timestamp Increment", tstmp_enum[2]),
+	SOC_SINGLE("Playback Timestamp Reset", FSL_SAI_TTCTL, 8, 1, 0),
+	SOC_SINGLE("Playback Bit Counter Reset", FSL_SAI_TTCTL, 9, 1, 0),
+	SOC_SINGLE_REG_RO("Playback Timestamp Counter", FSL_SAI_TTCTN),
+	SOC_SINGLE_REG_RO("Playback Bit Counter", FSL_SAI_TBCTN),
+	SOC_SINGLE_REG_RO("Playback Latched Timestamp Counter", FSL_SAI_TTCAP),
+};
+
+static const struct snd_kcontrol_new fsl_sai_cp_ctrls[] = {
+	SOC_ENUM("Capture Timestamp Control", tstmp_enum[1]),
+	SOC_ENUM("Capture Timestamp Increment", tstmp_enum[3]),
+	SOC_SINGLE("Capture Timestamp Reset", FSL_SAI_RTCTL, 8, 1, 0),
+	SOC_SINGLE("Capture Bit Counter Reset", FSL_SAI_RTCTL, 9, 1, 0),
+	SOC_SINGLE_REG_RO("Capture Timestamp Counter", FSL_SAI_RTCTN),
+	SOC_SINGLE_REG_RO("Capture Bit Counter", FSL_SAI_RBCTN),
+	SOC_SINGLE_REG_RO("Capture Latched Timestamp Counter", FSL_SAI_RTCAP),
+};
+
+static int fsl_sai_pcm_new(struct snd_soc_pcm_runtime *rtd,
+			   struct snd_soc_dai *dai)
+{
+	struct fsl_sai *sai = dev_get_drvdata(dai->dev);
+	struct snd_pcm *pcm = rtd->pcm;
+	bool ts_enabled = sai->verid.timestamp_en;
+	struct snd_soc_component *comp = dai->component;
+
+	if (ts_enabled && pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream)
+		snd_soc_add_component_controls(comp, fsl_sai_pb_ctrls,
+					       ARRAY_SIZE(fsl_sai_pb_ctrls));
+
+	if (ts_enabled && pcm->streams[SNDRV_PCM_STREAM_CAPTURE].substream)
+		snd_soc_add_component_controls(comp, fsl_sai_cp_ctrls,
+					       ARRAY_SIZE(fsl_sai_cp_ctrls));
+	return 0;
+}
+
 static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 {
 	struct fsl_sai *sai = dev_get_drvdata(cpu_dai->dev);
 	unsigned char offset = sai->soc->reg_offset;
-
-	/* Software Reset for both Tx and Rx */
-	regmap_write(sai->regmap, FSL_SAI_TCSR(offset), FSL_SAI_CSR_SR);
-	regmap_write(sai->regmap, FSL_SAI_RCSR(offset), FSL_SAI_CSR_SR);
-	/* Clear SR bit to finish the reset */
-	regmap_write(sai->regmap, FSL_SAI_TCSR(offset), 0);
-	regmap_write(sai->regmap, FSL_SAI_RCSR(offset), 0);
 
 	regmap_update_bits(sai->regmap, FSL_SAI_TCR1(offset),
 				sai->soc->fifo_depth - 1,
@@ -1035,6 +1114,7 @@ static int fsl_sai_dai_resume(struct snd_soc_dai *cpu_dai)
 }
 
 static struct snd_soc_dai_driver fsl_sai_dai = {
+	.pcm_new = fsl_sai_pcm_new,
 	.probe = fsl_sai_dai_probe,
 	.playback = {
 		.stream_name = "CPU-Playback",
@@ -1059,7 +1139,7 @@ static struct snd_soc_dai_driver fsl_sai_dai = {
 };
 
 static const struct snd_soc_component_driver fsl_component = {
-	.name           = "fsl-sai",
+	.name	= "fsl-sai",
 };
 
 static struct reg_default fsl_sai_v2_reg_defaults[] = {
@@ -1146,6 +1226,14 @@ static bool fsl_sai_readable_reg(struct device *dev, unsigned int reg)
 	case FSL_SAI_MDIV:
 	case FSL_SAI_VERID:
 	case FSL_SAI_PARAM:
+	case FSL_SAI_TTCTN:
+	case FSL_SAI_RTCTN:
+	case FSL_SAI_TTCTL:
+	case FSL_SAI_TBCTN:
+	case FSL_SAI_TTCAP:
+	case FSL_SAI_RTCTL:
+	case FSL_SAI_RBCTN:
+	case FSL_SAI_RTCAP:
 		return true;
 	default:
 		return false;
@@ -1219,6 +1307,8 @@ static bool fsl_sai_writeable_reg(struct device *dev, unsigned int reg)
 	case FSL_SAI_RMR:
 	case FSL_SAI_MCTL:
 	case FSL_SAI_MDIV:
+	case FSL_SAI_TTCTL:
+	case FSL_SAI_RTCTL:
 		return true;
 	default:
 		return false;
@@ -1264,12 +1354,12 @@ static const struct of_device_id fsl_sai_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, fsl_sai_ids);
 
-static unsigned int fsl_sai_calc_dl_off(unsigned int* dl_mask)
+static unsigned int fsl_sai_calc_dl_off(unsigned long dl_mask)
 {
 	int fbidx, nbidx, offset;
 
-	fbidx = find_first_bit((const unsigned long *)dl_mask, 8);
-	nbidx = find_next_bit((const unsigned long *)dl_mask, 8, fbidx+1);
+	fbidx = find_first_bit(&dl_mask, 8);
+	nbidx = find_next_bit(&dl_mask, 8, fbidx + 1);
 	offset = nbidx - fbidx - 1;
 
 	return (offset < 0 || offset >= 7 ? 0 : offset);
@@ -1326,9 +1416,9 @@ static int fsl_sai_read_dlcfg(struct platform_device *pdev, char *pn,
 
 		cfg[i].pins = pins;
 		cfg[i].mask[0] = rx;
-		cfg[i].offset[0] = fsl_sai_calc_dl_off(&rx);
+		cfg[i].offset[0] = fsl_sai_calc_dl_off(rx);
 		cfg[i].mask[1] = tx;
-		cfg[i].offset[1] = fsl_sai_calc_dl_off(&tx);
+		cfg[i].offset[1] = fsl_sai_calc_dl_off(tx);
 	}
 
 	*rcfg = cfg;
@@ -1529,6 +1619,10 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	sai->pinctrl = devm_pinctrl_get(&pdev->dev);
 
 	platform_set_drvdata(pdev, sai);
+
+	ret = fsl_sai_check_ver(&pdev->dev);
+	if (ret < 0)
+		dev_warn(&pdev->dev, "Error reading SAI version: %d\n", ret);
 
 	pm_runtime_enable(&pdev->dev);
 

@@ -16,7 +16,7 @@
 
 &mipi0_dsi_host {
 	status = "okay";
-	fsl,clock-drop-level = <1>;
+	fsl,clock-drop-level = <2>;
 
 	panel@0 {
 		#address-cells = <1>;
@@ -58,7 +58,7 @@
 
 &mipi1_dsi_host {
 	status = "okay";
-	fsl,clock-drop-level = <1>;
+	fsl,clock-drop-level = <2>;
 
 	panel@0 {
 		#address-cells = <1>;
@@ -66,6 +66,7 @@
 
 		compatible = "raydium,rm67191";
 		reg = <0>;
+		reset-gpios = <&lsio_gpio1 7 GPIO_ACTIVE_LOW>;
 		dsi-lanes = <4>;
 		video-mode = <2>;
 		width-mm = <68>;
