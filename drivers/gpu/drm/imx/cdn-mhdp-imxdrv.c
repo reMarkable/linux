@@ -82,6 +82,8 @@ static struct cdns_plat_data imx8qm_hdmi_drv_data = {
 	.phy_video_valid = cdns_hdmi_phy_video_valid_imx8qm,
 	.power_on = cdns_mhdp_power_on_imx8qm,
 	.firmware_init = cdns_mhdp_firmware_init_imx8qm,
+	.resume = cdns_mhdp_resume_imx8qm,
+	.suspend = cdns_mhdp_suspend_imx8qm,
 	.pclk_rate = cdns_mhdp_pclk_rate_imx8qm,
 	.plat_init = cdns_mhdp_plat_init_imx8qm,
 	.plat_deinit = cdns_mhdp_plat_deinit_imx8qm,
@@ -96,6 +98,8 @@ static struct cdns_plat_data imx8qm_dp_drv_data = {
 	.phy_set = cdns_dp_phy_set_imx8qm,
 	.power_on = cdns_mhdp_power_on_imx8qm,
 	.firmware_init = cdns_mhdp_firmware_init_imx8qm,
+	.resume = cdns_mhdp_resume_imx8qm,
+	.suspend = cdns_mhdp_suspend_imx8qm,
 	.pclk_rate = cdns_mhdp_pclk_rate_imx8qm,
 	.plat_init = cdns_mhdp_plat_init_imx8qm,
 	.plat_deinit = cdns_mhdp_plat_deinit_imx8qm,
@@ -157,6 +161,9 @@ static int cdns_mhdp_imx_bind(struct device *dev, struct device *master,
 	encoder = &imx_mhdp->encoder;
 
 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);
+
+	ret = of_property_read_string(pdev->dev.of_node, "firmware-name",
+					&imx_mhdp->firmware_name);
 	/*
 	 * If we failed to find the CRTC(s) which this encoder is
 	 * supposed to be connected to, it's because the CRTC has
@@ -198,6 +205,24 @@ static const struct component_ops cdns_mhdp_imx_ops = {
 	.unbind	= cdns_mhdp_imx_unbind,
 };
 
+static int cdns_mhdp_imx_suspend(struct device *dev)
+{
+	struct imx_mhdp_device *imx_mhdp = dev_get_drvdata(dev);
+
+	cdns_mhdp_plat_call(&imx_mhdp->mhdp, suspend);
+
+	return 0;
+}
+
+static int cdns_mhdp_imx_resume(struct device *dev)
+{
+	struct imx_mhdp_device *imx_mhdp = dev_get_drvdata(dev);
+
+	cdns_mhdp_plat_call(&imx_mhdp->mhdp, resume);
+
+	return 0;
+}
+
 static int cdns_mhdp_imx_probe(struct platform_device *pdev)
 {
 	return component_add(&pdev->dev, &cdns_mhdp_imx_ops);
@@ -210,12 +235,17 @@ static int cdns_mhdp_imx_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct dev_pm_ops cdns_mhdp_imx_pm_ops = {
+        SET_LATE_SYSTEM_SLEEP_PM_OPS(cdns_mhdp_imx_suspend, cdns_mhdp_imx_resume)
+};
+
 static struct platform_driver cdns_mhdp_imx_platform_driver = {
 	.probe  = cdns_mhdp_imx_probe,
 	.remove = cdns_mhdp_imx_remove,
 	.driver = {
 		.name = "cdns-mhdp-imx",
 		.of_match_table = cdns_mhdp_imx_dt_ids,
+		.pm = &cdns_mhdp_imx_pm_ops,
 	},
 };
 

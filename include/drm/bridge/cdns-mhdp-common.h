@@ -645,6 +645,9 @@ struct cdns_plat_data {
 	int (*firmware_init)(struct cdns_mhdp_device *mhdp);
 	void (*pclk_rate)(struct cdns_mhdp_device *mhdp);
 
+	int (*suspend)(struct cdns_mhdp_device *mhdp);
+	int (*resume)(struct cdns_mhdp_device *mhdp);
+
 	int (*power_on)(struct cdns_mhdp_device *mhdp);
 	int (*power_off)(struct cdns_mhdp_device *mhdp);
 

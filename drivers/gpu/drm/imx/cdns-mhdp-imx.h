@@ -50,6 +50,8 @@ struct imx_mhdp_device {
 	bool active;
 	bool suspended;
 	struct imx_hdp_clks clks;
+	const struct firmware *fw;
+	const char *firmware_name;
 
 	int bus_type;
 
@@ -65,6 +67,8 @@ void cdns_mhdp_plat_init_imx8qm(struct cdns_mhdp_device *mhdp);
 void cdns_mhdp_plat_deinit_imx8qm(struct cdns_mhdp_device *mhdp);
 void cdns_mhdp_pclk_rate_imx8qm(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_firmware_init_imx8qm(struct cdns_mhdp_device *mhdp);
+int cdns_mhdp_resume_imx8qm(struct cdns_mhdp_device *mhdp);
+int cdns_mhdp_suspend_imx8qm(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_power_on_imx8qm(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_power_on_ls1028a(struct cdns_mhdp_device *mhdp);
 void cdns_mhdp_pclk_rate_ls1028a(struct cdns_mhdp_device *mhdp);

@@ -7,11 +7,16 @@
  */
 #include <dt-bindings/firmware/imx/rsrc.h>
 #include <linux/firmware/imx/sci.h>
+#include <linux/firmware.h>
 #include <linux/pm_domain.h>
 #include <linux/clk.h>
 #include <drm/drmP.h>
 
 #include "cdns-mhdp-imx.h"
+
+#define FW_IRAM_OFFSET		0x2000
+#define FW_IRAM_SIZE		0x10000
+#define FW_DRAM_SIZE		0x8000
 
 #define PLL_800MHZ (800000000)
 
@@ -517,23 +522,83 @@ void cdns_mhdp_pclk_rate_imx8qm(struct cdns_mhdp_device *mhdp)
 	imx8qm_pixel_link_mux(imx_mhdp);
 }
 
-int cdns_mhdp_firmware_init_imx8qm(struct cdns_mhdp_device *mhdp)
+int cdns_mhdp_firmware_write_section(struct imx_mhdp_device *imx_mhdp,
+					const u8 *data, int size, int addr)
 {
-	struct imx_mhdp_device *imx_mhdp =
-				container_of(mhdp, struct imx_mhdp_device, mhdp);
+	int i;
+
+	for (i = 0; i < size; i += 4) {
+		u32 val = (unsigned int)data[i] << 0 |
+					(unsigned int)data[i + 1] << 8 |
+					(unsigned int)data[i + 2] << 16 |
+					(unsigned int)data[i + 3] << 24;
+		cdns_mhdp_bus_write(val, &imx_mhdp->mhdp, addr + i);
+	}
+
+	return 0;
+}
+
+static void cdns_mhdp_firmware_load_cont(const struct firmware *fw, void *context)
+{
+	struct imx_mhdp_device *imx_mhdp = context;
+
+	imx_mhdp->fw = fw;
+}
+
+static int cdns_mhdp_firmware_load(struct imx_mhdp_device *imx_mhdp)
+{
+	const u8 *iram;
+	const u8 *dram;
 	u32 rate;
 	int ret;
 
 	/* configure HDMI/DP core clock */
 	rate = clk_get_rate(imx_mhdp->clks.clk_core);
-	if (mhdp->is_ls1028a)
+	if (imx_mhdp->mhdp.is_ls1028a)
 		rate = rate / 4;
 
 	cdns_mhdp_set_fw_clk(&imx_mhdp->mhdp, rate);
 
+	/* skip fw loading if none is specified */
+	if (!imx_mhdp->firmware_name)
+		goto out;
+
+	if (!imx_mhdp->fw) {
+		ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_NOHOTPLUG,
+						imx_mhdp->firmware_name,
+						imx_mhdp->mhdp.dev, GFP_KERNEL,
+						imx_mhdp,
+						cdns_mhdp_firmware_load_cont);
+		if (ret < 0) {
+			DRM_ERROR("failed to load firmware\n");
+			return -ENOENT;
+		}
+	} else {
+		iram = imx_mhdp->fw->data + FW_IRAM_OFFSET;
+		dram = iram + FW_IRAM_SIZE;
+
+		cdns_mhdp_firmware_write_section(imx_mhdp, iram, FW_IRAM_SIZE, ADDR_IMEM);
+		cdns_mhdp_firmware_write_section(imx_mhdp, dram, FW_DRAM_SIZE, ADDR_DMEM);
+	}
+
+out:
 	/* un-reset ucpu */
 	cdns_mhdp_bus_write(0, &imx_mhdp->mhdp, APB_CTRL);
 	DRM_INFO("Started firmware!\n");
+
+	return 0;
+}
+
+int cdns_mhdp_firmware_init_imx8qm(struct cdns_mhdp_device *mhdp)
+{
+	struct imx_mhdp_device *imx_mhdp =
+				container_of(mhdp, struct imx_mhdp_device, mhdp);
+	int ret;
+
+	/* load firmware */
+	ret = cdns_mhdp_firmware_load(imx_mhdp);
+	if (ret)
+		return ret;
 
 	ret = cdns_mhdp_check_alive(&imx_mhdp->mhdp);
 	if (ret == false) {
@@ -549,4 +614,24 @@ int cdns_mhdp_firmware_init_imx8qm(struct cdns_mhdp_device *mhdp)
 			cdns_mhdp_bus_read(mhdp, VER_LIB_H_ADDR) + (cdns_mhdp_bus_read(mhdp, VER_LIB_H_ADDR) << 8));
 
 	return 0;
+}
+
+int cdns_mhdp_suspend_imx8qm(struct cdns_mhdp_device *mhdp)
+{
+	struct imx_mhdp_device *imx_mhdp =
+				container_of(mhdp, struct imx_mhdp_device, mhdp);
+
+	imx8qm_pixel_clk_disable(imx_mhdp);
+
+	return 0;
+}
+
+int cdns_mhdp_resume_imx8qm(struct cdns_mhdp_device *mhdp)
+{
+	struct imx_mhdp_device *imx_mhdp =
+				container_of(mhdp, struct imx_mhdp_device, mhdp);
+
+	imx8qm_pixel_clk_enable(imx_mhdp);
+
+	return cdns_mhdp_firmware_init_imx8qm(mhdp);
 }
