@@ -482,12 +482,11 @@ static irqreturn_t dpaa2_mac_irq_handler(int irq_num, void *arg)
 		configure_link(priv, &link_cfg);
 	}
 
-	if (status & DPMAC_IRQ_EVENT_LINK_UP_REQ)
-		phy_start(ndev->phydev);
-
 	if (status & DPMAC_IRQ_EVENT_LINK_DOWN_REQ)
 		phy_stop(ndev->phydev);
 
+	if (status & DPMAC_IRQ_EVENT_LINK_UP_REQ)
+		phy_start(ndev->phydev);
 out:
 	dpmac_clear_irq_status(mc_dev->mc_io, 0, mc_dev->mc_handle,
 			       DPMAC_IRQ_INDEX, status);
