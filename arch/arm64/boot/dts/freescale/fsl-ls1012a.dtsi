@@ -404,8 +404,9 @@
 			reg = <0x0 0x2b50000 0x0 0x10000>;
 			interrupts = <0 148 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&clockgen 4 3>, <&clockgen 4 3>,
-				 <&clockgen 4 3>, <&clockgen 4 3>;
-			clock-names = "bus", "mclk1", "mclk2", "mclk3";
+				 <&clockgen 4 3>, <&clockgen 4 3>,
+				 <&clockgen 4 3>;
+			clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
 			dma-names = "tx", "rx";
 			dmas = <&edma0 1 47>,
 			       <&edma0 1 46>;
@@ -418,8 +419,9 @@
 			reg = <0x0 0x2b60000 0x0 0x10000>;
 			interrupts = <0 149 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&clockgen 4 3>, <&clockgen 4 3>,
-				 <&clockgen 4 3>, <&clockgen 4 3>;
-			clock-names = "bus", "mclk1", "mclk2", "mclk3";
+				 <&clockgen 4 3>, <&clockgen 4 3>,
+				 <&clockgen 4 3>;
+			clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
 			dma-names = "tx", "rx";
 			dmas = <&edma0 1 45>,
 			       <&edma0 1 44>;
