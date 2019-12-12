@@ -488,9 +488,32 @@ static struct media_pad *csis_get_remote_sensor_pad(struct csi_state *state)
 	}
 
 	if (i == subdev->entity.num_pads)
-		v4l2_err(&state->v4l2_dev, "%s, No remote pad found!\n", __func__);
+		v4l2_err(&state->sd, "%s, No remote pad found!\n", __func__);
 
 	return NULL;
+}
+
+static struct v4l2_subdev *csis_get_remote_subdev(struct csi_state *state,
+						  const char * const label)
+{
+	struct media_pad *source_pad;
+	struct v4l2_subdev *sen_sd;
+
+	/* Get remote source pad */
+	source_pad = csis_get_remote_sensor_pad(state);
+	if (!source_pad) {
+		v4l2_err(&state->sd, "%s, No remote pad found!\n", label);
+		return NULL;
+	}
+
+	/* Get remote source pad subdev */
+	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	if (!sen_sd) {
+		v4l2_err(&state->sd, "%s, No remote subdev found!\n", label);
+		return NULL;
+	}
+
+	return sen_sd;
 }
 
 static const struct csis_pix_format *find_csis_format(u32 code)
@@ -880,18 +903,10 @@ static const struct media_entity_operations mipi_csi2_sd_media_ops = {
 static int mipi_csis_s_power(struct v4l2_subdev *mipi_sd, int on)
 {
 	struct csi_state *state = mipi_sd_to_csi_state(mipi_sd);
-	struct media_pad *source_pad;
 	struct v4l2_subdev *sen_sd;
 
-	/* Get remote source pad */
-	source_pad = csis_get_remote_sensor_pad(state);
-	if (!source_pad) {
-		v4l2_err(&state->sd, "%s, No remote pad found!\n", __func__);
-		return -EINVAL;
-	}
-
 	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	sen_sd = csis_get_remote_subdev(state, __func__);
 	if (!sen_sd) {
 		v4l2_err(&state->sd, "%s, No remote subdev found!\n", __func__);
 		return -EINVAL;
@@ -942,7 +957,7 @@ static int mipi_csis_set_fmt(struct v4l2_subdev *mipi_sd,
 	}
 
 	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	sen_sd = csis_get_remote_subdev(state, __func__);
 	if (!sen_sd) {
 		v4l2_err(&state->sd, "%s, No remote subdev found!\n", __func__);
 		return -EINVAL;
@@ -983,7 +998,7 @@ static int mipi_csis_get_fmt(struct v4l2_subdev *mipi_sd,
 	}
 
 	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	sen_sd = csis_get_remote_subdev(state, __func__);
 	if (!sen_sd) {
 		v4l2_err(&state->sd, "%s, No remote subdev found!\n", __func__);
 		return -EINVAL;
@@ -1016,50 +1031,36 @@ static int mipi_csis_s_rx_buffer(struct v4l2_subdev *mipi_sd, void *buf,
 	return 0;
 }
 
-static int mipi_csis_s_parm(struct v4l2_subdev *mipi_sd, struct v4l2_streamparm *a)
+static int mipi_csis_s_frame_interval(struct v4l2_subdev *mipi_sd,
+				struct v4l2_subdev_frame_interval *interval)
 {
 	struct csi_state *state = mipi_sd_to_csi_state(mipi_sd);
-	struct media_pad *source_pad;
 	struct v4l2_subdev *sen_sd;
 
-	/* Get remote source pad */
-	source_pad = csis_get_remote_sensor_pad(state);
-	if (!source_pad) {
-		v4l2_err(&state->sd, "%s, No remote pad found!\n", __func__);
-		return -EINVAL;
-	}
-
 	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	sen_sd = csis_get_remote_subdev(state, __func__);
 	if (!sen_sd) {
 		v4l2_err(&state->sd, "%s, No remote subdev found!\n", __func__);
 		return -EINVAL;
 	}
 
-	return v4l2_subdev_call(sen_sd, video, s_parm, a);
+	return v4l2_subdev_call(sen_sd, video, s_frame_interval, interval);
 }
 
-static int mipi_csis_g_parm(struct v4l2_subdev *mipi_sd, struct v4l2_streamparm *a)
+static int mipi_csis_g_frame_interval(struct v4l2_subdev *mipi_sd,
+				struct v4l2_subdev_frame_interval *interval)
 {
 	struct csi_state *state = mipi_sd_to_csi_state(mipi_sd);
-	struct media_pad *source_pad;
 	struct v4l2_subdev *sen_sd;
 
-	/* Get remote source pad */
-	source_pad = csis_get_remote_sensor_pad(state);
-	if (!source_pad) {
-		v4l2_err(&state->sd, "%s, No remote pad found!\n", __func__);
-		return -EINVAL;
-	}
-
 	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	sen_sd = csis_get_remote_subdev(state, __func__);
 	if (!sen_sd) {
 		v4l2_err(&state->sd, "%s, No remote subdev found!\n", __func__);
 		return -EINVAL;
 	}
 
-	return v4l2_subdev_call(sen_sd, video, g_parm, a);
+	return v4l2_subdev_call(sen_sd, video, g_frame_interval, interval);
 }
 
 static int mipi_csis_enum_framesizes(struct v4l2_subdev *mipi_sd,
@@ -1067,18 +1068,10 @@ static int mipi_csis_enum_framesizes(struct v4l2_subdev *mipi_sd,
 		struct v4l2_subdev_frame_size_enum *fse)
 {
 	struct csi_state *state = mipi_sd_to_csi_state(mipi_sd);
-	struct media_pad *source_pad;
 	struct v4l2_subdev *sen_sd;
 
-	/* Get remote source pad */
-	source_pad = csis_get_remote_sensor_pad(state);
-	if (!source_pad) {
-		v4l2_err(&state->sd, "%s, No remote pad found!\n", __func__);
-		return -EINVAL;
-	}
-
 	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	sen_sd = csis_get_remote_subdev(state, __func__);
 	if (!sen_sd) {
 		v4l2_err(&state->sd, "%s, No remote subdev found!\n", __func__);
 		return -EINVAL;
@@ -1092,18 +1085,10 @@ static int mipi_csis_enum_frameintervals(struct v4l2_subdev *mipi_sd,
 		struct v4l2_subdev_frame_interval_enum *fie)
 {
 	struct csi_state *state = mipi_sd_to_csi_state(mipi_sd);
-	struct media_pad *source_pad;
 	struct v4l2_subdev *sen_sd;
 
-	/* Get remote source pad */
-	source_pad = csis_get_remote_sensor_pad(state);
-	if (!source_pad) {
-		v4l2_err(&state->sd, "%s, No remote pad found!\n", __func__);
-		return -EINVAL;
-	}
-
 	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	sen_sd = csis_get_remote_subdev(state, __func__);
 	if (!sen_sd) {
 		v4l2_err(&state->sd, "%s, No remote subdev found!\n", __func__);
 		return -EINVAL;
@@ -1135,8 +1120,8 @@ static struct v4l2_subdev_video_ops mipi_csis_video_ops = {
 	.s_rx_buffer = mipi_csis_s_rx_buffer,
 	.s_stream = mipi_csis_s_stream,
 
-	.s_parm = mipi_csis_s_parm,
-	.g_parm = mipi_csis_g_parm,
+	.g_frame_interval = mipi_csis_g_frame_interval,
+	.s_frame_interval = mipi_csis_s_frame_interval,
 };
 
 static const struct v4l2_subdev_pad_ops mipi_csis_pad_ops = {
