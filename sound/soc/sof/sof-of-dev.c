@@ -54,6 +54,11 @@ int sof_of_parse(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
+	ret = of_property_read_string(np, "machine-drv-name",
+				      &sof_pdata->machine_drv_name);
+	if (ret < 0)
+		return ret;
+
 	return 0;
 }
 

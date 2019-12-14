@@ -48,6 +48,7 @@ struct snd_sof_pdata {
 	/* machine */
 	struct platform_device *pdev_mach;
 	const struct snd_soc_acpi_mach *machine;
+	const char *machine_drv_name; /* machine driver name, set only for OF case */
 
 	void *hw_pdata;
 };

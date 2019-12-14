@@ -756,7 +756,7 @@ void snd_sof_new_platform_drv(struct snd_sof_dev *sdev)
 	if (plat_data->machine)
 		drv_name = plat_data->machine->drv_name;
 	else
-		drv_name = "asoc-simple-card";
+		drv_name = plat_data->machine_drv_name;
 
 	pd->name = "sof-audio-component";
 	pd->probe = sof_pcm_probe;
