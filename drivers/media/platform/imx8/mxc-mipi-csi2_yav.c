@@ -688,7 +688,6 @@ static int __maybe_unused mipi_csi2_pm_suspend(struct device *dev)
 static int __maybe_unused mipi_csi2_pm_resume(struct device *dev)
 {
 	struct mxc_mipi_csi2_dev *csi2dev = dev_get_drvdata(dev);
-	int ret;
 
 	if (csi2dev->flags & MXC_MIPI_CSI2_PM_POWERED)
 		return 0;
