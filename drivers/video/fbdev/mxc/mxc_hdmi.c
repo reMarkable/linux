@@ -1962,7 +1962,7 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 
 	case HDMI_EDID_FAIL:
 		mxc_hdmi_default_edid_cfg(hdmi);
-		/* No break here  */
+		/* fall through */
 	case HDMI_EDID_NO_MODES:
 		/* fall through */
 	default:
