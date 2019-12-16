@@ -52,7 +52,7 @@ static int imx_cpufreq_dt_probe(struct platform_device *pdev)
 	 */
 	if (mkt_segment == 0 && speed_grade == 0) {
 		if (of_machine_is_compatible("fsl,imx8mm") ||
-			of_machine_is_compatible("fsl,imx8mq"))
+		    of_machine_is_compatible("fsl,imx8mq"))
 			speed_grade = 1;
 		if (of_machine_is_compatible("fsl,imx8mn"))
 			speed_grade = 0xb;
