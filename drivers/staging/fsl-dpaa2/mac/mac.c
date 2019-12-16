@@ -158,12 +158,16 @@ static void dpaa2_mac_link_changed(struct net_device *netdev)
 		netif_carrier_off(netdev);
 	}
 
-	if (priv->old_state.up != state.up ||
-	    priv->old_state.rate != state.rate ||
-	    priv->old_state.options != state.options) {
-		priv->old_state = state;
-		phy_print_status(phydev);
-	}
+	/* Call the dpmac_set_link_state() only if there is a change in the
+	 * link configuration
+	 */
+	if (priv->old_state.up == state.up &&
+	    priv->old_state.rate == state.rate &&
+	    priv->old_state.options == state.options)
+		return;
+
+	priv->old_state = state;
+	phy_print_status(phydev);
 
 	if (cmp_dpmac_ver(priv, DPMAC_LINK_AUTONEG_VER_MAJOR,
 			  DPMAC_LINK_AUTONEG_VER_MINOR) < 0) {
@@ -478,12 +482,11 @@ static irqreturn_t dpaa2_mac_irq_handler(int irq_num, void *arg)
 		configure_link(priv, &link_cfg);
 	}
 
-	if (status & DPMAC_IRQ_EVENT_LINK_UP_REQ)
-		phy_start(ndev->phydev);
-
 	if (status & DPMAC_IRQ_EVENT_LINK_DOWN_REQ)
 		phy_stop(ndev->phydev);
 
+	if (status & DPMAC_IRQ_EVENT_LINK_UP_REQ)
+		phy_start(ndev->phydev);
 out:
 	dpmac_clear_irq_status(mc_dev->mc_io, 0, mc_dev->mc_handle,
 			       DPMAC_IRQ_INDEX, status);
