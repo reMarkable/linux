@@ -270,6 +270,7 @@ static void *tegra_eqos_probe(struct platform_device *pdev,
 			      struct plat_stmmacenet_data *data,
 			      struct stmmac_resources *res)
 {
+	struct device *dev = &pdev->dev;
 	struct tegra_eqos *eqos;
 	int err;
 
@@ -281,6 +282,9 @@ static void *tegra_eqos_probe(struct platform_device *pdev,
 
 	eqos->dev = &pdev->dev;
 	eqos->regs = res->addr;
+
+	if (!is_of_node(dev->fwnode))
+		goto bypass_clk_reset_gpio;
 
 	eqos->clk_master = devm_clk_get(&pdev->dev, "master_bus");
 	if (IS_ERR(eqos->clk_master)) {
@@ -354,6 +358,7 @@ static void *tegra_eqos_probe(struct platform_device *pdev,
 
 	usleep_range(2000, 4000);
 
+bypass_clk_reset_gpio:
 	data->fix_mac_speed = tegra_eqos_fix_speed;
 	data->init = tegra_eqos_init;
 	data->bsp_priv = eqos;
