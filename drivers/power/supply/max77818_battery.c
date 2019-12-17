@@ -74,6 +74,32 @@
 
 #define MAX77818_VMAX_TOLERANCE	50 /* 50 mV */
 
+#define SYNC_SET_FLAG(flag, lock) ( \
+	{ \
+		mutex_lock(lock); \
+		flag = true; \
+		mutex_unlock(lock); \
+	} \
+)
+
+#define SYNC_CLEAR_FLAG(flag, lock) ( \
+	{ \
+		mutex_lock(lock); \
+		flag = false; \
+		mutex_unlock(lock); \
+	} \
+)
+
+#define SYNC_GET_FLAG(flag, lock) ( \
+	{ \
+		bool state; \
+		mutex_lock(lock); \
+		state = flag; \
+		mutex_unlock(lock); \
+		state; \
+	} \
+)
+
 /* Parameter to be given from u-boot after doing update
  * in order to verify that all custom FG parameters
  * are configured according to DT */
@@ -97,7 +123,7 @@ struct max77818_chip {
 	struct power_supply *battery;
 	struct max17042_platform_data *pdata;
 	struct work_struct work;
-	int init_complete;
+	bool init_complete;
 	struct power_supply *charger;
 	struct mutex lock;
 };
@@ -434,7 +460,7 @@ static int max77818_get_property(struct power_supply *psy,
 	u32 data;
 	u64 data64;
 
-	if (!chip->init_complete)
+	if (!SYNC_GET_FLAG(chip->init_complete, &chip->lock))
 		return -EAGAIN;
 
 	switch (psp) {
@@ -1052,7 +1078,7 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 		max77818_read_param_and_verify(chip,
 					       &max77818_custom_param_list[i]);
 	}
-	chip->init_complete = true;
+	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
 }
 
 static void max77818_write_custom_params(struct max77818_chip *chip)
@@ -1167,7 +1193,7 @@ static void max77818_init_worker(struct work_struct *work)
 		return;
 	}
 
-	chip->init_complete = 1;
+	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
 }
 
 static struct max17042_platform_data *
@@ -1242,6 +1268,7 @@ static int max77818_probe(struct platform_device *pdev)
 	psy_cfg.drv_data = chip;
 	psy_cfg.of_node = dev->of_node;
 
+	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
 	chip->battery = devm_power_supply_register(dev, &max77818_psy_desc,
 						   &psy_cfg);
 	if (IS_ERR(chip->battery)) {
@@ -1306,7 +1333,7 @@ static int max77818_probe(struct platform_device *pdev)
 	}
 	else {
 		dev_dbg(chip->dev, "No config change\n");
-		chip->init_complete = 1;
+		SYNC_SET_FLAG(chip->init_complete, &chip->lock);
 	}
 
 	return 0;
