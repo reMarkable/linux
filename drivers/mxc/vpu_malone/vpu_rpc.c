@@ -284,6 +284,18 @@ void rpc_send_cmd_buf(struct shared_addr *This,
 	u_int32 *cmddata;
 	u_int32 i;
 	u_int32 *cmdword = (u_int32 *)(This->cmd_mem_vir+pCmdDesc->uWrPtr - pCmdDesc->uStart);
+	u_int32 uIgnore;
+	u_int32 uSpace;
+
+	uSpace = rpc_MediaIPFW_Video_buffer_space_check(pCmdDesc,
+							FALSE,
+							0,
+							&uIgnore);
+	if (uSpace < ((cmdnum + 1) << 2) + 16) {
+		pr_err("[VPU MALONE] CmdBuf is no space for [%d] %d\n",
+				idx, cmdid);
+		return;
+	}
 
 	*cmdword = 0;
 	*cmdword |= ((idx & 0x000000ff) << 24);
