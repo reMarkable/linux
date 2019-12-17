@@ -160,6 +160,17 @@ static bool max77818_do_partial_update(struct max77818_chip *chip)
 	}
 }
 
+static bool max77818_do_param_verification(struct max77818_chip *chip)
+{
+	if (strncmp(config_update_param, "verify", 6) == 0) {
+		dev_dbg(chip->dev, "config_update='verify'\n");
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 static int max77818_get_temperature(struct max77818_chip *chip, int *temp)
 {
 	struct regmap *map = chip->regmap;
@@ -1035,6 +1046,8 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 {
 	int i;
 
+	dev_dbg(chip->dev, "Verifying custom params\n");
+
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
 		max77818_read_param_and_verify(chip,
 					       &max77818_custom_param_list[i]);
@@ -1288,6 +1301,8 @@ static int max77818_probe(struct platform_device *pdev)
 		schedule_work(&chip->work);
 	} else if (max77818_do_partial_update(chip)) {
 		max77818_write_custom_params(chip);
+	} else if (max77818_do_param_verification(chip)) {
+		max77818_verify_custom_params(chip);
 	}
 	else {
 		dev_dbg(chip->dev, "No config change\n");
