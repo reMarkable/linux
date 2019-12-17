@@ -17,6 +17,7 @@
 &clk {
 	init-on-array = <IMX8MQ_CLK_UART2_ROOT
 			 IMX8MQ_CLK_UART2
+			 IMX8MQ_CLK_USDHC1_ROOT
 			 IMX8MQ_CLK_NAND_USDHC_BUS>;
 };
 
