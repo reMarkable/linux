@@ -102,6 +102,8 @@ static void dp_aux_cfg(struct cdns_mhdp_device *mhdp)
 	/* Power up Aux */
 	cdns_phy_reg_write(mhdp, TXDA_CYA_AUXDA_CYA, 1);
 
+	cdns_phy_reg_write(mhdp, TX_DIG_CTRL_REG_1, 0x3);
+	ndelay(150);
 	cdns_phy_reg_write(mhdp, TX_DIG_CTRL_REG_2, 36);
 	ndelay(150);
 	cdns_phy_reg_write(mhdp, TX_ANA_CTRL_REG_2, 0x0100);
