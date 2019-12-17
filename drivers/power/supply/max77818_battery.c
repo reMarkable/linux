@@ -74,6 +74,22 @@
 
 #define MAX77818_VMAX_TOLERANCE	50 /* 50 mV */
 
+/* Parameter to be given from u-boot after doing update
+ * in order to verify that all custom FG parameters
+ * are configured according to DT */
+static char config_update_param[255];
+module_param_string(config_update,
+		    config_update_param,
+		    sizeof(config_update_param),
+		    0644);
+MODULE_PARM_DESC(config_update,
+		 "Optional parameter indicating if a complete FG update should "
+		 "be performed (config_update=\"complete\") or if a partial update "
+		 "shoule be performed (config_update=\"partial\"). By default,"
+		 "no update is performed, but device image update scripts may "
+		 "set the config_update param in order to re-config the device "
+		 "based on versioning scheme external to the kernel driver");
+
 struct max77818_chip {
 	struct device *dev;
 	int irq;
@@ -121,6 +137,28 @@ struct max77818_of_property {
 			    unsigned int reg,
 			    unsigned int value);
 };
+
+static bool max77818_do_complete_update(struct max77818_chip *chip)
+{
+	if (strncmp(config_update_param, "complete", 8) == 0) {
+		dev_dbg(chip->dev, "config_update='complete'\n");
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+static bool max77818_do_partial_update(struct max77818_chip *chip)
+{
+	if (strncmp(config_update_param, "partial", 7) == 0) {
+		dev_dbg(chip->dev, "config_update='partial'\n");
+		return true;
+	}
+	else {
+		return false;
+	}
+}
 
 static int max77818_get_temperature(struct max77818_chip *chip, int *temp)
 {
@@ -855,6 +893,65 @@ static inline int max77818_read_param(struct max77818_chip *chip,
 	return ret;
 }
 
+static int  max77818_read_param_and_verify(struct max77818_chip *chip,
+					   struct max77818_of_property *prop)
+{
+	u16 read_param = 0;
+	int read_cur_value = 0;
+	bool write_read_param = false;
+	int ret;
+
+	ret = max77818_read_param(chip, prop->property_name, &read_param);
+	if(!ret) {
+		dev_dbg(chip->dev, "Verifying '%s' (reg 0x%02x) = 0x%04x\n",
+			prop->property_name,
+			prop->register_addr,
+			read_param);
+
+		ret = regmap_read(chip->regmap,
+				  prop->register_addr,
+				  &read_cur_value);
+		if(ret) {
+			dev_warn(chip->dev,
+				 "Failed to read '%s' from reg 0x%02x)\n",
+				 prop->property_name,
+				 prop->register_addr);
+			write_read_param = true;
+		}
+
+		if ((read_param != read_cur_value) || write_read_param) {
+			dev_dbg(chip->dev,
+				"Read '%s' (reg 0x%02x) = 0x%04x from device, "
+				"expected 0x%04x\n",
+				prop->property_name,
+				prop->register_addr,
+				read_cur_value,
+				read_param);
+			write_read_param = true;
+		}
+
+		if (write_read_param) {
+			dev_dbg(chip->dev, "Writing '%s' (reg 0x%02x): 0x%04x\n",
+				prop->property_name,
+				prop->register_addr,
+				read_param);
+			ret = prop->reg_write_op(chip->regmap,
+						 prop->register_addr,
+						 read_param);
+		}
+	}
+	else if (ret == -EINVAL)
+		dev_warn(chip->dev,
+			 "'%s' property not given in DT, using default value\n",
+			 prop->property_name);
+	else
+		dev_warn(chip->dev,
+			 "Failed to read '%s' param from DT, check value\n",
+			 prop->property_name);
+
+	return ret;
+}
+
 static int  max77818_read_param_and_write(struct max77818_chip *chip,
 					  struct max77818_of_property *prop)
 {
@@ -934,11 +1031,24 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,convgcfg", MAX77818_ConvgCfg, regmap_write },
 };
 
+static void max77818_verify_custom_params(struct max77818_chip *chip)
+{
+	int i;
+
+	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
+		max77818_read_param_and_verify(chip,
+					       &max77818_custom_param_list[i]);
+	}
+	chip->init_complete = true;
+}
+
 static void max77818_write_custom_params(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
 	u32 value;
 	int ret, i;
+
+	dev_dbg(chip->dev, "Writing custom params\n");
 
 	ret = regmap_write(map, MAX17042_RepCap, 0);
 	if (ret)
@@ -1037,6 +1147,7 @@ static void max77818_init_worker(struct work_struct *work)
 						  work);
 	int ret;
 
+	dev_dbg(chip->dev, "Doing complete re-config\n");
 	ret = max77818_init_chip(chip);
 	if (ret) {
 		dev_err(chip->dev, "failed to init chip: %d\n", ret);
@@ -1156,11 +1267,30 @@ static int max77818_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	/* Read the POR bit set when the device boots from a total power loss.
+	 * If this bit is set, the device is given its initial config read from
+	 * DT.
+	 *
+	 * If the POR is not set, but the module parameter 'config_update' is
+	 * set to 'complete' when booting (by image update scripts typically),
+	 * a complete re-config of the FG device is performed in order to apply
+	 * battery model parameters in addition to custom params read
+	 * from updated DT.
+	 *
+	 * If the POR is not set, but the module parameter 'config_update' is
+	 * set to 'partial' when booting (by image update scripts typically),
+	 * a partial re-config of the custom params is performed in order to apply
+	 * only custom parameters read from updated DT.
+	 */
 	regmap_read(chip->regmap, MAX17042_STATUS, &val);
-	if (val & STATUS_POR_BIT) {
+	if ((val & STATUS_POR_BIT) || max77818_do_complete_update(chip)) {
 		INIT_WORK(&chip->work, max77818_init_worker);
 		schedule_work(&chip->work);
-	} else {
+	} else if (max77818_do_partial_update(chip)) {
+		max77818_write_custom_params(chip);
+	}
+	else {
+		dev_dbg(chip->dev, "No config change\n");
 		chip->init_complete = 1;
 	}
 
