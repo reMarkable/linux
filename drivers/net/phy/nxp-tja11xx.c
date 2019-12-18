@@ -8,6 +8,7 @@
 #include <linux/kernel.h>
 #include <linux/mii.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/phy.h>
 #include <linux/hwmon.h>
 #include <linux/bitfield.h>
@@ -26,11 +27,14 @@
 #define MII_ECTRL_WAKE_REQUEST		BIT(0)
 
 #define MII_CFG1			18
+#define MII_CFG1_MASTER_SLAVE		BIT(15)
 #define MII_CFG1_AUTO_OP		BIT(14)
+#define MII_CFG1_MII_MODE		GENMASK(9, 8)
 #define MII_CFG1_SLEEP_CONFIRM		BIT(6)
 #define MII_CFG1_LED_MODE_MASK		GENMASK(5, 4)
 #define MII_CFG1_LED_MODE_LINKUP	0
 #define MII_CFG1_LED_ENABLE		BIT(3)
+#define MII_CFG1_MODE_REFCLK_IN		0x100
 
 #define MII_CFG2			19
 #define MII_CFG2_SLEEP_REQUEST_TO	GENMASK(1, 0)
@@ -49,9 +53,13 @@
 #define MII_COMMCFG			27
 #define MII_COMMCFG_AUTO_OP		BIT(15)
 
+#define TJA110X_REFCLK_IN       (0x1 << 0)
+
 struct tja11xx_priv {
 	char		*hwmon_name;
 	struct device	*hwmon_dev;
+
+	u32 quirks;
 };
 
 struct tja11xx_phy_stats {
@@ -108,6 +116,11 @@ static int tja11xx_enable_reg_write(struct phy_device *phydev)
 static int tja11xx_enable_link_control(struct phy_device *phydev)
 {
 	return phy_set_bits(phydev, MII_ECTRL, MII_ECTRL_LINK_CONTROL);
+}
+
+static int tja11xx_disable_link_control(struct phy_device *phydev)
+{
+	return phy_clear_bits(phydev, MII_ECTRL, MII_ECTRL_LINK_CONTROL);
 }
 
 static int tja11xx_wakeup(struct phy_device *phydev)
@@ -169,6 +182,8 @@ static int tja11xx_soft_reset(struct phy_device *phydev)
 
 static int tja11xx_config_init(struct phy_device *phydev)
 {
+	struct tja11xx_priv *priv = phydev->priv;
+	int reg_mask, reg_val;
 	int ret;
 
 	ret = tja11xx_enable_reg_write(phydev);
@@ -181,11 +196,16 @@ static int tja11xx_config_init(struct phy_device *phydev)
 
 	switch (phydev->phy_id & PHY_ID_MASK) {
 	case PHY_ID_TJA1100:
-		ret = phy_modify(phydev, MII_CFG1,
-				 MII_CFG1_AUTO_OP | MII_CFG1_LED_MODE_MASK |
-				 MII_CFG1_LED_ENABLE,
-				 MII_CFG1_AUTO_OP | MII_CFG1_LED_MODE_LINKUP |
-				 MII_CFG1_LED_ENABLE);
+		reg_mask = MII_CFG1_AUTO_OP | MII_CFG1_LED_MODE_MASK |
+			   MII_CFG1_LED_ENABLE;
+		reg_val = MII_CFG1_AUTO_OP | MII_CFG1_LED_MODE_LINKUP |
+			  MII_CFG1_LED_ENABLE;
+		if (priv->quirks & TJA110X_REFCLK_IN) {
+			reg_mask |= MII_CFG1_MII_MODE;
+			reg_val |= MII_CFG1_MODE_REFCLK_IN;
+		}
+
+		ret = phy_modify(phydev, MII_CFG1, reg_mask, reg_val);
 		if (ret)
 			return ret;
 		break;
@@ -327,11 +347,128 @@ static const struct hwmon_chip_info tja11xx_hwmon_chip_info = {
 	.info		= tja11xx_hwmon_info,
 };
 
+/* Helper function, configures phy as master or slave
+ * @param  phydev    the phy to be configured
+ * @param  setmaster ==0: set to slave
+ *                   !=0: set to master
+ * @return           0 on success, error code on failure
+ */
+static int set_master_cfg(struct phy_device *phydev, int setmaster)
+{
+	int err;
+
+	/* disable link control prior to master/slave cfg */
+	tja11xx_disable_link_control(phydev);
+
+	err = phy_modify(phydev, MII_CFG1, MII_CFG1_MASTER_SLAVE,
+			 setmaster ? MII_CFG1_MASTER_SLAVE : 0);
+	if (err < 0)
+		goto phy_configure_error;
+
+	/* enable link control after master/slave cfg was set */
+	tja11xx_enable_link_control(phydev);
+
+	return 0;
+
+/* error handling */
+phy_configure_error:
+	dev_err(&phydev->mdio.dev, "phy r/w error\n");
+	return err;
+}
+
+/* Helper function, reads master/slave configuration of phy
+ * @param  phydev    the phy to be read
+ *
+ * @return           ==0: is slave
+ *                   !=0: is master
+ */
+static int get_master_cfg(struct phy_device *phydev)
+{
+	int reg_val;
+
+	/* read the current configuration */
+	reg_val = phy_read(phydev, MII_CFG1);
+	if (reg_val < 0)
+		goto phy_read_error;
+
+	return reg_val & MII_CFG1_MASTER_SLAVE;
+
+/* error handling */
+phy_read_error:
+	dev_err(&phydev->mdio.dev, "read error\n");
+	return reg_val;
+}
+
+/* This function handles read accesses to the node 'master_cfg' in
+ * sysfs.
+ * Depending on current configuration of the phy, the node reads
+ * 'master' or 'slave'
+ */
+static ssize_t master_cfg_show(struct device *dev,
+			       struct device_attribute *attr, char *buf)
+{
+	int is_master;
+	struct phy_device *phydev = to_phy_device(dev);
+
+	is_master = get_master_cfg(phydev);
+
+	/* write result into the buffer */
+	return scnprintf(buf, PAGE_SIZE, "%s\n",
+			 is_master ? "master" : "slave");
+}
+
+/* This function handles write accesses to the node 'master_cfg' in sysfs.
+ * Depending on the value written to it, the phy is configured as
+ * master or slave
+ */
+static ssize_t master_cfg_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+	int setmaster;
+	struct phy_device *phydev = to_phy_device(dev);
+
+	/* parse the buffer */
+	err = kstrtoint(buf, 10, &setmaster);
+	if (err < 0)
+		goto phy_parse_error;
+
+	/* write configuration to the phy */
+	err = set_master_cfg(phydev, setmaster);
+	if (err < 0)
+		goto phy_cfg_error;
+
+	return count;
+
+/* error handling */
+phy_parse_error:
+	dev_err(&phydev->mdio.dev, "parse failed\n");
+	return err;
+
+phy_cfg_error:
+	dev_err(&phydev->mdio.dev, "phy cfg error\n");
+	return err;
+}
+
+static DEVICE_ATTR_RW(master_cfg);
+
+static struct attribute *nxp_sysfs_entries[] = {
+	&dev_attr_master_cfg.attr,
+	NULL
+};
+
+static struct attribute_group nxp_attribute_group = {
+	.name = "configuration",
+	.attrs = nxp_sysfs_entries,
+};
+
 static int tja11xx_probe(struct phy_device *phydev)
 {
 	struct device *dev = &phydev->mdio.dev;
 	struct tja11xx_priv *priv;
 	int i;
+	int ret;
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -344,6 +481,16 @@ static int tja11xx_probe(struct phy_device *phydev)
 	for (i = 0; priv->hwmon_name[i]; i++)
 		if (hwmon_is_bad_char(priv->hwmon_name[i]))
 			priv->hwmon_name[i] = '_';
+
+	if (dev->of_node &&
+	    of_property_read_bool(dev->of_node, "tja110x,refclk_in"))
+		priv->quirks |= TJA110X_REFCLK_IN;
+
+	/* register sysfs files */
+	phydev->priv = priv;
+	ret = sysfs_create_group(&phydev->mdio.dev.kobj, &nxp_attribute_group);
+	if (ret)
+		return ret;
 
 	priv->hwmon_dev =
 		devm_hwmon_device_register_with_info(dev, priv->hwmon_name,
