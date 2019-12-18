@@ -179,9 +179,11 @@
 /*/delete-node/ &{/imx_ion};*/
 /delete-node/ &pcie0;
 /delete-node/ &crypto;
-/*/delete-node/ &caam_sm;*/
-/*/delete-node/ &caam_snvs;*/
-/*/delete-node/ &irq_sec_vio;*/
+/delete-node/ &caam_sm;
+/delete-node/ &caam_snvs;
+/delete-node/ &irq_sec_vio;
+/delete-node/ &dma_apbh;
+/delete-node/ &gpmi;
 
 /delete-node/ &{/cpus/cpu@0};
 /delete-node/ &{/cpus/cpu@1};

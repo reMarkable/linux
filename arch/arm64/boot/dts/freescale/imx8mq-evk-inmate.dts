@@ -171,11 +171,11 @@
 /delete-node/ &{/soc@0/ddr-pmu@3d800000};
 /delete-node/ &rpmsg;
 /delete-node/ &crypto;
-/*/delete-node/ &caam_sm;*/
-/*/delete-node/ &caam_snvs;*/
-/*/delete-node/ &irq_sec_vio;*/
-/*/delete-node/ &dma_apbh;*/
-/*/delete-node/ &gpmi;*/
+/delete-node/ &caam_sm;
+/delete-node/ &caam_snvs;
+/delete-node/ &irq_sec_vio;
+/delete-node/ &dma_apbh;
+/delete-node/ &gpmi;
 
 &iomuxc {
 	status = "disabled";

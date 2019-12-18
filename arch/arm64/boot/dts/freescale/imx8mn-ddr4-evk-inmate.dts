@@ -63,7 +63,7 @@
 
 /delete-node/ &{/memory@40000000};
 /*/delete-node/ &{/reserved-memory};*/
-/*/delete-node/ &{/busfreq};*/
+/delete-node/ &{/busfreq};
 /*/delete-node/ &ddr_pmu0;*/
 
 &hsiomix_pd {
@@ -123,7 +123,8 @@
 	/delete-property/ compatible;
 };
 
-/*/delete-node/ &rpmsg;*/
+/delete-node/ &system_counter;
+/delete-node/ &rpmsg;
 &ocotp {
 	/delete-property/ compatible;
 	status = "disabled";
@@ -149,9 +150,11 @@
 
 /*/delete-node/ &{/imx_ion};*/
 /delete-node/ &crypto;
-/*/delete-node/ &caam_sm;
+/delete-node/ &caam_sm;
 /delete-node/ &caam_snvs;
-/delete-node/ &irq_sec_vio;*/
+/delete-node/ &irq_sec_vio;
+/delete-node/ &dma_apbh;
+/delete-node/ &gpmi;
 
 /delete-node/ &{/cpus/cpu@0};
 /delete-node/ &{/cpus/cpu@1};
