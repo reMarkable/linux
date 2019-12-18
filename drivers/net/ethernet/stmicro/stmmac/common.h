@@ -367,6 +367,7 @@ struct dma_features {
 	unsigned int estwid;
 	unsigned int estdep;
 	unsigned int estsel;
+	unsigned int fpesel;
 };
 
 /* RX Buffer size must be multiple of 4/8/16 bytes */
