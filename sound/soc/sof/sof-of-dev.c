@@ -54,6 +54,11 @@ int sof_of_parse(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
+	ret = of_property_read_string(np, "machine-drv-name",
+				      &sof_pdata->machine_drv_name);
+	if (ret < 0)
+		return ret;
+
 	return 0;
 }
 
@@ -62,7 +67,9 @@ static int sof_of_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	const struct sof_dev_desc *desc;
 	/*TODO: create a generic snd_soc_xxx_mach */
+#if IS_ENABLED(CONFIG_SND_SOC_SOF_FORCE_NOCODEC_MODE)
 	struct snd_soc_acpi_mach *mach;
+#endif
 	struct snd_sof_pdata *sof_pdata;
 	const struct snd_sof_dsp_ops *ops;
 	int ret;

@@ -3893,6 +3893,16 @@ int qman_p_enqueue_orp(struct qman_portal *p, struct qman_fq *fq,
 int qman_p_enqueue_precommit(struct qman_portal *p, struct qman_fq *fq,
 				const struct qm_fd *fd, u32 flags,
 				qman_cb_precommit cb, void *cb_arg);
+
+static inline int qman_is_probed(void) {
+	return 1;
+}
+
+
+static inline int qman_portals_probed(void) {
+	return 1;
+}
+
 #ifdef __cplusplus
 }
 #endif

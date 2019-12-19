@@ -826,14 +826,28 @@ static bool cdns3_request_handled(struct cdns3_endpoint *priv_ep,
 				  struct cdns3_request *priv_req)
 {
 	struct cdns3_device *priv_dev = priv_ep->cdns3_dev;
-	struct cdns3_trb *trb = priv_req->trb;
+	struct cdns3_trb *trb;
 	int current_index = 0;
 	int handled = 0;
 
 	current_index = (readl(&priv_dev->regs->ep_traddr) -
 			 priv_ep->trb_pool_dma) / TRB_SIZE;
 
-	trb = &priv_ep->trb_pool[priv_req->start_trb];
+	/* current trb doesn't belong to this request */
+	if ((priv_req->start_trb < priv_req->end_trb) &&
+		(priv_ep->dequeue > priv_req->end_trb))
+		goto finish;
+
+	if ((priv_req->start_trb > priv_req->end_trb) &&
+		(priv_ep->dequeue > priv_req->end_trb) &&
+		(priv_ep->dequeue < priv_req->start_trb))
+		goto finish;
+
+	if ((priv_req->start_trb == priv_req->end_trb) &&
+		(priv_ep->dequeue != priv_req->end_trb))
+		goto finish;
+
+	trb = &priv_ep->trb_pool[priv_ep->dequeue];
 
 	if ((trb->control  & TRB_CYCLE) != priv_ep->ccs)
 		goto finish;
@@ -843,12 +857,8 @@ static bool cdns3_request_handled(struct cdns3_endpoint *priv_ep,
 		    !priv_ep->dequeue)
 			goto finish;
 
-		if (priv_req->end_trb >= priv_ep->dequeue &&
-		    priv_req->end_trb < current_index)
-			handled = 1;
+		handled = 1;
 	} else if (priv_ep->dequeue  > current_index) {
-		if (priv_req->end_trb  < current_index ||
-		    priv_req->end_trb >= priv_ep->dequeue)
 			handled = 1;
 	}
 
@@ -864,6 +874,7 @@ static void cdns3_transfer_completed(struct cdns3_device *priv_dev,
 	struct cdns3_request *priv_req;
 	struct usb_request *request;
 	struct cdns3_trb *trb;
+	bool trb_handled = false;
 
 	while (!list_empty(&priv_ep->pending_req_list)) {
 		request = cdns3_next_request(&priv_ep->pending_req_list);
@@ -874,21 +885,23 @@ static void cdns3_transfer_completed(struct cdns3_device *priv_dev,
 		 */
 		cdns3_select_ep(priv_dev, priv_ep->endpoint.address);
 
-		if (!cdns3_request_handled(priv_ep, priv_req))
+		while (cdns3_request_handled(priv_ep, priv_req)) {
+			trb_handled = true;
+			trb = priv_ep->trb_pool + priv_ep->dequeue;
+			trace_cdns3_complete_trb(priv_ep, trb);
+
+			request->actual += TRB_LEN(le32_to_cpu(trb->length));
+			cdns3_ep_inc_deq(priv_ep);
+		}
+
+		if (trb_handled) {
+			cdns3_gadget_giveback(priv_ep, priv_req, 0);
+			trb_handled = false;
+		} else {
 			return;
-
-		trb = priv_ep->trb_pool + priv_ep->dequeue;
-		trace_cdns3_complete_trb(priv_ep, trb);
-
-		if (trb != priv_req->trb)
-			dev_warn(priv_dev->dev,
-				 "request_trb=0x%p, queue_trb=0x%p\n",
-				 priv_req->trb, trb);
-
-		request->actual = TRB_LEN(le32_to_cpu(trb->length));
-		cdns3_move_deq_to_next_trb(priv_req);
-		cdns3_gadget_giveback(priv_ep, priv_req, 0);
+		}
 	}
+
 	priv_ep->flags &= ~EP_PENDING_REQUEST;
 }
 

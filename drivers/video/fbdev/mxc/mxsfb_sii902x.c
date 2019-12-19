@@ -338,9 +338,10 @@ static int sii902x_fb_event(struct notifier_block *nb, unsigned long val, void *
 
 	switch (val) {
 	case FB_EVENT_FB_REGISTERED:
-		/* Manually trigger a plugin/plugout interrupter to check cable state */
-		schedule_delayed_work(&(sii902x.det_work), msecs_to_jiffies(50));
-
+		/* Manually trigger a plugin/plugout interrupter */
+		schedule_delayed_work(&(sii902x.det_work), 0);
+		/* Dealy 20ms to wait cable states detected */
+		msleep(20);
 		fb_show_logo(fbi, 0);
 
 		break;
