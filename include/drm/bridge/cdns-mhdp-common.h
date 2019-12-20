@@ -684,6 +684,7 @@ struct cdns_mhdp_device {
 	bool link_up;
 	bool power_up;
 	bool plugged;
+	bool force_mode_set;
 	bool is_hpd;
 	bool is_ls1028a;
 	struct mutex lock;
