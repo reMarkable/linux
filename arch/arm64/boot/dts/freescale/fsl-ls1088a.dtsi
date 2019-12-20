@@ -394,7 +394,7 @@
 		};
 
 		usb0: usb3@3100000 {
-			compatible = "snps,dwc3";
+			compatible = "fsl,ls1088a-dwc3", "snps,dwc3";
 			reg = <0x0 0x3100000 0x0 0x10000>;
 			interrupts = <0 80 IRQ_TYPE_LEVEL_HIGH>;
 			dr_mode = "host";
@@ -406,7 +406,7 @@
 		};
 
 		usb1: usb3@3110000 {
-			compatible = "snps,dwc3";
+			compatible = "fsl,ls1088a-dwc3", "snps,dwc3";
 			reg = <0x0 0x3110000 0x0 0x10000>;
 			interrupts = <0 81 IRQ_TYPE_LEVEL_HIGH>;
 			dr_mode = "host";

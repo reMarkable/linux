@@ -84,6 +84,7 @@ static struct imx_pll14xx_clk imx8mn_dram_pll = {
 		.type = PLL_1443X,
 		.rate_table = imx8mn_drampll_tbl,
 		.rate_count = ARRAY_SIZE(imx8mn_drampll_tbl),
+		.flags = CLK_GET_RATE_NOCACHE,
 };
 
 static struct imx_pll14xx_clk imx8mn_arm_pll = {

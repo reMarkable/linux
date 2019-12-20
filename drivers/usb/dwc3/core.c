@@ -921,7 +921,7 @@ struct dwc3_cache_type {
 	u8 transfer_type_descwr;
 };
 
-static const struct dwc3_cache_type layerscape_dwc3_cache_type = {
+static const struct dwc3_cache_type ls1088a_dwc3_cache_type = {
 	.transfer_type_datard = 2,
 	.transfer_type_descrd = 2,
 	.transfer_type_datawr = 2,
@@ -959,7 +959,6 @@ static void dwc3_set_cache_type(struct dwc3 *dwc)
 	}
 }
 #endif
-
 
 /**
  * dwc3_core_init - Low-level initialization of DWC3 Core
@@ -1939,7 +1938,14 @@ static const struct dev_pm_ops dwc3_dev_pm_ops = {
 
 #ifdef CONFIG_OF
 static const struct of_device_id of_dwc3_match[] = {
-	{ .compatible = "fsl,layerscape-dwc3", .data = &layerscape_dwc3_cache_type, },
+	{ .compatible = "fsl,ls1012a-dwc3", .data = &ls1088a_dwc3_cache_type, },
+	{ .compatible = "fsl,ls1021a-dwc3", .data = &ls1088a_dwc3_cache_type, },
+	{ .compatible = "fsl,ls1028a-dwc3", .data = &ls1088a_dwc3_cache_type, },
+	{ .compatible = "fsl,ls1043a-dwc3", .data = &ls1088a_dwc3_cache_type, },
+	{ .compatible = "fsl,ls1046a-dwc3", .data = &ls1088a_dwc3_cache_type, },
+	{ .compatible = "fsl,ls1088a-dwc3", .data = &ls1088a_dwc3_cache_type, },
+	{ .compatible = "fsl,ls2088a-dwc3", .data = &ls1088a_dwc3_cache_type, },
+	{ .compatible = "fsl,lx2160a-dwc3", .data = &ls1088a_dwc3_cache_type, },
 	{ .compatible = "snps,dwc3" },
 	{ .compatible = "synopsys,dwc3"	},
 	{ },
