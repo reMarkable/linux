@@ -1,4 +1,5 @@
 /* Copyright 2012 Freescale Semiconductor Inc.
+ * Copyright 2019 NXP
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -100,8 +101,8 @@ static int _dpa_bp_add_8_bufs(const struct dpa_bp *dpa_bp)
 		 * We only need enough space to store a pointer, but allocate
 		 * an entire cacheline for performance reasons.
 		 */
-#ifndef CONFIG_PPC
-		if (unlikely(dpaa_errata_a010022)) {
+#ifdef FM_ERRATUM_A050385
+		if (unlikely(fm_has_errata_a050385())) {
 			struct page *new_page = alloc_page(GFP_ATOMIC);
 			if (unlikely(!new_page))
 				goto netdev_alloc_failed;
@@ -327,12 +328,6 @@ EXPORT_SYMBOL(_dpa_cleanup_tx_fd);
 #ifndef CONFIG_FSL_DPAA_TS
 bool dpa_skb_is_recyclable(struct sk_buff *skb)
 {
-#ifndef CONFIG_PPC
-	/* Do no recycle skbs realigned by the errata workaround */
-	if (unlikely(dpaa_errata_a010022) && skb->mark == NONREC_MARK)
-		return false;
-#endif
-
 	/* No recycling possible if skb buffer is kmalloc'ed  */
 	if (skb->head_frag == 0)
 		return false;
@@ -770,32 +765,73 @@ int __hot skb_to_contig_fd(struct dpa_priv_s *priv,
 }
 EXPORT_SYMBOL(skb_to_contig_fd);
 
-#ifndef CONFIG_PPC
-/* Verify the conditions that trigger the A010022 errata: data unaligned to
- * 16 bytes, 4K memory address crossings and S/G fragments.
+#ifdef FM_ERRATUM_A050385
+/* Verify the conditions that trigger the A050385 errata:
+ * - 4K memory address boundary crossings when the data/SG fragments aren't
+ *   aligned to 256 bytes
+ * - data and SG fragments that aren't aligned to 16 bytes
+ * - SG fragments that aren't mod 16 bytes in size (except for the last
+ *   fragment)
  */
-static bool a010022_check_skb(struct sk_buff *skb, struct dpa_priv_s *priv)
+static bool a050385_check_skb(struct sk_buff *skb, struct dpa_priv_s *priv)
 {
-	/* Check if the headroom is aligned */
-	if (((uintptr_t)skb->data - priv->tx_headroom) %
-	    priv->buf_layout[TX].data_align != 0)
+	skb_frag_t *frag;
+	int i, nr_frags;
+
+	nr_frags = skb_shinfo(skb)->nr_frags;
+
+	/* Check if the linear data is 16 byte aligned */
+	if ((uintptr_t)skb->data % 16)
 		return true;
 
-	/* Check for paged data in the skb. We do not support S/G fragments */
-	if (skb_is_nonlinear(skb))
+	/* Check if the needed headroom crosses a 4K address boundary without
+	 * being 256 byte aligned
+	 */
+	if (CROSS_4K(skb->data - priv->tx_headroom, priv->tx_headroom) &&
+	    (((uintptr_t)skb->data - priv->tx_headroom) % 256))
 		return true;
 
-	/* Check if the headroom crosses a boundary */
-	if (HAS_DMA_ISSUE(skb->head, skb_headroom(skb)))
+	/* Check if the linear data crosses a 4K address boundary without
+	 * being 256 byte aligned
+	 */
+	if (CROSS_4K(skb->data, skb_headlen(skb)) &&
+	    ((uintptr_t)skb->data % 256))
 		return true;
 
-	/* Check if the non-paged data crosses a boundary */
-	if (HAS_DMA_ISSUE(skb->data, skb_headlen(skb)))
+	/* When using Scatter/Gather, the linear data becomes the first
+	 * fragment in the list and must follow the same restrictions as the
+	 * other fragments.
+	 *
+	 * Check if the linear data is mod 16 bytes in size.
+	 */
+	if (nr_frags && (skb_headlen(skb) % 16))
 		return true;
 
-	/* Check if the entire linear skb crosses a boundary */
-	if (HAS_DMA_ISSUE(skb->head, skb_end_offset(skb)))
-		return true;
+	/* Check the SG fragments. They must follow the same rules as the
+	 * linear data with and additional restriction: they must be multiple
+	 * of 16 bytes in size to account for the hardware carryover effect.
+	 */
+	for (i = 0; i < nr_frags; i++) {
+		frag = &skb_shinfo(skb)->frags[i];
+
+		/* Check if the fragment is a multiple of 16 bytes in size.
+		 * The last fragment is exempt from this restriction.
+		 */
+		if ((i != (nr_frags - 1)) && (skb_frag_size(frag) % 16))
+			return true;
+
+		/* Check if the fragment is 16 byte aligned */
+		if (skb_frag_off(frag) % 16)
+			return true;
+
+		/* Check if the fragment crosses a 4K address boundary. Since
+		 * the alignment of previous fragments can influence the
+		 * current fragment, checking for the 256 byte alignment
+		 * isn't relevant.
+		 */
+		if (CROSS_4K(skb_frag_off(frag), skb_frag_size(frag)))
+			return true;
+	}
 
 	return false;
 }
@@ -804,17 +840,17 @@ static bool a010022_check_skb(struct sk_buff *skb, struct dpa_priv_s *priv)
  * page. Build a new skb around the new buffer and release the old one.
  * A performance drop should be expected.
  */
-static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
+static struct sk_buff *a050385_realign_skb(struct sk_buff *skb,
 					   struct dpa_priv_s *priv)
 {
 	int trans_offset = skb_transport_offset(skb);
 	int net_offset = skb_network_offset(skb);
-	int nsize, headroom, npage_order;
 	struct sk_buff *nskb = NULL;
+	int nsize, headroom;
 	struct page *npage;
 	void *npage_addr;
 
-	headroom = DPAA_A010022_HEADROOM;
+	headroom = DPAA_A050385_HEADROOM;
 
 	/* For the new skb we only need the old one's data (both non-paged and
 	 * paged). We can skip the old tailroom.
@@ -825,8 +861,7 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 		SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
 
 	/* Reserve enough memory to accommodate Jumbo frames */
-	npage_order = (nsize - 1) / PAGE_SIZE;
-	npage = alloc_pages(GFP_ATOMIC | __GFP_COMP, npage_order);
+	npage = alloc_pages(GFP_ATOMIC | __GFP_COMP, get_order(nsize));
 	if (unlikely(!npage)) {
 		WARN_ONCE(1, "Memory allocation failure\n");
 		return NULL;
@@ -866,10 +901,6 @@ static struct sk_buff *a010022_realign_skb(struct sk_buff *skb,
 	skb_set_network_header(nskb, net_offset);
 	skb_set_transport_header(nskb, trans_offset);
 
-	/* We don't want the buffer to be recycled so we mark it accordingly */
-	nskb->mark = NONREC_MARK;
-
-	dev_kfree_skb(skb);
 	return nskb;
 
 err:
@@ -910,9 +941,14 @@ int __hot skb_to_sg_fd(struct dpa_priv_s *priv,
 	/* Get a page frag to store the SGTable, or a full page if the errata
 	 * is in place and we need to avoid crossing a 4k boundary.
 	 */
-#ifndef CONFIG_PPC
-	if (unlikely(dpaa_errata_a010022))
-		sgt_buf = page_address(alloc_page(GFP_ATOMIC));
+#ifdef FM_ERRATUM_A050385
+	if (unlikely(fm_has_errata_a050385())) {
+		struct page *new_page = alloc_page(GFP_ATOMIC);
+
+		if (unlikely(!new_page))
+			return -ENOMEM;
+		sgt_buf = page_address(new_page);
+	}
 	else
 #endif
 		sgt_buf = netdev_alloc_frag(priv->tx_headroom + sgt_size);
@@ -1059,8 +1095,23 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 	struct dpa_percpu_priv_s *percpu_priv;
 	struct rtnl_link_stats64 *percpu_stats;
 	int err = 0;
-	bool nonlinear;
+	bool nonlinear, skb_changed, skb_need_wa;
 	int *countptr, offset = 0;
+	struct sk_buff *nskb;
+
+	/* Flags to help optimize the A050385 errata restriction checks.
+	 *
+	 * First flag marks if the skb changed between the first A050385 check
+	 * and the moment it's converted to an FD.
+	 *
+	 * The second flag marks if the skb needs to be realigned in order to
+	 * avoid the errata.
+	 *
+	 * The flags should have minimal impact on platforms not impacted by
+	 * the errata.
+	 */
+	skb_changed = false;
+	skb_need_wa = false;
 
 	priv = netdev_priv(net_dev);
 	/* Non-migratable context, safe to use raw_cpu_ptr */
@@ -1070,12 +1121,9 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 
 	clear_fd(&fd);
 
-#ifndef CONFIG_PPC
-	if (unlikely(dpaa_errata_a010022) && a010022_check_skb(skb, priv)) {
-		skb = a010022_realign_skb(skb, priv);
-		if (!skb)
-			goto skb_to_fd_failed;
-	}
+#ifdef FM_ERRATUM_A050385
+	if (unlikely(fm_has_errata_a050385()) && a050385_check_skb(skb, priv))
+		skb_need_wa = true;
 #endif
 
 	nonlinear = skb_is_nonlinear(skb);
@@ -1096,8 +1144,8 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 	 * Btw, we're using the first sgt entry to store the linear part of
 	 * the skb, so we're one extra frag short.
 	 */
-	if (nonlinear &&
-		likely(skb_shinfo(skb)->nr_frags < DPA_SGT_MAX_ENTRIES)) {
+	if (nonlinear && !skb_need_wa &&
+	    likely(skb_shinfo(skb)->nr_frags < DPA_SGT_MAX_ENTRIES)) {
 		/* Just create a S/G fd based on the skb */
 		err = skb_to_sg_fd(priv, skb, &fd);
 		percpu_priv->tx_frag_skbuffs++;
@@ -1122,36 +1170,61 @@ int __hot dpa_tx_extended(struct sk_buff *skb, struct net_device *net_dev,
 
 			dev_kfree_skb(skb);
 			skb = skb_new;
+			skb_changed = true;
 		}
 
 		/* We're going to store the skb backpointer at the beginning
 		 * of the data buffer, so we need a privately owned skb
+		 *
+		 * Under the A050385 errata, we are going to have a privately
+		 * owned skb after realigning the current one, so no point in
+		 * copying it here in that case.
 		 */
 
 		/* Code borrowed from skb_unshare(). */
-		if (skb_cloned(skb)) {
-			struct sk_buff *nskb = skb_copy(skb, GFP_ATOMIC);
+		if (skb_cloned(skb) && !skb_need_wa) {
+			nskb = skb_copy(skb, GFP_ATOMIC);
 			kfree_skb(skb);
 			skb = nskb;
-#ifndef CONFIG_PPC
-			if (unlikely(dpaa_errata_a010022) &&
-			    a010022_check_skb(skb, priv)) {
-				skb = a010022_realign_skb(skb, priv);
-				if (!skb)
-					goto skb_to_fd_failed;
-			}
-#endif
+			skb_changed = true;
+
 			/* skb_copy() has now linearized the skbuff. */
-		} else if (unlikely(nonlinear)) {
+		} else if (unlikely(nonlinear) && !skb_need_wa) {
 			/* We are here because the egress skb contains
 			 * more fragments than we support. In this case,
 			 * we have no choice but to linearize it ourselves.
 			 */
-			err = __skb_linearize(skb);
+#ifdef FM_ERRATUM_A050385
+			/* No point in linearizing the skb now if we are going
+			 * to realign and linearize it again further down due
+			 * to the A050385 errata
+			 */
+			if (unlikely(fm_has_errata_a050385()))
+				skb_need_wa = true;
+			else
+#endif
+				err = __skb_linearize(skb);
 		}
 		if (unlikely(!skb || err < 0))
 			/* Common out-of-memory error path */
 			goto enomem;
+
+#ifdef FM_ERRATUM_A050385
+		/* Verify the skb a second time if it has been updated since
+		 * the previous check
+		 */
+		if (unlikely(fm_has_errata_a050385()) && skb_changed &&
+		    a050385_check_skb(skb, priv))
+			skb_need_wa = true;
+
+		if (unlikely(fm_has_errata_a050385()) && skb_need_wa) {
+			nskb = a050385_realign_skb(skb, priv);
+			if (!nskb)
+				goto skb_to_fd_failed;
+			dev_kfree_skb(skb);
+			skb = nskb;
+		}
+#endif
 
 		err = skb_to_contig_fd(priv, skb, &fd, countptr, &offset);
 	}

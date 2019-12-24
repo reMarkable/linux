@@ -31,7 +31,7 @@ static void vpu_mu_inq_msg(struct vpu_dev *dev, void *msg)
 		return;
 	}
 
-	schedule_work(&dev->msg_work);
+	queue_work(dev->workqueue, &dev->msg_work);
 }
 
 static void vpu_mbox_free(struct vpu_dev *dev)

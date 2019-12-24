@@ -1,5 +1,6 @@
 /*
  * Copyright 2008-2012 Freescale Semiconductor Inc.
+ * Copyright 2019 NXP
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -155,6 +156,10 @@ static int fsl_fm_pfc_quanta[] = {
 
 static t_LnxWrpFm   lnxWrpFm;
 
+#ifdef FM_ERRATUM_A050385
+static bool fm_has_err_a050385;
+#endif
+
 int fm_get_max_frm()
 {
 	return fsl_fm_max_frm;
@@ -166,6 +171,14 @@ int fm_get_rx_extra_headroom()
 	return ALIGN(fsl_fm_rx_extra_headroom, 16);
 }
 EXPORT_SYMBOL(fm_get_rx_extra_headroom);
+
+#ifdef FM_ERRATUM_A050385
+bool fm_has_errata_a050385(void)
+{
+	return fm_has_err_a050385;
+}
+EXPORT_SYMBOL(fm_has_errata_a050385);
+#endif
 
 static int __init fm_set_max_frm(char *str)
 {
@@ -748,6 +761,10 @@ static t_LnxWrpFmDev * ReadFmDevTreeNode (struct platform_device *of_dev)
         else
             p_LnxWrpFmDev->defPcd = e_NO_PCD;
     }
+
+#ifdef FM_ERRATUM_A050385
+    fm_has_err_a050385 = of_property_read_bool(fm_node, "fsl,erratum-a050385");
+#endif
 
     of_node_put(fm_node);
 
@@ -2896,7 +2913,7 @@ static int __init __cold fm_load (void)
         return -ENODEV;
     }
 
-	printk(KERN_CRIT "Freescale FM module," \
+	printk(KERN_INFO "Freescale FM module," \
 		" FMD API version %d.%d.%d\n",
 		FMD_API_VERSION_MAJOR,
 		FMD_API_VERSION_MINOR,
