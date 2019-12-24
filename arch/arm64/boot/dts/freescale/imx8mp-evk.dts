@@ -647,6 +647,12 @@
 		>;
 	};
 
+	pinctrl_mipi_dsi_en: mipi_dsi_en {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08	0x16
+		>;
+	};
+
 	pinctrl_pmic: pmicirq {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO03__GPIO1_IO03	0x41
