@@ -40,6 +40,10 @@ static int cdns_mhdp_imx_encoder_atomic_check(struct drm_encoder *encoder,
 
 	if (mhdp->plat_data->video_format != 0)
 		imx_crtc_state->bus_format = mhdp->plat_data->video_format;
+
+	if (mhdp->force_mode_set)
+		crtc_state->mode_changed = true;
+
 	return 0;
 }
 

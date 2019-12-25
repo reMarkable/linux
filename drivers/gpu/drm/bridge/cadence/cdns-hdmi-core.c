@@ -178,6 +178,10 @@ void cdns_hdmi_mode_set(struct cdns_mhdp_device *mhdp)
 	struct drm_display_mode *mode = &mhdp->mode;
 	int ret;
 
+	/* video mode valid check */
+	if (mode->clock == 0 || mode->hdisplay == 0 ||  mode->vdisplay == 0)
+		return;
+
 	hdmi_lanes_config(mhdp);
 
 	cdns_mhdp_plat_call(mhdp, pclk_rate);
@@ -393,6 +397,8 @@ static void cdns_hdmi_bridge_mode_set(struct drm_bridge *bridge,
 	mutex_lock(&mhdp->lock);
 	cdns_hdmi_mode_set(mhdp);
 	mutex_unlock(&mhdp->lock);
+	/* reset force mode set flag */
+	mhdp->force_mode_set = false;
 }
 
 bool cdns_hdmi_bridge_mode_fixup(struct drm_bridge *bridge,
@@ -467,14 +473,12 @@ static void hotplug_work_func(struct work_struct *work)
 
 	if (connector->status == connector_status_connected) {
 		DRM_INFO("HDMI Cable Plug In\n");
-		/* reset video mode after cable plugin */
-		mutex_lock(&mhdp->lock);
-		cdns_hdmi_mode_set(mhdp);
-		mutex_unlock(&mhdp->lock);
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI Cable Plug Out\n");
+		/* force mode set for cable replugin to recovery HDMI2.0 video modes */
+		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }

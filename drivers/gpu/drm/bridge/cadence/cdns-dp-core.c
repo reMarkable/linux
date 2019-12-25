@@ -322,9 +322,12 @@ static void cdns_dp_bridge_mode_set(struct drm_bridge *bridge,
 	mutex_lock(&mhdp->lock);
 	cdns_dp_mode_set(mhdp);
 	mutex_unlock(&mhdp->lock);
+
+	/* reset force mode set flag */
+	mhdp->force_mode_set = false;
 }
 
-static void cdn_hdp_bridge_enable(struct drm_bridge *bridge)
+static void cdn_dp_bridge_enable(struct drm_bridge *bridge)
 {
 	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 	int ret;
@@ -345,7 +348,7 @@ static void cdn_hdp_bridge_enable(struct drm_bridge *bridge)
 	}
 }
 
-static void cdn_hdp_bridge_disable(struct drm_bridge *bridge)
+static void cdn_dp_bridge_disable(struct drm_bridge *bridge)
 {	
 	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 
@@ -354,8 +357,8 @@ static void cdn_hdp_bridge_disable(struct drm_bridge *bridge)
 
 static const struct drm_bridge_funcs cdns_dp_bridge_funcs = {
 	.attach = cdns_dp_bridge_attach,
-	.enable = cdn_hdp_bridge_enable,
-	.disable = cdn_hdp_bridge_disable,
+	.enable = cdn_dp_bridge_enable,
+	.disable = cdn_dp_bridge_disable,
 	.mode_set = cdns_dp_bridge_mode_set,
 	.mode_valid = cdns_dp_bridge_mode_valid,
 };
@@ -375,6 +378,8 @@ static void hotplug_work_func(struct work_struct *work)
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI/DP Cable Plug Out\n");
+		/* force mode set for cable replugin to recovery DP video modes */
+		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }

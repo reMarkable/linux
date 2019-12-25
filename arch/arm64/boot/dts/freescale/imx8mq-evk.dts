@@ -407,6 +407,7 @@
 
 	pmic@8 {
 		compatible = "fsl,pfuze100";
+		fsl,pfuze-support-disable-sw;
 		reg = <0x8>;
 
 		regulators {
@@ -639,6 +640,10 @@
 
 &pgc_gpu {
 	power-supply = <&sw1a_reg>;
+};
+
+&pgc_vpu {
+	power-supply = <&sw1c_reg>;
 };
 
 &snvs_pwrkey {
@@ -1080,7 +1085,6 @@
 };
 
 &vpu {
-	regulator-supply = <&sw1c_reg>;
 	status = "okay";
 };
 
