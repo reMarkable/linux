@@ -84,11 +84,9 @@ enum mipi_dsi_trans_mode {
 	DSI_HS_MODE
 };
 
-static struct regulator *mipi_phy_reg;
 static DECLARE_COMPLETION(dsi_rx_done);
 static DECLARE_COMPLETION(dsi_tx_done);
 
-static void mipi_dsi_dphy_power_down(void);
 static void mipi_dsi_set_mode(struct mipi_dsi_info *mipi_dsi,
 			      enum mipi_dsi_trans_mode mode);
 
@@ -338,24 +336,6 @@ static void mipi_dsi_power_off(struct mxc_dispdrv_handle *disp)
 
 	clk_disable_unprepare(mipi_dsi->dphy_clk);
 	clk_disable_unprepare(mipi_dsi->cfg_clk);
-}
-
-static void mipi_dsi_dphy_power_on(struct platform_device *pdev)
-{
-	int ret;
-
-	regulator_set_voltage(mipi_phy_reg, 1000000, 1000000);
-
-	ret = regulator_enable(mipi_phy_reg);
-	if (ret){
-		dev_err(&pdev->dev, "failed to enable mipi phy regulatore\n");
-		BUG_ON(1);
-	}
-}
-
-static void mipi_dsi_dphy_power_down(void)
-{
-	regulator_disable(mipi_phy_reg);
 }
 
 static int mipi_dsi_lane_stop_state(struct mipi_dsi_info *mipi_dsi)
@@ -799,12 +779,6 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	mipi_phy_reg = devm_regulator_get(&pdev->dev, "mipi-phy");
-	if (IS_ERR(mipi_phy_reg)) {
-		dev_err(&pdev->dev, "mipi phy power supply not found\n");
-		return ret;
-	}
-
 	mipi_dsi->disp_power_on = devm_regulator_get(&pdev->dev,
 						"disp-power-on");
 	if (!IS_ERR(mipi_dsi->disp_power_on)) {
@@ -856,7 +830,6 @@ static void mipi_dsi_shutdown(struct platform_device *pdev)
 	struct mipi_dsi_info *mipi_dsi = dev_get_drvdata(&pdev->dev);
 
 	mipi_dsi_power_off(mipi_dsi->disp_mipi);
-	mipi_dsi_dphy_power_down();
 }
 
 static int mipi_dsi_remove(struct platform_device *pdev)
@@ -884,7 +857,6 @@ static int mipi_dsi_runtime_suspend(struct device *dev)
 		release_bus_freq(BUS_FREQ_HIGH);
 		dev_dbg(dev, "mipi dsi busfreq high release.\n");
 
-		mipi_dsi_dphy_power_down();
 		mipi_dsi->dsi_power_on = 0;
 	}
 
@@ -900,7 +872,6 @@ static int mipi_dsi_runtime_resume(struct device *dev)
 		request_bus_freq(BUS_FREQ_HIGH);
 		dev_dbg(dev, "mipi dsi busfreq high request.\n");
 
-		mipi_dsi_dphy_power_on(pdev);
 		mipi_dsi->dsi_power_on = 1;
 	}
 
