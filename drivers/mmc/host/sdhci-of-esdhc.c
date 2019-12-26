@@ -851,20 +851,20 @@ static int esdhc_signal_voltage_switch(struct mmc_host *mmc,
 }
 
 static struct soc_device_attribute soc_tuning_erratum_type1[] = {
-	{ .family = "QorIQ T1023", .revision = "1.0", },
-	{ .family = "QorIQ T1040", .revision = "1.0", },
-	{ .family = "QorIQ T2080", .revision = "1.0", },
-	{ .family = "QorIQ LS1021A", .revision = "1.0", },
+	{ .family = "QorIQ T1023", },
+	{ .family = "QorIQ T1040", },
+	{ .family = "QorIQ T2080", },
+	{ .family = "QorIQ LS1021A", },
 	{ },
 };
 
 static struct soc_device_attribute soc_tuning_erratum_type2[] = {
-	{ .family = "QorIQ LS1012A", .revision = "1.0", },
-	{ .family = "QorIQ LS1043A", .revision = "1.*", },
-	{ .family = "QorIQ LS1046A", .revision = "1.0", },
-	{ .family = "QorIQ LS1080A", .revision = "1.0", },
-	{ .family = "QorIQ LS2080A", .revision = "1.0", },
-	{ .family = "QorIQ LA1575A", .revision = "1.0", },
+	{ .family = "QorIQ LS1012A", },
+	{ .family = "QorIQ LS1043A", },
+	{ .family = "QorIQ LS1046A", },
+	{ .family = "QorIQ LS1080A", },
+	{ .family = "QorIQ LS2080A", },
+	{ .family = "QorIQ LA1575A", },
 	{ },
 };
 
@@ -885,19 +885,10 @@ static void esdhc_tuning_block_enable(struct sdhci_host *host, bool enable)
 	esdhc_clock_enable(host, true);
 }
 
-static void esdhc_prepare_sw_tuning(struct sdhci_host *host, u8 *window_start,
+static void esdhc_tuning_window_ptr(struct sdhci_host *host, u8 *window_start,
 				    u8 *window_end)
 {
-	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
-	struct sdhci_esdhc *esdhc = sdhci_pltfm_priv(pltfm_host);
-	u8 tbstat_15_8, tbstat_7_0;
 	u32 val;
-
-	if (esdhc->quirk_tuning_erratum_type1) {
-		*window_start = 5 * esdhc->div_ratio;
-		*window_end = 3 * esdhc->div_ratio;
-		return;
-	}
 
 	/* Write TBCTL[11:8]=4'h8 */
 	val = sdhci_readl(host, ESDHC_TBCTL);
@@ -917,20 +908,37 @@ static void esdhc_prepare_sw_tuning(struct sdhci_host *host, u8 *window_start,
 	val = sdhci_readl(host, ESDHC_TBSTAT);
 	val = sdhci_readl(host, ESDHC_TBSTAT);
 
+	*window_end = val & 0xff;
+	*window_start = (val >> 8) & 0xff;
+}
+
+static void esdhc_prepare_sw_tuning(struct sdhci_host *host, u8 *window_start,
+				    u8 *window_end)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_esdhc *esdhc = sdhci_pltfm_priv(pltfm_host);
+	u8 start_ptr, end_ptr;
+
+	if (esdhc->quirk_tuning_erratum_type1) {
+		*window_start = 5 * esdhc->div_ratio;
+		*window_end = 3 * esdhc->div_ratio;
+		return;
+	}
+
+	esdhc_tuning_window_ptr(host, &start_ptr, &end_ptr);
+
 	/* Reset data lines by setting ESDHCCTL[RSTD] */
 	sdhci_reset(host, SDHCI_RESET_DATA);
 	/* Write 32'hFFFF_FFFF to IRQSTAT register */
 	sdhci_writel(host, 0xFFFFFFFF, SDHCI_INT_STATUS);
 
-	/* If TBSTAT[15:8]-TBSTAT[7:0] > 4 * div_ratio
-	 * or TBSTAT[7:0]-TBSTAT[15:8] > 4 * div_ratio,
+	/* If TBSTAT[15:8]-TBSTAT[7:0] > (4 * div_ratio) + 2
+	 * or TBSTAT[7:0]-TBSTAT[15:8] > (4 * div_ratio) + 2,
 	 * then program TBPTR[TB_WNDW_END_PTR] = 4 * div_ratio
 	 * and program TBPTR[TB_WNDW_START_PTR] = 8 * div_ratio.
 	 */
-	tbstat_7_0 = val & 0xff;
-	tbstat_15_8 = (val >> 8) & 0xff;
 
-	if (abs(tbstat_15_8 - tbstat_7_0) > (4 * esdhc->div_ratio)) {
+	if (abs(start_ptr - end_ptr) > (4 * esdhc->div_ratio + 2)) {
 		*window_start = 8 * esdhc->div_ratio;
 		*window_end = 4 * esdhc->div_ratio;
 	} else {
@@ -1002,6 +1010,19 @@ static int esdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		ret = sdhci_execute_tuning(mmc, opcode);
 		if (ret)
 			break;
+
+		/* For type2 affected platforms of the tuning erratum,
+		 * tuning may succeed although eSDHC might not have
+		 * tuned properly. Need to check tuning window.
+		 */
+		if (esdhc->quirk_tuning_erratum_type2 &&
+		    !host->tuning_err) {
+			esdhc_tuning_window_ptr(host, &window_start,
+						&window_end);
+			if (abs(window_start - window_end) >
+			    (4 * esdhc->div_ratio + 2))
+				host->tuning_err = -EAGAIN;
+		}
 
 		/* If HW tuning fails and triggers erratum,
 		 * try workaround.

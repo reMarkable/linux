@@ -705,6 +705,7 @@
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 				snps,host-vbus-glitches;
 				configure-gfladj;
+				dma-coherent;
 			};
 
 			usb1: usb3@3000000 {
@@ -719,6 +720,7 @@
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 				snps,host-vbus-glitches;
 				configure-gfladj;
+				dma-coherent;
 			};
 
 			usb2: usb3@3100000 {
@@ -733,6 +735,7 @@
 				snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
 				snps,host-vbus-glitches;
 				configure-gfladj;
+				dma-coherent;
 			};
 
 			sata: sata@3200000 {
