@@ -142,6 +142,7 @@ static int fsl_easrc_dma_hw_params(struct snd_pcm_substream *substream,
 	u8 dir = tx ? OUT : IN;
 	dma_cap_mask_t mask;
 	enum sdma_peripheral_type be_peripheral_type;
+	struct device_node *of_dma_node;
 	int ret;
 
 	/* Fetch the Back-End dma_data from DPCM */
@@ -189,6 +190,7 @@ static int fsl_easrc_dma_hw_params(struct snd_pcm_substream *substream,
 		return ret;
 	}
 
+	of_dma_node = ctx->dma_chan[!dir]->device->dev->of_node;
 	/* Request and config DMA channel for Back-End */
 	dma_cap_zero(mask);
 	dma_cap_set(DMA_SLAVE, mask);
@@ -228,7 +230,8 @@ static int fsl_easrc_dma_hw_params(struct snd_pcm_substream *substream,
 	 */
 	if (ctx->dma_data.dma_request2 != ctx->dma_data.dma_request)
 		ctx->dma_chan[dir] =
-			dma_request_channel(mask, filter, &ctx->dma_data);
+			__dma_request_channel(&mask, filter, &ctx->dma_data,
+						of_dma_node);
 	else
 		ctx->dma_chan[dir] =
 			dma_request_slave_channel(dev_be, tx ? "tx" : "rx");
