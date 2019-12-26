@@ -717,7 +717,7 @@
 				assigned-clocks = <&clk IMX8MP_CLK_CAN1>;
 				assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_40M>;
 				assigned-clock-rates = <40000000>;
-				stop-mode = <&gpr 0x10 4 0x10 20>;
+				fsl,stop-mode = <&gpr 0x10 4 0x10 20>;
 				status = "disabled";
 			};
 
@@ -731,7 +731,7 @@
 				assigned-clocks = <&clk IMX8MP_CLK_CAN2>;
 				assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_40M>;
 				assigned-clock-rates = <40000000>;
-				stop-mode = <&gpr 0x10 5 0x10 21>;
+				fsl,stop-mode = <&gpr 0x10 5 0x10 21>;
 				status = "disabled";
 			};
 
