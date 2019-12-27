@@ -2614,10 +2614,12 @@ static int add_scode(struct vpu_ctx *ctx, u_int32 uStrBufIdx, VPU_PADDING_SCODE_
 
 	mutex_lock(&ctx->instance_mutex);
 	size = add_scode_vpu(ctx, uStrBufIdx, eScodeType, bUpdateWr);
-	if (size > 0)
-		set_pic_end_flag(ctx);
-	else
+	if (size > 0) {
+		if (!(eScodeType == BUFFLUSH_PADDING_TYPE && ctx->b_dis_reorder))
+			set_pic_end_flag(ctx);
+	} else {
 		size = 0;
+	}
 	mutex_unlock(&ctx->instance_mutex);
 	return size;
 }
