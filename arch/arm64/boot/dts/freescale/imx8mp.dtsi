@@ -442,6 +442,14 @@
 				#interrupt-cells = <2>;
 			};
 
+			wdog1: watchdog@30280000 {
+				compatible = "fsl,imx8mp-wdt", "fsl,imx21-wdt";
+				reg = <0x30280000 0x10000>;
+				interrupts = <GIC_SPI 78 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clk IMX8MP_CLK_WDOG1_ROOT>;
+				status = "disabled";
+			};
+
 			iomuxc: pinctrl@30330000 {
 				compatible = "fsl,imx8mp-iomuxc";
 				reg = <0x30330000 0x10000>;

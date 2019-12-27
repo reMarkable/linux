@@ -261,6 +261,13 @@
 	status = "okay";
 };
 
+&wdog1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_wdog>;
+	fsl,ext-reset-output;
+	status = "okay";
+};
+
 &iomuxc {
 	pinctrl-names = "default";
 
@@ -461,6 +468,12 @@
 			MX8MP_IOMUXC_NAND_CE3_B__USDHC3_DATA6	0x1d6
 			MX8MP_IOMUXC_NAND_CLE__USDHC3_DATA7	0x1d6
 			MX8MP_IOMUXC_NAND_CE1_B__USDHC3_STROBE	0x196
+		>;
+	};
+
+	pinctrl_wdog: wdoggrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO02__WDOG1_WDOG_B	0xc6
 		>;
 	};
 };
