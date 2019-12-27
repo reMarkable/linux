@@ -67,6 +67,8 @@ static int vpu_show_perf_ena;
 static int vpu_show_perf_idx = (1 << VPU_MAX_NUM_STREAMS) - 1;
 static int vpu_show_perf_ent;
 static int vpu_datadump_ena;
+static unsigned short frame_threshold[VPU_MAX_NUM_STREAMS];
+module_param_array(frame_threshold, ushort, NULL, 0644);
 
 /* Generic End of content startcodes to differentiate from those naturally in the stream/file */
 #define EOS_GENERIC_HEVC 0x7c010000
@@ -2295,6 +2297,62 @@ static int add_custom_g_ctrl(struct vpu_ctx *This)
 	return 0;
 }
 
+static int set_frame_threshold(struct v4l2_ctrl *ctrl)
+{
+	struct vpu_ctx *ctx = v4l2_ctrl_to_ctx(ctrl);
+
+	ctrl->val = max_t(s32, ctrl->val, ctrl->minimum);
+	ctrl->val = min_t(s32, ctrl->val, ctrl->maximum);
+	frame_threshold[ctx->str_index] = ctrl->val;
+	return 0;
+}
+
+static int get_frame_threshold(struct v4l2_ctrl *ctrl)
+{
+	struct vpu_ctx *ctx = v4l2_ctrl_to_ctx(ctrl);
+
+	ctrl->val = frame_threshold[ctx->str_index];
+	ctrl->val = max_t(s32, ctrl->val, ctrl->minimum);
+	ctrl->val = min_t(s32, ctrl->val, ctrl->maximum);
+	return 0;
+}
+
+static int add_ctrl_frame_threshold(struct vpu_ctx *ctx)
+{
+	static const struct v4l2_ctrl_ops ctrl_frame_threshold_ops = {
+		.s_ctrl = set_frame_threshold,
+		.g_volatile_ctrl = get_frame_threshold,
+	};
+	struct v4l2_ctrl_config ctrl_config = {
+		.id = V4L2_CID_USER_FRAME_THRESHOLD,
+		.name = "stream frame threshold",
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.min = 0,
+		.max = USHRT_MAX,
+		.step = 1,
+		.ops = &ctrl_frame_threshold_ops,
+	};
+	struct v4l2_ctrl *ctrl;
+
+	if (!ctx)
+		return -EINVAL;
+
+	ctrl_config.def = frame_threshold[ctx->str_index];
+	ctrl = v4l2_ctrl_new_custom(&ctx->ctrl_handler,
+					&ctrl_config,
+					NULL);
+	if (ctx->ctrl_handler.error || !ctrl) {
+		vpu_err("add frame threshold ctrl fail : %d\n",
+				ctx->ctrl_handler.error);
+		return ctx->ctrl_handler.error;
+	}
+
+	ctrl->flags |= V4L2_CTRL_FLAG_VOLATILE;
+	ctrl->flags |= V4L2_CTRL_FLAG_EXECUTE_ON_WRITE;
+
+	return 0;
+}
+
 static int add_dec_ctrl(struct vpu_ctx *This)
 {
 	if (!This)
@@ -2303,6 +2361,7 @@ static int add_dec_ctrl(struct vpu_ctx *This)
 	add_stand_g_ctrl(This);
 	add_custom_s_ctrl(This);
 	add_custom_g_ctrl(This);
+	add_ctrl_frame_threshold(This);
 
 	return 0;
 }
@@ -3227,16 +3286,22 @@ static void fill_stream_buffer_info(struct vpu_ctx *ctx)
 {
 	pDEC_RPC_HOST_IFACE pSharedInterface;
 	pBUFFER_INFO_TYPE buffer_info;
+	int idx;
 
-	if (!ctx)
+	if (!ctx || ctx->str_index < 0 || ctx->str_index >= VPU_MAX_NUM_STREAMS)
 		return;
 
+	idx = ctx->str_index;
 	pSharedInterface = ctx->dev->shared_mem.pSharedInterface;
-	buffer_info = &pSharedInterface->StreamBuffInfo[ctx->str_index];
+	buffer_info = &pSharedInterface->StreamBuffInfo[idx];
 
 	buffer_info->stream_input_mode = ctx->stream_input_mode;
 	if (ctx->stream_input_mode == NON_FRAME_LVL)
 		buffer_info->stream_buffer_threshold = stream_buffer_threshold;
+	else if (frame_threshold[idx] > 0)
+		buffer_info->stream_buffer_threshold = frame_threshold[idx];
+	else
+		buffer_info->stream_buffer_threshold = 0;
 
 	buffer_info->stream_pic_input_count = ctx->frm_total_num;
 }
