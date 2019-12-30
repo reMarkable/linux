@@ -916,7 +916,7 @@
 			};
 
 			eqos: ethernet@30bf0000 {
-				compatible = "fsl,imx8mp-dwmac-eqos", "snps,dwmac-5.10a";
+				compatible = "nxp,imx8mp-dwmac-eqos", "snps,dwmac-5.10a";
 				reg = <0x30bf0000 0x10000>;
 				interrupts = <GIC_SPI 134 IRQ_TYPE_LEVEL_HIGH>,
 					     <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
@@ -936,7 +936,7 @@
 				nvmem-cells = <&eth_mac0>;
 				nvmem-cell-names = "mac-address";
 				nvmem_macaddr_swap;
-				intf_mode = <&gpr 0x10>;
+				intf_mode = <&gpr 0x4>;
 				status = "disabled";
 			};
 		};
