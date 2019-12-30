@@ -80,6 +80,7 @@ static void dwmac4_dma_init_rx_chan(void __iomem *ioaddr,
 	writel(value, ioaddr + DMA_CHAN_RX_CONTROL(chan));
 
 	writel(lower_32_bits(dma_rx_phy), ioaddr + DMA_CHAN_RX_BASE_ADDR(chan));
+	writel(upper_32_bits(dma_rx_phy), ioaddr + DMA_CHAN_RX_BASE_HADDR(chan));
 }
 
 static void dwmac4_dma_init_tx_chan(void __iomem *ioaddr,
@@ -98,6 +99,7 @@ static void dwmac4_dma_init_tx_chan(void __iomem *ioaddr,
 	writel(value, ioaddr + DMA_CHAN_TX_CONTROL(chan));
 
 	writel(lower_32_bits(dma_tx_phy), ioaddr + DMA_CHAN_TX_BASE_ADDR(chan));
+	writel(upper_32_bits(dma_tx_phy), ioaddr + DMA_CHAN_TX_BASE_HADDR(chan));
 }
 
 static void dwmac4_dma_init_channel(void __iomem *ioaddr,
@@ -132,7 +134,7 @@ static void dwmac4_dma_init(void __iomem *ioaddr,
 	if (dma_cfg->aal)
 		value |= DMA_SYS_BUS_AAL;
 
-	writel(value, ioaddr + DMA_SYS_BUS_MODE);
+	writel(value | DMA_SYS_EAME, ioaddr + DMA_SYS_BUS_MODE);
 }
 
 static void _dwmac4_dump_dma_regs(void __iomem *ioaddr, u32 channel,
