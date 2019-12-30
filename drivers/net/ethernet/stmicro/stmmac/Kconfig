@@ -195,6 +195,19 @@ config DWMAC_SUN8I
 	  This selects Allwinner SoC glue layer support for the
 	  stmmac device driver. This driver is used for H3/A83T/A64
 	  EMAC ethernet controller.
+
+config DWMAC_IMX8
+	tristate "NXP IMX8 DWMAC support"
+	default ARCH_MXC
+	depends on OF && (ARCH_MXC || COMPILE_TEST)
+	select MFD_SYSCON
+	---help---
+	  Support for ethernet controller on NXP i.MX8 SOCs.
+
+	  This selects NXP SoC glue layer support for the stmmac
+	  device driver. This driver is used on for the i.MX8 series
+	  SOCs GMAC ethernet controller.
+
 endif
 
 config STMMAC_PCI
