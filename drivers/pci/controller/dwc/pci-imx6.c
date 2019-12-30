@@ -1685,8 +1685,11 @@ static void imx6_pcie_setup_ep(struct dw_pcie *pci)
 
 	/* get iATU unroll support */
 	val = dw_pcie_readl_dbi(pci, PCIE_ATU_VIEWPORT);
-	if (val == 0xffffffff)
+	if (val == 0xffffffff) {
 		pci->iatu_unroll_enabled = 1;
+		if (!pci->atu_base)
+			pci->atu_base = pci->dbi_base + DEFAULT_DBI_ATU_OFFSET;
+	}
 	dev_info(pci->dev, "iATU unroll: %s\n",
 		pci->iatu_unroll_enabled ? "enabled" : "disabled");
 
