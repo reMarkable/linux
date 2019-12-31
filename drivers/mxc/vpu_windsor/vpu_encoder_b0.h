@@ -260,6 +260,7 @@ struct vpu_attr {
 
 	struct vpu_statistic statistic;
 	MEDIAIP_ENC_PARAM param;
+	struct v4l2_fract fival;
 
 	unsigned long ts_start[2];
 	unsigned long msg_count;
