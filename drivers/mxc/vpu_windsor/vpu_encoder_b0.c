@@ -38,6 +38,7 @@
 #include <linux/mx8_mu.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
+#include <linux/debugfs.h>
 
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
@@ -3937,11 +3938,13 @@ static int show_v4l2_buf_status(struct vpu_ctx *ctx, char *buf, u32 size)
 	num += scnprintf(buf + num, size - num,
 			" %d:error", VB2_BUF_STATE_ERROR);
 	num += scnprintf(buf + num, size - num - num, ")\n");
-	num += scnprintf(buf + num, size - num, "\tOUTPUT:");
+	num += scnprintf(buf + num, size - num, "\tOUTPUT(0x%lx):",
+			ctx->q_data[V4L2_SRC].rw_flag);
 	num += show_queue_buffer_info(&ctx->q_data[V4L2_SRC],
 					buf + num,
 					size - num);
-	num += scnprintf(buf + num, size - num, "    CAPTURE:");
+	num += scnprintf(buf + num, size - num, "    CAPTURE(0x%lx):",
+			ctx->q_data[V4L2_DST].rw_flag);
 	num += show_queue_buffer_info(&ctx->q_data[V4L2_DST],
 					buf + num,
 					size - num);
@@ -3982,6 +3985,9 @@ static int show_instance_stream_buffer_desc(struct vpu_ctx *ctx,
 	num += scnprintf(buf + num, size - num,
 			"\t%-13s:0x%x\n", "wptr",
 			get_ptr(stream_buffer_desc->wptr));
+	num += scnprintf(buf + num, size - num,
+			"\t%-13s:0x%x\n", "free space",
+			get_free_space(ctx));
 	return num;
 }
 
@@ -5172,56 +5178,12 @@ static void statistic_fps_info(struct vpu_statistic *sts)
 		calc_rt_fps(&sts->fps[i], encoded_count, &ts);
 }
 
-static void print_firmware_debug(char *ptr, u32 size)
-{
-	u32 total = 0;
-	u32 len;
-
-	while (total < size) {
-		len = min_t(u32, size - total, 256);
-		total += len;
-	}
-}
-
-static void handle_core_firmware_debug(struct core_device *core)
-{
-	char *ptr;
-	u32 rptr;
-	u32 wptr;
-
-	if (!core || !core->print_buf)
-		return;
-
-	if (!test_bit(core->id, &debug_firmware_bitmap))
-		return;
-
-	rptr = core->print_buf->read;
-	wptr = core->print_buf->write;
-	if (rptr == wptr)
-		return;
-
-	ptr = core->print_buf->buffer;
-	if (rptr > wptr) {
-		print_firmware_debug(ptr + rptr, core->print_buf->bytes - rptr);
-		rptr = 0;
-	}
-	if (rptr < wptr) {
-		print_firmware_debug(ptr + rptr, wptr - rptr);
-		rptr = wptr;
-	}
-	if (rptr >= core->print_buf->bytes)
-		rptr = 0;
-	core->print_buf->read = rptr;
-}
-
 static void handle_core_minors(struct core_device *core)
 {
 	int i;
 
 	for (i = 0; i < core->supported_instance_count; i++)
 		statistic_fps_info(&core->attr[i].statistic);
-
-	handle_core_firmware_debug(core);
 }
 
 static void vpu_enc_watchdog_handler(struct work_struct *work)
@@ -5247,6 +5209,114 @@ static void vpu_enc_watchdog_handler(struct work_struct *work)
 	vdev->heartbeat++;
 	schedule_delayed_work(&vdev->watchdog,
 			msecs_to_jiffies(VPU_WATCHDOG_INTERVAL_MS));
+}
+
+static int fwlog_show(struct seq_file *s, void *data)
+{
+	struct core_device *core = s->private;
+	int length;
+	u32 rptr;
+	u32 wptr;
+	int ret = 0;
+
+	if (!core->print_buf)
+		return 0;
+
+	rptr = core->print_buf->read;
+	wptr = core->print_buf->write;
+
+	if (rptr == wptr)
+		return 0;
+	else if (rptr < wptr)
+		length = wptr - rptr;
+	else
+		length = core->print_buf->bytes + wptr - rptr;
+
+	if (s->count + length >= s->size) {
+		s->count = s->size;
+		return 0;
+	}
+
+	if (rptr + length > core->print_buf->bytes) {
+		int num = core->print_buf->bytes - rptr;
+
+		if (seq_write(s, core->print_buf->buffer + rptr, num))
+			ret = -1;
+		length -= num;
+		rptr = 0;
+	}
+
+	if (seq_write(s, core->print_buf->buffer + rptr, length))
+		ret = -1;
+	rptr += length;
+	rptr %= core->print_buf->bytes;
+	if (!ret)
+		core->print_buf->read = rptr;
+
+	return 0;
+}
+
+static int fwlog_open(struct inode *inode, struct file *filp)
+{
+	return single_open(filp, fwlog_show, inode->i_private);
+}
+
+static const struct file_operations fwlog_fops = {
+	.owner = THIS_MODULE,
+	.open = fwlog_open,
+	.release = single_release,
+	.read = seq_read,
+};
+
+static void vpu_enc_create_debugfs_file(struct vpu_dev *dev)
+{
+	struct core_device *core;
+	char name[64];
+	int i;
+
+	if (dev->debugfs_root == NULL) {
+		dev->debugfs_root = debugfs_create_dir("vpu_windsor", NULL);
+		if (!dev->debugfs_root) {
+			vpu_err("error: create debugfs_root fail\n");
+			return;
+		}
+	}
+
+	for (i = 0; i < dev->core_num; i++) {
+		core = &dev->core_dev[i];
+
+		if (core->debugfs_fwlog)
+			continue;
+
+		scnprintf(name, sizeof(name), "vpu_windsor_log%d", i);
+		core->debugfs_fwlog = debugfs_create_file((const char *)name,
+						VERIFY_OCTAL_PERMISSIONS(0444),
+						dev->debugfs_root,
+						core,
+						&fwlog_fops);
+		if (!core->debugfs_fwlog) {
+			vpu_err("error: create debugfs_fwlog fail\n");
+			continue;
+		}
+	}
+}
+
+static void vpu_enc_remove_debugfs_file(struct vpu_dev *dev)
+{
+	struct core_device *core;
+	int i;
+
+	if (!dev)
+		return;
+
+	for (i = 0; i < dev->core_num; i++) {
+		core = &dev->core_dev[i];
+
+		debugfs_remove(core->debugfs_fwlog);
+		core->debugfs_fwlog = NULL;
+	}
+	debugfs_remove_recursive(dev->debugfs_root);
+	dev->debugfs_root = NULL;
 }
 
 static int init_vpu_core_dev(struct core_device *core_dev)
@@ -5488,6 +5558,7 @@ static int vpu_enc_probe(struct platform_device *pdev)
 	device_create_file(&pdev->dev, &dev_attr_buffer);
 	device_create_file(&pdev->dev, &dev_attr_fpsinfo);
 	device_create_file(&pdev->dev, &dev_attr_vpuinfo);
+	vpu_enc_create_debugfs_file(dev);
 	init_vpu_enc_watchdog(dev);
 	vpu_dbg(LVL_INFO, "VPU Encoder registered\n");
 
@@ -5532,6 +5603,7 @@ static int vpu_enc_remove(struct platform_device *pdev)
 	u_int32 i;
 
 	cancel_delayed_work_sync(&dev->watchdog);
+	vpu_enc_remove_debugfs_file(dev);
 	device_remove_file(&pdev->dev, &dev_attr_vpuinfo);
 	device_remove_file(&pdev->dev, &dev_attr_fpsinfo);
 	device_remove_file(&pdev->dev, &dev_attr_buffer);

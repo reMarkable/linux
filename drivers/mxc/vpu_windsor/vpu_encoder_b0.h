@@ -340,6 +340,8 @@ struct core_device {
 	struct vpu_sc_chan sc_chan_tx0;
 	struct vpu_sc_chan sc_chan_tx1;
 	struct vpu_sc_chan sc_chan_rx;
+
+	struct dentry *debugfs_fwlog;
 };
 
 struct vpu_enc_mem_item {
@@ -404,6 +406,7 @@ struct vpu_dev {
 	struct device_link *pd_enc2_link;
 	struct device_link *pd_mu1_link;
 	struct device_link *pd_mu2_link;
+	struct dentry *debugfs_root;
 };
 
 struct buffer_addr {
