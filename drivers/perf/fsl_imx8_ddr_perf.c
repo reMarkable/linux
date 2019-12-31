@@ -29,6 +29,8 @@
 #define CNTL_CLEAR_MASK		0xFFFFFFFD
 #define CNTL_OVER_MASK		0xFFFFFFFE
 
+#define CNTL_CP_SHIFT		16
+#define CNTL_CP_MASK		(0xFF << CNTL_CP_SHIFT)
 #define CNTL_CSV_SHIFT		24
 #define CNTL_CSV_MASK		(0xFF << CNTL_CSV_SHIFT)
 
@@ -401,6 +403,20 @@ static void ddr_perf_counter_enable(struct ddr_pmu *pmu, int config,
 		writel(0, pmu->base + reg);
 		val = CNTL_EN | CNTL_CLEAR;
 		val |= FIELD_PREP(CNTL_CSV_MASK, config);
+
+		/*
+		 * Workaround for i.MX8MP:
+		 * Common counters and byte counters share the same COUNTER_CNTL,
+		 * and byte counters could overflow before cycle counter. Need set
+		 * counter parameter(CP) of cycle counter to give it initial value
+		 * which can speed up cycle counter overflow frequency.
+		 */
+		if ((pmu->devtype_data->quirks & DDR_CAP_AXI_ID_FILTER_ENHANCED) ==
+		    DDR_CAP_AXI_ID_FILTER_ENHANCED) {
+			if (counter == EVENT_CYCLES_COUNTER)
+				val |= FIELD_PREP(CNTL_CP_MASK, 0xe8);
+		}
+
 		writel(val, pmu->base + reg);
 	} else {
 		/* Disable counter */
