@@ -786,8 +786,8 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_CAN1_ROOT] = imx_clk_gate2("can1_root_clk", "can1", base + 0x4350, 0);
 	clks[IMX8MP_CLK_CAN2_ROOT] = imx_clk_gate2("can2_root_clk", "can2", base + 0x4360, 0);
 	clks[IMX8MP_CLK_SDMA1_ROOT] = imx_clk_gate4("sdma1_root_clk", "ipg_root", base + 0x43a0, 0);
-	clks[IMX8MP_CLK_ENET_QOS_ROOT] = imx_clk_gate4("enet_qos_root_clk", "enet_axi", base + 0x43b0, 0);
 	clks[IMX8MP_CLK_SIM_ENET_ROOT] = imx_clk_gate4("sim_enet_root_clk", "enet_axi", base + 0x4400, 0);
+	clks[IMX8MP_CLK_ENET_QOS_ROOT] = imx_clk_gate4("enet_qos_root_clk", "sim_enet_root_clk", base + 0x43b0, 0);
 	clks[IMX8MP_CLK_GPU2D_ROOT] = imx_clk_gate4("gpu2d_root_clk", "gpu2d_div", base + 0x4450, 0);
 	clks[IMX8MP_CLK_GPU3D_ROOT] = imx_clk_gate4("gpu3d_root_clk", "gpu3d_core_div", base + 0x4460, 0);
 	clks[IMX8MP_CLK_SNVS_ROOT] = imx_clk_gate4("snvs_root_clk", "ipg_root", base + 0x4470, 0);
