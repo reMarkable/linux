@@ -752,7 +752,7 @@ static int streamid_multi_forward_set(struct ocelot *ocelot, u32 index,
 	u32 bucket;
 	u32 val;
 	int m, n, i;
-	u8 pgid_val, fwdport;
+	u8 pgid_val = 0, fwdport;
 	u32 dst_idx;
 
 	m_index = index / 4;
