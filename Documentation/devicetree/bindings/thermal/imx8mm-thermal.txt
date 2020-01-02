@@ -1,10 +1,13 @@
 * Thermal Monitoring Unit (TMU) on Freescale i.MX8MM SoC
 
 Required properties:
-- compatible : Must be "fsl,imx8mm-tmu".
+- compatible : Must be one of the following:
+  - "fsl,imx8mm-tmu",
+  - "fsl,imx8mp-tmu".
 - reg : Address range of TMU registers.
 - clocks : TMU's clock source.
-- #thermal-sensor-cells : Should be 0. See ./thermal.txt for a description.
+- #thermal-sensor-cells : Should be 1 for SoC that supports multi-site sensor,
+  otherwise, should be 0. See ./thermal.txt for a description.
 
 Example:
 tmu: tmu@30260000 {
