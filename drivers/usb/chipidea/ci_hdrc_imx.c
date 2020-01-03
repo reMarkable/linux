@@ -511,10 +511,6 @@ static int ci_hdrc_imx_remove(struct platform_device *pdev)
 {
 	struct ci_hdrc_imx_data *data = platform_get_drvdata(pdev);
 
-	/* usbmisc needs to know dr mode to choose wakeup setting */
-	data->usbmisc_data->available_role =
-			ci_hdrc_query_available_role(data->ci_pdev);
-
 	if (data->supports_runtime_pm) {
 		pm_runtime_get_sync(&pdev->dev);
 		pm_runtime_disable(&pdev->dev);
