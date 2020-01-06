@@ -2811,7 +2811,6 @@ static void vpu_enc_event_handler(struct vpu_ctx *ctx,
 				u_int32 uEvent, u_int32 *event_data)
 {
 	vpu_log_event(uEvent, ctx->str_index);
-	count_event(ctx, uEvent);
 	vpu_enc_check_mem_overstep(ctx);
 
 	switch (uEvent) {
@@ -2989,6 +2988,19 @@ static int process_ctx_msg(struct vpu_ctx *ctx, struct msg_header *header)
 	return ret;
 }
 
+static void vpu_enc_notify_msg_event(struct core_device *core)
+{
+	int i;
+
+	for (i = 0; i < core->supported_instance_count; i++) {
+		struct vpu_ctx *ctx = core->ctx[i];
+
+		if (!ctx || is_event_msg_empty(ctx))
+			continue;
+		queue_work(ctx->instance_wq, &ctx->instance_work);
+	}
+}
+
 static int process_msg(struct core_device *core)
 {
 	struct msg_header header;
@@ -3007,6 +3019,7 @@ static int process_msg(struct core_device *core)
 	mutex_lock(&core->vdev->dev_mutex);
 	ctx = get_ctx_by_index(core, header.idx);
 	if (ctx != NULL) {
+		count_event(ctx, header.msgid);
 		process_ctx_msg(ctx, &header);
 		queue_work(ctx->instance_wq, &ctx->instance_work);
 	} else {
@@ -3057,6 +3070,10 @@ static void vpu_enc_receive_msg_event(struct core_device *core_dev)
 
 	if (rpc_MediaIPFW_Video_message_check_encoder(This) == API_MSG_BUFFER_ERROR)
 		vpu_err("MSG num is too big to handle\n");
+
+	mutex_lock(&core_dev->vdev->dev_mutex);
+	vpu_enc_notify_msg_event(core_dev);
+	mutex_unlock(&core_dev->vdev->dev_mutex);
 }
 
 static void vpu_enc_handle_msg_data(struct core_device *core_dev, u_int32 data)
@@ -4019,6 +4036,9 @@ static int show_instance_others(struct vpu_attr *attr, char *buf, u32 size)
 	mutex_lock(&vpudev->dev_mutex);
 	ctx = get_vpu_attr_ctx(attr);
 	if (ctx) {
+		num += scnprintf(buf + num, size - num,
+			"\tis the msg queue empty    :%d\n",
+			is_event_msg_empty(ctx));
 		num += scnprintf(buf + num, size - num,
 			"\ttotal frame obj count     :%lld\n",
 			atomic64_read(&ctx->q_data[V4L2_DST].frame_count));
@@ -5116,6 +5136,7 @@ static void handle_vpu_core_watchdog(struct core_device *core)
 	if (core->snapshot)
 		return;
 
+	vpu_enc_notify_msg_event(core);
 	check_vpu_core_is_hang(core);
 }
 

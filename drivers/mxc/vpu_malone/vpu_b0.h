@@ -285,6 +285,7 @@ struct vpu_dev {
 	bool fw_is_ready;
 	bool firmware_started;
 	bool need_cleanup_firmware;
+	bool suspend;
 	struct completion start_cmp;
 	struct completion snap_done_cmp;
 	struct workqueue_struct *workqueue;

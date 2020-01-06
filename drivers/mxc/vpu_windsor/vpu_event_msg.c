@@ -202,6 +202,17 @@ void push_back_event_msg(struct vpu_ctx *ctx, struct vpu_event_msg *msg)
 	mutex_unlock(&ctx->instance_mutex);
 }
 
+bool is_event_msg_empty(struct vpu_ctx *ctx)
+{
+	bool is_empty = false;
+
+	mutex_lock(&ctx->instance_mutex);
+	is_empty = list_empty(&ctx->msg_q);
+	mutex_unlock(&ctx->instance_mutex);
+
+	return is_empty;
+}
+
 int alloc_msg_ext_buffer(struct vpu_event_msg *msg, u32 number)
 {
 	WARN_ON(!msg);

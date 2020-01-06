@@ -31,6 +31,7 @@ struct vpu_event_msg *get_idle_msg(struct vpu_ctx *ctx);
 void put_idle_msg(struct vpu_ctx *ctx, struct vpu_event_msg *msg);
 struct vpu_event_msg *pop_event_msg(struct vpu_ctx *ctx);
 void push_back_event_msg(struct vpu_ctx *ctx, struct vpu_event_msg *msg);
+bool is_event_msg_empty(struct vpu_ctx *ctx);
 int alloc_msg_ext_buffer(struct vpu_event_msg *msg, u32 number);
 void free_msg_ext_buffer(struct vpu_event_msg *msg);
 long long get_total_ext_data_number(void);

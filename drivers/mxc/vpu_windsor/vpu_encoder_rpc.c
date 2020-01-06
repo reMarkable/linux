@@ -185,7 +185,7 @@ u_int32 rpc_MediaIPFW_Video_buffer_space_check_encoder(BUFFER_DESCRIPTOR_TYPE *p
 			/* the updated write pointer.                     */
 			uTemp = uPtr1 + uSize;
 			if (uTemp >= end)
-				uTemp += (start - end);
+				uTemp -= (end - start);
 			*puUpdateAddress = uTemp;
 			return (end - start);
 		}
@@ -203,7 +203,7 @@ u_int32 rpc_MediaIPFW_Video_buffer_space_check_encoder(BUFFER_DESCRIPTOR_TYPE *p
 	end   = pBufDesc->end;
 	uTemp  = uPtr1 + uSize;
 	if (uTemp >= end)
-		uTemp += (start - end);
+		uTemp -= (end - start);
 	*puUpdateAddress = uTemp;
 	return ((end - uPtr1) + (uPtr2 - start));
 }

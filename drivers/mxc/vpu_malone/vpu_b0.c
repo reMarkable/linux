@@ -94,6 +94,7 @@ static int send_stop_cmd(struct vpu_ctx *ctx);
 static int vpu_dec_cmd_reset(struct vpu_ctx *ctx);
 static void vpu_dec_event_decode_error(struct vpu_ctx *ctx);
 static void vpu_calculate_performance(struct vpu_ctx *ctx, u_int32 uEvent, const char *str);
+static void vpu_notify_msg_event(struct vpu_dev *dev);
 
 #define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
 
@@ -1540,6 +1541,7 @@ static int v4l2_ioctl_qbuf(struct file *file,
 		return -EINVAL;
 	}
 
+	vpu_notify_msg_event(ctx->dev);
 	ret = vpu_dec_queue_qbuf(q_data, buf);
 	if (ret) {
 		vpu_err("error: %s() return ret=%d\n", __func__, ret);
@@ -1633,6 +1635,7 @@ static int v4l2_ioctl_dqbuf(struct file *file,
 	else
 		return -EINVAL;
 
+	vpu_notify_msg_event(ctx->dev);
 	ret = vpu_dec_queue_dqbuf(q_data, buf, file->f_flags & O_NONBLOCK);
 
 	if (ret) {
@@ -4125,7 +4128,6 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 	pSTREAM_BUFFER_DESCRIPTOR_TYPE pStrBufDesc;
 
 	vpu_log_event(uEvent, uStrIdx);
-	count_event(&ctx->statistic, uEvent);
 
 	pStrBufDesc = get_str_buffer_desc(ctx);
 	record_log_info(ctx, LOG_EVENT, uEvent, pStrBufDesc->rptr);
@@ -4720,6 +4722,25 @@ static bool receive_msg_queue(struct vpu_ctx *ctx, struct event_msg *msg)
 		return false;
 }
 
+static void vpu_notify_msg_event(struct vpu_dev *dev)
+{
+	int i;
+
+	mutex_lock(&dev->dev_mutex);
+	if (dev->suspend)
+		goto exit;
+
+	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
+		struct vpu_ctx *ctx = dev->ctx[i];
+
+		if (!ctx || ctx->ctx_released || !kfifo_len(&ctx->msg_fifo))
+			continue;
+		queue_work(ctx->instance_wq, &ctx->instance_work);
+	}
+exit:
+	mutex_unlock(&dev->dev_mutex);
+}
+
 extern u_int32 rpc_MediaIPFW_Video_message_check(struct shared_addr *This);
 static void vpu_receive_msg_event(struct vpu_dev *dev)
 {
@@ -4736,6 +4757,8 @@ static void vpu_receive_msg_event(struct vpu_dev *dev)
 		rpc_receive_msg_buf(This, &msg);
 		mutex_lock(&dev->dev_mutex);
 		ctx = dev->ctx[msg.idx];
+		if (ctx)
+			count_event(&ctx->statistic, msg.msgid);
 		if (ctx != NULL) {
 			if (!ctx->ctx_released) {
 				send_msg_queue(ctx, &msg);
@@ -4746,6 +4769,8 @@ static void vpu_receive_msg_event(struct vpu_dev *dev)
 	}
 	if (rpc_MediaIPFW_Video_message_check(This) == API_MSG_BUFFER_ERROR)
 		vpu_err("error: message size is too big to handle\n");
+
+	vpu_notify_msg_event(dev);
 }
 
 static void vpu_handle_msg_data(struct vpu_dev *dev, u32 data)
@@ -5465,6 +5490,12 @@ static ssize_t show_instance_buffer_info(struct device *dev,
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			"\t%40s:%16d\n", "res change done",
 			ctx->res_change_done_count);
+	num += scnprintf(buf + num, PAGE_SIZE - num,
+			"\t%40s:%16d\n", "ctx released",
+			ctx->ctx_released);
+	num += scnprintf(buf + num, PAGE_SIZE - num,
+			"\t%40s:%16d\n", "msg kfifo length",
+			kfifo_len(&ctx->msg_fifo));
 
 	return num;
 }
@@ -6083,6 +6114,7 @@ static unsigned int v4l2_poll(struct file *filp, poll_table *wait)
 
 	vpu_dbg(LVL_BIT_FUNC, "%s()\n", __func__);
 
+	vpu_notify_msg_event(ctx->dev);
 	poll_wait(filp, &ctx->fh.wait, wait);
 
 	if (v4l2_event_pending(&ctx->fh)) {
@@ -6549,6 +6581,7 @@ static void vpu_dec_cancel_work(struct vpu_dev *vpudev)
 	int i;
 
 	mutex_lock(&vpudev->dev_mutex);
+	vpudev->suspend = true;
 	cancel_work_sync(&vpudev->msg_work);
 	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
 		struct vpu_ctx *ctx = vpudev->ctx[i];
@@ -6566,6 +6599,7 @@ static void vpu_dec_resume_work(struct vpu_dev *vpudev)
 	int i;
 
 	mutex_lock(&vpudev->dev_mutex);
+	vpudev->suspend = false;
 	queue_work(vpudev->workqueue, &vpudev->msg_work);
 	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
 		struct vpu_ctx *ctx = vpudev->ctx[i];

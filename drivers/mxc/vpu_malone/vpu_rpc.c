@@ -239,7 +239,7 @@ u_int32 rpc_MediaIPFW_Video_buffer_space_check(MediaIPFW_Video_BufDesc *pBufDesc
 			/* the updated write pointer.                     */
 			uTemp = uPtr1 + uSize;
 			if (uTemp >= uEnd)
-				uTemp += (uStart - uEnd);
+				uTemp -= (uEnd - uStart);
 			*puUpdateAddress = uTemp;
 			return (uEnd - uStart);
 		}
@@ -257,7 +257,7 @@ u_int32 rpc_MediaIPFW_Video_buffer_space_check(MediaIPFW_Video_BufDesc *pBufDesc
 	uEnd   = pBufDesc->uEnd;
 	uTemp  = uPtr1 + uSize;
 	if (uTemp >= uEnd)
-		uTemp += (uStart - uEnd);
+		uTemp -= (uEnd - uStart);
 	*puUpdateAddress = uTemp;
 	return ((uEnd - uPtr1) + (uPtr2 - uStart));
 }
