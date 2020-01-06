@@ -31,6 +31,7 @@
 #include <linux/signal.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
+#include <linux/phy/phy.h>
 #include <linux/reset.h>
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
@@ -47,6 +48,29 @@
 #define IMX8MQ_GPR12_PCIE2_CTRL_DEVICE_TYPE	GENMASK(11, 8)
 #define IMX8MQ_PCIE2_BASE_ADDR			0x33c00000
 #define IMX8_HSIO_PCIEB_BASE_ADDR		0x5f010000
+#define IMX8MP_GPR_REG0				0x0
+#define IMX8MP_GPR_REG0_CLK_MOD_EN		BIT(0)
+#define IMX8MP_GPR_REG0_PHY_APB_RST		BIT(4)
+#define IMX8MP_GPR_REG0_PHY_INIT_RST		BIT(5)
+#define IMX8MP_GPR_REG1				0x4
+#define IMX8MP_GPR_REG1_PM_EN_CORE_CLK		BIT(0)
+#define IMX8MP_GPR_REG1_PLL_LOCK		BIT(13)
+#define IMX8MP_GPR_REG2				0x8
+#define IMX8MP_GPR_REG2_P_PLL_MASK		GENMASK(5, 0)
+#define IMX8MP_GPR_REG2_M_PLL_MASK		GENMASK(15, 6)
+#define IMX8MP_GPR_REG2_S_PLL_MASK		GENMASK(18, 16)
+#define IMX8MP_GPR_REG2_P_PLL			(0xc << 0)
+#define IMX8MP_GPR_REG2_M_PLL			(0x320 << 6)
+#define IMX8MP_GPR_REG2_S_PLL			(0x4 << 16)
+#define IMX8MP_GPR_REG2_BYPASS_PLL		BIT(21)
+#define IMX8MP_GPR_REG3				0xc
+#define IMX8MP_GPR_REG3_PLL_CKE			BIT(17)
+#define IMX8MP_GPR_REG3_PLL_EXT_BYPASS		BIT(18)
+#define IMX8MP_GPR_REG3_PLL_RST			BIT(31)
+#define IMX8MP_GPR_PCIE_REF_SEL_MASK		GENMASK(25, 24)
+#define IMX8MP_GPR_PCIE_REF_PLL			(BIT(24) | BIT(25))
+#define IMX8MP_GPR_PCIE_REF_EXT_OSC		BIT(25)
+#define IMX8MP_GPR_PCIE_REF_EXT_XO		BIT(24)
 
 #define to_imx6_pcie(x)	dev_get_drvdata((x)->dev)
 
@@ -59,6 +83,7 @@ enum imx6_pcie_variants {
 	IMX8MM,
 	IMX8QM,
 	IMX8QXP,
+	IMX8MP,
 };
 
 #define IMX6_PCIE_FLAG_IMX6_PHY			BIT(0)
@@ -90,6 +115,7 @@ struct imx6_pcie {
 	struct regmap		*iomuxc_gpr;
 	u32			controller_id;
 	struct reset_control	*pciephy_reset;
+	struct reset_control	*pciephy_perst;
 	struct reset_control	*apps_reset;
 	struct reset_control	*turnoff_reset;
 	struct reset_control	*clkreq_reset;
@@ -106,6 +132,7 @@ struct imx6_pcie {
 	int			link_gen;
 	struct regulator	*vpcie;
 	void __iomem		*phy_base;
+	void __iomem		*hsmix_base;
 
 	/* power domain for pcie */
 	struct device		*pd_pcie;
@@ -115,6 +142,7 @@ struct imx6_pcie {
 	struct device		*pd_hsio_gpio;
 	const struct imx6_pcie_drvdata *drvdata;
 	struct regulator	*epdev_on;
+	struct phy		*phy;
 };
 
 /* Parameters for the waiting for PCIe PHY PLL to lock on i.MX7 */
@@ -268,6 +296,8 @@ struct imx6_pcie {
 #define IMX8MM_GPR_PCIE_CMN_RST			BIT(18)
 #define IMX8MM_GPR_PCIE_POWER_OFF		BIT(17)
 #define IMX8MM_GPR_PCIE_SSC_EN			BIT(16)
+
+static void imx6_pcie_ltssm_disable(struct device *dev);
 
 /*
  * The default value of the reserved ddr memory
@@ -644,6 +674,7 @@ static int imx6_pcie_enable_ref_clk(struct imx6_pcie *imx6_pcie)
 		break;
 	case IMX8MQ:
 	case IMX8MM:
+	case IMX8MP:
 		ret = clk_prepare_enable(imx6_pcie->pcie_aux);
 		if (ret) {
 			dev_err(dev, "unable to enable pcie_aux clock\n");
@@ -714,6 +745,18 @@ static void imx8_pcie_wait_for_phy_pll_lock(struct imx6_pcie *imx6_pcie)
 	struct device *dev = pci->dev;
 
 	switch (imx6_pcie->drvdata->variant) {
+	case IMX8MP:
+		if (phy_init(imx6_pcie->phy) != 0)
+			dev_err(dev, "Waiting for PHY PLL ready timeout!\n");
+		/* wait for core_clk enabled */
+		for (retries = 0; retries < PHY_PLL_LOCK_WAIT_MAX_RETRIES;
+		     retries++) {
+			tmp = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG1);
+			if (tmp & IMX8MP_GPR_REG1_PM_EN_CORE_CLK)
+				break;
+			udelay(10);
+		}
+		break;
 	case IMX8MM:
 		for (retries = 0; retries < PHY_PLL_LOCK_WAIT_MAX_RETRIES;
 		     retries++) {
@@ -816,6 +859,10 @@ static void imx6_pcie_clk_disable(struct imx6_pcie *imx6_pcie)
 				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL,
 				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL);
 		break;
+	case IMX8MP:
+		phy_exit(imx6_pcie->phy);
+		phy_power_off(imx6_pcie->phy);
+		/* fall through */
 	case IMX8MQ:
 	case IMX8MM:
 		clk_disable_unprepare(imx6_pcie->pcie_aux);
@@ -843,6 +890,9 @@ static void imx6_pcie_assert_core_reset(struct imx6_pcie *imx6_pcie)
 	case IMX8MQ:
 	case IMX8MM:
 		reset_control_assert(imx6_pcie->pciephy_reset);
+
+		/* fall through */
+	case IMX8MP:
 		reset_control_assert(imx6_pcie->apps_reset);
 		break;
 	case IMX6SX:
@@ -929,6 +979,7 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 	switch (imx6_pcie->drvdata->variant) {
 	case IMX8QXP:
 	case IMX8QM:
+	case IMX8MP:
 		/* ClKs had been enabled */
 		break;
 	default:
@@ -1002,6 +1053,52 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 					IMX8MQ_PCIE_LINK_CAP_REG_OFFSET);
 			dw_pcie_dbi_ro_wr_dis(pci);
 		}
+		break;
+	case IMX8MP:
+		if (phy_power_on(imx6_pcie->phy) < 0)
+			dev_err(dev, "Failed to power on PHY!\n");
+		reset_control_assert(imx6_pcie->pciephy_perst);
+		reset_control_assert(imx6_pcie->pciephy_reset);
+		udelay(10);
+		val = imx6_pcie_grp_offset(imx6_pcie);
+		if (imx6_pcie->ext_osc) {
+			/*TODO Configure the external OSC as REF clock */
+			regmap_update_bits(imx6_pcie->iomuxc_gpr, val,
+					   IMX8MP_GPR_PCIE_REF_SEL_MASK,
+					   IMX8MP_GPR_PCIE_REF_EXT_OSC);
+		} else {
+			/* Configure the internal PLL as REF clock */
+			regmap_update_bits(imx6_pcie->iomuxc_gpr, val,
+					   IMX8MP_GPR_PCIE_REF_SEL_MASK,
+					   IMX8MP_GPR_PCIE_REF_PLL);
+		}
+		udelay(100);
+
+		/* release pcie_phy_apb_reset and pcie_phy_init_resetn */
+		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG0);
+		val |= IMX8MP_GPR_REG0_PHY_APB_RST;
+		val |= IMX8MP_GPR_REG0_PHY_INIT_RST;
+		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG0);
+		udelay(1);
+
+		/* turn off pcie ltssm */
+		imx6_pcie_ltssm_disable(dev);
+
+		/*
+		 * GPR_PCIE_PHY_CTRL_BUS[3:0]
+		 * 0:i_ssc_en 1:i_power_off
+		 * 2:i_cmn_rstn 3:aux_en_glue.ctrl_bus
+		 */
+		val = imx6_pcie_grp_offset(imx6_pcie);
+		regmap_update_bits(imx6_pcie->iomuxc_gpr, val,
+				   BIT(18),
+				   BIT(18));
+		udelay(200);
+
+		reset_control_deassert(imx6_pcie->pciephy_reset);
+		udelay(10);
+
+		imx8_pcie_wait_for_phy_pll_lock(imx6_pcie);
 		break;
 	case IMX7D:
 		reset_control_deassert(imx6_pcie->pciephy_reset);
@@ -1097,7 +1194,8 @@ static void imx6_pcie_configure_type(struct imx6_pcie *imx6_pcie)
 
 static void imx6_pcie_init_phy(struct imx6_pcie *imx6_pcie)
 {
-	unsigned int offset;
+	int i;
+	unsigned int offset, val;
 
 	switch (imx6_pcie->drvdata->variant) {
 	case IMX8QXP:
@@ -1270,6 +1368,66 @@ static void imx6_pcie_init_phy(struct imx6_pcie *imx6_pcie)
 				   IMX8MQ_GPR_PCIE_REF_USE_PAD,
 				   IMX8MQ_GPR_PCIE_REF_USE_PAD);
 		break;
+	case IMX8MP:
+		dev_info(imx6_pcie->pci->dev, "%s REF_CLK is used!.\n",
+			 imx6_pcie->ext_osc ? "EXT" : "PLL");
+		imx6_pcie_clk_enable(imx6_pcie);
+
+		/*
+		 * Make sure that the bypass_pll of gpr_reg2 is set to
+		 * 1'b1. Set P=12,M=800,S=4 and must set ICP=2'b01.
+		 */
+		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG2);
+		val &= ~IMX8MP_GPR_REG2_P_PLL_MASK;
+		val |= IMX8MP_GPR_REG2_P_PLL;
+		val &= ~IMX8MP_GPR_REG2_M_PLL_MASK;
+		val |= IMX8MP_GPR_REG2_M_PLL;
+		val &= ~IMX8MP_GPR_REG2_S_PLL_MASK;
+		val |= IMX8MP_GPR_REG2_S_PLL;
+		val |= IMX8MP_GPR_REG2_BYPASS_PLL;
+		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG2);
+		/* wait greater than 1/F_FREF =1/2MHZ=0.5us */
+		udelay(1);
+		/* release reset */
+		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG3);
+		val |= IMX8MP_GPR_REG3_PLL_RST;
+		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG3);
+
+		/*
+		 * Make sure that the pll_ext_bypass of gpr_reg3 is set
+		 * to 1'b0. set 1 to pll_cke of GPR_REG3
+		 */
+		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG2);
+		val &= ~IMX8MP_GPR_REG2_BYPASS_PLL;
+		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG2);
+
+		/*
+		 * Make sure that the pll_ext_bypass of gpr_reg3 is set
+		 * to 1'b0. set 1 to pll_cke of GPR_REG3
+		 */
+		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG3);
+		val &= ~IMX8MP_GPR_REG3_PLL_EXT_BYPASS;
+		val |= IMX8MP_GPR_REG3_PLL_CKE;
+		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG3);
+
+		/* Lock time should be greater than 300cycle=300*0.5us=150us */
+		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG1);
+		for (i = 0; i < 100; i++) {
+			val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG1);
+			if (val & IMX8MP_GPR_REG1_PLL_LOCK)
+				break;
+			udelay(10);
+		}
+		if (i >= 100) {
+			dev_err(imx6_pcie->pci->dev,
+				"PCIe PHY PLL clock is not locked.\n");
+		}
+
+		/* pcie_clock_module_en */
+		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG0);
+		val |= IMX8MP_GPR_REG0_CLK_MOD_EN;
+		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG0);
+		break;
 	case IMX7D:
 		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
 				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL, 0);
@@ -1390,6 +1548,7 @@ static void imx6_pcie_ltssm_enable(struct device *dev)
 	case IMX7D:
 	case IMX8MQ:
 	case IMX8MM:
+	case IMX8MP:
 		reset_control_deassert(imx6_pcie->apps_reset);
 		break;
 	case IMX8QXP:
@@ -1614,6 +1773,7 @@ static void imx6_pcie_regions_setup(struct device *dev)
 	case IMX8QXP:
 	case IMX8MQ:
 	case IMX8MM:
+	case IMX8MP:
 		/*
 		 * RPMSG reserved 4Mbytes, but only used up to 2Mbytes.
 		 * The left 2Mbytes can be used here.
@@ -1841,7 +2001,6 @@ static int imx6_pcie_local_dma_start(struct pcie_port *pp, bool dir,
 	return 0;
 }
 
-#ifdef CONFIG_PM_SLEEP
 static void imx6_pcie_ltssm_disable(struct device *dev)
 {
 	u32 val;
@@ -1856,6 +2015,7 @@ static void imx6_pcie_ltssm_disable(struct device *dev)
 	case IMX7D:
 	case IMX8MQ:
 	case IMX8MM:
+	case IMX8MP:
 		reset_control_assert(imx6_pcie->apps_reset);
 		break;
 	case IMX8QXP:
@@ -1875,6 +2035,7 @@ static void imx6_pcie_ltssm_disable(struct device *dev)
 	}
 }
 
+#ifdef CONFIG_PM_SLEEP
 static void imx6_pcie_pm_turnoff(struct imx6_pcie *imx6_pcie)
 {
 	int i;
@@ -2054,6 +2215,31 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 		}
 	}
 
+	imx6_pcie->phy = devm_phy_get(dev, "pcie-phy");
+	if (IS_ERR(imx6_pcie->phy)) {
+		if (PTR_ERR(imx6_pcie->phy) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
+		dev_info(dev, "couldn't get pcie-phy\n");
+		imx6_pcie->phy = NULL;
+	}
+
+	/* Find the HSIO MIX if one is defined, only imx8mp uses it */
+	np = of_parse_phandle(node, "fsl,imx8mp-hsio-mix", 0);
+	if (np) {
+		struct resource res;
+
+		ret = of_address_to_resource(np, 0, &res);
+		if (ret) {
+			dev_err(dev, "Unable to find HSIO MIX res\n");
+			return ret;
+		}
+		imx6_pcie->hsmix_base = devm_ioremap_resource(dev, &res);
+		if (IS_ERR(imx6_pcie->hsmix_base)) {
+			dev_err(dev, "Unable to map HSIO MIX res\n");
+			return PTR_ERR(imx6_pcie->hsmix_base);
+		}
+	}
+
 	dbi_base = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	pci->dbi_base = devm_ioremap_resource(dev, dbi_base);
 	if (IS_ERR(pci->dbi_base))
@@ -2153,6 +2339,14 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 			return PTR_ERR(imx6_pcie->pcie_inbound_axi);
 		}
 		break;
+	case IMX8MP:
+		imx6_pcie->pciephy_perst = devm_reset_control_get_exclusive(dev,
+									    "pciephy_perst");
+		if (IS_ERR(imx6_pcie->pciephy_perst)) {
+			dev_err(dev, "Failed to get PCIEPHY perst control\n");
+			return PTR_ERR(imx6_pcie->pciephy_perst);
+		}
+		/* fall through */
 	case IMX8MQ:
 	case IMX8MM:
 		imx6_pcie->pcie_aux = devm_clk_get(dev, "pcie_aux");
@@ -2160,6 +2354,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 			dev_err(dev, "pcie_aux clock source missing or invalid\n");
 			return PTR_ERR(imx6_pcie->pcie_aux);
 		}
+
 		/* fall through */
 	case IMX7D:
 		if (dbi_base->start == IMX8MQ_PCIE2_BASE_ADDR)
@@ -2242,6 +2437,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 		dev_err(dev, "Failed to get CLKREQ reset control\n");
 		return PTR_ERR(imx6_pcie->clkreq_reset);
 	}
+
 
 	/* Grab GPR config register range */
 	if (imx6_pcie->iomuxc_gpr == NULL) {
@@ -2537,6 +2733,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 			switch (imx6_pcie->drvdata->variant) {
 			case IMX8MQ:
 			case IMX8MM:
+			case IMX8MP:
 				regmap_update_bits(imx6_pcie->iomuxc_gpr,
 					imx6_pcie_grp_offset(imx6_pcie),
 					IMX8MQ_GPR_PCIE_CLK_REQ_OVERRIDE_EN,
@@ -2603,6 +2800,10 @@ static const struct imx6_pcie_drvdata drvdata[] = {
 		.flags = IMX6_PCIE_FLAG_SUPPORTS_SUSPEND |
 			 IMX6_PCIE_FLAG_IMX6_CPU_ADDR_FIXUP,
 	},
+	[IMX8MP] = {
+		.variant = IMX8MP,
+		.flags = IMX6_PCIE_FLAG_SUPPORTS_SUSPEND,
+	},
 };
 
 static const struct of_device_id imx6_pcie_of_match[] = {
@@ -2614,6 +2815,7 @@ static const struct of_device_id imx6_pcie_of_match[] = {
 	{ .compatible = "fsl,imx8mm-pcie", .data = &drvdata[IMX8MM], },
 	{ .compatible = "fsl,imx8qm-pcie", .data = &drvdata[IMX8QM], },
 	{ .compatible = "fsl,imx8qxp-pcie", .data = &drvdata[IMX8QXP], },
+	{ .compatible = "fsl,imx8mp-pcie", .data = &drvdata[IMX8MP], },
 	{},
 };
 
