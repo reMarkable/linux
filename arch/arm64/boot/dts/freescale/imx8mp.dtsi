@@ -798,6 +798,15 @@
 				status = "disabled";
 			};
 
+			mu: mu@30aa0000 {
+				compatible = "fsl,imx8mp-mu", "fsl,imx6sx-mu";
+				reg = <0x30aa0000 0x10000>;
+				interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clk IMX8MP_CLK_MU_ROOT>;
+				clock-names = "mu";
+				#mbox-cells = <2>;
+			};
+
 			i2c5: i2c@30ad0000 {
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -1492,6 +1501,20 @@
 		cores = <&gpu_3d>, <&ml_vipsi>, <&gpu_2d>;
 		reg = <0x0 0x40000000 0x0 0x10000000>, <0x0 0x0 0x0 0x8000000>;
 		reg-names = "phys_baseaddr", "contiguous_mem";
+		status = "disabled";
+	};
+
+	rpmsg: rpmsg{
+		compatible = "fsl,imx8mq-rpmsg";
+		/* up to now, the following channels are used in imx rpmsg
+		 * - tx1/rx1: messages channel.
+		 * - general interrupt1: remote proc finish re-init rpmsg stack
+		 *   when A core is partition reset.
+		 */
+		mbox-names = "tx", "rx", "rxdb";
+		mboxes = <&mu 0 1
+			  &mu 1 1
+			  &mu 3 1>;
 		status = "disabled";
 	};
 
