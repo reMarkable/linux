@@ -840,9 +840,13 @@ static bool cdns3_request_handled(struct cdns3_endpoint *priv_ep,
 			 priv_ep->trb_pool_dma) / TRB_SIZE;
 
 	/* current trb doesn't belong to this request */
-	if ((priv_req->start_trb < priv_req->end_trb) &&
-		(priv_ep->dequeue > priv_req->end_trb))
-		goto finish;
+	if (priv_req->start_trb < priv_req->end_trb) {
+		if (priv_ep->dequeue > priv_req->end_trb)
+			goto finish;
+
+		if (priv_ep->dequeue < priv_req->start_trb)
+			goto finish;
+	}
 
 	if ((priv_req->start_trb > priv_req->end_trb) &&
 		(priv_ep->dequeue > priv_req->end_trb) &&
