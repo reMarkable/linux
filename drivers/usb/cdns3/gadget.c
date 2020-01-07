@@ -451,6 +451,8 @@ void cdns3_gadget_giveback(struct cdns3_endpoint *priv_ep,
 		       request->length);
 
 	priv_req->flags &= ~(REQUEST_PENDING | REQUEST_UNALIGNED);
+	/* All TRBs have finished, clear the flag */
+	priv_req->finished_trb = 0;
 	trace_cdns3_gadget_giveback(priv_req);
 
 	/* WA2: */
@@ -700,6 +702,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 	trb = priv_req->trb;
 
 	priv_req->flags |= REQUEST_PENDING;
+	priv_req->num_of_trb = num_trb;
 
 	/* give the TD to the consumer*/
 	if (sg_iter == 1)
@@ -884,7 +887,7 @@ static void cdns3_transfer_completed(struct cdns3_device *priv_dev,
 	struct cdns3_request *priv_req;
 	struct usb_request *request;
 	struct cdns3_trb *trb;
-	bool trb_handled = false;
+	bool request_handled = false;
 
 	while (!list_empty(&priv_ep->pending_req_list)) {
 		request = cdns3_next_request(&priv_ep->pending_req_list);
@@ -896,7 +899,9 @@ static void cdns3_transfer_completed(struct cdns3_device *priv_dev,
 		cdns3_select_ep(priv_dev, priv_ep->endpoint.address);
 
 		while (cdns3_request_handled(priv_ep, priv_req)) {
-			trb_handled = true;
+			priv_req->finished_trb++;
+			if (priv_req->finished_trb >= priv_req->num_of_trb)
+				request_handled = true;
 			trb = priv_ep->trb_pool + priv_ep->dequeue;
 			trace_cdns3_complete_trb(priv_ep, trb);
 
@@ -904,9 +909,9 @@ static void cdns3_transfer_completed(struct cdns3_device *priv_dev,
 			cdns3_ep_inc_deq(priv_ep);
 		}
 
-		if (trb_handled) {
+		if (request_handled) {
 			cdns3_gadget_giveback(priv_ep, priv_req, 0);
-			trb_handled = false;
+			request_handled = false;
 		} else {
 			return;
 		}

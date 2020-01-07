@@ -1125,6 +1125,8 @@ struct cdns3_aligned_buf {
  *               this endpoint
  * @flags: flag specifying special usage of request
  * @list: used by internally allocated request to add to descmiss_req_list.
+ * @finished_trb: number of trb has already finished per request
+ * @num_of_trb: how many trbs in this request
  */
 struct cdns3_request {
 	struct usb_request		request;
@@ -1140,6 +1142,8 @@ struct cdns3_request {
 #define REQUEST_UNALIGNED		BIT(4)
 	u32				flags;
 	struct list_head		list;
+	int finished_trb;
+	int num_of_trb;
 };
 
 #define to_cdns3_request(r) (container_of(r, struct cdns3_request, request))
