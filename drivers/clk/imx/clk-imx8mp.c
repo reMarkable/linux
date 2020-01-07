@@ -13,6 +13,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/types.h>
+#include <soc/imx/soc.h>
 
 #include "clk.h"
 
@@ -522,6 +523,8 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	void __iomem *base;
 	int ret;
 
+	check_m4_enabled();
+
 	clks[IMX8MP_CLK_DUMMY] = imx_clk_fixed("dummy", 0);
 	clks[IMX8MP_CLK_24M] = of_clk_get_by_name(np, "osc_24m");
 	clks[IMX8MP_CLK_32K] = of_clk_get_by_name(np, "osc_32k");
@@ -771,6 +774,7 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_I2C2_ROOT] = imx_clk_gate4("i2c2_root_clk", "i2c2", base + 0x4180, 0);
 	clks[IMX8MP_CLK_I2C3_ROOT] = imx_clk_gate4("i2c3_root_clk", "i2c3", base + 0x4190, 0);
 	clks[IMX8MP_CLK_I2C4_ROOT] = imx_clk_gate4("i2c4_root_clk", "i2c4", base + 0x41a0, 0);
+	clks[IMX8MP_CLK_MU_ROOT] = imx_clk_gate4("mu_root_clk", "ipg_root", base + 0x4210, 0);
 	clks[IMX8MP_CLK_PCIE_ROOT] = imx_clk_gate4("pcie_root_clk", "pcie_aux", base + 0x4250, 0);
 	clks[IMX8MP_CLK_PWM1_ROOT] = imx_clk_gate4("pwm1_root_clk", "pwm1", base + 0x4280, 0);
 	clks[IMX8MP_CLK_PWM2_ROOT] = imx_clk_gate4("pwm2_root_clk", "pwm2", base + 0x4290, 0);
