@@ -1361,6 +1361,7 @@
 		clocks = <&clk IMX8MP_CLK_VPU_G1_ROOT>, <&clk IMX8MP_CLK_VPU_ROOT>;
 		clock-names = "clk_hantro", "clk_hantro_bus";
 		assigned-clocks = <&clk IMX8MP_CLK_VPU_G1>, <&clk IMX8MP_CLK_VPU_BUS>;
+		assigned-clock-parents = <&clk IMX8MP_SYS_PLL3_OUT>, <&clk IMX8MP_SYS_PLL3_OUT>;
 		assigned-clock-rates = <600000000>, <600000000>;
 		status = "disabled";
 	};
@@ -1374,7 +1375,8 @@
 		clocks = <&clk IMX8MP_CLK_VPU_G2_ROOT>, <&clk IMX8MP_CLK_VPU_ROOT>;
 		clock-names = "clk_hantro", "clk_hantro_bus";
 		assigned-clocks = <&clk IMX8MP_CLK_VPU_G2>, <&clk IMX8MP_CLK_VPU_BUS>;
-		assigned-clock-rates = <500000000>, <600000000>;
+		assigned-clock-parents = <&clk IMX8MP_VPU_PLL_OUT>, <&clk IMX8MP_SYS_PLL3_OUT>;
+		assigned-clock-rates = <400000000>, <600000000>;
 		status = "disabled";
 	};
 
@@ -1387,6 +1389,7 @@
 		clocks = <&clk IMX8MP_CLK_VPU_VC8KE_ROOT>, <&clk IMX8MP_CLK_VPU_ROOT>;
 		clock-names = "clk_hantro_vc8000e", "clk_hantro_vc8000e_bus";
 		assigned-clocks = <&clk IMX8MP_CLK_VPU_VC8000E>,<&clk IMX8MP_CLK_VPU_BUS>;
+		assigned-clock-parents = <&clk IMX8MP_VPU_PLL_OUT>, <&clk IMX8MP_SYS_PLL3_OUT>;
 		assigned-clock-rates = <400000000>, <600000000>;
 		status = "disabled";
 	};
