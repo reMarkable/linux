@@ -1027,6 +1027,35 @@ static int  max77818_read_param_and_write(struct max77818_chip *chip,
 	return ret;
 }
 
+static void max77818_unlock_extra_config_registers(struct max77818_chip *chip)
+{
+	struct regmap *map = chip->regmap;
+	u32 value;
+	int ret;
+
+	ret = regmap_write(map, MAX17042_VFSOC0Enable, VFSOC0_UNLOCK);
+	if (ret)
+		dev_warn(chip->dev,
+			 "Failed to write VFSOC0Enable to unlock: %d\n", ret);
+
+	ret = regmap_read(map, MAX17042_VFSOC, &value);
+	if (ret)
+		dev_warn(chip->dev, "Failed to read VFSOC: %d\n", ret);
+
+	max77818_write_verify_reg(map, MAX17042_VFSOC0, value);
+}
+
+static void max77818_lock_extra_config_registers(struct max77818_chip *chip)
+{
+	struct regmap *map = chip->regmap;
+	int ret;
+
+	ret = regmap_write(map, MAX17042_VFSOC0Enable, VFSOC0_LOCK);
+	if (ret)
+		dev_warn(chip->dev,
+			 "Failed to write VFSOC0Enable to lock: %d\n", ret);
+}
+
 static struct max77818_of_property max77818_relax_cfg =
 	{"maxim,relax-cfg", MAX17042_RelaxCFG, regmap_write};
 
@@ -1088,20 +1117,30 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 
 	dev_dbg(chip->dev, "Verifying custom params\n");
 
+	max77818_read_param_and_verify(chip, &max77818_relax_cfg);
+
+	max77818_lock_extra_config_registers(chip);
+
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
-		if (max77818_custom_param_list[i].is_learned_value)
+		if (max77818_custom_param_list[i].is_learned_value) {
+			dev_dbg(chip->dev,
+				"Skipping 'learned' value '%s'\n",
+				max77818_custom_param_list[i].property_name);
 			continue;
+		}
 
 		max77818_read_param_and_verify(chip,
 					       &max77818_custom_param_list[i]);
 	}
+
+	max77818_unlock_extra_config_registers(chip);
+
 	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
 }
 
 static void max77818_write_custom_params(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
-	u32 value;
 	int ret, i;
 
 	dev_dbg(chip->dev, "Writing custom params\n");
@@ -1112,28 +1151,14 @@ static void max77818_write_custom_params(struct max77818_chip *chip)
 
 	max77818_read_param_and_write(chip, &max77818_relax_cfg);
 
-	/* Unlock extra config registers for write access */
-	ret = regmap_write(map, MAX17042_VFSOC0Enable, VFSOC0_UNLOCK);
-	if (ret)
-		dev_warn(chip->dev,
-			 "Failed to write VFSOC0Enable to unlock: %d\n", ret);
-
-	ret = regmap_read(map, MAX17042_VFSOC, &value);
-	if (ret)
-		dev_warn(chip->dev, "Failed to read VFSOC: %d\n", ret);
-
-	max77818_write_verify_reg(map, MAX17042_VFSOC0, value);
+	max77818_lock_extra_config_registers(chip);
 
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
 		max77818_read_param_and_write(chip,
 					      &max77818_custom_param_list[i]);
 	}
 
-	/* Back to lock */
-	ret = regmap_write(map, MAX17042_VFSOC0Enable, VFSOC0_LOCK);
-	if (ret)
-		dev_warn(chip->dev,
-			 "Failed to write VFSOC0Enable to lock: %d\n", ret);
+	max77818_unlock_extra_config_registers(chip);
 }
 
 static int max77818_init_chip(struct max77818_chip *chip)
