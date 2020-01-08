@@ -1,0 +1,53 @@
+NXP imx8M Plus DWC3 glue logic
+
+This file documents the parameters for the dwc3-imx8mp driver.
+This driver controls the glue logic used to configure the dwc3 core on
+imx8mp based platforms.
+
+Required properties:
+ - compatible	: must be "fsl,imx8mp-dwc3"
+ - reg		: glue logic base address and size
+ - clocks	: A list of phandle + clock-specifier pairs for the
+		  clocks listed in clock-names
+ - clock-names	: Should contain the following:
+		  "bus" System bus AXI clock
+		  "sleep" Sleep clock, used for wakeup.
+ - interrupts	: specifies interrupt from controller wrapper used
+		  to wakeup from low power/susepnd state.
+
+Sub-nodes:
+The dwc3 core should be added as subnode to imx8mp DWC3 glue as shown in the
+example below. The DT binding details of dwc3 can be found in:
+Documentation/devicetree/bindings/usb/dwc3.txt
+
+Example:
+
+	usb3_0: usb@32f10100 {
+		compatible = "fsl,imx8mp-dwc3";
+		reg = <0 0x32f10100 0 0x8>;
+		clocks = <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
+			 <&clk IMX8MP_CLK_USB_ROOT>;
+		clock-names = "bus", "sleep";
+		assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>;
+		assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
+		assigned-clock-rates = <500000000>;
+		interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+		status = "disabled";
+
+		usb_dwc3_0: dwc3@38100000 {
+			compatible = "snps,dwc3";
+			reg = <0 0x38100000 0 0x10000>;
+			interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
+			phys = <&usb3_phy0>, <&usb3_phy0>;
+			phy-names = "usb2-phy", "usb3-phy";
+			xhci-no-64bit-support;
+			usb3-resume-missing-cas;
+			snps,dis_u2_susphy_quirk;
+			snps,dis_u3_susphy_quirk;
+			status = "disabled";
+		};
+
+	};
