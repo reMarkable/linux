@@ -103,18 +103,22 @@
 /* Parameter to be given from u-boot after doing update
  * in order to verify that all custom FG parameters
  * are configured according to DT */
-static char config_update_param[255];
+static char config_update_param[255] = "verify";
 module_param_string(config_update,
 		    config_update_param,
 		    sizeof(config_update_param),
 		    0644);
 MODULE_PARM_DESC(config_update,
-		 "Optional parameter indicating if a complete FG update should "
-		 "be performed (config_update=\"complete\") or if a partial update "
-		 "shoule be performed (config_update=\"partial\"). By default,"
-		 "no update is performed, but device image update scripts may "
-		 "set the config_update param in order to re-config the device "
-		 "based on versioning scheme external to the kernel driver");
+		 "Optional parameter indicating the following config update mode:"
+		 "- complete FG update (config_update=\"complete\")"
+		 "- partial update (config_update=\"partial\")"
+		 "- verification against current DT (config_update=\"verify\")"
+		 "\n"
+		 "By default, the verify mode is set."
+		 "\n"
+		 "Scripts may set the config_update param in order to re-config "
+		 "the device if required, depending on versioning scheme or other "
+		 "means of determining if a complete or partial update is required.");
 
 struct max77818_chip {
 	struct device *dev;
@@ -162,6 +166,7 @@ struct max77818_of_property {
 	int (*reg_write_op)(struct regmap *map,
 			    unsigned int reg,
 			    unsigned int value);
+	bool is_learned_value;
 };
 
 static bool max77818_do_complete_update(struct max77818_chip *chip)
@@ -1030,18 +1035,27 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,config", MAX17042_CONFIG, regmap_write },
 	{ "maxim,config2", MAX77818_Config2, regmap_write },
 	{ "maxim,full-soc-threshold", MAX17047_FullSOCThr, regmap_write },
-	{ "maxim,fullcaprep", MAX17042_FullCAP0, max77818_write_verify_reg },
+
+	/* learned value, skipped during verify/write operation at boot */
+	{ "maxim,fullcaprep", MAX17042_FullCAP0, max77818_write_verify_reg, true },
+
 	{ "maxim,design-cap", MAX17042_DesignCap, regmap_write },
 	{ "maxim,dpacc", MAX17042_dPacc, max77818_write_verify_reg },
 	{ "maxim,dqacc", MAX17042_dQacc, max77818_write_verify_reg },
-	{ "maxim,fullcapnom", MAX17042_FullCAPNom, max77818_write_verify_reg },
+
+	/* learned value, skipped during verify/write operation at boot */
+	{ "maxim,fullcapnom", MAX17042_FullCAPNom, max77818_write_verify_reg, true },
+
 	{ "maxim,misc-cfg", MAX17042_MiscCFG, regmap_write },
 	{ "maxim,v-empty", MAX17047_V_empty, regmap_write },
 	{ "maxim,qresidual00", MAX17047_QRTbl00, max77818_write_verify_reg },
 	{ "maxim,qresidual10", MAX17047_QRTbl10, max77818_write_verify_reg },
 	{ "maxim,qresidual20", MAX17047_QRTbl20, max77818_write_verify_reg },
 	{ "maxim,qresidual30", MAX17047_QRTbl30, max77818_write_verify_reg },
-	{ "maxim,rcomp0", MAX17042_RCOMP0, max77818_write_verify_reg },
+
+	/* learned value, skipped during verify/write operation at boot */
+	{ "maxim,rcomp0", MAX17042_RCOMP0, max77818_write_verify_reg, true },
+
 	{ "maxim,tempco", MAX17042_TempCo, max77818_write_verify_reg },
 	{ "maxim,ichg-term", MAX17042_ICHGTerm, regmap_write },
 	{ "maxim,filter-cfg", MAX17042_FilterCFG, regmap_write },
@@ -1075,6 +1089,9 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 	dev_dbg(chip->dev, "Verifying custom params\n");
 
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
+		if (max77818_custom_param_list[i].is_learned_value)
+			continue;
+
 		max77818_read_param_and_verify(chip,
 					       &max77818_custom_param_list[i]);
 	}
