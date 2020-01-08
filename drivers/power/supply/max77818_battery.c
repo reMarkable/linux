@@ -1069,10 +1069,10 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,fullcaprep", MAX17042_FullCAP0, max77818_write_verify_reg, true },
 
 	{ "maxim,design-cap", MAX17042_DesignCap, regmap_write },
-	{ "maxim,dpacc", MAX17042_dPacc, max77818_write_verify_reg },
-	{ "maxim,dqacc", MAX17042_dQacc, max77818_write_verify_reg },
 
-	/* learned value, skipped during verify/write operation at boot */
+	/* learned values, skipped during verify/write operation at boot */
+	{ "maxim,dpacc", MAX17042_dPacc, max77818_write_verify_reg, true },
+	{ "maxim,dqacc", MAX17042_dQacc, max77818_write_verify_reg, true },
 	{ "maxim,fullcapnom", MAX17042_FullCAPNom, max77818_write_verify_reg, true },
 
 	{ "maxim,misc-cfg", MAX17042_MiscCFG, regmap_write },
