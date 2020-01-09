@@ -1039,7 +1039,7 @@ EXPORT_SYMBOL(cdns_mhdp_read_hpd);
 bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp)
 {
 	u32  alive, newalive;
-	u8 retries_left = 10;
+	u8 retries_left = 50;
 
 	alive = cdns_mhdp_bus_read(mhdp, KEEP_ALIVE);
 
