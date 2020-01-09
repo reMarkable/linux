@@ -1088,7 +1088,10 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,tempco", MAX17042_TempCo, max77818_write_verify_reg },
 	{ "maxim,ichg-term", MAX17042_ICHGTerm, regmap_write },
 	{ "maxim,filter-cfg", MAX17042_FilterCFG, regmap_write },
-	{ "maxim,iavg-empty", MAX17042_LAvg_empty, regmap_write },
+
+	/* learned value, skipped during verify/write operation at boot */
+	{ "maxim,iavg-empty", MAX17042_LAvg_empty, regmap_write, true },
+
 	{ "maxim,tgain", MAX17042_TGAIN, regmap_write },
 	{ "maxim,toff", MAx17042_TOFF, regmap_write },
 	{ "maxim,tcurve", MAX77818_TCURVE, regmap_write },
