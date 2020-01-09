@@ -97,6 +97,7 @@ typedef enum {
 	FRAME_DECODED,
 	FRAME_READY,
 	FRAME_RELEASE,
+	FRAME_SKIP,
 } FRAME_BUFFER_STAT;
 
 typedef enum {

@@ -181,6 +181,7 @@ static char *bufstat[] = {
 	"FRAME_DECODED",
 	"FRAME_READY",
 	"FRAME_RELEASE",
+	"FRAME_SKIP",
 };
 
 static int alloc_vpu_buffer(struct vpu_ctx *ctx);
@@ -3549,7 +3550,7 @@ static void report_buffer_done(struct vpu_ctx *ctx, void *frame_info)
 		if (fs_id == MEDIA_PLAYER_SKIPPED_FRAME_ID) {
 			down(&This->drv_q_lock);
 			p_data_req = &This->vb2_reqs[buffer_id];
-			set_data_req_status(p_data_req, FRAME_READY);
+			set_data_req_status(p_data_req, FRAME_SKIP);
 			up(&This->drv_q_lock);
 
 			vpu_dec_skip_ts(ctx);
