@@ -27,6 +27,8 @@
 #define WACOM_BARREL_SWITCH_bm      (1 << 1)
 #define WACOM_ERASER_bm             (1 << 2)
 #define WACOM_INVERT_bm             (1 << 3)
+#define WACOM_BARREL_SWITCH_2_bm    (1 << 4)
+#define WACOM_IN_RANGE_bm           (1 << 5)
 
 // Registers
 #define WACOM_COMMAND_LSB   0x04
@@ -299,7 +301,7 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	tip = data[3] & WACOM_TIP_SWITCH_bm;
 	eraser = data[3] & WACOM_ERASER_bm;
 	f1 = data[3] & WACOM_BARREL_SWITCH_bm;
-	f2 = data[3] & WACOM_INVERT_bm;
+	f2 = data[3] & WACOM_BARREL_SWITCH_2_bm;
 	x = le16_to_cpup((__le16 *)&data[4]);
 	y = le16_to_cpup((__le16 *)&data[6]);
 	pressure = le16_to_cpup((__le16 *)&data[8]);
