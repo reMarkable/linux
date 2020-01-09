@@ -1122,7 +1122,7 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 
 	max77818_read_param_and_verify(chip, &max77818_relax_cfg);
 
-	max77818_lock_extra_config_registers(chip);
+	max77818_unlock_extra_config_registers(chip);
 
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
 		if (max77818_custom_param_list[i].is_learned_value) {
@@ -1136,7 +1136,7 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 					       &max77818_custom_param_list[i]);
 	}
 
-	max77818_unlock_extra_config_registers(chip);
+	max77818_lock_extra_config_registers(chip);
 
 	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
 }
@@ -1154,14 +1154,14 @@ static void max77818_write_custom_params(struct max77818_chip *chip)
 
 	max77818_read_param_and_write(chip, &max77818_relax_cfg);
 
-	max77818_lock_extra_config_registers(chip);
+	max77818_unlock_extra_config_registers(chip);
 
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
 		max77818_read_param_and_write(chip,
 					      &max77818_custom_param_list[i]);
 	}
 
-	max77818_unlock_extra_config_registers(chip);
+	max77818_lock_extra_config_registers(chip);
 }
 
 static int max77818_init_chip(struct max77818_chip *chip)
