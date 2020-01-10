@@ -3683,6 +3683,9 @@ static void add_buffer_to_queue(struct queue_data *q_data, struct vb2_data_req *
 		return;
 	if (data_req->queued == true)
 		return;
+	if (data_req->vb2_buf->state != VB2_BUF_STATE_ACTIVE)
+		return;
+
 	list_add_tail(&data_req->list, &q_data->drv_q);
 	data_req->queued = true;
 }
@@ -4411,7 +4414,6 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 					vpu_dec_skip_ts(ctx);
 					send_skip_event(ctx);
 				}
-				add_buffer_to_queue(This, p_data_req);
 			}
 			if (p_data_req->status != FRAME_ALLOC) {
 				set_data_req_status(p_data_req, FRAME_RELEASE);
@@ -4421,6 +4423,7 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 					"frame[%d] already released\n",
 					p_data_req->id);
 			}
+			add_buffer_to_queue(This, p_data_req);
 			respond_req_frame(ctx, This, false);
 		} else if (fsrel->eType == MEDIAIP_MBI_REQ) {
 			vpu_dbg(LVL_INFO, "ctx[%d] relase MEDIAIP_MBI_REQ frame[%d]\n",
