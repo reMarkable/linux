@@ -407,5 +407,7 @@
 
 #define IMX8MQ_CLK_PHY_27MHZ			267
 
-#define IMX8MQ_CLK_END				268
+#define IMX8MQ_CLK_A53_CORE			268
+
+#define IMX8MQ_CLK_END				269
 #endif /* __DT_BINDINGS_CLOCK_IMX8MQ_H */
