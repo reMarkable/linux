@@ -117,6 +117,8 @@ static const char *imx8mp_a53_sels[] = {"osc_24m", "arm_pll_out", "sys_pll2_500m
 					"sys_pll1_800m", "sys_pll1_400m", "audio_pll1_out",
 					"sys_pll3_out", };
 
+static const char *imx8mp_a53_core_sels[] = {"arm_a53_div", "arm_pll_out", };
+
 static const char *imx8mp_m7_sels[] = {"osc_24m", "sys_pll2_200m", "sys_pll2_250m", "vpu_pll_out",
 				       "sys_pll1_800m", "audio_pll1_out", "video_pll1_out",
 				       "sys_pll3_out", };
@@ -652,6 +654,9 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_HSIO_AXI_DIV] = imx_clk_divider2("hsio_axi_div", "hsio_axi_cg", base + 0x8380, 0, 3);
 	clks[IMX8MP_CLK_MEDIA_ISP_DIV] = imx_clk_divider2("media_isp_div", "media_isp_cg", base + 0x8400, 0, 3);
 
+	/* CORE SEL */
+	clks[IMX8MP_CLK_A53_CORE] = imx_clk_mux2_flags("arm_a53_core", base + 0x9880, 24, 1, imx8mp_a53_core_sels, ARRAY_SIZE(imx8mp_a53_core_sels), CLK_IS_CRITICAL);
+
 	/* BUS */
 	clks[IMX8MP_CLK_MAIN_AXI] = imx8m_clk_composite_critical("main_axi", imx8mp_main_axi_sels, base + 0x8800);
 	clks[IMX8MP_CLK_ENET_AXI] = imx8m_clk_composite("enet_axi", imx8mp_enet_axi_sels, base + 0x8880);
@@ -826,11 +831,14 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_VPU_ROOT] = imx_clk_gate4("vpu_root_clk", "vpu_bus", base + 0x4630, 0);
 	clks[IMX8MP_CLK_AUDIO_ROOT] = imx_clk_gate4("audio_root_clk", "ipg_root", base + 0x4650, 0);
 
-	clks[IMX8MP_CLK_ARM] = imx_clk_cpu("arm", "arm_a53_div",
-					   clks[IMX8MP_CLK_A53_DIV],
-					   clks[IMX8MP_CLK_A53_SRC],
+	clk_set_parent(clks[IMX8MP_CLK_A53_SRC], clks[IMX8MP_SYS_PLL1_800M]);
+	clk_set_parent(clks[IMX8MP_CLK_A53_CORE], clks[IMX8MP_ARM_PLL_OUT]);
+
+	clks[IMX8MP_CLK_ARM] = imx_clk_cpu("arm", "arm_a53_core",
+					   clks[IMX8MP_CLK_A53_CORE],
+					   clks[IMX8MP_CLK_A53_CORE],
 					   clks[IMX8MP_ARM_PLL_OUT],
-					   clks[IMX8MP_SYS_PLL1_800M]);
+					   clks[IMX8MP_CLK_A53_DIV]);
 
 	imx_check_clocks(clks, ARRAY_SIZE(clks));
 
