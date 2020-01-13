@@ -247,7 +247,8 @@
 
 #define IMX8MM_CLK_SNVS_ROOT			228
 #define IMX8MM_CLK_GIC				229
+#define IMX8MM_CLK_A53_CORE			230
 
-#define IMX8MM_CLK_END				230
+#define IMX8MM_CLK_END				231
 
 #endif
