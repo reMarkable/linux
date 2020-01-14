@@ -1156,6 +1156,11 @@
 				};
 			};
 
+			mediamix_blk_ctl: blk-ctl@32ec0000 {
+				compatible = "fsl,imx8mp-mediamix-blk-ctl",
+					     "syscon";
+				reg = <0x32ec0000 0x10000>;
+			};
 		};
 	};
 
