@@ -1109,3 +1109,7 @@
 		status = "okay";
 	};
 };
+
+&dsp {
+	status = "okay";
+};
