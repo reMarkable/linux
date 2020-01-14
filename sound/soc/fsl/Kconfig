@@ -115,6 +115,12 @@ config SND_SOC_FSL_AUD2HTX
 	help
 	  Say Y if you want to add AUDIO TO HDMI TX support for NXP.
 
+config SND_SOC_FSL_DSP_AUDIOMIX
+	tristate "Audio MIX DSP helper"
+	depends on MFD_IMX_AUDIOMIX
+	help
+	  Say Y if you want to add Audio MIX helper for DSP
+
 config SND_SOC_FSL_UTILS
 	tristate
 

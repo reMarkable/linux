@@ -1875,7 +1875,7 @@
 			 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_MU2_ROOT>;
 		clock-names = "ocram", "core", "debug", "mu2";
 		fsl,dsp-firmware = "imx/dsp/hifi4.bin";
-		//power-domains = <&audiomix_pd>;
+		power-domains = <&audiomix_pd>;
 		status = "disabled";
 	};
 
