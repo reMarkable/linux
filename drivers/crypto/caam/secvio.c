@@ -274,11 +274,13 @@ static int snvs_secvio_probe(struct platform_device *pdev)
 	}
 	svpriv->svregs = (struct snvs_full __force *)snvsregs;
 
-	svpriv->clk = devm_clk_get(&pdev->dev, NULL);
+	svpriv->clk = devm_clk_get(&pdev->dev, "ipg");
 	if (IS_ERR(svpriv->clk)) {
 		dev_err(&pdev->dev, "can't get snvs clock\n");
 		svpriv->clk = NULL;
 	}
+
+	clk_prepare_enable(svpriv->clk);
 
 	/* Write the Secvio Enable Config the SVCR */
 	wr_reg32(&svpriv->svregs->hp.secvio_ctl, td_en);
@@ -304,8 +306,6 @@ static int snvs_secvio_probe(struct platform_device *pdev)
 		kfree(svpriv);
 		return -EINVAL;
 	}
-
-	clk_prepare_enable(svpriv->clk);
 
 	hpstate = (rd_reg32(&svpriv->svregs->hp.status) &
 			    HP_STATUS_SSM_ST_MASK) >> HP_STATUS_SSM_ST_SHIFT;
