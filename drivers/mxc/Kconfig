@@ -26,6 +26,7 @@ source "drivers/mxc/hantro_845_h1/Kconfig"
 source "drivers/mxc/hantro_vc8000e/Kconfig"
 source "drivers/mxc/vpu_malone/Kconfig"
 source "drivers/mxc/vpu_windsor/Kconfig"
+source "drivers/mxc/xuvi/Kconfig"
 endif
 
 source "drivers/mxc/gpu-viv/Kconfig"
