@@ -46,6 +46,26 @@ vpu_subsys: bus@2c000000 {
 		status = "disabled";
 	};
 
+	vpu_ts: vpu_ts@2c000000 {
+		compatible = "nxp,imx8qm-b0-vpu-ts";
+		reg = <0x2c000000 0x1000000>;
+		reg-names = "vpu_ts";
+		power-domains = <&pd IMX_SC_R_VPU_TS_0>,
+				<&pd IMX_SC_R_VPU>;
+		power-domain-names = "vputs", "vpu";
+		mbox-names = "ts_tx0", "ts_tx1", "ts_tx2", "ts_tx3",
+			     "ts_rx0", "ts_rx1", "ts_rx2", "ts_rx3";
+		mboxes = <&mu3_m0 0 0
+			  &mu3_m0 0 1
+			  &mu3_m0 0 2
+			  &mu3_m0 0 3
+			  &mu3_m0 1 0
+			  &mu3_m0 1 1
+			  &mu3_m0 1 2
+			  &mu3_m0 1 3>;
+		status = "disabled";
+	};
+
 	mu_m0: mailbox@2d000000 {
 		compatible = "fsl,imx8-mu0-vpu-m0", "fsl,imx6sx-mu";
 		reg = <0x2d000000 0x20000>;
@@ -76,6 +96,17 @@ vpu_subsys: bus@2c000000 {
 		#mbox-cells = <2>;
 		power-domains = <&pd IMX_SC_R_VPU_MU_2>;
 		power-domain-names = "vpumu2";
+		status = "disabled";
+	};
+
+	mu3_m0: mailbox@2d060000 {
+		compatible = "fsl,imx8-mu3-vpu-m0", "fsl,imx6sx-mu";
+		reg = <0x2d060000 0x20000>;
+		interrupts = <GIC_SPI 475 IRQ_TYPE_LEVEL_HIGH>;
+		fsl,vpu_ap_mu_id = <19>;
+		#mbox-cells = <2>;
+		power-domains = <&pd IMX_SC_R_VPU_MU_3>;
+		power-domain-names = "vpumu3";
 		status = "disabled";
 	};
 };

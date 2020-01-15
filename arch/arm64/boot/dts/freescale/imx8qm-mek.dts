@@ -140,6 +140,10 @@
 			no-map;
 			reg = <0 0x94400000 0 0x800000>;
 		};
+		ts_boot: ts_boot@0x95000000 {
+			no-map;
+			reg = <0 0x95000000 0 0x400000>;
+		};
 
 		/* global autoconfigured region for contiguous allocations */
 		linux,cma {
@@ -1669,12 +1673,24 @@
 	status = "okay";
 };
 
+&mu3_m0{
+	interrupts = <GIC_SPI 475 IRQ_TYPE_LEVEL_HIGH>;
+	status = "okay";
+};
+
 &vpu_decoder {
 	compatible = "nxp,imx8qm-b0-vpudec";
 	boot-region = <&decoder_boot>;
 	rpc-region = <&decoder_rpc>;
 	reg-csr = <0x2d080000>;
 	core_type = <2>;
+	status = "okay";
+};
+
+&vpu_ts {
+	compatible = "nxp,imx8qm-b0-vpu-ts";
+	boot-region = <&ts_boot>;
+	reg-csr = <0x2d0b0000>;
 	status = "okay";
 };
 
