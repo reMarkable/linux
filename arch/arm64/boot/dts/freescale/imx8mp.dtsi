@@ -1192,7 +1192,6 @@
 			assigned-clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
 					  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
 			assigned-clock-rates = <500000000>, <200000000>;
-			resets = <&isi_resets>;
 			status = "disabled";
 
 			cap_device {
@@ -1214,7 +1213,6 @@
 			assigned-clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
 					  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
 			assigned-clock-rates = <500000000>, <200000000>;
-			resets = <&isi_resets>;
 			status = "disabled";
 
 			cap_device {
@@ -1241,7 +1239,6 @@
 			bus-width = <4>;
 			csi-gpr = <&mediamix_gasket0>;
 			power-domains = <&mipi_phy1_pd>;
-			resets = <&mipi_csi0_resets>;
 			status = "disabled";
 		};
 
@@ -1263,44 +1260,7 @@
 			bus-width = <4>;
 			csi-gpr = <&mediamix_gasket1>;
 			power-domains = <&mipi_phy2_pd>;
-			resets = <&mipi_csi1_resets>;
 			status = "disabled";
-		};
-	};
-
-	meidamix-reset {
-		compatible = "simple-bus";
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		mediamix_sft_rstn: mediamix-sft-rstn@32ec0000 {
-			compatible = "fsl,imx8mp-mediamix-sft-rstn";
-			reg = <0 0x32ec0000 0 0x4>;
-			clocks = <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-			clock-names = "media_apb_root_clk";
-			active_low;
-			power-domains = <&mediamix_pd>;
-			#reset-cells = <1>;
-		};
-
-		mediamix_clk_en: mediamix-clk-en@32ec0004 {
-			compatible = "fsl,imx8mp-mediamix-clk-en";
-			reg = <0 0x32ec0004 0 0x4>;
-			clocks = <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-			clock-names = "media_apb_root_clk";
-			power-domains = <&mediamix_pd>;
-			#reset-cells = <1>;
-		};
-
-		mediamix_mipi_rst: mediamix-mipi-rst@32ec0008 {
-			compatible = "fsl,imx8mp-mediamix-mipi-rst";
-			reg = <0 0x32ec0008 0 0x4>;
-			clocks = <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-			clock-names = "media_apb_root_clk";
-			active_low;
-			power-domains = <&mediamix_pd>;
-			#reset-cells = <1>;
 		};
 	};
 
@@ -1533,70 +1493,6 @@
 	imx_ion: imx_ion {
 		compatible = "fsl,mxc-ion";
 		fsl,heap-id = <0>;
-	};
-
-	isi_resets: isi-resets {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		#reset-cells = <0>;
-
-		isi-soft-resetn {
-			compatible = "isi,soft-resetn";
-			resets = <&mediamix_sft_rstn IMX8MP_ISI_PROC_CLK_RESET>,
-				 <&mediamix_sft_rstn IMX8MP_ISI_APB_CLK_RESET>;
-		};
-
-		isi-clk-enable {
-			compatible = "isi,clk-enable";
-			resets = <&mediamix_clk_en IMX8MP_ISI_PROC_CLK_EN>,
-				 <&mediamix_clk_en IMX8MP_ISI_APB_CLK_EN>;
-		};
-	};
-
-	mipi_csi0_resets: mipi-csi0-resets {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		#reset-cells = <0>;
-
-		csi0-soft-resetn {
-			compatible = "csi,soft-resetn";
-			resets = <&mediamix_sft_rstn IMX8MP_MIPI_CSI_PCLK_RESET>,
-				 <&mediamix_sft_rstn IMX8MP_MIPI_CSI_ACLK_RESET>;
-		};
-
-		csi0-clk-enable {
-			compatible = "csi,clk-enable";
-			resets = <&mediamix_clk_en IMX8MP_MIPI_CSI_PCLK_EN>,
-				 <&mediamix_clk_en IMX8MP_MIPI_CSI_ACLK_EN>;
-		};
-
-		csi0-mipi-reset {
-			compatible = "csi,mipi-reset";
-			resets = <&mediamix_mipi_rst IMX8MP_MIPI_S_RESET>;
-		};
-	};
-
-	mipi_csi1_resets: mipi-csi1-resets {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		#reset-cells = <0>;
-
-		csi1-soft-resetn {
-			compatible = "csi,soft-resetn";
-			resets = <&mediamix_sft_rstn IMX8MP_MIPI_CSI2_PCLK_RESET>,
-				 <&mediamix_sft_rstn IMX8MP_MIPI_CSI2_ACLK_RESET>;
-		};
-
-		csi1-clk-enable {
-			compatible = "csi,clk-enable";
-			resets = <&mediamix_clk_en IMX8MP_MIPI_CSI2_PCLK_EN>,
-				 <&mediamix_clk_en IMX8MP_MIPI_CSI2_ACLK_EN>;
-		};
-
-		csi1-mipi-reset {
-			compatible = "csi,mipi-reset";
-			resets = <&mediamix_mipi_rst IMX8MP_MIPI_S2_RESET>;
-		};
 	};
 
 	mix_gpu_ml: mix_gpu_ml {
