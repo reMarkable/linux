@@ -831,7 +831,7 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_HDMI_ROOT] = imx_clk_gate4("hdmi_root_clk", "hdmi_axi", base + 0x45f0, 0);
 	clks[IMX8MP_CLK_TSENSOR_ROOT] = imx_clk_gate4("tsensor_root_clk", "ipg_root", base + 0x4620, 0);
 	clks[IMX8MP_CLK_VPU_ROOT] = imx_clk_gate4("vpu_root_clk", "vpu_bus", base + 0x4630, 0);
-	clks[IMX8MP_CLK_AUDIO_ROOT] = imx_clk_gate4("audio_root_clk", "ipg_root", base + 0x4650, 0);
+	clks[IMX8MP_CLK_AUDIO_ROOT] = imx_clk_gate4("audio_root_clk", "ipg_audio_root", base + 0x4650, 0);
 
 	clk_set_parent(clks[IMX8MP_CLK_A53_SRC], clks[IMX8MP_SYS_PLL1_800M]);
 	clk_set_parent(clks[IMX8MP_CLK_A53_CORE], clks[IMX8MP_ARM_PLL_OUT]);
