@@ -387,7 +387,7 @@ EXAMPLE
 
 =====================================================================
 CAAM SNVS Node
-  Load the SECVIO node.
+  Load the CAAM SNVS node.
 
   - compatible
       Usage: required
@@ -400,6 +400,18 @@ CAAM SNVS Node
       Definition: A standard property.  Specifies the physical
           address and length of the SEC4 configuration
           registers.
+
+   - clocks
+      Usage: required if i.MX clk driver defines an SNVS clock
+      Value type: <prop_encoded-array>
+      Definition:  Phandle and clock specifier pair describing
+          the clock required for enabling and disabling SNVS.
+
+   - clock-names
+      Usage: required if i.MX clk driver defines an SNVS clock
+      Value type: <string>
+      Definition: Clock name string corresponding to the clock
+          in the clocks property.
 
 =====================================================================
 Security Violation (SECVIO) Node
