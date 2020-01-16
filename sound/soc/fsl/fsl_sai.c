@@ -1493,20 +1493,22 @@ static int fsl_sai_probe(struct platform_device *pdev)
 
 	num_domains = of_count_phandle_with_args(np, "power-domains",
 						 "#power-domain-cells");
-	for (i = 0; i < num_domains; i++) {
-		struct device *pd_dev;
-		struct device_link *link;
+	if (num_domains > 1) {
+		for (i = 0; i < num_domains; i++) {
+			struct device *pd_dev;
+			struct device_link *link;
 
-		pd_dev = dev_pm_domain_attach_by_id(&pdev->dev, i);
-		if (IS_ERR(pd_dev))
-			return PTR_ERR(pd_dev);
+			pd_dev = dev_pm_domain_attach_by_id(&pdev->dev, i);
+			if (IS_ERR(pd_dev))
+				return PTR_ERR(pd_dev);
 
-		link = device_link_add(&pdev->dev, pd_dev,
-			DL_FLAG_STATELESS |
-			DL_FLAG_PM_RUNTIME |
-			DL_FLAG_RPM_ACTIVE);
-		if (IS_ERR(link))
-			return PTR_ERR(link);
+			link = device_link_add(&pdev->dev, pd_dev,
+				DL_FLAG_STATELESS |
+				DL_FLAG_PM_RUNTIME |
+				DL_FLAG_RPM_ACTIVE);
+			if (IS_ERR(link))
+				return PTR_ERR(link);
+		}
 	}
 
 	sai->pll8k_clk = devm_clk_get(&pdev->dev, "pll8k");
@@ -1593,6 +1595,11 @@ static int fsl_sai_probe(struct platform_device *pdev)
 		fsl_sai_dai.symmetric_samplebits = 0;
 	}
 
+	platform_set_drvdata(pdev, sai);
+	ret = fsl_sai_check_ver(&pdev->dev);
+	if (ret < 0)
+		dev_warn(&pdev->dev, "Error reading SAI version: %d\n", ret);
+
 	if (of_find_property(np, "fsl,sai-mclk-direction-output", NULL) &&
 	    of_device_is_compatible(np, "fsl,imx6ul-sai")) {
 		gpr = syscon_regmap_lookup_by_compatible("fsl,imx6ul-iomuxc-gpr");
@@ -1609,6 +1616,12 @@ static int fsl_sai_probe(struct platform_device *pdev)
 				   MCLK_DIR(index));
 	}
 
+	if (of_find_property(np, "fsl,sai-mclk-direction-output", NULL) &&
+	    sai->verid.id >= FSL_SAI_VERID_0301) {
+		regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
+				   FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
+	}
+
 	sai->dma_params_rx.chan_name = "rx";
 	sai->dma_params_tx.chan_name = "tx";
 	sai->dma_params_rx.addr = res->start + FSL_SAI_RDR0;
@@ -1617,12 +1630,6 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	sai->dma_params_tx.maxburst = FSL_SAI_MAXBURST_TX;
 
 	sai->pinctrl = devm_pinctrl_get(&pdev->dev);
-
-	platform_set_drvdata(pdev, sai);
-
-	ret = fsl_sai_check_ver(&pdev->dev);
-	if (ret < 0)
-		dev_warn(&pdev->dev, "Error reading SAI version: %d\n", ret);
 
 	pm_runtime_enable(&pdev->dev);
 
