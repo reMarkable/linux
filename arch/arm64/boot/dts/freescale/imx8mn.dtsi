@@ -1366,15 +1366,12 @@
 			interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
 			clock-frequency = <333000000>;
 			clocks = <&clk IMX8MN_CLK_CAMERA_PIXEL>,
-				 <&clk IMX8MN_CLK_CSI1_PHY_REF>,
 				 <&clk IMX8MN_CLK_DISP_AXI_ROOT>,
 				 <&clk IMX8MN_CLK_DISP_APB_ROOT>;
-			clock-names = "mipi_clk", "phy_clk", "disp_axi", "disp_apb";
-			assigned-clocks = <&clk IMX8MN_CLK_CAMERA_PIXEL>,
-					  <&clk IMX8MN_CLK_CSI1_PHY_REF>;
-			assigned-clock-parents = <&clk IMX8MN_SYS_PLL2_1000M>,
-						 <&clk IMX8MN_SYS_PLL2_1000M>;
-			assigned-clock-rates = <333000000>, <125000000>;
+			clock-names = "mipi_clk", "disp_axi", "disp_apb";
+			assigned-clocks = <&clk IMX8MN_CLK_CAMERA_PIXEL>;
+			assigned-clock-parents = <&clk IMX8MN_SYS_PLL2_1000M>;
+			assigned-clock-rates = <333000000>;
 			bus-width = <4>;
 			csi-gpr = <&mipi2csi_gasket>;
 			power-domains = <&mipi_pd>;
