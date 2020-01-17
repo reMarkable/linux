@@ -419,7 +419,7 @@ struct clk *imx_dev_clk_pll14xx(struct device *dev, const char *name,
 	val &= ~BYPASS_MASK;
 	writel_relaxed(val, pll->base + GNRL_CTL);
 
-	clk = clk_register(NULL, &pll->hw);
+	clk = clk_register(dev, &pll->hw);
 	if (IS_ERR(clk)) {
 		pr_err("%s: failed to register pll %s %lu\n",
 			__func__, name, PTR_ERR(clk));
