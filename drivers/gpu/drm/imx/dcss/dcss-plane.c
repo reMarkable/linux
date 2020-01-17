@@ -14,7 +14,7 @@
 #include "dcss-dev.h"
 #include "dcss-kms.h"
 
-static const u32 dcss_graphics_formats[] = {
+static const u32 dcss_fb_formats[] = {
 	/* RGB */
 	DRM_FORMAT_ARGB8888,
 	DRM_FORMAT_XRGB8888,
@@ -32,9 +32,7 @@ static const u32 dcss_graphics_formats[] = {
 	DRM_FORMAT_ABGR2101010,
 	DRM_FORMAT_RGBA1010102,
 	DRM_FORMAT_BGRA1010102,
-};
 
-static const u32 dcss_video_formats[] = {
 	/* YUV444 */
 	DRM_FORMAT_AYUV,
 
@@ -608,8 +606,6 @@ struct dcss_plane *dcss_plane_init(struct drm_device *drm,
 {
 	struct dcss_plane *dcss_plane;
 	const u64 *format_modifiers = dcss_video_format_modifiers;
-	const u32 *formats = dcss_video_formats;
-	u32 formats_size = ARRAY_SIZE(dcss_video_formats);
 	struct drm_property *prop;
 	int ret;
 
@@ -622,15 +618,12 @@ struct dcss_plane *dcss_plane_init(struct drm_device *drm,
 		return ERR_PTR(-ENOMEM);
 	}
 
-	if (type == DRM_PLANE_TYPE_PRIMARY) {
-		formats = dcss_graphics_formats;
-		formats_size = ARRAY_SIZE(dcss_graphics_formats);
+	if (type == DRM_PLANE_TYPE_PRIMARY)
 		format_modifiers = dcss_graphics_format_modifiers;
-	}
 
 	ret = drm_universal_plane_init(drm, &dcss_plane->base, possible_crtcs,
-				       &dcss_plane_funcs, formats,
-				       formats_size,
+				       &dcss_plane_funcs, dcss_fb_formats,
+				       ARRAY_SIZE(dcss_fb_formats),
 				       format_modifiers, type, NULL);
 	if (ret) {
 		DRM_ERROR("failed to initialize plane\n");
