@@ -16,19 +16,11 @@
 
 #include "clk.h"
 
-#define PLL_1443X_RATE(_rate, _m, _p, _s, _k)		\
-	{						\
-		.rate   =       (_rate),		\
-		.mdiv   =       (_m),			\
-		.pdiv   =       (_p),			\
-		.sdiv   =       (_s),			\
-		.kdiv   =       (_k),			\
-	}
-
 static int shared_count_pdm;
 static struct clk *clks[IMX8MP_CLK_AUDIOMIX_END];
 static struct clk_onecell_data clk_data;
 static uint32_t audiomix_clk_saved_regs[14];
+static struct clk *clk_audio_root;
 
 static const struct imx_pll14xx_rate_table imx_audiomix_sai_pll_tbl[] = {
 	PLL_1443X_RATE(650000000U, 325, 3, 2, 0),
@@ -76,6 +68,9 @@ static int imx_audiomix_clk_suspend(struct device *dev)
 	audiomix_clk_saved_regs[12] = readl(base + 0x40C);
 	audiomix_clk_saved_regs[13] = readl(base + 0x410);
 
+	clk_disable_unprepare(clk_audio_root);
+	pm_runtime_put(dev);
+
 	return 0;
 }
 
@@ -84,6 +79,9 @@ static int imx_audiomix_clk_resume(struct device *dev)
 	void __iomem *base;
 
 	base = dev_get_drvdata(dev->parent);
+
+	pm_runtime_get(dev);
+	clk_prepare_enable(clk_audio_root);
 
 	writel(audiomix_clk_saved_regs[0], base);
 	writel(audiomix_clk_saved_regs[1], base + 0x4);
@@ -110,20 +108,37 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
 	void __iomem *base;
-	struct clk *clk_dummy;
 	int ret;
 
-	pm_runtime_enable(dev);
-	pm_runtime_get_sync(dev);
-
-	/* Defer until CCM driver is probed */
-	clk_dummy = of_clk_get_by_name(np, "dummy");
-	if (IS_ERR(clk_dummy))
-		return PTR_ERR(clk_dummy);
+	clk_audio_root = of_clk_get_by_name(np, "audio_root");
+	if (IS_ERR(clk_audio_root))
+		return PTR_ERR(clk_audio_root);
 
 	base = dev_get_drvdata(dev->parent);
 	if (IS_ERR(base))
 		return PTR_ERR(base);
+
+	pm_runtime_enable(dev);
+
+	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_REF_SEL] = imx_dev_clk_mux(dev, "sai_pll_ref_sel", base + 0x400, 0, 2, imx_sai_pll_ref_sels, ARRAY_SIZE(imx_sai_pll_ref_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL] = imx_dev_clk_pll14xx(dev, "sai_pll", "sai_pll_ref_sel", base + 0x400, &imx_audiomix_sai_pll);
+
+	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_BYPASS] = imx_dev_clk_mux_flags(dev, "sai_pll_bypass", base + 0x400, 4, 1, imx_sai_pll_bypass_sels, ARRAY_SIZE(imx_sai_pll_bypass_sels), CLK_SET_RATE_PARENT);
+
+	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_OUT] = imx_dev_clk_gate(dev, "sai_pll_out", "sai_pll_bypass", base + 0x400, 13);
+
+	clks[IMX8MP_CLK_AUDIOMIX_SAI1_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai1_mclk1_sel", base + 0x300, 0, 1, imx_sai1_mclk1_sels, ARRAY_SIZE(imx_sai1_mclk1_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI1_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai1_mclk2_sel", base + 0x300, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI2_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai2_mclk1_sel", base + 0x304, 0, 1, imx_sai2_mclk1_sels, ARRAY_SIZE(imx_sai2_mclk1_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI2_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai2_mclk2_sel", base + 0x304, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai3_mclk1_sel", base + 0x308, 0, 1, imx_sai3_mclk1_sels, ARRAY_SIZE(imx_sai3_mclk1_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI3_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai3_mclk2_sel", base + 0x308, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI5_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai5_mclk1_sel", base + 0x30C, 0, 1, imx_sai5_mclk1_sels, ARRAY_SIZE(imx_sai5_mclk1_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI5_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai5_mclk2_sel", base + 0x30C, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI6_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai6_mclk1_sel", base + 0x310, 0, 1, imx_sai6_mclk1_sels, ARRAY_SIZE(imx_sai6_mclk1_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI6_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai6_mclk2_sel", base + 0x310, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI7_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai7_mclk1_sel", base + 0x314, 0, 1, imx_sai7_mclk1_sels, ARRAY_SIZE(imx_sai7_mclk1_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_SAI7_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai7_mclk2_sel", base + 0x314, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
 
 	clks[IMX8MP_CLK_AUDIOMIX_SAI1_IPG]    = imx_dev_clk_gate(dev, "sai1_ipg_clk",   "ipg_audio_root", base, 0);
 	clks[IMX8MP_CLK_AUDIOMIX_SAI1_MCLK1]  = imx_dev_clk_gate(dev, "sai1_mclk1_clk", "sai1_mclk1_sel", base, 1);
@@ -168,29 +183,10 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_AUDIOMIX_MU3_ROOT]    = imx_dev_clk_gate(dev, "mu3_root_clk", "ipg_audio_root", base + 4, 5);
 	clks[IMX8MP_CLK_AUDIOMIX_EARC_PHY]    = imx_dev_clk_gate(dev, "earc_phy_clk", "ipg_audio_root", base + 4, 6);
 
-	clks[IMX8MP_CLK_AUDIOMIX_SAI1_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai1_mclk1_sel", base + 0x300, 0, 1, imx_sai1_mclk1_sels, ARRAY_SIZE(imx_sai1_mclk1_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI1_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai1_mclk2_sel", base + 0x300, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI2_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai2_mclk1_sel", base + 0x304, 0, 1, imx_sai2_mclk1_sels, ARRAY_SIZE(imx_sai2_mclk1_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI2_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai2_mclk2_sel", base + 0x304, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai3_mclk1_sel", base + 0x308, 0, 1, imx_sai3_mclk1_sels, ARRAY_SIZE(imx_sai3_mclk1_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI3_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai3_mclk2_sel", base + 0x308, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI5_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai5_mclk1_sel", base + 0x30C, 0, 1, imx_sai5_mclk1_sels, ARRAY_SIZE(imx_sai5_mclk1_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI5_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai5_mclk2_sel", base + 0x30C, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI6_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai6_mclk1_sel", base + 0x310, 0, 1, imx_sai6_mclk1_sels, ARRAY_SIZE(imx_sai6_mclk1_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI6_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai6_mclk2_sel", base + 0x310, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI7_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai7_mclk1_sel", base + 0x314, 0, 1, imx_sai7_mclk1_sels, ARRAY_SIZE(imx_sai7_mclk1_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI7_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai7_mclk2_sel", base + 0x314, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
-
 	clks[IMX8MP_CLK_AUDIOMIX_PDM_SEL] = imx_dev_clk_mux(dev, "pdm_sel", base + 0x318, 1, 4, imx_pdm_sels, ARRAY_SIZE(imx_pdm_sels));
-
-	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_REF_SEL] = imx_dev_clk_mux(dev, "sai_pll_ref_sel", base + 0x400, 0, 2, imx_sai_pll_ref_sels, ARRAY_SIZE(imx_sai_pll_ref_sels));
-	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL] = imx_dev_clk_pll14xx(dev, "sai_pll", "sai_ref_sel", base + 0x400, &imx_audiomix_sai_pll);
-	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_BYPASS] = imx_dev_clk_mux_flags(dev, "sai_pll_bypass", base + 0x400, 4, 1, imx_sai_pll_bypass_sels, ARRAY_SIZE(imx_sai_pll_bypass_sels), CLK_SET_RATE_PARENT);
 
 	/* unbypass the pll */
 	clk_set_parent(clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_BYPASS], clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL]);
-
-	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_OUT] = imx_dev_clk_gate(dev, "sai_pll_out", "sai_pll_bypass", base + 0x400, 13);
 
 	imx_check_clocks(clks, ARRAY_SIZE(clks));
 
@@ -201,8 +197,6 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 		pr_err("failed to register clks for i.MX8MP\n");
 		return -EINVAL;
 	}
-
-	pm_runtime_put(dev);
 
 	return 0;
 }

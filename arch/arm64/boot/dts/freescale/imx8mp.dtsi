@@ -1099,14 +1099,14 @@
 				audiomix_clk: clock-controller {
 					compatible = "fsl,imx8mp-audiomix-clk";
 					#clock-cells = <1>;
-					clocks = <&clk IMX8MP_CLK_DUMMY>;
-					/* power-domains = <&audiomix_pd>; */
-					clock-names = "dummy";
+					clocks = <&clk IMX8MP_CLK_AUDIO_ROOT>;
+					clock-names = "audio_root";
+					power-domains = <&audiomix_pd>;
 				};
 
 				audiomix_reset: reset-controller {
 					compatible = "fsl,imx8mp-audiomix-reset";
-					/* power-domains = <&audiomix_pd>; */
+					power-domains = <&audiomix_pd>;
 					#reset-cells = <1>;
 				};
 			};
