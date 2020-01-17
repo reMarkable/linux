@@ -1,10 +1,6 @@
 #include "zero-gravitas-factory.dts"
 
-&reg_usb_otg1_vbus {
-	gpio = <&gpio4 15 0>;
-};
-
 &usbotg1 {
-	vbus-supply = <&reg_usb_otg1_vbus>;
+        vbus-supply = <&reg_usb_otg1_vbus>;
 };
 
