@@ -424,7 +424,7 @@ static const char *imx8mp_hdmi_fdcc_tst_sels[] = {"osc_24m", "sys_pll1_266m", "s
 						  "sys_pll1_800m", "sys_pll2_1000m", "sys_pll3_out",
 						  "audio_pll2_out", "video_pll1_out", };
 
-static const char *imx8mp_hdmi_27m_sels[] = {"osc_24m", "sys_pll1_160m", "sys_pll2_50m",
+static const char *imx8mp_hdmi_24m_sels[] = {"osc_24m", "sys_pll1_160m", "sys_pll2_50m",
 					     "sys_pll3_out", "audio_pll1_out", "video_pll1_out",
 					     "audio_pll2_out", "sys_pll1_133m", };
 
@@ -667,7 +667,7 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_MEDIA_AXI] = imx8m_clk_composite("media_axi", imx8mp_media_axi_sels, base + 0x8a00);
 	clks[IMX8MP_CLK_MEDIA_APB] = imx8m_clk_composite("media_apb", imx8mp_media_apb_sels, base + 0x8a80);
 	clks[IMX8MP_CLK_HDMI_APB] = imx8m_clk_composite("hdmi_apb", imx8mp_media_apb_sels, base + 0x8b00);
-	clks[IMX8MP_CLK_HDMI_AXI] = imx8m_clk_composite("hdmi_axi", imx8mp_media_apb_sels, base + 0x8b80);
+	clks[IMX8MP_CLK_HDMI_AXI] = imx8m_clk_composite("hdmi_axi", imx8mp_media_axi_sels, base + 0x8b80);
 	clks[IMX8MP_CLK_GPU_AXI] = imx8m_clk_composite("gpu_axi", imx8mp_gpu_axi_sels, base + 0x8c00);
 	clks[IMX8MP_CLK_GPU_AHB] = imx8m_clk_composite("gpu_ahb", imx8mp_gpu_ahb_sels, base + 0x8c80);
 	clks[IMX8MP_CLK_NOC] = imx8m_clk_composite_critical("noc", imx8mp_noc_sels, base + 0x8d00);
@@ -740,7 +740,7 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_IPP_DO_CLKO1] = imx8m_clk_composite("ipp_do_clko1", imx8mp_ipp_do_clko1_sels, base + 0xba00);
 	clks[IMX8MP_CLK_IPP_DO_CLKO2] = imx8m_clk_composite("ipp_do_clko2", imx8mp_ipp_do_clko2_sels, base + 0xba80);
 	clks[IMX8MP_CLK_HDMI_FDCC_TST] = imx8m_clk_composite("hdmi_fdcc_tst", imx8mp_hdmi_fdcc_tst_sels, base + 0xbb00);
-	clks[IMX8MP_CLK_HDMI_27M] = imx8m_clk_composite("hdmi_27m", imx8mp_hdmi_27m_sels, base + 0xbb80);
+	clks[IMX8MP_CLK_HDMI_24M] = imx8m_clk_composite("hdmi_24m", imx8mp_hdmi_24m_sels, base + 0xbb80);
 	clks[IMX8MP_CLK_HDMI_REF_266M] = imx8m_clk_composite("hdmi_ref_266m", imx8mp_hdmi_ref_266m_sels, base + 0xbc00);
 	clks[IMX8MP_CLK_USDHC3] = imx8m_clk_composite("usdhc3", imx8mp_usdhc3_sels, base + 0xbc80);
 	clks[IMX8MP_CLK_MEDIA_CAM1_PIX] = imx8m_clk_composite("media_cam1_pix", imx8mp_media_cam1_pix_sels, base + 0xbd00);
