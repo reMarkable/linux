@@ -14,6 +14,7 @@
 #include <linux/of_platform.h>
 #include <linux/spinlock.h>
 #include <linux/pm_domain.h>
+#include <linux/reset.h>
 
 #define CTRL_STRIDE_OFF(_t, _r)	(_t * 4 * _r)
 #define CHANCTRL		0x0
@@ -213,6 +214,10 @@ static int imx_irqsteer_probe(struct platform_device *pdev)
 
 	ret = imx_irqsteer_attach_pd(data);
 	if (ret < 0 && ret == -EPROBE_DEFER)
+		return ret;
+
+	ret = device_reset(&pdev->dev);
+	if (ret == -EPROBE_DEFER)
 		return ret;
 
 	raw_spin_lock_init(&data->lock);
