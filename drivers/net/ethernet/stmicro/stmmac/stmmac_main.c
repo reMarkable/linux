@@ -4109,6 +4109,21 @@ static int stmmac_setup_tc_block_cb(enum tc_setup_type type, void *type_data,
 
 static LIST_HEAD(stmmac_block_cb_list);
 
+int stmmactc_setup_mqprio(struct net_device *ndev, void *type_data)
+{
+	struct tc_mqprio_qopt *mqprio = type_data;
+	u8 num_tc;
+	int i;
+
+	num_tc = mqprio->num_tc;
+	netif_set_real_num_tx_queues(ndev, num_tc);
+	netdev_set_num_tc(ndev, num_tc);
+	for (i = 0; i < num_tc; i++)
+		netdev_set_tc_queue(ndev, i, 1, i);
+
+	return 0;
+}
+
 static int stmmac_setup_tc(struct net_device *ndev, enum tc_setup_type type,
 			   void *type_data)
 {
@@ -4124,6 +4139,8 @@ static int stmmac_setup_tc(struct net_device *ndev, enum tc_setup_type type,
 		return stmmac_tc_setup_cbs(priv, priv, type_data);
 	case TC_SETUP_QDISC_TAPRIO:
 		return stmmac_tc_setup_taprio(priv, priv, type_data);
+	case TC_SETUP_QDISC_MQPRIO:
+		return stmmactc_setup_mqprio(ndev, type_data);
 	default:
 		return -EOPNOTSUPP;
 	}
