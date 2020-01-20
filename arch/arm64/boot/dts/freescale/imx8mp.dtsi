@@ -1094,7 +1094,6 @@
 			audiomix: audiomix@30e20000 {
 				compatible = "fsl,imx8mp-audiomix";
 				reg = <0x30e20000 0x10000>;
-				status = "disabled";
 
 				audiomix_clk: clock-controller {
 					compatible = "fsl,imx8mp-audiomix-clk";
