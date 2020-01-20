@@ -80,7 +80,7 @@ struct cyttsp5_loader_data {
 	int builtin_bin_fw_status;
 	bool is_manual_upgrade_enabled;
 #endif
-	struct delayed_work fw_and_config_upgrade;
+	struct work_struct fw_and_config_upgrade;
 	struct work_struct calibration_work;
 	struct cyttsp5_loader_platform_data *loader_pdata;
 #ifdef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_MANUAL_TTCONFIG_UPGRADE
@@ -1318,8 +1318,7 @@ static DEVICE_ATTR(config_loading, S_IRUSR | S_IWUSR,
 static void cyttsp5_fw_and_config_upgrade(
 		struct work_struct *fw_and_config_upgrade)
 {
-	struct cyttsp5_loader_data *ld = container_of(
-			to_delayed_work(fw_and_config_upgrade),
+	struct cyttsp5_loader_data *ld = container_of(fw_and_config_upgrade,
 			struct cyttsp5_loader_data, fw_and_config_upgrade);
 	struct device *dev = ld->dev;
 
@@ -1481,8 +1480,8 @@ static int cyttsp5_loader_probe(struct device *dev, void **data)
 	/* Call FW and config upgrade directly in probe */
 	cyttsp5_fw_and_config_upgrade(&ld->fw_and_config_upgrade);
 #else
-	INIT_DELAYED_WORK(&ld->fw_and_config_upgrade, cyttsp5_fw_and_config_upgrade);
-	schedule_delayed_work(&ld->fw_and_config_upgrade, msecs_to_jiffies(8000));
+	INIT_WORK(&ld->fw_and_config_upgrade, cyttsp5_fw_and_config_upgrade);
+	schedule_work(&ld->fw_and_config_upgrade);
 #endif
 
 	dev_info(dev, "%s: Successful probe %s\n", __func__, dev_name(dev));
