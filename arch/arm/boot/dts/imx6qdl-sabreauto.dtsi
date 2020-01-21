@@ -460,6 +460,7 @@
 	pinctrl-0 = <&pinctrl_gpmi_nand>;
 	/* enable at -gpmi-weim.dts due to pin conflict */
 	status = "disabled";
+	nand-on-flash-bbt;
 };
 
 &hdmi_audio {
