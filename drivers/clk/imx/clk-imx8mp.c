@@ -831,6 +831,7 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_MEDIA_CAM2_PIX_ROOT] = imx_clk_gate2_shared2("media_cam2_pix_root_clk", "media_cam2_pix", base + 0x45d0, 0, &share_count_media);
 	clks[IMX8MP_CLK_MEDIA_DISP1_PIX_ROOT] = imx_clk_gate2_shared2("media_disp1_pix_root_clk", "media_disp1_pix", base + 0x45d0, 0, &share_count_media);
 	clks[IMX8MP_CLK_MEDIA_DISP2_PIX_ROOT] = imx_clk_gate2_shared2("media_disp2_pix_root_clk", "media_disp2_pix", base + 0x45d0, 0, &share_count_media);
+	clks[IMX8MP_CLK_MEDIA_LDB_ROOT] = imx_clk_gate2_shared2("media_ldb_root_clk", "media_ldb", base + 0x45d0, 0, &share_count_media);
 	clks[IMX8MP_CLK_MEDIA_ISP_ROOT] = imx_clk_gate2_shared2("media_isp_root_clk", "media_isp_div", base + 0x45d0, 0, &share_count_media);
 
 	clks[IMX8MP_CLK_USDHC3_ROOT] = imx_clk_gate4("usdhc3_root_clk", "usdhc3", base + 0x45e0, 0);
