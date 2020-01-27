@@ -31,8 +31,6 @@
 #define SNVS_HPSR_BTN	BIT(6)
 #define SNVS_LPSR_SPO	BIT(18)
 #define SNVS_LPCR_DEP_EN BIT(5)
-#define SNVS_LPCR_ON_TIME_SHIFT	20
-#define SNVS_LPCR_ON_TIME_MASK	GENMASK(21, 20)
 
 #define DEBOUNCE_TIME 30
 #define REPEAT_INTERVAL 60
@@ -135,10 +133,6 @@ static int imx_snvs_pwrkey_probe(struct platform_device *pdev)
 
 	/* clear the unexpected interrupt before driver ready */
 	regmap_write(pdata->snvs, SNVS_LPSR_REG, SNVS_LPSR_SPO);
-
-	/* Default 500ms ON_TIME is too long.  Change it to 50ms. */
-	regmap_update_bits(pdata->snvs, SNVS_LPCR_REG, SNVS_LPCR_ON_TIME_MASK,
-			   0x1 << SNVS_LPCR_ON_TIME_SHIFT);
 
 	setup_timer(&pdata->check_timer,
 		    imx_imx_snvs_check_for_events, (unsigned long) pdata);
