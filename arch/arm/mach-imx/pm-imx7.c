@@ -129,6 +129,12 @@
 #define M4_RCR_GO		0xAA
 #define M4_OCRAMS_RESERVED_SIZE	0xc
 
+#define SNVS_LPCR 0x38
+#define SNVS_LPCR_ON_TIME_MASK GENMASK(21, 20)
+#define SNVS_LPCR_ON_TIME_SHIFT 20
+#define SNVS_LPCR_ON_TIME_50MS 0x1
+#define SNVS_LPCR_ON_TIME_500MS 0x0
+
 extern unsigned long iram_tlb_base_addr;
 extern unsigned long iram_tlb_phys_addr;
 
@@ -781,6 +787,31 @@ static int imx7_pm_is_resume_from_lpsr(void)
 	return readl_relaxed(lpsr_base);
 }
 
+static void imx7_lpsr_tweaks_enable(bool lpsr_enable)
+{
+	u32 val;
+
+	/*
+	 * To get GPIO1/2 LPSR wakeup work,
+	 * set bit 7 of SNVS register 0x48.  Unfortunately, it brings us
+	 * a side effect, that is setting TOP (Turn off System Power) bit
+	 * of SNVS LPCR register results in an immediate reset instead of
+	 * power-off. To work around the issue, we only enable this when
+	 * entering LPSR sleep state.
+	 */
+	val = readl_relaxed(pm_info->snvs_base.vbase + 0x48);
+	val &= ~BIT(7);
+	val |= lpsr_enable ? BIT(7) : 0;
+	writel_relaxed(val, pm_info->snvs_base.vbase + 0x48);
+
+	/* Key press length, shorter keypress in LPSR sleep */
+	val = readl_relaxed(pm_info->snvs_base.vbase + SNVS_LPCR);
+	val &= ~SNVS_LPCR_ON_TIME_MASK;
+	val |= (lpsr_enable ? SNVS_LPCR_ON_TIME_50MS : SNVS_LPCR_ON_TIME_500MS)
+			<< SNVS_LPCR_ON_TIME_SHIFT;
+	writel_relaxed(val, pm_info->snvs_base.vbase + SNVS_LPCR);
+}
+
 static void imx7_pm_do_suspend(bool lpsr)
 {
 	unsigned int console_saved_reg[10] = {0};
@@ -809,6 +840,7 @@ static void imx7_pm_do_suspend(bool lpsr)
 		imx7_console_save(console_saved_reg);
 		memcpy(ocram_saved_in_ddr, ocram_base, ocram_size);
 		if (lpsr) {
+			imx7_lpsr_tweaks_enable(true);
 			imx7_pm_set_lpsr_resume_addr(pm_info->resume_addr);
 			imx7_console_io_save();
 			memcpy(lpm_ocram_saved_in_ddr, lpm_ocram_base,
@@ -835,6 +867,7 @@ static void imx7_pm_do_suspend(bool lpsr)
 		imx7_gpio_restore();
 		imx7d_enable_rcosc();
 		imx7_disable_wdog_powerdown();
+		imx7_lpsr_tweaks_enable(false);
 	}
 	if (imx_gpcv2_is_mf_mix_off() ||
 		imx7_pm_is_resume_from_lpsr()) {
