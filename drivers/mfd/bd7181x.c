@@ -322,8 +322,8 @@ static void bd7181x_hw_init(struct bd7181x *bd7181x)
 	 */
 	bd7181x_set_bits(bd7181x, BD7181X_REG_LDO_MODE1, BIT(3));
 
-	/* Disable OUT32K and have it in open drain mode */
-	bd7181x_clear_bits(bd7181x, BD7181X_REG_OUT32K, BIT(1) | BIT(0));
+	/* Enable OUT32K and have it in cmos mode */
+	bd7181x_set_bits(bd7181x, BD7181X_REG_OUT32K, BIT(1) | BIT(0));
 
 	/* Disable all charger stuff */
 	bd7181x_reg_write(bd7181x, BD7181X_REG_CHG_SET1, 0x0);
