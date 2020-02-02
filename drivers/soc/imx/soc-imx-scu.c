@@ -121,6 +121,8 @@ static int imx_scu_soc_probe(struct platform_device *pdev)
 		TKT340553_SW_WORKAROUND = true;
 	} else if (of_machine_is_compatible("fsl,imx8qxp"))
 		soc_dev_attr->soc_id = "i.MX8QXP";
+	else if (of_machine_is_compatible("fsl, imx8dxl"))
+		soc_dev_attr->soc_id = "i.MX8DXL";
 
 	/* format revision value passed from SCU firmware */
 	val = (id >> 5) & 0xf;
