@@ -1048,7 +1048,8 @@ static void imx6_pcie_configure_type(struct imx6_pcie *imx6_pcie)
 {
 	unsigned int mask, val;
 
-	if (IS_ENABLED(CONFIG_EP_MODE_IN_EP_RC_SYS)) {
+	if (IS_ENABLED(CONFIG_EP_MODE_IN_EP_RC_SYS)
+			&& (imx6_pcie->hard_wired == 0)) {
 		if (imx6_pcie->drvdata->variant == IMX8QM
 				|| imx6_pcie->drvdata->variant == IMX8QXP) {
 			val = IMX8QM_CSR_PCIEA_OFFSET
@@ -1517,7 +1518,8 @@ static int imx6_pcie_host_init(struct pcie_port *pp)
 	imx6_pcie_init_phy(imx6_pcie);
 	imx6_pcie_deassert_core_reset(imx6_pcie);
 	imx6_setup_phy_mpll(imx6_pcie);
-	if (!IS_ENABLED(CONFIG_EP_MODE_IN_EP_RC_SYS)) {
+	if (!(IS_ENABLED(CONFIG_EP_MODE_IN_EP_RC_SYS)
+			&& (imx6_pcie->hard_wired == 0))) {
 		dw_pcie_setup_rc(pp);
 		pci_imx_set_msi_en(pp);
 		if (imx6_pcie_establish_link(imx6_pcie))
