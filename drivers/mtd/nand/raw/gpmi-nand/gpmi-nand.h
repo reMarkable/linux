@@ -183,7 +183,7 @@ struct gpmi_nand_data {
 
 #define GPMI_IS_MX6(x)		(GPMI_IS_MX6Q(x) || GPMI_IS_MX6SX(x) || \
 				 GPMI_IS_MX7D(x) || GPMI_IS_MX6UL(x) || \
-				 GPMI_IS_MX6ULL(x))
+				 GPMI_IS_MX6ULL(x) || GPMI_IS_MX6QP(x))
 #define GPMI_IS_MX8(x)		(GPMI_IS_MX8QXP(x))
 #define GPMI_IS_MXS(x)		(GPMI_IS_MX23(x) || GPMI_IS_MX28(x))
 #endif
