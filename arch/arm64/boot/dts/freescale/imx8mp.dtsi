@@ -4,6 +4,7 @@
  */
 
 #include <dt-bindings/clock/imx8mp-clock.h>
+#include <dt-bindings/reset/imx8mq-reset.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -579,7 +580,8 @@
 			};
 
 			gpr: iomuxc-gpr@30340000 {
-				compatible = "fsl,imx8mp-iomuxc-gpr", "fsl,imx7d-iomuxc-gpr", "syscon";
+				compatible = "fsl,imx8mp-iomuxc-gpr", "fsl,imx7d-iomuxc-gpr",
+					     "fsl,imx6q-iomuxc-gpr", "syscon";
 				reg = <0x30340000 0x10000>;
 			};
 
@@ -1670,6 +1672,22 @@
 		};
 	};
 
+	pcie_phy: pcie-phy@32f00000 {
+		compatible = "fsl,imx8mp-pcie-phy";
+		reg = <0x0 0x32f00000 0x0 0x10000>;
+		clocks = <&clk IMX8MP_CLK_PCIE_PHY>;
+		clock-names = "phy";
+		assigned-clocks = <&clk IMX8MP_CLK_PCIE_PHY>;
+		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+		#phy-cells = <0>;
+		status = "disabled";
+	};
+
+	hsio_mix: hsio-mix@32f10000 {
+		  compatible = "fsl,imx8mp-hsio-mix";
+		  reg = <0x0 0x32f10000 0x0 0x8>;
+	};
+
 	dma_apbh: dma-apbh@33000000 {
 		compatible = "fsl,imx7d-dma-apbh", "fsl,imx28-dma-apbh";
 		reg = <0 0x33000000 0 0x2000>;
@@ -1696,6 +1714,39 @@
 		clock-names = "gpmi_io", "gpmi_bch_apb";
 		dmas = <&dma_apbh 0>;
 		dma-names = "rx-tx";
+		status = "disabled";
+	};
+
+	pcie: pcie@33800000 {
+		compatible = "fsl,imx8mp-pcie", "snps,dw-pcie";
+		reg = <0x0 0x33800000 0x0 0x400000>,
+			<0x0 0x1ff00000 0x0 0x80000>;
+		reg-names = "dbi", "config";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		device_type = "pci";
+		ranges =  <0x81000000 0 0x00000000 0x0 0x1ff80000 0 0x00010000 /* downstream I/O 64KB */
+			   0x82000000 0 0x18000000 0x0 0x18000000 0 0x07f00000>; /* non-prefetchable memory */
+		num-lanes = <1>;
+		interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 127 IRQ_TYPE_LEVEL_HIGH>; /* eDMA */
+		interrupt-names = "msi";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 0x7>;
+		interrupt-map = <0 0 0 1 &gic GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 2 &gic GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 3 &gic GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 4 &gic GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
+		fsl,max-link-speed = <3>;
+		resets = <&src IMX8MQ_RESET_PCIEPHY>,
+			 <&src IMX8MQ_RESET_PCIEPHY_PERST>,
+			 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_EN>,
+			 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_CLK_REQ>,
+			 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_TURNOFF>;
+		reset-names = "pciephy", "pciephy_perst", "apps", "clkreq", "turnoff";
+		phys = <&pcie_phy>;
+		phy-names = "pcie-phy";
+		fsl,imx8mp-hsio-mix = <&hsio_mix>;
 		status = "disabled";
 	};
 
