@@ -78,6 +78,14 @@
 #define MODE_OTG_BUCK_BOOST		0x0F
 #define MODE_CHARGER_BUCK		0x05
 
+/* Read back charger status ranges */
+#define MODE_ALL_OFF_MIN		0x00
+#define MODE_ALL_OFF_MAX		0x03
+#define MODE_CHARGER_MIN		0x04
+#define MODE_CHARGER_MAX		0x07
+#define MODE_OTG_MIN			0x0e
+#define MODE_OTG_MAX			0x0f
+
 #define REG_CHG_CNFG_01			0xB8
 #define BIT_PQEN			BIT(7)
 #define BIT_LSEL			BIT(6)
@@ -463,25 +471,31 @@ static int max77818_charger_get_charger_mode(struct max77818_charger *chg)
 	int ret;
 	u32 read_val;
 
+	dev_dbg(chg->dev, "Trying to read current charger mode from device\n");
+
 	ret = regmap_read(chg->regmap, REG_CHG_CNFG_00, &read_val);
 	if (ret) {
 		dev_err(chg->dev, "failed to read CNFG_00: %d\n", ret);
 		return ret;
 	}
+	dev_dbg(chg->dev, "Read raw charger_mode register: 0x%02x\n", read_val);
+	dev_dbg(chg->dev, "Read charger_mode 0x%02x\n", (read_val & BIT_MODE));
+
 	switch(read_val & BIT_MODE)
 	{
-	case MODE_ALL_OFF:
+	case MODE_ALL_OFF_MIN ... MODE_ALL_OFF_MAX:
 		chg->charger_mode = POWER_SUPPLY_MODE_ALL_OFF;
 		break;
-	case MODE_CHARGER_BUCK:
+	case MODE_CHARGER_MIN ... MODE_CHARGER_MAX:
 		chg->charger_mode = POWER_SUPPLY_MODE_CHARGER;
 		break;
-	case MODE_OTG_BUCK_BOOST:
+	case MODE_OTG_MIN ... MODE_OTG_MAX:
 		chg->charger_mode = POWER_SUPPLY_MODE_OTG_SUPPLY;
 		break;
 	default:
-		chg->charger_mode = POWER_SUPPLY_MODE_CHARGER;
-		max77818_charger_set_enable(chg, 1);
+		dev_warn(chg->dev,
+			 "Unknown charger_mode read from device: 0x%02x\n",
+			 (read_val & BIT_MODE));
 	}
 
 	return 0;
