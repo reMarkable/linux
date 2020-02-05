@@ -120,6 +120,15 @@ MODULE_PARM_DESC(config_update,
 		 "the device if required, depending on versioning scheme or other "
 		 "means of determining if a complete or partial update is required.");
 
+/* Parameter to be given from command line in order to tune the delay introduced after
+ * clearing the FGCC bit before forwarding requests to the charger driver */
+static int post_fgcc_change_delay_us = 100000;
+module_param(post_fgcc_change_delay_us, int, 0644);
+MODULE_PARM_DESC(post_fgcc_change_delay_us,
+		 "Debug parameter used to tune the post FGCC change delay introduced "
+		  "to let the charger/fuelgauge take back charging control before doing "
+		  "any other configuration changes on either");
+
 struct max77818_chip {
 	struct device *dev;
 	int irq;
@@ -334,12 +343,16 @@ static int max77818_set_fgcc_mode(struct max77818_chip *chip, bool enabled, bool
 				 MAX17042_CONFIG,
 				 CONFIG_FGCC_BIT,
 				 enabled ? CONFIG_FGCC_BIT : 0x0000);
+
 	if (ret) {
 		dev_err(chip->dev,
 			"Failed to %s FGCC bit in CONFIG register\n",
 			enabled ? "set" : "clear");
 		return ret;
 	}
+
+	dev_dbg(chip->dev, "Waiting %d us after FGCC mode change..\n", post_fgcc_change_delay_us);
+	usleep_range(post_fgcc_change_delay_us, post_fgcc_change_delay_us + 100000);
 
 	return 0;
 }
@@ -358,8 +371,11 @@ static int max77818_set_charger_mode(struct max77818_chip *chip,
 
 	dev_dbg(chip->dev, "Clearing FGCC mode\n");
 	ret = max77818_set_fgcc_mode(chip, false, &restore_state);
-	if (ret)
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to clear FGCC bit in CONFIG register\n");
 		goto out;
+	}
 
 	dev_dbg(chip->dev,
 		"Trying to set charger mode (%d) through charger driver\n",
@@ -373,7 +389,6 @@ static int max77818_set_charger_mode(struct max77818_chip *chip,
 			"Failed to forward charger mode to charger driver\n");
 		goto out;
 	}
-	usleep_range(100, 200);
 
 	if (restore_state) {
 		dev_dbg(chip->dev,
@@ -417,7 +432,6 @@ static int max77818_get_charger_mode(struct max77818_chip *chip,
 			"Failed to clear FGCC bit in CONFIG register\n");
 		goto out;
 	}
-	usleep_range(100, 200);
 
 	dev_dbg(chip->dev,
 		"Trying to read charger mode through charger driver\n");
