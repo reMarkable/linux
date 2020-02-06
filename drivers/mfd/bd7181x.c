@@ -292,8 +292,8 @@ static void bd7181x_hw_init(struct bd7181x *bd7181x)
 	/* Turn off BUCK5 (VDD_3V3) in LPSR mode */
 	bd7181x_clear_bits(bd7181x, BD7181X_REG_BUCK5_MODE, BIT(1));
 
-	/* Turn on LDO1_3V3 (NVCC_GPIO2) in LPSR mode */
-	bd7181x_set_bits(bd7181x, BD7181X_REG_LDO_MODE1, BIT(5));
+	/* Turn off LDO1_3V3 (NVCC_GPIO2) in LPSR mode */
+	bd7181x_clear_bits(bd7181x, BD7181X_REG_LDO_MODE1, BIT(5));
 
 	/*
 	 * Keep LDO2_3V3 (NVCC_GPIO1) on in LPSR mode, as we have wakeup
