@@ -66,3 +66,31 @@ char *get_cpuid_str(struct perf_pmu *pmu)
 	perf_cpu_map__put(cpus);
 	return buf;
 }
+
+#define LEN	20
+
+int soc_version_check(const char *soc_name __maybe_unused)
+{
+	FILE *soc_fd;
+	char name[LEN];
+
+	soc_fd = fopen("/sys/devices/soc0/soc_id", "r");
+	if (!soc_fd) {
+		pr_debug("fopen failed for file /sys/devices/soc0/soc_id\n");
+		return false;
+	}
+
+	if (!fgets(name, LEN, soc_fd)) {
+		pr_debug("get soc name failed\n");
+		fclose(soc_fd);
+		return false;
+	}
+	fclose(soc_fd);
+
+	name[strlen(name) - 1] = '\0';
+
+	if (!strcmp(name, soc_name))
+		return false;
+
+	return true;
+}

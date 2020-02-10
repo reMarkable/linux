@@ -165,4 +165,6 @@ int get_cpuid(char *buffer, size_t sz);
 
 char *get_cpuid_str(struct perf_pmu *pmu __maybe_unused);
 int strcmp_cpuid_str(const char *s1, const char *s2);
+
+int soc_version_check(const char *soc_name __maybe_unused);
 #endif /* __PERF_HEADER_H */

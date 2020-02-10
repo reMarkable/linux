@@ -845,6 +845,15 @@ int __weak strcmp_cpuid_str(const char *mapcpuid, const char *cpuid)
 }
 
 /*
+ * default soc_version_check(): nothing gets recorded
+ * actual implementation must be in arch/$(SRCARCH)/util/header.c
+ */
+int __weak soc_version_check(const char *soc_name __maybe_unused)
+{
+	return -1;
+}
+
+/*
  * default get_cpuid(): nothing gets recorded
  * actual implementation must be in arch/$(SRCARCH)/util/header.c
  */
