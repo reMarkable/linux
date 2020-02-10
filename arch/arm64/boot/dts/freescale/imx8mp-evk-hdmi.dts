@@ -8,7 +8,7 @@
 #include "imx8mp-evk.dts"
 
 / {
-	sound-aud2htx {
+	sound-hdmi {
 		status = "okay";
 	};
 
@@ -53,5 +53,9 @@
 };
 
 &hdmiphy {
+	status = "okay";
+};
+
+&aud2htx {
 	status = "okay";
 };
