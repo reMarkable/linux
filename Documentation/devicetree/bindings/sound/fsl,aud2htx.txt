@@ -1,0 +1,35 @@
+fsl,aud2htx The AUD2HTX is a digital module that provides a bridge between
+the Audio Subsystem and the HDMI RTX Subsystem.
+
+Required properties:
+
+- compatible:       Must contain one of "fsl,imx8mp-aud2htx".
+- reg:              Offset and length of the register set for the device.
+- interrupts:       <a b> where a is the interrupt number and b is a
+                    field that represents an encoding of the sense and
+                    level information for the interrupt.  This should be
+                    encoded based on the information in section 2)
+                    depending on the type of interrupt controller you
+                    have.
+- clocks:           A list of phandles + clock-specifiers, one for each
+		    entry in clock-names
+- clock-names:      Must contain "bus"
+
+Optional properties:
+- dmas:		    Generic dma devicetree binding as described in
+		    Documentation/devicetree/bindings/dma/dma.txt.
+- dma-names:	    One dmas have to be defined, "tx".
+
+Example:
+
+aud2htx: aud2htx@30cb0000 {
+	compatible = "fsl,imx8mp-aud2htx";
+	reg = <0x30cb0000 0x10000>;
+	interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
+	clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_AUD2HTX_IPG>;
+	clock-names = "bus";
+	dmas = <&sdma2 26 2 0>;
+	dma-names = "tx";
+	power-domains = <&audiomix_pd>;
+	status = "disabled";
+};
