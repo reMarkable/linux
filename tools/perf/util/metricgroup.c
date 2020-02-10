@@ -22,6 +22,7 @@
 #include <linux/string.h>
 #include <linux/zalloc.h>
 #include <subcmd/parse-options.h>
+#include "header.h"
 
 struct metric_event *metricgroup__lookup(struct rblist *metric_events,
 					 struct evsel *evsel,
@@ -328,6 +329,8 @@ void metricgroup__print(bool metrics, bool metricgroups, char *filter,
 			const char *g;
 			pe = &map->table[i];
 
+			if (pe->socname && soc_version_check(pe->socname))
+				continue;
 			if (!pe->name && !pe->metric_group && !pe->metric_name)
 				break;
 			if (!pe->metric_expr)
@@ -416,6 +419,8 @@ static int metricgroup__add_metric(const char *metric, struct strbuf *events,
 	for (i = 0; ; i++) {
 		pe = &map->table[i];
 
+		if (pe->socname && soc_version_check(pe->socname))
+			continue;
 		if (!pe->name && !pe->metric_group && !pe->metric_name)
 			break;
 		if (!pe->metric_expr)
@@ -572,6 +577,8 @@ bool metricgroup__has_metric(const char *metric)
 		for (i = 0; ; i++) {
 			pe = &map->table[i];
 
+			if (pe->socname && soc_version_check(pe->socname))
+				continue;
 			if (!pe->name && !pe->metric_group && !pe->metric_name)
 				break;
 			if (!pe->metric_expr)
