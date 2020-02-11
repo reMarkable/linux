@@ -24,6 +24,7 @@ Required properties:
 
 Optional properties:
 - intf_mode: is optional for imx8dxl platform.
+- snps,rmii_refclk_ext: to select RMII reference clock from external.
 
 Example:
 	eqos: ethernet@30bf0000 {
