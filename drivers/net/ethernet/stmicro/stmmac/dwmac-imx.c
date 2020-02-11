@@ -27,6 +27,7 @@
 #define GPR_ENET_QOS_INTF_SEL_RMII	(0x4 << 16)
 #define GPR_ENET_QOS_INTF_SEL_RGMII	(0x1 << 16)
 #define GPR_ENET_QOS_CLK_GEN_EN		(0x1 << 19)
+#define GPR_ENET_QOS_CLK_TX_CLK_SEL	(0x1 << 20)
 #define GPR_ENET_QOS_RGMII_EN		(0x1 << 21)
 
 struct imx_dwmac_ops {
@@ -40,8 +41,9 @@ struct imx_dwmac_ops {
 struct imx_priv_data {
 	struct device *dev;
 	struct clk *clk_tx;
-	u32 intf_reg_off;
 	struct regmap *intf_regmap;
+	u32 intf_reg_off;
+	bool rmii_refclk_ext;
 
 	const struct imx_dwmac_ops *ops;
 	struct plat_stmmacenet_data *plat_dat;
@@ -58,13 +60,13 @@ static int imx8mp_set_intf_mode(struct plat_stmmacenet_data *plat_dat)
 		break;
 	case PHY_INTERFACE_MODE_RMII:
 		val = GPR_ENET_QOS_INTF_SEL_RMII;
+		val |= (dwmac->rmii_refclk_ext ? 0 : GPR_ENET_QOS_CLK_TX_CLK_SEL);
 		break;
 	case PHY_INTERFACE_MODE_RGMII:
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
 	case PHY_INTERFACE_MODE_RGMII_TXID:
 		val = GPR_ENET_QOS_INTF_SEL_RGMII |
-		      GPR_ENET_QOS_CLK_GEN_EN |
 		      GPR_ENET_QOS_RGMII_EN;
 		break;
 	default:
@@ -73,6 +75,7 @@ static int imx8mp_set_intf_mode(struct plat_stmmacenet_data *plat_dat)
 		return -EINVAL;
 	}
 
+	val |= GPR_ENET_QOS_CLK_GEN_EN;
 	return regmap_update_bits(dwmac->intf_regmap, dwmac->intf_reg_off,
 				  GPR_ENET_QOS_INTF_MODE_MASK, val);
 };
@@ -151,10 +154,13 @@ static void imx_dwmac_exit(struct platform_device *pdev, void *priv)
 static void imx_dwmac_fix_speed(void *priv, unsigned int speed)
 {
 	struct imx_priv_data *dwmac = priv;
+	struct plat_stmmacenet_data *plat_dat = dwmac->plat_dat;
 	unsigned long rate;
 	int err;
 
-	if (dwmac->ops->mac_txclk_auto_adj)
+	if (dwmac->ops->mac_txclk_auto_adj ||
+	    (plat_dat->interface == PHY_INTERFACE_MODE_RMII) ||
+	    (plat_dat->interface == PHY_INTERFACE_MODE_MII))
 		return;
 
 	switch (speed) {
@@ -182,6 +188,9 @@ imx_dwmac_parse_dt(struct imx_priv_data *dwmac, struct device *dev)
 {
 	struct device_node *np = dev->of_node;
 	int err;
+
+	if (of_get_property(np, "snps,rmii_refclk_ext", NULL))
+		dwmac->rmii_refclk_ext = true;
 
 	dwmac->clk_tx = devm_clk_get(dev, "tx");
 	if (IS_ERR(dwmac->clk_tx)) {
