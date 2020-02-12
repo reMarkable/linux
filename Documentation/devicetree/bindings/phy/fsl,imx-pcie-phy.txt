@@ -1,0 +1,22 @@
+* Freescale i.MX PCIE PHY binding
+
+Required properties:
+- compatible:	Should be "fsl,imx-pcie-phy"
+- #phys-cells:	must be 0 (see phy-bindings.txt in this directory)
+- reg:		The base address and length of the registers
+- clocks:	Phandles to the clocks for each clock listed in clock-names
+- clock-names:	Must contain "phy"
+- power-domains: Phandle to the power domain that the device is part of
+
+Example:
+	pcie_phy: pcie-phy@32f00000 {
+		compatible = "fsl,imx8mp-pcie-phy";
+		reg = <0x0 0x32f00000 0x0 0x10000>;
+		clocks = <&clk IMX8MP_CLK_PCIE_PHY>;
+		clock-names = "phy";
+		assigned-clocks = <&clk IMX8MP_CLK_PCIE_PHY>;
+		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+		#phy-cells = <0>;
+		power-domains = <&pcie_pd>;
+		status = "disabled";
+	};
