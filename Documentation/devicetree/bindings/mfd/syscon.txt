@@ -14,6 +14,10 @@ Required properties:
 - reg: the register region can be accessed from syscon
 
 Optional property:
+- compatible:
+	- "fsl,imx6q-iomuxc-gpr"
+	- "fsl,imx7d-iomuxc-gpr"
+	- "fsl,imx8mp-iomuxc-gpr"
 - reg-io-width: the size (in bytes) of the IO accesses that should be
   performed on the device.
 - hwlocks: reference to a phandle of a hardware spinlock provider node.
