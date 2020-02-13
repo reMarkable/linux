@@ -68,6 +68,12 @@
 		cpu-dai = <&micfil>;
 	};
 
+	sound-earc {
+		compatible = "fsl,imx-audio-xcvr";
+		model = "imx-audio-earc";
+		cpu-dai = <&earc>;
+	};
+
 	sound-ak4458 {
 		compatible = "fsl,imx-audio-ak4458";
 		model = "ak4458-audio";
@@ -385,6 +391,19 @@
 	status = "okay";
 };
 
+&earc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_earc>;
+	/**
+	 * Bit 0: TX enabled
+	 * Bit 1: RX enabled
+	 * Bits 3..2: 0=SPDIF, 1=ARC, 2=EARC, 3=RESERVED
+	 */
+	fsl,xcvr-mode = <0xb>; /* EARC,  RX + TX */
+	#sound-dai-cells = <0>;
+	status = "okay";
+};
+
 &sdma2 {
 	status = "okay";
 };
@@ -593,6 +612,15 @@
 			MX8MP_IOMUXC_SAI3_RXC__AUDIOMIX_SAI3_RX_BCLK	0xd6
 			MX8MP_IOMUXC_SAI3_RXFS__AUDIOMIX_SAI3_RX_SYNC	0xd6
 			MX8MP_IOMUXC_SAI3_RXD__AUDIOMIX_SAI3_RX_DATA00	0xd6
+		>;
+	};
+
+	pinctrl_earc: earcgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_HDMI_DDC_SCL__HDMIMIX_EARC_SCL	0x400001c3
+			MX8MP_IOMUXC_HDMI_DDC_SDA__HDMIMIX_EARC_SDA	0x400001c3
+			MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_EARC_DC_HPD	0x40000019
+			MX8MP_IOMUXC_HDMI_CEC__HDMIMIX_EARC_CEC		0x40000019
 		>;
 	};
 
