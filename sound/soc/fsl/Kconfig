@@ -588,6 +588,14 @@ config SND_SOC_IMX_CDNHDMI
 	  Say Y if you want to add support for SoC audio on an i.MX board with
 	  IMX CDN HDMI.
 
+config SND_SOC_IMX_XCVR
+	tristate "SoC Audio support for i.MX boards with XCVR"
+	select SND_SOC_FSL_XCVR
+	help
+	  SoC Audio support for i.MX boards with Audio Transceiver (XCVR)
+	  Say Y if you want to add support for SoC audio on an i.MX board with
+	  an Audio Transceiver (XCVR).
+
 endif # SND_IMX_SOC
 
 endmenu
