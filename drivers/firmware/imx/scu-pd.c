@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2018 NXP
+ * Copyright 2017-2018,2020 NXP
  *	Dong Aisheng <aisheng.dong@nxp.com>
  *
  * Implementation of the SCU based Power Domains
@@ -255,6 +255,9 @@ static const struct imx_sc_pd_range imx8qxp_scu_pd_ranges[] = {
 
 	/* BOARD SS */
 	{ "board", IMX_SC_R_BOARD_R0, 8, true, 0},
+
+	/* SECO SS */
+	{ "seco_mu", IMX_SC_R_SECO_MU_2, 3, true, 2},
 };
 
 static const struct imx_sc_pd_soc imx8qxp_scu_pd = {
