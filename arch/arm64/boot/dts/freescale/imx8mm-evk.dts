@@ -311,6 +311,8 @@
 	srp-disable;
 	adp-disable;
 	usb-role-switch;
+	picophy,pre-emp-curr-control = <3>;
+	picophy,dc-vol-level-adjust = <7>;
 	status = "okay";
 
 	port {
