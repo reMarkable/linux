@@ -15,7 +15,7 @@
 
 / {
 	compatible = "fsl,imx8mp";
-	interrupt-parent = <&gic>;
+	interrupt-parent = <&gpc>;
 	#address-cells = <2>;
 	#size-cells = <2>;
 
@@ -694,6 +694,15 @@
 				reg = <0x30390000 0x10000>;
 				interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
 				#reset-cells = <1>;
+			};
+
+			gpc: gpc@303a0000 {
+				compatible = "fsl,imx8mp-gpc";
+				reg = <0x303a0000 0x10000>;
+				interrupt-parent = <&gic>;
+				interrupt-controller;
+				broken-wake-request-signals;
+				#interrupt-cells = <3>;
 			};
 		};
 
@@ -1541,7 +1550,7 @@
 				reg = <0x32fc2000 0x1000>;
 				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-controller;
-				interrupt-parent = <&gic>;
+				interrupt-parent = <&gpc>;
 				#interrupt-cells = <1>;
 				fsl,channel = <1>;
 				fsl,num-irqs = <64>;
@@ -2092,6 +2101,7 @@
 		cpu = <&A53_0>;
 		clocks = <&clk IMX8MP_CLK_MAIN_AXI>;
 		clock-names = "apb_pclk";
+		status = "disabled";
 
 		out-ports {
 			port {
@@ -2109,6 +2119,7 @@
 		cpu = <&A53_1>;
 		clocks = <&clk IMX8MP_CLK_MAIN_AXI>;
 		clock-names = "apb_pclk";
+		status = "disabled";
 
 		out-ports {
 			port {
@@ -2126,6 +2137,7 @@
 		cpu = <&A53_2>;
 		clocks = <&clk IMX8MP_CLK_MAIN_AXI>;
 		clock-names = "apb_pclk";
+		status = "disabled";
 
 		out-ports {
 			port {
@@ -2143,6 +2155,7 @@
 		cpu = <&A53_3>;
 		clocks = <&clk IMX8MP_CLK_MAIN_AXI>;
 		clock-names = "apb_pclk";
+		status = "disabled";
 
 		out-ports {
 			port {
@@ -2159,6 +2172,7 @@
 		* bus.  As such no need to add "arm,primecell".
 		*/
 		compatible = "arm,coresight-static-funnel";
+		status = "disabled";
 
 		in-ports {
 			#address-cells = <1>;
@@ -2208,6 +2222,7 @@
 		reg = <0x0 0x28c03000 0x0 0x1000>;
 		clocks = <&clk IMX8MP_CLK_MAIN_AXI>;
 		clock-names = "apb_pclk";
+		status = "disabled";
 
 		in-ports {
 			#address-cells = <1>;
@@ -2250,6 +2265,7 @@
 		reg = <0x0 0x28c04000 0x0 0x1000>;
 		clocks = <&clk IMX8MP_CLK_MAIN_AXI>;
 		clock-names = "apb_pclk";
+		status = "disabled";
 
 		in-ports {
 			port {
@@ -2273,6 +2289,7 @@
 		reg = <0x0 0x28c06000 0x0 0x1000>;
 		clocks = <&clk IMX8MP_CLK_MAIN_AXI>;
 		clock-names = "apb_pclk";
+		status = "disabled";
 
 		in-ports {
 			port {
