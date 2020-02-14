@@ -1035,7 +1035,7 @@ static const struct usbmisc_ops imx6sx_usbmisc_ops = {
 };
 
 static const struct usbmisc_ops imx7d_usbmisc_ops = {
-	.init = usbmisc_imx7ulp_init,
+	.init = usbmisc_imx7d_init,
 	.set_wakeup = usbmisc_imx7d_set_wakeup,
 	.power_lost_check = usbmisc_imx7d_power_lost_check,
 	.charger_detection = imx7d_charger_detection,
@@ -1043,7 +1043,7 @@ static const struct usbmisc_ops imx7d_usbmisc_ops = {
 };
 
 static const struct usbmisc_ops imx7ulp_usbmisc_ops = {
-	.init = usbmisc_imx7d_init,
+	.init = usbmisc_imx7ulp_init,
 	.set_wakeup = usbmisc_imx7d_set_wakeup,
 	.power_lost_check = usbmisc_imx7d_power_lost_check,
 	.hsic_set_connect = usbmisc_imx6_hsic_set_connect,
