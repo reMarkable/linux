@@ -609,6 +609,15 @@ static void handle_error(struct mem_ctl_info *mci, struct synps_ecc_status *p)
 	memset(p, 0, sizeof(*p));
 }
 
+static void enable_intr_imx8mp(struct synps_edac_priv *priv)
+{
+	int regval;
+
+	regval = readl(priv->baseaddr + ECC_CLR_OFST);
+	regval |= (DDR_CE_INTR_EN_MASK | DDR_UE_INTR_EN_MASK);
+	writel(regval, priv->baseaddr + ECC_CLR_OFST);
+}
+
 /* Interrupt Handler for ECC interrupts on imx8mp platform. */
 static irqreturn_t intr_handler_imx8mp(int irq, void *dev_id)
 {
@@ -634,6 +643,8 @@ static irqreturn_t intr_handler_imx8mp(int irq, void *dev_id)
 
 	edac_dbg(3, "Total error count CE %d UE %d\n",
 		 priv->ce_cnt, priv->ue_cnt);
+	enable_intr_imx8mp(priv);
+
 	return IRQ_HANDLED;
 }
 
@@ -890,15 +901,6 @@ static void mc_init(struct mem_ctl_info *mci, struct platform_device *pdev)
 	mci->ctl_page_to_phys = NULL;
 
 	init_csrows(mci);
-}
-
-static void enable_intr_imx8mp(struct synps_edac_priv *priv)
-{
-	int regval;
-
-	regval = readl(priv->baseaddr + ECC_CLR_OFST);
-	regval |= (DDR_CE_INTR_EN_MASK | DDR_UE_INTR_EN_MASK);
-	writel(regval, priv->baseaddr + ECC_CLR_OFST);
 }
 
 static void disable_intr_imx8mp(struct synps_edac_priv *priv)
