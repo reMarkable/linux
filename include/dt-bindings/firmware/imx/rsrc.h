@@ -623,6 +623,12 @@
 #define IMX_SC_C_IPG_STOP_MODE              53U
 #define IMX_SC_C_IPG_STOP_ACK               54U
 #define IMX_SC_C_SYNC_CTRL                  55U
-#define IMX_SC_C_LAST                       56U
+#define IMX_SC_C_OFS_AUDIO_ALT              56U
+#define IMX_SC_C_DSP_BYP                    57U
+#define IMX_SC_C_CLK_GEN_EN                 58U
+#define IMX_SC_C_INTF_SEL                   59U
+#define IMX_SC_C_RXC_DLY                    60U
+#define IMX_SC_C_TIMER_SEL                  61U
+#define IMX_SC_C_LAST                       62U
 
 #endif /* __DT_BINDINGS_RSCRC_IMX_H */
