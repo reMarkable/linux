@@ -187,11 +187,9 @@ static int fsl_jr_probe(struct platform_device *dev)
 		goto abort;
 	}
 
-	jr_dev->res = devm_request_mem_region(&dev->dev, regs.start,
-					      regs.end - regs.start + 1,
-					      jr_dev->info.name);
+	jr_dev->res = platform_get_resource(dev, IORESOURCE_MEM, 0);
 	if (unlikely(!jr_dev->res)) {
-		dev_err(jr_dev->dev, "devm_request_mem_region failed\n");
+		dev_err(jr_dev->dev, "platform_get_resource() failed\n");
 		ret = -ENOMEM;
 		goto abort;
 	}
