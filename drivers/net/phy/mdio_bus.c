@@ -408,8 +408,11 @@ int __mdiobus_register(struct mii_bus *bus, struct module *owner)
 		gpiod_set_value_cansleep(gpiod, 0);
 	}
 
-	if (bus->reset)
-		bus->reset(bus);
+	if (bus->reset) {
+		err = bus->reset(bus);
+		if (err)
+			goto reset_err;
+	}
 
 	for (i = 0; i < PHY_MAX_ADDR; i++) {
 		if ((bus->phy_mask & (1 << i)) == 0) {
@@ -439,6 +442,7 @@ error:
 		mdiodev->device_free(mdiodev);
 	}
 
+reset_err:
 	/* Put PHYs in RESET to save power */
 	if (bus->reset_gpiod)
 		gpiod_set_value_cansleep(bus->reset_gpiod, 1);
