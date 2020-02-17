@@ -231,6 +231,8 @@ static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 	/* Try to read from the device first, but if the charger device
 	 * is offline, try to read the chg status gpios */
 	if(!IS_ERR_OR_NULL(chg->regmap)) {
+		dev_dbg(chg->dev, "Trying to read REG_CHG_INT_OK\n");
+
 		ret = regmap_read(chg->regmap, REG_CHG_INT_OK, &chg_int_ok);
 		if (!ret) {
 			if (chg_int_ok & BIT_CHGIN_OK) {
@@ -253,7 +255,9 @@ static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 	 * Use GPIO
 	 */
 	if (chg->chgin_stat_gpio) {
+		dev_dbg(chg->dev, "Trying to read chgin_stat_gpio\n");
 		ret = gpiod_get_value_cansleep(chg->chgin_stat_gpio);
+		dev_dbg(chg->dev, "ret: %d\n", ret);
 		if (ret < 0)
 			dev_err(chg->dev,
 				"failed to read chgin-stat-gpio: %d\n",
@@ -277,6 +281,8 @@ static bool max77818_charger_wcin_present(struct max77818_charger *chg)
 	/* Try to read from the device first, but if the charger device
 	 * is offline, try to read the chg status gpios */
 	if(!IS_ERR_OR_NULL(chg->regmap)) {
+		dev_dbg(chg->dev, "Trying to read REG_CHG_INT_OK\n");
+
 		ret = regmap_read(chg->regmap, REG_CHG_INT_OK, &chg_int_ok);
 		if (!ret) {
 			if (chg_int_ok & BIT_WCIN_OK) {
@@ -299,7 +305,10 @@ static bool max77818_charger_wcin_present(struct max77818_charger *chg)
 	 * Use GPIO
 	 */
 	if (chg->wcin_stat_gpio) {
+		dev_dbg(chg->dev, "Trying to read wcin_stat_gpio\n");
 		ret = gpiod_get_value_cansleep(chg->wcin_stat_gpio);
+		dev_dbg(chg->dev, "ret: %d\n", ret);
+
 		if (ret < 0)
 			dev_err(chg->dev,
 				"failed to read wcin-stat-gpio: %d\n",
@@ -679,6 +688,8 @@ static void max77818_charger_update(struct max77818_charger *chg)
 	}
 
 	if(!IS_ERR_OR_NULL(chg->regmap)) {
+		dev_dbg(chg->dev, "Trying to read CHG_DTLS_01\n");
+
 		ret = regmap_read(chg->regmap, REG_CHG_DTLS_01, &dtls_01);
 		if (!ret) {
 			chg_dtls = dtls_01 & BIT_CHG_DTLS;
