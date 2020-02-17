@@ -24,9 +24,11 @@
 #include <linux/io.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
+#include <linux/pinctrl/consumer.h>
 #include <linux/power_supply.h>
 #include <linux/mfd/max77818/max77818.h>
 #include <linux/gpio/consumer.h>
+#include <linux/suspend.h>
 
 /* Register map */
 #define REG_CHG_INT 			0xB0
@@ -1122,10 +1124,36 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static int max77818_charger_suspend(struct device *dev)
+{
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		dev_dbg(dev->parent, "Selecting sleep pinctrl state\n");
+		pinctrl_pm_select_sleep_state(dev->parent);
+	}
+
+	return 0;
+}
+
+static int max77818_charger_resume(struct device *dev)
+{
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		dev_dbg(dev->parent, "Selecting default pinctrl state\n");
+		pinctrl_pm_select_default_state(dev->parent);
+	}
+
+	return 0;
+}
+
+static struct dev_pm_ops max77818_pm_ops = {
+	.suspend = max77818_charger_suspend,
+	.resume = max77818_charger_resume,
+};
+
 static struct platform_driver max77818_charger_driver = {
 	.driver = {
 		.name = MAX77818_CHARGER_NAME,
 		.owner = THIS_MODULE,
+		.pm = &max77818_pm_ops,
 	},
 	.probe = max77818_charger_probe,
 };
