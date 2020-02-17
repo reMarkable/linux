@@ -7,6 +7,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/gpio/consumer.h>
 #include <linux/kernel.h>
 #include <linux/mfd/syscon.h>
 #include <linux/module.h>
@@ -21,6 +22,11 @@
 #include <linux/stmmac.h>
 
 #include "stmmac_platform.h"
+
+#ifdef CONFIG_IMX_SCU_SOC
+#include <dt-bindings/firmware/imx/rsrc.h>
+#include <linux/firmware/imx/sci.h>
+#endif
 
 #define GPR_ENET_QOS_INTF_MODE_MASK	GENMASK(21, 16)
 #define GPR_ENET_QOS_INTF_SEL_MII	(0x0 << 16)
@@ -41,6 +47,7 @@ struct imx_dwmac_ops {
 struct imx_priv_data {
 	struct device *dev;
 	struct clk *clk_tx;
+	struct clk *clk_mem;
 	struct regmap *intf_regmap;
 	u32 intf_reg_off;
 	bool rmii_refclk_ext;
@@ -83,8 +90,41 @@ static int imx8mp_set_intf_mode(struct plat_stmmacenet_data *plat_dat)
 static int
 imx8dxl_set_intf_mode(struct plat_stmmacenet_data *plat_dat)
 {
-	/* TBD */
-	return 0;
+	int ret = 0;
+#ifdef CONFIG_IMX_SCU_SOC
+	struct imx_sc_ipc *ipc_handle;
+	int val;
+
+	ret = imx_scu_get_handle(&ipc_handle);
+	if (ret)
+		return ret;
+
+	switch (plat_dat->interface) {
+	case PHY_INTERFACE_MODE_MII:
+		val = GPR_ENET_QOS_INTF_SEL_MII;
+		break;
+	case PHY_INTERFACE_MODE_RMII:
+		val = GPR_ENET_QOS_INTF_SEL_RMII;
+		break;
+	case PHY_INTERFACE_MODE_RGMII:
+	case PHY_INTERFACE_MODE_RGMII_ID:
+	case PHY_INTERFACE_MODE_RGMII_RXID:
+	case PHY_INTERFACE_MODE_RGMII_TXID:
+		val = GPR_ENET_QOS_INTF_SEL_RGMII;
+		break;
+	default:
+		pr_debug("imx dwmac doesn't support %d interface\n",
+			 plat_dat->interface);
+		return -EINVAL;
+	}
+
+	ret = imx_sc_misc_set_control(ipc_handle, IMX_SC_R_ENET_1,
+				      IMX_SC_C_INTF_SEL, val >> 16);
+	ret |= imx_sc_misc_set_control(ipc_handle, IMX_SC_R_ENET_1,
+				       IMX_SC_C_CLK_GEN_EN, 0x1);
+#endif
+
+	return ret;
 }
 
 static int
@@ -107,10 +147,16 @@ static int imx_dwmac_init(struct platform_device *pdev, void *priv)
 	struct plat_stmmacenet_data *plat_dat = dwmac->plat_dat;
 	int ret;
 
+	ret = clk_prepare_enable(dwmac->clk_mem);
+	if (ret) {
+		dev_err(&pdev->dev, "mem clock enable failed\n");
+		return ret;
+	}
+
 	ret = clk_prepare_enable(dwmac->clk_tx);
 	if (ret) {
 		dev_err(&pdev->dev, "tx clock enable failed\n");
-		return ret;
+		goto clk_tx_en_failed;
 	}
 
 	if (dwmac->ops->set_stop_mode) {
@@ -130,6 +176,8 @@ static int imx_dwmac_init(struct platform_device *pdev, void *priv)
 intf_mode_failed:
 stop_mode_failed:
 	clk_disable_unprepare(dwmac->clk_tx);
+clk_tx_en_failed:
+	clk_disable_unprepare(dwmac->clk_mem);
 	return ret;
 }
 
@@ -149,6 +197,7 @@ static void imx_dwmac_exit(struct platform_device *pdev, void *priv)
 
 	if (dwmac->clk_tx)
 		clk_disable_unprepare(dwmac->clk_tx);
+	clk_disable_unprepare(dwmac->clk_mem);
 }
 
 static void imx_dwmac_fix_speed(void *priv, unsigned int speed)
@@ -187,7 +236,7 @@ static int
 imx_dwmac_parse_dt(struct imx_priv_data *dwmac, struct device *dev)
 {
 	struct device_node *np = dev->of_node;
-	int err;
+	int err = 0;
 
 	if (of_get_property(np, "snps,rmii_refclk_ext", NULL))
 		dwmac->rmii_refclk_ext = true;
@@ -198,14 +247,28 @@ imx_dwmac_parse_dt(struct imx_priv_data *dwmac, struct device *dev)
 		return PTR_ERR(dwmac->clk_tx);
 	}
 
-	dwmac->intf_regmap = syscon_regmap_lookup_by_phandle(np, "intf_mode");
-	if (IS_ERR(dwmac->intf_regmap))
-		return PTR_ERR(dwmac->intf_regmap);
+	dwmac->clk_mem = NULL;
+	if (of_machine_is_compatible("fsl,imx8dxl")) {
+		dwmac->clk_mem = devm_clk_get(dev, "mem");
+		if (IS_ERR(dwmac->clk_mem)) {
+			dev_err(dev, "failed to get mem clock\n");
+			return PTR_ERR(dwmac->clk_mem);
+		}
+	}
 
-	err = of_property_read_u32_index(np, "intf_mode", 1, &dwmac->intf_reg_off);
-	if (err)
-		dev_err(dev, "Can't get intf mode reg offset (%d)\n", err);
+	if (of_machine_is_compatible("fsl,imx8mp")) {
+		/* Binding doc describes the propety:
+		   is required by i.MX8MP.
+		   is optinoal for i.MX8DXL.
+		 */
+		dwmac->intf_regmap = syscon_regmap_lookup_by_phandle(np, "intf_mode");
+		if (IS_ERR(dwmac->intf_regmap))
+			return PTR_ERR(dwmac->intf_regmap);
 
+		err = of_property_read_u32_index(np, "intf_mode", 1, &dwmac->intf_reg_off);
+		if (!err)
+			dev_err(dev, "Can't get intf mode reg offset (%d)\n", err);
+	}
 
 	return err;
 }
