@@ -150,8 +150,8 @@ static void __evdev_queue_syn_dropped(struct evdev_client *client)
 {
 	struct input_event ev;
 
-	ktime_t time = input_get_timestamp(client->evdev->handle.dev);
-	ev.time = ktime_to_timeval(time);
+	ktime_t *time = input_get_timestamp(client->evdev->handle.dev);
+	ev.time = ktime_to_timeval(*time);
 	ev.type = EV_SYN;
 	ev.code = SYN_DROPPED;
 	ev.value = 0;
