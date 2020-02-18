@@ -30,7 +30,6 @@
 #include <linux/kthread.h>
 #include <linux/regulator/consumer.h>
 
-#define CY_WACOM_SCAN_TIMEOUT_MS		500
 #define CY_CORE_STARTUP_RETRY_COUNT		3
 
 MODULE_FIRMWARE(CY_FW_FILE_NAME);
@@ -38,9 +37,6 @@ MODULE_FIRMWARE(CY_FW_FILE_NAME);
 static const char *cy_driver_core_name = CYTTSP5_CORE_NAME;
 static const char *cy_driver_core_version = CY_DRIVER_VERSION;
 static const char *cy_driver_core_date = CY_DRIVER_DATE;
-
-extern int wacom_notifier_register(struct notifier_block *nb);
-extern int wacom_notifier_unregister(struct notifier_block *nb);
 
 struct cyttsp5_hid_field {
 	int report_count;
@@ -5674,45 +5670,6 @@ static void cyttsp5_setup_fb_notifier(struct cyttsp5_core_data *cd)
 }
 #endif
 
-static int cyttsp5_wacom_notifier_call(struct notifier_block *nb,
-				       unsigned long action, void *data)
-{
-	struct cyttsp5_core_data *cd = container_of(nb, struct cyttsp5_core_data, wacom_notifier);
-
-	if (atomic_read(&cd->wacom_scanning) == 0) {
-		atomic_inc(&cd->wacom_scanning);
-		schedule_work(&cd->wacom_work);
-	};
-
-	mod_timer(&cd->wacom_timer,
-		  jiffies + msecs_to_jiffies(CY_WACOM_SCAN_TIMEOUT_MS));
-
-	return 0;
-}
-
-static void cyttsp5_wacom_timer(unsigned long data)
-{
-	struct cyttsp5_core_data *cd = (struct cyttsp5_core_data *) data;
-
-	atomic_set(&cd->wacom_scanning, 0);
-	schedule_work(&cd->wacom_work);
-}
-
-static void cyttsp5_wacom_work(struct work_struct *work)
-{
-	struct cyttsp5_core_data *cd = container_of(work,
-						    struct cyttsp5_core_data,
-						    wacom_work);
-
-	if (atomic_read(&cd->wacom_scanning) == 0) {
-		dev_dbg(cd->dev, "Power on touch\n");
-		cyttsp5_hid_cmd_set_power(cd, HID_POWER_ON);
-	} else {
-		dev_dbg(cd->dev, "Set touch sleep\n");
-		cyttsp5_hid_cmd_set_power(cd, HID_POWER_SLEEP);
-	}
-}
-
 static int cyttsp5_setup_irq_gpio(struct cyttsp5_core_data *cd)
 {
 	struct device *dev = cd->dev;
@@ -5934,11 +5891,6 @@ int cyttsp5_probe(const struct cyttsp5_bus_ops *ops, struct device *dev,
 	register_pm_notifier(&cd->pm_notifier);
 #endif
 
-	INIT_WORK(&cd->wacom_work, cyttsp5_wacom_work);
-	cd->wacom_notifier.notifier_call = cyttsp5_wacom_notifier_call;
-	wacom_notifier_register(&cd->wacom_notifier);
-	setup_timer(&cd->wacom_timer, cyttsp5_wacom_timer, (unsigned long) cd);
-
 	return 0;
 
 error_startup_btn:
@@ -5979,9 +5931,6 @@ EXPORT_SYMBOL_GPL(cyttsp5_probe);
 int cyttsp5_release(struct cyttsp5_core_data *cd)
 {
 	struct device *dev = cd->dev;
-
-	del_timer(&cd->wacom_timer);
-	wacom_notifier_unregister(&cd->wacom_notifier);
 
 	/* Release successfully probed modules */
 	cyttsp5_release_modules(cd);
