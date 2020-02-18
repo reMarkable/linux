@@ -1896,6 +1896,7 @@
 					 <&clk IMX8MP_SYS_PLL1_800M>;
 		assigned-clock-rates = <1000000000>, <1000000000>,
 				       <800000000>, <400000000>;
+		power-domains = <&gpu3d_pd>;
 		status = "disabled";
 	};
 
@@ -1914,6 +1915,7 @@
 					 <&clk IMX8MP_SYS_PLL1_800M>,
 					 <&clk IMX8MP_SYS_PLL1_800M>;
 		assigned-clock-rates = <1000000000>, <800000000>, <400000000>;
+		power-domains = <&gpu2d_pd>;
 		status = "disabled";
 	};
 
@@ -2056,6 +2058,7 @@
 					 <&clk IMX8MP_SYS_PLL1_800M>,
 					 <&clk IMX8MP_SYS_PLL1_800M>;
 		assigned-clock-rates = <1000000000>, <800000000>, <400000000>;
+		power-domains = <&mlmix_pd>;
 		status = "disabled";
 	};
 
