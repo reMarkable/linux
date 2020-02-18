@@ -56,6 +56,24 @@
 		};
 	};
 
+	reg_can0_stby: regulator-can0-stby {
+		compatible = "regulator-fixed";
+		regulator-name = "can0-stby";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&pca6416_3 0 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_can1_stby: regulator-can1-stby {
+		compatible = "regulator-fixed";
+		regulator-name = "can1-stby";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&pca6416_3 1 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
 	reg_usdhc2_vmmc: usdhc2-vmmc {
 		compatible = "regulator-fixed";
 		regulator-name = "SD1_SPWR";
@@ -236,6 +254,20 @@
 &lpuart0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpuart0>;
+	status = "okay";
+};
+
+&flexcan2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan2>;
+	xceiver-supply = <&reg_can0_stby>;
+	status = "okay";
+};
+
+&flexcan3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan3>;
+	xceiver-supply = <&reg_can1_stby>;
 	status = "okay";
 };
 
@@ -422,6 +454,20 @@
 			fsl,pins = <
 				IMX8DXL_UART0_RX_ADMA_UART0_RX		0x0600004c
 				IMX8DXL_UART0_TX_ADMA_UART0_TX		0x0600004c
+			>;
+		};
+
+		pinctrl_flexcan2: flexcan2grp {
+			fsl,pins = <
+				IMX8DXL_UART2_TX_ADMA_FLEXCAN1_TX	0x00000021
+				IMX8DXL_UART2_RX_ADMA_FLEXCAN1_RX	0x00000021
+			>;
+		};
+
+		pinctrl_flexcan3: flexcan3grp {
+			fsl,pins = <
+				IMX8DXL_FLEXCAN2_TX_ADMA_FLEXCAN2_TX	0x00000021
+				IMX8DXL_FLEXCAN2_RX_ADMA_FLEXCAN2_RX	0x00000021
 			>;
 		};
 
