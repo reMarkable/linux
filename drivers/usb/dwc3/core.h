@@ -924,6 +924,10 @@ struct dwc3_scratchpad_array {
 	__le64	dma_adr[DWC3_MAX_HIBER_SCRATCHBUFS];
 };
 
+struct dwc3_priv_data {
+	void	(*set_role_post)(struct dwc3 *dwc, u32 role);
+};
+
 /**
  * struct dwc3 - representation of our controller
  * @drd_work: workqueue used for role swapping
@@ -1117,6 +1121,7 @@ struct dwc3 {
 	u32			u1u2;
 	u32			maximum_speed;
 	struct usb_otg_caps	otg_caps;
+	struct dwc3_priv_data	*priv_data;
 
 	/*
 	 * All 3.1 IP version constants are greater than the 3.0 IP

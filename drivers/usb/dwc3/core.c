@@ -189,6 +189,8 @@ static void __dwc3_set_mode(struct work_struct *work)
 		break;
 	}
 
+	if (dwc->priv_data && dwc->priv_data->set_role_post)
+		dwc->priv_data->set_role_post(dwc, dwc->desired_dr_role);
 }
 
 void dwc3_set_mode(struct dwc3 *dwc, u32 mode)
