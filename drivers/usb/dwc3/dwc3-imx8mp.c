@@ -88,7 +88,18 @@ static irqreturn_t dwc3_imx8mp_interrupt(int irq, void *_dwc_imx)
 	 * runtime resume xhci or gadget, dwc3_imx8mp itself
 	 * as parent device will be resumed firstly by pm core
 	 */
-	if ((dwc->current_dr_role == DWC3_GCTL_PRTCAP_HOST) && dwc->xhci) {
+	if ((dwc->current_dr_role == DWC3_GCTL_PRTCAP_HOST) && dwc->xhci)
+		pm_runtime_resume(&dwc->xhci->dev);
+	else if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE)
+		pm_runtime_resume(dwc->dev);
+
+	return IRQ_HANDLED;
+}
+
+static void dwc3_imx8mp_set_role_post(struct dwc3 *dwc, u32 role)
+{
+	switch (role) {
+	case DWC3_GCTL_PRTCAP_HOST:
 		/*
 		 * For xhci host, we need disable dwc core auto
 		 * suspend, because during this auto suspend delay(5s),
@@ -96,21 +107,14 @@ static irqreturn_t dwc3_imx8mp_interrupt(int irq, void *_dwc_imx)
 		 * enabled, if device is inserted, xhci host can't
 		 * response the connection.
 		 */
-		__pm_runtime_use_autosuspend(dwc->dev, false);
-
-		/*
-		 * For xhci host, we need enable xhci auto suspend
-		 * because port change may not happen so quick after
-		 * wakeup irq.
-		 */
-		pm_runtime_use_autosuspend(&dwc->xhci->dev);
-		pm_runtime_set_autosuspend_delay(&dwc->xhci->dev, 500);
-		pm_runtime_resume(&dwc->xhci->dev);
-	} else if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE) {
-		pm_runtime_resume(dwc->dev);
+		pm_runtime_dont_use_autosuspend(dwc->dev);
+		break;
+	case DWC3_GCTL_PRTCAP_DEVICE:
+		pm_runtime_use_autosuspend(dwc->dev);
+		break;
+	default:
+		break;
 	}
-
-	return IRQ_HANDLED;
 }
 
 static int dwc3_imx8mp_probe(struct platform_device *pdev)
@@ -200,10 +204,17 @@ static int dwc3_imx8mp_probe(struct platform_device *pdev)
 		goto depopulate;
 	}
 
+	dwc->priv_data = devm_kzalloc(dev, sizeof(struct dwc3_priv_data),
+				      GFP_KERNEL);
+	if (!dwc->priv_data) {
+		error = -ENOMEM;
+		goto depopulate;
+	}
+	dwc->priv_data->set_role_post = dwc3_imx8mp_set_role_post;
+
 	device_init_wakeup(dev, 1);
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
-	pm_runtime_forbid(dev);
 
 	return 0;
 
@@ -278,16 +289,25 @@ static int __maybe_unused dwc3_imx8mp_pm_suspend(struct device *dev)
 static int __maybe_unused dwc3_imx8mp_pm_resume(struct device *dev)
 {
 	struct dwc3_imx8mp *dwc_imx = dev_get_drvdata(dev);
+	int ret;
 
 	if (device_may_wakeup(dwc_imx->dev))
 		disable_irq_wake(dwc_imx->irq);
 
-	return dwc3_imx8mp_resume(dwc_imx, PMSG_RESUME);
+	ret = dwc3_imx8mp_resume(dwc_imx, PMSG_RESUME);
+
+	pm_runtime_disable(dev);
+	pm_runtime_set_active(dev);
+	pm_runtime_enable(dev);
+
+	return ret;
 }
 
 static int __maybe_unused dwc3_imx8mp_runtime_suspend(struct device *dev)
 {
 	struct dwc3_imx8mp *dwc_imx = dev_get_drvdata(dev);
+
+	dev_dbg(dev, "dwc3 imx8mp runtime suspend.\n");
 
 	return dwc3_imx8mp_suspend(dwc_imx, PMSG_AUTO_SUSPEND);
 }
@@ -295,6 +315,8 @@ static int __maybe_unused dwc3_imx8mp_runtime_suspend(struct device *dev)
 static int __maybe_unused dwc3_imx8mp_runtime_resume(struct device *dev)
 {
 	struct dwc3_imx8mp *dwc_imx = dev_get_drvdata(dev);
+
+	dev_dbg(dev, "dwc3 imx8mp runtime resume.\n");
 
 	return dwc3_imx8mp_resume(dwc_imx, PMSG_AUTO_RESUME);
 }
