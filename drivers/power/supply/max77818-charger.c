@@ -490,7 +490,7 @@ static int max77818_charger_get_charger_mode(struct max77818_charger *chg)
 		return ret;
 	}
 	dev_dbg(chg->dev, "Read raw charger_mode register: 0x%02x\n", read_val);
-	dev_dbg(chg->dev, "Read charger_mode 0x%02x\n", (read_val & BIT_MODE));
+	dev_dbg(chg->dev, "Read charger_mode 0x%02lx\n", (read_val & BIT_MODE));
 
 	switch(read_val & BIT_MODE)
 	{
