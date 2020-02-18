@@ -698,6 +698,10 @@ static int fsl_ssi_set_bclk(struct snd_pcm_substream *substream,
 	/* Generate bit clock based on the slot number and slot width */
 	freq = slots * slot_width * params_rate(hw_params);
 
+	/* The slot_width is not fixed to 32 for normal mode */
+	if (params_channels(hw_params) == 1)
+		freq = 2 * params_width(hw_params) * params_rate(hw_params);
+
 	/* Don't apply it to any non-baudclk circumstance */
 	if (IS_ERR(ssi->baudclk))
 		return -EINVAL;
