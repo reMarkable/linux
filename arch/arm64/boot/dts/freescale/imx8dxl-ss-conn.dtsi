@@ -35,7 +35,7 @@
 	/*
 	 * usbotg1 and usbotg2 share one clcok
 	 * scfw disable clock access and keep it always on
-	 * incase other core (M4) use one of these.
+	 * in case other core (M4) use one of these.
 	 */
 	clocks = <&clk_dummy>;
 };
@@ -45,6 +45,18 @@
 };
 
 &conn_subsys {
+
+	usb2_2_lpcg: clock-controller@5b280000 {
+		compatible = "fsl,imx8qxp-lpcg";
+		reg = <0x5b280000 0x10000>;
+		#clock-cells = <1>;
+
+		bit-offset = <28>;
+		clocks = <&conn_ipg_clk>;
+		clock-output-names = "usboh3_2_ahb_clk";
+		power-domains = <&pd IMX_SC_R_USB_1_PHY>;
+	};
+
 	conn_enet0_root_clk: clock-conn-enet0-root {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -89,4 +101,40 @@
 		clk_csr = <0>;
 		status = "disabled";
 	};
+
+	usbphy2: usbphy@0x5b110000 {
+		compatible = "fsl,imx8qm-usbphy", "fsl,imx7ulp-usbphy", "fsl,imx6ul-usbphy", "fsl,imx23-usbphy";
+		reg = <0x5b110000 0x1000>;
+		clocks = <&usb2_2_lpcg 0>;
+		power-domains = <&pd IMX_SC_R_USB_1_PHY>;
+		status = "disabled";
+	};
+
+	usbotg2: usb@5b0e0000 {
+		compatible = "fsl,imx8qm-usb", "fsl,imx27-usb";
+		reg = <0x5b0e0000 0x200>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SPI 166 IRQ_TYPE_LEVEL_HIGH>;
+		fsl,usbphy = <&usbphy2>;
+		fsl,usbmisc = <&usbmisc2 0>;
+		/*
+		 * usbotg1 and usbotg2 share one clcok
+		 * scfw disable clock access and keep it always on
+		 * in case other core (M4) use one of these.
+		 */
+		clocks = <&clk_dummy>;
+		ahb-burst-config = <0x0>;
+		tx-burst-size-dword = <0x10>;
+		rx-burst-size-dword = <0x10>;
+		#stream-id-cells = <1>;
+		power-domains = <&pd IMX_SC_R_USB_1>;
+		status = "disabled";
+	};
+
+	usbmisc2: usbmisc@5b0e0200 {
+		#index-cells = <1>;
+		compatible = "fsl,imx7ulp-usbmisc", "fsl,imx6q-usbmisc";
+		reg = <0x5b0e0200 0x200>;
+	};
+
 };

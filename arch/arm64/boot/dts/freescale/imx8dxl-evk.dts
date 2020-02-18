@@ -377,6 +377,21 @@
 	status = "okay";
 };
 
+&usbphy2 {
+	status = "okay";
+};
+
+&usbotg2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg2>;
+	srp-disable;
+	hnp-disable;
+	adp-disable;
+	power-polarity-active-high;
+	disable-over-current;
+	status = "okay";
+};
+
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_hog>;
@@ -385,7 +400,12 @@
 			fsl,pins = <
 				IMX8DXL_COMP_CTL_GPIO_1V8_3V3_GPIORHB_PAD	0x000514a0
 				IMX8DXL_USB_SS3_TC0_LSIO_GPIO4_IO03		0x00000021
-				IMX8DXL_USB_SS3_TC1_LSIO_GPIO4_IO04		0x00000021
+			>;
+		};
+
+		pinctrl_usbotg2: otg2 {
+			fsl,pins = <
+				IMX8DXL_USB_SS3_TC1_CONN_USB_OTG2_PWR		0x00000021
 			>;
 		};
 
