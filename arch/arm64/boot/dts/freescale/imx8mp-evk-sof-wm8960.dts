@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright NXP 2020
+
+#include "imx8mp-evk.dts"
+
+/ {
+	sound-wm8960 {
+		status = "disabled";
+	};
+
+	sound-micfil {
+		status = "disabled";
+	};
+
+	sai3_port: sai-port {
+		#sound-dai-cells = <0>;
+		compatible = "fsl,sai-dai";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_sai3>;
+
+		power-domains = <&audiomix_pd>;
+
+		assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
+		assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
+		assigned-clock-rates = <12288000>;
+		clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_IPG>, <&clk IMX8MP_CLK_DUMMY>,
+			<&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>, <&clk IMX8MP_CLK_DUMMY>,
+			<&clk IMX8MP_CLK_DUMMY>;
+		clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
+
+		status="okay";
+	};
+
+	sof-sound-wm8960 {
+		compatible = "simple-audio-card";
+		label = "wm8960-audio";
+		simple-audio-card,bitclock-master = <&sndcodec>;
+		simple-audio-card,frame-master = <&sndcodec>;
+		hp-det-gpio = <&gpio4 0 0>;
+		mic-det-gpio = <&gpio4 0 0>;
+		simple-audio-card,widgets =
+			"Headphone", "Headphone Jack",
+			"Speaker", "Ext Spk",
+			"Microphone", "Mic Jack";
+		simple-audio-card,audio-routing =
+			"Headphone Jack", "HP_L",
+			"Headphone Jack", "HP_R",
+			"Ext Spk", "SPK_LP",
+			"Ext Spk", "SPK_LN",
+			"Ext Spk", "SPK_RP",
+			"Ext Spk", "SPK_RN",
+			"LINPUT2", "Mic Jack",
+			"LINPUT3", "Mic Jack",
+			"RINPUT1", "Mic Jack",
+			"RINPUT2", "Mic Jack",
+			"Playback", "SAI1.OUT",
+			"SAI1.IN", "Capture";
+		simple-audio-card,dai-link {
+			format = "i2s";
+			cpu {
+				sound-dai = <&sai3_port>;
+			};
+			plat {
+				sound-dai = <&dsp>;
+			};
+			sndcodec: codec {
+				sound-dai = <&codec>;
+			};
+		};
+	};
+};
+
+&dsp {
+	#sound-dai-cells = <0>;
+	compatible = "fsl,imx8mp-dsp";
+	reg = <0x0 0x3B6E8000 0x0 0x88000>;
+	tplg-name = "sof-imx8qxp-wm8960.tplg";
+	machine-drv-name = "asoc-simple-card";
+	status = "okay";
+};
+
+&codec {
+	#sound-dai-cells = <0>;
+	status = "okay";
+};
+
+&sai3 {
+	status = "disabled";
+};
+
