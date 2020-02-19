@@ -268,7 +268,7 @@ struct vpu_sc_chan {
 
 struct vpu_ctx_work {
 	struct work_struct instance_work;
-
+	struct work_struct alloc_work;
 	int str_index;
 	struct vpu_dev *dev;
 };
@@ -409,7 +409,7 @@ struct vpu_ctx {
 	struct kfifo msg_fifo;
 	struct mutex instance_mutex;
 	struct work_struct *instance_work;
-
+	struct work_struct *alloc_work;
 	struct workqueue_struct *instance_wq;
 	struct completion completion;
 	struct completion stop_cmp;
@@ -433,9 +433,13 @@ struct vpu_ctx {
 	bool first_dump_data_flag;
 	bool first_data_flag;
 	u32 req_frame_count;
+	u32 req_mbi_count;
+	u32 req_dcp_count;
 	u_int32 mbi_count;
 	u_int32 mbi_size;
 	u_int32 dcp_count;
+	u32 mbi_index;
+	u32 dcp_index;
 	struct dma_buffer dpb_buffer;
 	struct dma_buffer dcp_buffer[MAX_DCP_NUM];
 	struct dma_buffer mbi_buffer[MAX_MBI_NUM];
