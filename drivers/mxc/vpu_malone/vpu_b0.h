@@ -281,7 +281,6 @@ struct vpu_dev {
 	u_int32 m0_rpc_size;
 	struct mutex dev_mutex;
 	struct mutex cmd_mutex;
-	struct mutex fw_flow_mutex;
 	bool fw_is_ready;
 	bool firmware_started;
 	bool need_cleanup_firmware;
@@ -383,7 +382,6 @@ struct vpu_ctx {
 	struct v4l2_fh fh;
 
 	struct vpu_statistic statistic;
-	atomic64_t total_alloc_size;
 	struct device_attribute dev_attr_instance_command;
 	char command_name[64];
 	struct device_attribute dev_attr_instance_event;
@@ -473,6 +471,8 @@ struct vpu_ctx {
 
 	struct list_head perf_q;
 	struct mutex perf_lock;
+
+	struct mutex fw_flow_mutex;
 };
 
 #define LVL_WARN		(1 << 0)

@@ -373,6 +373,7 @@ static void show_beginning_of_data(unsigned long index,
 	u32 show_count;
 	char temp[1028];
 	int i;
+	int ret;
 
 	if (!precheck_show_bytes)
 		return;
@@ -386,15 +387,18 @@ static void show_beginning_of_data(unsigned long index,
 		return;
 	show_count = min_t(u32, precheck_show_bytes, length);
 	for (i = 0; i < show_count; i++) {
-		bytes += scnprintf(temp + bytes,
+		ret = scnprintf(temp + bytes,
 				sizeof(temp) - bytes,
 				"%s0x%02x",
 				i ? " " : "",
 				pdata[i]);
+		if (ret == 0)
+			break;
+		bytes += ret;
 		if (bytes >= sizeof(temp))
 			break;
 	}
-	vpu_dbg(LVL_WARN, "[%12ld]%s\n", index, temp);
+	vpu_dbg(LVL_WARN, "[%12ld][%12d/%12d]%s\n", index, i, length, temp);
 }
 
 static void precheck_vb_data(struct vpu_ctx *ctx, struct vb2_buffer *vb)
@@ -1737,9 +1741,9 @@ static int v4l2_ioctl_decoder_cmd(struct file *file,
 		break;
 	case IMX_V4L2_DEC_CMD_RESET:
 		v4l2_update_stream_addr(ctx, 0);
-		mutex_lock(&ctx->dev->fw_flow_mutex);
+		mutex_lock(&ctx->fw_flow_mutex);
 		ret = vpu_dec_cmd_reset(ctx);
-		mutex_unlock(&ctx->dev->fw_flow_mutex);
+		mutex_unlock(&ctx->fw_flow_mutex);
 		break;
 	default:
 		return -EINVAL;
@@ -1841,9 +1845,9 @@ static int v4l2_ioctl_streamoff(struct file *file,
 	up(&q_data->drv_q_lock);
 
 	if (is_need_abort(ctx, i)) {
-		mutex_lock(&ctx->dev->fw_flow_mutex);
+		mutex_lock(&ctx->fw_flow_mutex);
 		send_abort_cmd(ctx);
-		mutex_unlock(&ctx->dev->fw_flow_mutex);
+		mutex_unlock(&ctx->fw_flow_mutex);
 	}
 
 	if (V4L2_TYPE_IS_OUTPUT(i))
@@ -1883,6 +1887,10 @@ static int vpu_dec_v4l2_ioctl_g_parm(struct file *file, void *fh,
 	parm->parm.capture.timeperframe.denominator = denominator;
 
 	mutex_unlock(&ctx->instance_mutex);
+	vpu_dbg(LVL_BIT_FLOW, "%s g_parm : %d / %d\n",
+			V4L2_TYPE_IS_OUTPUT(parm->type) ? "OUTPUT" : "CAPTURE",
+			parm->parm.capture.timeperframe.numerator,
+			parm->parm.capture.timeperframe.denominator);
 
 	return 0;
 }
@@ -2417,8 +2425,8 @@ static void update_wptr(struct vpu_ctx *ctx,
 	length = (wptr + size - pStrBufDesc->wptr) % size;
 	ctx->total_write_bytes += length;
 
-	vpu_dbg(LVL_BIT_WPTR, "wptr : 0x%08x -> 0x%08x\n",
-			pStrBufDesc->wptr, wptr);
+	vpu_dbg(LVL_BIT_WPTR, "ctx[%d] wptr : 0x%08x -> 0x%08x\n",
+			ctx->str_index, pStrBufDesc->wptr, wptr);
 	pStrBufDesc->wptr = wptr;
 }
 
@@ -3014,7 +3022,6 @@ static u32 got_used_space(u32 wptr, u32 rptr, u32 start, u32 end)
 
 	return stream_size;
 }
-
 
 int copy_buffer_to_stream(struct vpu_ctx *ctx, void *buffer, uint32_t length)
 {
@@ -4626,6 +4633,7 @@ static void release_vpu_ctx(struct vpu_ctx *ctx)
 	mutex_destroy(&ctx->instance_mutex);
 	mutex_destroy(&ctx->cmd_lock);
 	mutex_destroy(&ctx->perf_lock);
+	mutex_destroy(&ctx->fw_flow_mutex);
 	clear_bit(ctx->str_index, &ctx->dev->instance_mask);
 	ctx->dev->ctx[ctx->str_index] = NULL;
 	pm_runtime_put_sync(ctx->dev->generic_dev);
@@ -5500,6 +5508,14 @@ static ssize_t show_instance_buffer_info(struct device *dev,
 	num += scnprintf(buf + num, PAGE_SIZE - num,
 			"\t%40s:%16d\n", "msg kfifo length",
 			kfifo_len(&ctx->msg_fifo));
+	num += scnprintf(buf + num, PAGE_SIZE - num,
+			"\t%40s:%16d\n", "mu kfifo length",
+			kfifo_len(&ctx->dev->mu_msg_fifo));
+	num += scnprintf(buf + num, PAGE_SIZE - num,
+			"\t%40s:%12d.%d.%d\n", "firmware version",
+			(pSharedInterface->FWVersion & 0x00ff0000) >> 16,
+			(pSharedInterface->FWVersion & 0x0000ff00) >> 8,
+			pSharedInterface->FWVersion & 0x000000ff);
 
 	return num;
 }
@@ -5918,6 +5934,7 @@ static int v4l2_open(struct file *filp)
 	mutex_init(&ctx->instance_mutex);
 	mutex_init(&ctx->cmd_lock);
 	mutex_init(&ctx->perf_lock);
+	mutex_init(&ctx->fw_flow_mutex);
 	if (kfifo_alloc(&ctx->msg_fifo,
 			sizeof(struct event_msg) * VID_API_MESSAGE_LIMIT,
 			GFP_KERNEL)) {
@@ -6014,6 +6031,7 @@ err_alloc_fifo:
 	mutex_destroy(&ctx->instance_mutex);
 	mutex_destroy(&ctx->cmd_lock);
 	mutex_destroy(&ctx->perf_lock);
+	mutex_destroy(&ctx->fw_flow_mutex);
 	destroy_workqueue(ctx->instance_wq);
 err_alloc_wq:
 	ctrls_delete_decoder(ctx);
@@ -6047,9 +6065,9 @@ static void vpu_dec_disable(struct vpu_ctx *ctx, struct queue_data *queue)
 		V4L2_TYPE_IS_OUTPUT(queue->vb2_q.type) ? "Output" : "Capture",
 		ctx->str_index);
 	if (!V4L2_TYPE_IS_OUTPUT(queue->vb2_q.type)) {
-		mutex_lock(&ctx->dev->fw_flow_mutex);
+		mutex_lock(&ctx->fw_flow_mutex);
 		send_abort_cmd(ctx);
-		mutex_unlock(&ctx->dev->fw_flow_mutex);
+		mutex_unlock(&ctx->fw_flow_mutex);
 		ctx->capture_ts = TSM_TIMESTAMP_NONE;
 	} else {
 		ctx->output_ts = TSM_TIMESTAMP_NONE;
@@ -6078,9 +6096,9 @@ static int v4l2_release(struct file *filp)
 	vpu_dec_disable(ctx, &ctx->q_data[V4L2_SRC]);
 	vpu_dec_disable(ctx, &ctx->q_data[V4L2_DST]);
 
-	mutex_lock(&ctx->dev->fw_flow_mutex);
+	mutex_lock(&ctx->fw_flow_mutex);
 	send_stop_cmd(ctx);
-	mutex_unlock(&ctx->dev->fw_flow_mutex);
+	mutex_unlock(&ctx->fw_flow_mutex);
 
 	mutex_lock(&ctx->dev->dev_mutex);
 	ctx->ctx_released = true;
@@ -6345,7 +6363,6 @@ static int init_vpudev_parameters(struct vpu_dev *dev)
 {
 	mutex_init(&dev->dev_mutex);
 	mutex_init(&dev->cmd_mutex);
-	mutex_init(&dev->fw_flow_mutex);
 	init_completion(&dev->start_cmp);
 	init_completion(&dev->snap_done_cmp);
 	dev->firmware_started = false;
