@@ -19,6 +19,12 @@ properties:
       enum:
         - "fsl,imx7d-cm4"
         - "fsl,imx6sx-cm4"
+        - "fsl,imx7ulp-cm4"
+        - "fsl,imx8mm-cm4"
+        - "fsl,imx8qm-cm4"
+        - "fsl,imx8qxp-cm4"
+
+  early-booted: true
 
   clocks:
     items:
@@ -30,10 +36,45 @@ properties:
      allOf:
        - $ref: "/schemas/types.yaml#/definitions/phandle"
 
+  mboxes:
+    description:
+      This property is required only if the rpmsg/virtio functionality is used.
+      List of <&phandle type channel> - 1 channel for TX, 1 channel for RX,
+      1 channel for RXDB.
+      (see mailbox/fsl,mu.txt)
+    maxItems: 3
+
+  mbox-names:
+    items:
+      - const: tx
+      - const: rx
+      - const: rxdb
+    maxItems: 3
+
   memory-region:
     description:
       List of phandles to the reserved memory regions.
       (see ../reserved-memory/reserved-memory.txt)
+
+  mub-partition:
+    description:
+      The remote Co-processor hardware partition which is only valid for
+      i.MX SoCs with hardware partition feature.
+    $ref: /schemas/types.yaml#/definitions/uint32
+
+  rsrc-table:
+    description:
+      Resource table array is required only if the rpmsg/virtio
+      functionality is used.
+    allOf:
+      - $ref: /schemas/types.yaml#/definitions/uint32-array
+
+  rsrc-da:
+    description:
+      Resource table address is required only if the rpmsg/virtio
+      functionality is used, rsrc-table has high priority.
+    allOf:
+      - $ref: /schemas/types.yaml#/definitions/uint32
 
 required:
   - compatible
@@ -57,5 +98,68 @@ examples:
         syscon = <&src>;
         clocks = <&clks IMX7D_ARM_M4_ROOT_CLK>;
     };
+
+    imx8x-cm4 {
+        compatible = "fsl,imx8qxp-cm4";
+        rsrc-table = <
+                      0x1 0x2 0x0 0x0 0x18 0x5c
+                      3
+                      /*fw_rsc_vdev*/
+                      7 0 1 0 0 0x200
+                      /*fw_rsc_vdev_vring*/
+                      0x90000000 4096 256 1 0
+                      0x90008000 4096 256 2 0
+                      3
+                      /*fw_rsc_vdev*/
+                      7 1 1 0 0 0x200
+                      /*fw_rsc_vdev_vring*/
+                      0x90010000 4096 256 1 0
+                      0x90018000 4096 256 2 0
+                    >;
+        early-booted;
+        mbox-names = "tx", "rx", "rxdb";
+        mboxes = <&lsio_mu5 0 1
+        	  &lsio_mu5 1 1
+        	  &lsio_mu5 3 1>;
+        mub-partition = <3>;
+        memory-region = <&vdev0vring0>, <&vdev0vring1>, <&vdev0buffer>,
+                        <&vdev1vring0>, <&vdev1vring1>, <&vdev0buffer>;
+	};
+
+        reserved-memory {
+            #address-cells = <2>;
+            #size-cells = <2>;
+            ranges;
+
+            vdev0vring0: vdev0vring0@90000000 {
+                compatible = "shared-dma-pool";
+                reg = <0 0x90000000 0 0x8000>;
+                no-map;
+            };
+
+           vdev0vring1: vdev0vring1@90008000 {
+               compatible = "shared-dma-pool";
+               reg = <0 0x90008000 0 0x8000>;
+               no-map;
+           };
+
+           vdev1vring0: vdev1vring0@90010000 {
+               compatible = "shared-dma-pool";
+               reg = <0 0x90010000 0 0x8000>;
+               no-map;
+           };
+
+           vdev1vring1: vdev1vring1@90018000 {
+               compatible = "shared-dma-pool";
+               reg = <0 0x90018000 0 0x8000>;
+               no-map;
+           };
+
+           vdev0buffer: vdev0buffer {
+               compatible = "shared-dma-pool";
+               reg = <0 0x90400000 0 0x100000>;
+               no-map;
+           };
+};
 
 ...
