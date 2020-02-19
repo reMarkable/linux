@@ -24,4 +24,16 @@ config SND_SOC_SOF_IMX8
 	def_tristate SND_SOC_SOF_OF
 	depends on SND_SOC_SOF_IMX8_SUPPORT
 
+config SND_SOC_SOF_IMX8M_SUPPORT
+       bool "SOF support for i.MX8M"
+       depends on IMX_DSP
+       help
+         This adds support for Sound Open Firmware for NXP i.MX8M platforms
+         Say Y if you have such a device.
+         If unsure select "N".
+
+config SND_SOC_SOF_IMX8M
+	def_tristate SND_SOC_SOF_OF
+	depends on SND_SOC_SOF_IMX8_SUPPORT
+
 endif ## SND_SOC_SOF_IMX_IMX_TOPLEVEL
