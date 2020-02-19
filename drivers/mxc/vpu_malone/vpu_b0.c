@@ -83,7 +83,6 @@ static int find_first_available_instance(struct vpu_dev *dev);
 static int remove_instance_file(struct vpu_ctx *ctx);
 static void fill_stream_buffer_info(struct vpu_ctx *ctx);
 static void set_pic_end_flag(struct vpu_ctx *ctx);
-static void clear_pic_end_flag(struct vpu_ctx *ctx);
 static void send_skip_event(struct vpu_ctx* ctx);
 static void reset_mbi_dcp_count(struct vpu_ctx *ctx);
 static bool verify_frame_buffer_size(struct queue_data *q_data,
@@ -3335,20 +3334,6 @@ static void set_pic_end_flag(struct vpu_ctx *ctx)
 	buffer_info->stream_pic_end_flag = 0x1;
 }
 
-static void clear_pic_end_flag(struct vpu_ctx *ctx)
-{
-	pDEC_RPC_HOST_IFACE pSharedInterface;
-	pBUFFER_INFO_TYPE buffer_info;
-
-	if (!ctx)
-		return;
-
-	pSharedInterface = ctx->dev->shared_mem.pSharedInterface;
-	buffer_info = &pSharedInterface->StreamBuffInfo[ctx->str_index];
-
-	buffer_info->stream_pic_end_flag = 0x0;
-}
-
 static bool vpu_dec_stream_is_ready(struct vpu_ctx *ctx)
 {
 	pSTREAM_BUFFER_DESCRIPTOR_TYPE pStrBufDesc;
@@ -4520,7 +4505,6 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 		ctx->tsm_sync_flag = true;
 		up(&queue->drv_q_lock);
 
-		clear_pic_end_flag(ctx);
 		ctx->frm_dis_delay = 0;
 		ctx->frm_dec_delay = 0;
 		ctx->frm_total_num = 0;
@@ -4590,7 +4574,6 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 		verify_decoded_frames(ctx);
 		vpu_dbg(LVL_BIT_FLOW, "ctx[%d] FINISHED\n", ctx->str_index);
 		vpu_dbg(LVL_INFO, "receive VID_API_EVENT_FINISHED and notfiy app eos\n");
-		clear_pic_end_flag(ctx);
 		vpu_log_buffer_state(ctx);
 		send_eos_event(ctx); //notfiy app stream eos reached
 	}	break;
