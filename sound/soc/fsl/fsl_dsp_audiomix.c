@@ -24,6 +24,7 @@ void imx_audiomix_dsp_start(struct imx_audiomix_dsp_data *data)
 	val &= ~(1 << 5);
 	writel(val, data->base + AudioDSP_REG2);
 }
+EXPORT_SYMBOL(imx_audiomix_dsp_start);
 
 static int imx_audiomix_dsp_probe(struct platform_device *pdev)
 {
