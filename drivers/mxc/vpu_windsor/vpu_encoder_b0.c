@@ -146,7 +146,7 @@ static char *get_cmd_str(u32 cmdid)
 static void vpu_log_event(u_int32 uEvent, u_int32 ctxid)
 {
 	if (uEvent >= VID_API_ENC_EVENT_RESERVED)
-		vpu_err("reveive event: 0x%X, ctx id:%d\n",
+		vpu_err("receive event: 0x%X, ctx id:%d\n",
 				uEvent, ctxid);
 	else
 		vpu_dbg(LVL_EVT, "recevie event: %s, ctx id:%d\n",
@@ -2959,13 +2959,11 @@ static int process_ctx_msg(struct vpu_ctx *ctx, struct msg_header *header)
 	if (!ctx || !header)
 		return -EINVAL;
 
-	if (ctx->ctx_released)
-		return -EINVAL;
-
 	msg = get_idle_msg(ctx);
 	if (!msg) {
 		vpu_err("get idle msg fail\n");
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto error;
 	}
 
 	msg->idx = header->idx;
@@ -2985,6 +2983,9 @@ static int process_ctx_msg(struct vpu_ctx *ctx, struct msg_header *header)
 
 	push_back_event_msg(ctx, msg);
 
+	return ret;
+error:
+	rpc_read_msg_array(&ctx->core_dev->shared_mem, NULL, msg->number);
 	return ret;
 }
 
@@ -3013,12 +3014,13 @@ static int process_msg(struct core_device *core)
 
 	if (header.idx >= ARRAY_SIZE(core->ctx)) {
 		vpu_err("msg idx(%d) is out of range\n", header.idx);
+		rpc_read_msg_array(&core->shared_mem, NULL, header.msgnum);
 		return -EINVAL;
 	}
 
 	mutex_lock(&core->vdev->dev_mutex);
 	ctx = get_ctx_by_index(core, header.idx);
-	if (ctx != NULL) {
+	if (ctx != NULL && !ctx->ctx_released) {
 		count_event(ctx, header.msgid);
 		process_ctx_msg(ctx, &header);
 		queue_work(ctx->instance_wq, &ctx->instance_work);
@@ -3954,7 +3956,7 @@ static int show_v4l2_buf_status(struct vpu_ctx *ctx, char *buf, u32 size)
 			" %d:done,", VB2_BUF_STATE_DONE);
 	num += scnprintf(buf + num, size - num,
 			" %d:error", VB2_BUF_STATE_ERROR);
-	num += scnprintf(buf + num, size - num - num, ")\n");
+	num += scnprintf(buf + num, size - num, ")\n");
 	num += scnprintf(buf + num, size - num, "\tOUTPUT(0x%lx):",
 			ctx->q_data[V4L2_SRC].rw_flag);
 	num += show_queue_buffer_info(&ctx->q_data[V4L2_SRC],
@@ -5136,6 +5138,7 @@ static void handle_vpu_core_watchdog(struct core_device *core)
 	if (core->snapshot)
 		return;
 
+	queue_work(core->workqueue, &core->msg_work);
 	vpu_enc_notify_msg_event(core);
 	check_vpu_core_is_hang(core);
 }
