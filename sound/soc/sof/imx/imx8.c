@@ -225,6 +225,10 @@ static int imx8_probe(struct snd_sof_dev *sdev)
 		return priv->num_domains;
 	}
 
+	/* power domain already enabled by PM core */
+	if (priv->num_domains == 1)
+		goto done_pm;
+
 	priv->pd_dev = devm_kmalloc_array(&pdev->dev, priv->num_domains,
 					  sizeof(*priv->pd_dev), GFP_KERNEL);
 	if (!priv)
@@ -252,6 +256,7 @@ static int imx8_probe(struct snd_sof_dev *sdev)
 		}
 	}
 
+done_pm:
 	ret = imx_scu_get_handle(&priv->sc_ipc);
 	if (ret) {
 		dev_err(sdev->dev, "Cannot obtain SCU handle (err = %d)\n",

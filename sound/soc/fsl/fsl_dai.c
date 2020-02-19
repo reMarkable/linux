@@ -148,6 +148,10 @@ static int fsl_dai_probe(struct platform_device *pdev)
 		return priv->num_domains;
 	}
 
+	/* power domain already attached by PM core */
+	if (priv->num_domains == 1)
+		goto done_pm;
+
 	priv->pd_dev = devm_kmalloc_array(&pdev->dev, priv->num_domains,
 					  sizeof(*priv->pd_dev), GFP_KERNEL);
 	if (!priv->pd_dev)
@@ -176,6 +180,7 @@ static int fsl_dai_probe(struct platform_device *pdev)
 		}
 	}
 
+done_pm:
 	pm_runtime_enable(&pdev->dev);
 
 	ret = devm_snd_soc_register_component(&pdev->dev, &fsl_dai_component,
