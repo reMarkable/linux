@@ -11,10 +11,13 @@
 #include <linux/module.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
+#include <linux/of_reserved_mem.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/reset.h>
 #include <linux/remoteproc.h>
+
+#include "remoteproc_internal.h"
 
 #define IMX7D_SRC_SCR			0x0C
 #define IMX7D_ENABLE_M4			BIT(3)
@@ -88,6 +91,8 @@ struct imx_rproc {
 	const struct imx_rproc_dcfg	*dcfg;
 	struct imx_rproc_mem		mem[IMX7D_RPROC_MEM_MAX];
 	struct clk			*clk;
+	bool				early_boot;
+	void				*rsc_va;
 };
 
 static const struct imx_rproc_att imx_rproc_att_imx7d[] = {
@@ -164,14 +169,26 @@ static int imx_rproc_start(struct rproc *rproc)
 	const struct imx_rproc_dcfg *dcfg = priv->dcfg;
 	struct device *dev = priv->dev;
 	int ret;
+	u32 val;
 
 	if (priv->enable) {
+		if (!reset_control_status(priv->enable)) {
+			dev_info(dev, "alreay started\n");
+			return 0;
+		}
+
 		ret = reset_control_deassert(priv->enable);
 		if (!ret)
 			ret = reset_control_deassert(priv->non_sclr_rst);
 	} else {
 		if (!priv->regmap)
 			return -ENOTSUPP;
+
+		ret = regmap_read(priv->regmap, dcfg->src_reg, &val);
+		if (!(val & dcfg->src_stop)) {
+			dev_info(dev, "alreay started\n");
+			return 0;
+		}
 
 		ret = regmap_update_bits(priv->regmap, dcfg->src_reg,
 					 dcfg->src_mask, dcfg->src_start);
@@ -202,8 +219,12 @@ static int imx_rproc_stop(struct rproc *rproc)
 					 dcfg->src_mask, dcfg->src_stop);
 	}
 
-	if (ret)
+	if (ret) {
 		dev_err(dev, "Failed to stop M4!\n");
+	} else {
+		priv->early_boot = false;
+		priv->rproc->skip_fw_load = false;
+	}
 
 	return ret;
 }
@@ -263,10 +284,173 @@ static void *imx_rproc_da_to_va(struct rproc *rproc, u64 da, int len)
 	return va;
 }
 
+static int imx_rproc_elf_load_segments(struct rproc *rproc,
+				       const struct firmware *fw)
+{
+	struct imx_rproc *priv = rproc->priv;
+
+	if (!priv->early_boot)
+		return rproc_elf_load_segments(rproc, fw);
+
+	return 0;
+}
+
+static int imx_rproc_mem_alloc(struct rproc *rproc,
+			       struct rproc_mem_entry *mem)
+{
+	struct device *dev = rproc->dev.parent;
+	void *va;
+
+	dev_dbg(dev, "map memory: %p+%x\n", &mem->dma, mem->len);
+	va = ioremap_wc(mem->dma, mem->len);
+	if (IS_ERR_OR_NULL(va)) {
+		dev_err(dev, "Unable to map memory region: %p+%x\n",
+			&mem->dma, mem->len);
+		return -ENOMEM;
+	}
+
+	/* Update memory entry va */
+	mem->va = va;
+
+	return 0;
+}
+
+static int imx_rproc_mem_release(struct rproc *rproc,
+				 struct rproc_mem_entry *mem)
+{
+	dev_dbg(rproc->dev.parent, "unmap memory: %pa\n", &mem->dma);
+	iounmap(mem->va);
+
+	return 0;
+}
+
+static int imx_rproc_parse_fw(struct rproc *rproc, const struct firmware *fw)
+{
+	struct imx_rproc *priv = rproc->priv;
+	struct device_node *np = priv->dev->of_node;
+	struct of_phandle_iterator it;
+	struct rproc_mem_entry *mem;
+	struct reserved_mem *rmem;
+	int index = 0;
+	u32 da;
+	int ret;
+
+	/* Register associated reserved memory regions */
+	of_phandle_iterator_init(&it, np, "memory-region", NULL, 0);
+	while (of_phandle_iterator_next(&it) == 0) {
+		rmem = of_reserved_mem_lookup(it.node);
+		if (!rmem) {
+			dev_err(priv->dev, "unable to acquire memory-region\n");
+			return -EINVAL;
+		}
+
+		/* No need to translate pa to da */
+		da = rmem->base;
+
+		if (strcmp(it.node->name, "vdevbuffer")) {
+			/* Register memory region */
+			mem = rproc_mem_entry_init(priv->dev, NULL,
+						   (dma_addr_t)rmem->base,
+						   rmem->size, da,
+						   imx_rproc_mem_alloc,
+						   imx_rproc_mem_release,
+						   it.node->name);
+
+			if (mem)
+				rproc_coredump_add_segment(rproc, da,
+							   rmem->size);
+		} else {
+			/* Register reserved memory for vdev buffer alloc */
+			mem = rproc_of_resm_mem_entry_init(priv->dev, index,
+							   rmem->size,
+							   rmem->base,
+							   it.node->name);
+		}
+
+		if (!mem)
+			return -ENOMEM;
+
+		rproc_add_carveout(rproc, mem);
+		index++;
+	}
+
+	if (priv->early_boot) {
+		struct resource_table *table = NULL;
+
+		ret = of_property_read_u32(np, "rsc-da", &da);
+		if (!ret)
+			priv->rsc_va = rproc_da_to_va(rproc, (u64)da, SZ_1K);
+		else
+			return 0;
+
+		if (!priv->rsc_va) {
+			dev_err(priv->dev, "no map for rsc-da: %x\n", da);
+			return 0;
+		}
+
+		table = (struct resource_table *)priv->rsc_va;
+		/* Assuming that the resource table fits in 1kB is fair */
+		rproc->cached_table = kmemdup(table, SZ_1K, GFP_KERNEL);
+		if (!rproc->cached_table)
+			return -ENOMEM;
+
+		rproc->table_ptr = rproc->cached_table;
+		rproc->table_sz = SZ_1K;
+		return 0;
+	}
+
+	if (!priv->early_boot) {
+		ret = rproc_elf_load_rsc_table(rproc, fw);
+		if (ret)
+			dev_info(priv->dev, "No resource table in elf\n");
+	}
+
+	return  0;
+}
+
+static struct resource_table *
+imx_rproc_elf_find_loaded_rsc_table(struct rproc *rproc,
+				    const struct firmware *fw)
+{
+	struct imx_rproc *priv = rproc->priv;
+
+	if (!priv->early_boot)
+		return rproc_elf_find_loaded_rsc_table(rproc, fw);
+
+	return (struct resource_table *)priv->rsc_va;
+}
+
+static int imx_rproc_elf_sanity_check(struct rproc *rproc,
+				      const struct firmware *fw)
+{
+	struct imx_rproc *priv = rproc->priv;
+
+	if (!priv->early_boot)
+		return rproc_elf_sanity_check(rproc, fw);
+
+	return 0;
+}
+
+static u32 imx_rproc_elf_get_boot_addr(struct rproc *rproc,
+				       const struct firmware *fw)
+{
+	struct imx_rproc *priv = rproc->priv;
+
+	if (!priv->early_boot)
+		return rproc_elf_get_boot_addr(rproc, fw);
+
+	return 0;
+}
+
 static const struct rproc_ops imx_rproc_ops = {
 	.start		= imx_rproc_start,
 	.stop		= imx_rproc_stop,
 	.da_to_va       = imx_rproc_da_to_va,
+	.load		= imx_rproc_elf_load_segments,
+	.parse_fw	= imx_rproc_parse_fw,
+	.find_loaded_rsc_table = imx_rproc_elf_find_loaded_rsc_table,
+	.sanity_check	= imx_rproc_elf_sanity_check,
+	.get_boot_addr	= imx_rproc_elf_get_boot_addr,
 };
 
 static int imx_rproc_addr_init(struct imx_rproc *priv,
@@ -332,6 +516,31 @@ static int imx_rproc_addr_init(struct imx_rproc *priv,
 	return 0;
 }
 
+static int imx_rproc_configure_mode(struct imx_rproc *priv)
+{
+	const struct imx_rproc_dcfg *dcfg = priv->dcfg;
+	struct device *dev = priv->dev;
+	int ret;
+	u32 val;
+
+	if (of_get_property(dev->of_node, "early-booted", NULL)) {
+		priv->early_boot = true;
+	} else {
+		ret = regmap_read(priv->regmap, dcfg->src_reg, &val);
+		if (ret) {
+			dev_err(dev, "Failed to read src\n");
+			return ret;
+		}
+
+		priv->early_boot = !(val & dcfg->src_stop);
+	}
+
+	if (priv->early_boot)
+		priv->rproc->skip_fw_load = true;
+
+	return 0;
+}
+
 static int imx_rproc_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -381,8 +590,13 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	priv->enable = enable;
 	priv->dcfg = dcfg;
 	priv->dev = dev;
+	priv->rsc_va = NULL;
 
 	dev_set_drvdata(dev, rproc);
+
+	ret = imx_rproc_configure_mode(priv);
+	if (ret)
+		goto err_put_rproc;
 
 	ret = imx_rproc_addr_init(priv, pdev);
 	if (ret) {
@@ -416,7 +630,8 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	return 0;
 
 err_put_clk:
-	clk_disable_unprepare(priv->clk);
+	if (!priv->early_boot)
+		clk_disable_unprepare(priv->clk);
 err_put_rproc:
 	rproc_free(rproc);
 
@@ -428,7 +643,8 @@ static int imx_rproc_remove(struct platform_device *pdev)
 	struct rproc *rproc = platform_get_drvdata(pdev);
 	struct imx_rproc *priv = rproc->priv;
 
-	clk_disable_unprepare(priv->clk);
+	if (!priv->early_boot)
+		clk_disable_unprepare(priv->clk);
 	rproc_del(rproc);
 	rproc_free(rproc);
 
