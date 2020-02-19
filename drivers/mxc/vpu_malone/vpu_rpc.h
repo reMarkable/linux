@@ -114,5 +114,6 @@ void rpc_send_cmd_buf(struct shared_addr *This,
 		u_int32 cmdnum,
 		u_int32 *local_cmddata);
 void rpc_receive_msg_buf(struct shared_addr *This, struct event_msg *msg);
+u_int32 rpc_MediaIPFW_Video_message_check(struct shared_addr *This);
 
 #endif

@@ -93,7 +93,6 @@ static int send_stop_cmd(struct vpu_ctx *ctx);
 static int vpu_dec_cmd_reset(struct vpu_ctx *ctx);
 static void vpu_dec_event_decode_error(struct vpu_ctx *ctx);
 static void vpu_calculate_performance(struct vpu_ctx *ctx, u_int32 uEvent, const char *str);
-static void vpu_notify_msg_event(struct vpu_dev *dev);
 static void vpu_dec_cancel_work(struct vpu_dev *vpudev);
 
 #define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
@@ -1494,7 +1493,6 @@ static int v4l2_ioctl_qbuf(struct file *file,
 		return -EINVAL;
 	}
 
-	vpu_notify_msg_event(ctx->dev);
 	ret = vpu_dec_queue_qbuf(q_data, buf);
 	if (ret) {
 		vpu_err("error: %s() return ret=%d\n", __func__, ret);
@@ -1588,7 +1586,6 @@ static int v4l2_ioctl_dqbuf(struct file *file,
 	else
 		return -EINVAL;
 
-	vpu_notify_msg_event(ctx->dev);
 	ret = vpu_dec_queue_dqbuf(q_data, buf, file->f_flags & O_NONBLOCK);
 
 	if (ret) {
@@ -3070,6 +3067,7 @@ static int send_stop_cmd(struct vpu_ctx *ctx)
 	reinit_completion(&ctx->stop_cmp);
 	v4l2_vpu_send_cmd(ctx, ctx->str_index, VID_API_CMD_STOP, 0, NULL);
 	if (!wait_for_completion_timeout(&ctx->stop_cmp, msecs_to_jiffies(1000))) {
+
 		vpu_dec_clear_pending_cmd(ctx);
 		ctx->hang_status = true;
 		vpu_err("the path id: %d firmware timeout after send %s\n",
@@ -4733,26 +4731,6 @@ static bool receive_msg_queue(struct vpu_ctx *ctx, struct event_msg *msg)
 		return false;
 }
 
-static void vpu_notify_msg_event(struct vpu_dev *dev)
-{
-	int i;
-
-	mutex_lock(&dev->dev_mutex);
-	if (dev->suspend)
-		goto exit;
-
-	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
-		struct vpu_ctx *ctx = dev->ctx[i];
-
-		if (!ctx || ctx->ctx_released || !kfifo_len(&ctx->msg_fifo))
-			continue;
-		queue_work(ctx->instance_wq, ctx->instance_work);
-	}
-exit:
-	mutex_unlock(&dev->dev_mutex);
-}
-
-extern u_int32 rpc_MediaIPFW_Video_message_check(struct shared_addr *This);
 static void vpu_receive_msg_event(struct vpu_dev *dev)
 {
 	struct event_msg msg;
@@ -4766,6 +4744,7 @@ static void vpu_receive_msg_event(struct vpu_dev *dev)
 	memset(&msg, 0, sizeof(struct event_msg));
 	while (rpc_MediaIPFW_Video_message_check(This) == API_MSG_AVAILABLE) {
 		rpc_receive_msg_buf(This, &msg);
+
 		mutex_lock(&dev->dev_mutex);
 		ctx = dev->ctx[msg.idx];
 		if (ctx)
@@ -4773,7 +4752,9 @@ static void vpu_receive_msg_event(struct vpu_dev *dev)
 		if (ctx != NULL && !ctx->ctx_released) {
 			send_msg_queue(ctx, &msg);
 			queue_work(ctx->instance_wq, ctx->instance_work);
-
+			queue_delayed_work(ctx->instance_wq,
+					ctx->delayed_instance_work,
+					msecs_to_jiffies(10));
 		} else {
 			vpu_err("msg [%d] %d is missed!%s\n",
 				msg.idx, msg.msgid,
@@ -4783,8 +4764,6 @@ static void vpu_receive_msg_event(struct vpu_dev *dev)
 	}
 	if (rpc_MediaIPFW_Video_message_check(This) == API_MSG_BUFFER_ERROR)
 		vpu_err("error: message size is too big to handle\n");
-
-	vpu_notify_msg_event(dev);
 }
 
 static void vpu_handle_msg_data(struct vpu_dev *dev, u32 data)
@@ -4824,6 +4803,19 @@ static void vpu_msg_run_work(struct work_struct *work)
 		vpu_handle_msg_data(dev, data);
 }
 
+static void vpu_msg_run_delayed_work(struct work_struct *work)
+{
+	struct delayed_work *dwork;
+	struct vpu_dev *dev;
+
+	dwork = to_delayed_work(work);
+	dev = container_of(dwork, struct vpu_dev, delayed_msg_work);
+	if (!kfifo_len(&dev->mu_msg_fifo))
+		return;
+
+	queue_work(dev->workqueue, &dev->msg_work);
+}
+
 static void vpu_msg_instance_work(struct work_struct *work)
 {
 	struct vpu_ctx_work *ctx_work;
@@ -4841,6 +4833,22 @@ static void vpu_msg_instance_work(struct work_struct *work)
 		vpu_api_event_handler(ctx, msg.idx, msg.msgid, msg.msgdata);
 		memset(&msg, 0, sizeof(struct event_msg));
 	}
+}
+
+static void vpu_msg_delayed_instance_work(struct work_struct *work)
+{
+	struct delayed_work *dwork;
+	struct vpu_ctx_work *ctx_work;
+	struct vpu_ctx *ctx;
+
+	dwork = to_delayed_work(work);
+	ctx_work = container_of(dwork, struct vpu_ctx_work,
+				delayed_instance_work);
+	ctx = ctx_work->dev->ctx[ctx_work->str_index];
+	if (!ctx || ctx->ctx_released || !kfifo_len(&ctx->msg_fifo))
+		return;
+
+	queue_work(ctx->instance_wq, ctx->instance_work);
 }
 
 static bool vpu_dec_alloc_buffer_item(struct vpu_ctx *ctx,
@@ -6022,6 +6030,7 @@ static int v4l2_open(struct file *filp)
 		goto err_alloc_wq;
 	}
 	ctx->instance_work = &dev->ctx_work[idx].instance_work;
+	ctx->delayed_instance_work = &dev->ctx_work[idx].delayed_instance_work;
 	ctx->alloc_work = &dev->ctx_work[idx].alloc_work;
 
 	mutex_init(&ctx->instance_mutex);
@@ -6197,6 +6206,7 @@ static int v4l2_release(struct file *filp)
 	ctx->ctx_released = true;
 	mutex_unlock(&ctx->dev->dev_mutex);
 
+	cancel_delayed_work_sync(ctx->delayed_instance_work);
 	cancel_work_sync(ctx->instance_work);
 	cancel_work_sync(ctx->alloc_work);
 	kfifo_free(&ctx->msg_fifo);
@@ -6231,7 +6241,6 @@ static unsigned int v4l2_poll(struct file *filp, poll_table *wait)
 
 	vpu_dbg(LVL_BIT_FUNC, "%s()\n", __func__);
 
-	vpu_notify_msg_event(ctx->dev);
 	poll_wait(filp, &ctx->fh.wait, wait);
 
 	if (v4l2_event_pending(&ctx->fh)) {
@@ -6500,6 +6509,8 @@ static void vpu_dec_init_ctx_work(struct vpu_dev *dev)
 		ctx_work->str_index = i;
 		ctx_work->dev = dev;
 		INIT_WORK(&ctx_work->instance_work, vpu_msg_instance_work);
+		INIT_DELAYED_WORK(&ctx_work->delayed_instance_work,
+				vpu_msg_delayed_instance_work);
 		INIT_WORK(&ctx_work->alloc_work, vpu_alloc_work);
 	}
 }
@@ -6575,6 +6586,7 @@ static int vpu_probe(struct platform_device *pdev)
 	}
 
 	INIT_WORK(&dev->msg_work, vpu_msg_run_work);
+	INIT_DELAYED_WORK(&dev->delayed_msg_work, vpu_msg_run_delayed_work);
 
 	vpu_enable_hw(dev);
 	pm_runtime_enable(&pdev->dev);
@@ -6715,10 +6727,12 @@ static void vpu_dec_cancel_work(struct vpu_dev *vpudev)
 	vpudev->suspend = true;
 	mutex_unlock(&vpudev->dev_mutex);
 
+	cancel_delayed_work_sync(&vpudev->delayed_msg_work);
 	cancel_work_sync(&vpudev->msg_work);
 	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
 		struct vpu_ctx_work *ctx_work = &vpudev->ctx_work[i];
 
+		cancel_delayed_work_sync(&ctx_work->delayed_instance_work);
 		cancel_work_sync(&ctx_work->instance_work);
 		cancel_work_sync(&ctx_work->alloc_work);
 	}

@@ -32,6 +32,8 @@ static void vpu_mu_inq_msg(struct vpu_dev *dev, void *msg)
 	}
 
 	queue_work(dev->workqueue, &dev->msg_work);
+	queue_delayed_work(dev->workqueue,
+			&dev->delayed_msg_work, msecs_to_jiffies(10));
 }
 
 static void vpu_mbox_free(struct vpu_dev *dev)
@@ -174,6 +176,9 @@ u_int32 vpu_mu_receive_msg(struct vpu_dev *dev, void *msg)
 				ret);
 	} else {
 		ret = kfifo_len(&dev->mu_msg_fifo);
+		if (ret)
+			vpu_err("error: broken msg\n");
+		ret = 0;
 	}
 
 	return ret;

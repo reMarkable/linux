@@ -268,6 +268,7 @@ struct vpu_sc_chan {
 
 struct vpu_ctx_work {
 	struct work_struct instance_work;
+	struct delayed_work delayed_instance_work;
 	struct work_struct alloc_work;
 	int str_index;
 	struct vpu_dev *dev;
@@ -296,6 +297,7 @@ struct vpu_dev {
 	struct completion snap_done_cmp;
 	struct workqueue_struct *workqueue;
 	struct work_struct msg_work;
+	struct delayed_work delayed_msg_work;
 	unsigned long instance_mask;
 	unsigned long hang_mask; //this is used to deal with hang issue to reset firmware
 	struct clk *vpu_clk;
@@ -409,6 +411,7 @@ struct vpu_ctx {
 	struct kfifo msg_fifo;
 	struct mutex instance_mutex;
 	struct work_struct *instance_work;
+	struct delayed_work *delayed_instance_work;
 	struct work_struct *alloc_work;
 	struct workqueue_struct *instance_wq;
 	struct completion completion;
