@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017 Pengutronix, Oleksij Rempel <kernel@pengutronix.de>
+ * Copyright 2020 NXP, Peng Fan <peng.fan@nxp.com>
  */
 
 #include <linux/clk.h>
 #include <linux/err.h>
+#ifdef CONFIG_IMX_SCU
+#include <linux/firmware/imx/sci.h>
+#endif
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/mailbox_client.h>
@@ -50,6 +54,13 @@
 
 #define IMX7D_RPROC_MEM_MAX		8
 
+enum imx_rproc_variants {
+	IMX8QXP,
+	IMX8MQ,
+	IMX7D,
+	IMX6SX,
+};
+
 /**
  * struct imx_rproc_mem - slim internal memory structure
  * @cpu_addr: MPU virtual address of the memory region
@@ -81,6 +92,7 @@ struct imx_rproc_dcfg {
 	u32				src_stop;
 	const struct imx_rproc_att	*att;
 	size_t				att_size;
+	enum imx_rproc_variants		variant;
 };
 
 struct imx_rproc {
@@ -94,11 +106,29 @@ struct imx_rproc {
 	struct clk			*clk;
 	bool				ipc_only;
 	bool				early_boot;
+	bool				skip_fw_load_recovery;
 	void				*rsc_va;
 	struct mbox_client		cl;
 	struct mbox_chan		*tx_ch;
 	struct mbox_chan		*rx_ch;
 	struct delayed_work		rproc_work;
+	u32				mub_partition;
+	struct notifier_block		proc_nb;
+};
+
+static const struct imx_rproc_att imx_rproc_att_imx8qxp[] = {
+	/* dev addr , sys addr  , size	    , flags */
+	{ 0x08000000, 0x08000000, 0x10000000, 0},
+	/* TCML */
+	{ 0x1FFE0000, 0x34FE0000, 0x00020000, ATT_OWN },
+	/* TCMU */
+	{ 0x20000000, 0x35000000, 0x00020000, ATT_OWN },
+	/* OCRAM(Low 96KB) */
+	{ 0x21000000, 0x00100000, 0x00018000, 0},
+	/* OCRAM */
+	{ 0x21100000, 0x00100000, 0x00040000, 0},
+	/* DDR (Data) */
+	{ 0x80000000, 0x80000000, 0x60000000, 0 },
 };
 
 static const struct imx_rproc_att imx_rproc_att_imx8mq[] = {
@@ -186,6 +216,7 @@ static const struct imx_rproc_dcfg imx_rproc_cfg_imx8mq = {
 	.src_stop	= IMX7D_M4_STOP,
 	.att		= imx_rproc_att_imx8mq,
 	.att_size	= ARRAY_SIZE(imx_rproc_att_imx8mq),
+	.variant	= IMX8MQ,
 };
 
 static const struct imx_rproc_dcfg imx_rproc_cfg_imx7d = {
@@ -195,6 +226,7 @@ static const struct imx_rproc_dcfg imx_rproc_cfg_imx7d = {
 	.src_stop	= IMX7D_M4_STOP,
 	.att		= imx_rproc_att_imx7d,
 	.att_size	= ARRAY_SIZE(imx_rproc_att_imx7d),
+	.variant	= IMX7D,
 };
 
 static const struct imx_rproc_dcfg imx_rproc_cfg_imx6sx = {
@@ -204,6 +236,13 @@ static const struct imx_rproc_dcfg imx_rproc_cfg_imx6sx = {
 	.src_stop	= IMX6SX_M4_STOP,
 	.att		= imx_rproc_att_imx6sx,
 	.att_size	= ARRAY_SIZE(imx_rproc_att_imx6sx),
+	.variant	= IMX6SX,
+};
+
+static const struct imx_rproc_dcfg imx_rproc_cfg_imx8qxp = {
+	.att		= imx_rproc_att_imx8qxp,
+	.att_size	= ARRAY_SIZE(imx_rproc_att_imx8qxp),
+	.variant	= IMX8QXP,
 };
 
 static int imx_rproc_start(struct rproc *rproc)
@@ -216,6 +255,9 @@ static int imx_rproc_start(struct rproc *rproc)
 
 	if (priv->ipc_only) {
 		dev_info(dev, "%s: IPC only\n", __func__);
+		/* To partition M4, we need block userspace stop/start */
+		if (priv->skip_fw_load_recovery)
+			priv->skip_fw_load_recovery = false;
 		return 0;
 	}
 
@@ -257,6 +299,14 @@ static int imx_rproc_stop(struct rproc *rproc)
 
 	if (priv->ipc_only) {
 		dev_info(dev, "%s: IPC only\n", __func__);
+		/*
+		 * TO i.MX8 Paritioned M4, M4 reboot is handled by itself,
+		 * so we still keep early boot and skip fw load flag
+		 * To allow m4 partition reset trigger remoteproc crash
+		 * handler.
+		 */
+		if (priv->skip_fw_load_recovery)
+			return 0;
 		return -EBUSY;
 	}
 
@@ -470,7 +520,14 @@ imx_rproc_elf_find_loaded_rsc_table(struct rproc *rproc,
 	if (!priv->early_boot)
 		return rproc_elf_find_loaded_rsc_table(rproc, fw);
 
-	return (struct resource_table *)priv->rsc_va;
+	/*
+	 * Not use (struct resource_table *)priv->rsc_va;
+	 * M4 use vring to publish resource table, for multiple vdev,
+	 * the first vdev kick will overwrite the resource table if
+	 * using priv->rsc_va, then 2nd vdev will not be able to get
+	 * the correct info from loaded table.
+	 */
+	return NULL;
 }
 
 static int imx_rproc_elf_sanity_check(struct rproc *rproc,
@@ -595,7 +652,6 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 	if (of_get_property(dev->of_node, "ipc-only", NULL)) {
 		priv->ipc_only = true;
 		priv->early_boot = true;
-		priv->rproc->skip_fw_load_recovery = true;
 	} else if (of_get_property(dev->of_node, "early-booted", NULL)) {
 		priv->early_boot = true;
 	} else {
@@ -620,8 +676,11 @@ static void imx_rproc_vq_work(struct work_struct *work)
 	struct imx_rproc *priv = container_of(dwork, struct imx_rproc,
 					      rproc_work);
 
+	/* TODO: take message from rx_callback */
 	rproc_vq_interrupt(priv->rproc, 0);
 	rproc_vq_interrupt(priv->rproc, 1);
+	rproc_vq_interrupt(priv->rproc, 2);
+	rproc_vq_interrupt(priv->rproc, 3);
 }
 
 static void imx_rproc_rx_callback(struct mbox_client *cl, void *msg)
@@ -674,6 +733,27 @@ err_out:
 
 	return ret;
 }
+
+#ifdef CONFIG_IMX_SCU
+static int imx_rproc_partition_notify(struct notifier_block *nb,
+				      unsigned long event, void *group)
+{
+	struct imx_rproc *priv = container_of(nb, struct imx_rproc, proc_nb);
+
+	/* Ignore other irqs */
+	if (!((event & BIT(priv->mub_partition)) &&
+	    (*(u8 *)group == 5)))
+		return 0;
+
+	priv->skip_fw_load_recovery = true;
+
+	rproc_report_crash(priv->rproc, RPROC_WATCHDOG);
+
+	pr_info("Patition%d reset!\n", priv->mub_partition);
+
+	return 0;
+}
+#endif
 
 static int imx_rproc_probe(struct platform_device *pdev)
 {
@@ -766,15 +846,48 @@ static int imx_rproc_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&(priv->rproc_work), imx_rproc_vq_work);
 
+#ifdef CONFIG_IMX_SCU
+	priv->proc_nb.notifier_call = imx_rproc_partition_notify;
+
+	if (dcfg->variant == IMX8QXP) {
+		/*
+		 * Get muB partition id and enable irq in SCFW
+		 * default partition 3
+		 */
+		if (of_property_read_u32(np, "mub-partition",
+					 &priv->mub_partition))
+			priv->mub_partition = 3;
+
+		ret = imx_scu_irq_group_enable(5, BIT(priv->mub_partition),
+					       true);
+		if (ret) {
+			dev_warn(dev, "Enable irq failed.\n");
+			goto err_put_clk;
+		}
+
+		ret = imx_scu_irq_register_notifier(&priv->proc_nb);
+		if (ret) {
+			imx_scu_irq_group_enable(5, BIT(priv->mub_partition),
+						 false);
+			dev_warn(dev, "reqister scu notifier failed.\n");
+			goto err_put_clk;
+		}
+	}
+#endif
+
 	ret = rproc_add(rproc);
 	if (ret) {
 		dev_err(dev, "rproc_add failed\n");
-		goto err_put_clk;
+		goto err_put_scu;
 	}
 
 	return 0;
 
+err_put_scu:
+#ifdef CONFIG_IMX_SCU
+	imx_scu_irq_group_enable(5, BIT(priv->mub_partition), false);
 err_put_clk:
+#endif
 	if (!priv->early_boot)
 		clk_disable_unprepare(priv->clk);
 err_put_mbox:
@@ -806,6 +919,7 @@ static const struct of_device_id imx_rproc_of_match[] = {
 	{ .compatible = "fsl,imx6sx-cm4", .data = &imx_rproc_cfg_imx6sx },
 	{ .compatible = "fsl,imx8mq-cm4", .data = &imx_rproc_cfg_imx8mq },
 	{ .compatible = "fsl,imx8mm-cm4", .data = &imx_rproc_cfg_imx8mq },
+	{ .compatible = "fsl,imx8qxp-cm4", .data = &imx_rproc_cfg_imx8qxp },
 	{},
 };
 MODULE_DEVICE_TABLE(of, imx_rproc_of_match);
