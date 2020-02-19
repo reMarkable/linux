@@ -488,7 +488,8 @@ static int dwc3_usb_role_switch_set(struct device *dev, enum usb_role role)
 		mode = DWC3_GCTL_PRTCAP_DEVICE;
 		break;
 	default:
-		return 0;
+		mode = DWC3_GCTL_PRTCAP_DEVICE;
+		break;
 	};
 
 	dwc3_set_mode(dev_get_drvdata(dev), mode);
