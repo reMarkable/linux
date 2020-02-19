@@ -266,6 +266,13 @@ struct vpu_sc_chan {
 	struct mbox_chan *ch;
 };
 
+struct vpu_ctx_work {
+	struct work_struct instance_work;
+
+	int str_index;
+	struct vpu_dev *dev;
+};
+
 struct vpu_ctx;
 struct vpu_dev {
 	struct device *generic_dev;
@@ -304,6 +311,7 @@ struct vpu_dev {
 
 	struct shared_addr shared_mem;
 	struct vpu_ctx *ctx[VPU_MAX_NUM_STREAMS];
+	struct vpu_ctx_work ctx_work[VPU_MAX_NUM_STREAMS];
 	struct dentry *debugfs_root;
 	struct dentry *debugfs_dbglog;
 	struct dentry *debugfs_fwlog;
@@ -400,7 +408,8 @@ struct vpu_ctx {
 	struct queue_data q_data[2];
 	struct kfifo msg_fifo;
 	struct mutex instance_mutex;
-	struct work_struct instance_work;
+	struct work_struct *instance_work;
+
 	struct workqueue_struct *instance_wq;
 	struct completion completion;
 	struct completion stop_cmp;

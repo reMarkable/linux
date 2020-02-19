@@ -95,6 +95,7 @@ static int vpu_dec_cmd_reset(struct vpu_ctx *ctx);
 static void vpu_dec_event_decode_error(struct vpu_ctx *ctx);
 static void vpu_calculate_performance(struct vpu_ctx *ctx, u_int32 uEvent, const char *str);
 static void vpu_notify_msg_event(struct vpu_dev *dev);
+static void vpu_dec_cancel_work(struct vpu_dev *vpudev);
 
 #define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
 
@@ -3101,8 +3102,8 @@ static int send_abort_cmd(struct vpu_ctx *ctx)
 	v4l2_vpu_send_cmd(ctx, ctx->str_index, VID_API_CMD_ABORT, 1, &size);
 	if (!wait_for_completion_timeout(&ctx->completion, msecs_to_jiffies(1000))) {
 		ctx->hang_status = true;
-		vpu_err("the path id:%d firmware timeout after send VID_API_CMD_ABORT\n",
-					ctx->str_index);
+		vpu_err("the path id: %d firmware timeout after send %s\n",
+			ctx->str_index, get_cmd_str(VID_API_CMD_ABORT));
 		vpu_dec_clear_pending_cmd(ctx);
 		return -EBUSY;
 	}
@@ -3125,7 +3126,8 @@ static int send_stop_cmd(struct vpu_ctx *ctx)
 	if (!wait_for_completion_timeout(&ctx->stop_cmp, msecs_to_jiffies(1000))) {
 		vpu_dec_clear_pending_cmd(ctx);
 		ctx->hang_status = true;
-		vpu_err("the path id:%d firmware hang after send VID_API_CMD_STOP\n", ctx->str_index);
+		vpu_err("the path id: %d firmware timeout after send %s\n",
+			ctx->str_index, get_cmd_str(VID_API_CMD_STOP));
 		return -EBUSY;
 	}
 
@@ -4675,8 +4677,7 @@ static int vpu_next_free_instance(struct vpu_dev *dev)
 {
 	int idx;
 
-	if (dev->hang_mask == dev->instance_mask
-			&& dev->instance_mask != 0) {
+	if (dev->hang_mask == dev->instance_mask && dev->instance_mask != 0) {
 		idx = get_reset_index(dev);
 		if (idx < 0 || idx >= VPU_MAX_NUM_STREAMS)
 			return -EBUSY;
@@ -4747,7 +4748,7 @@ static void vpu_notify_msg_event(struct vpu_dev *dev)
 
 		if (!ctx || ctx->ctx_released || !kfifo_len(&ctx->msg_fifo))
 			continue;
-		queue_work(ctx->instance_wq, &ctx->instance_work);
+		queue_work(ctx->instance_wq, ctx->instance_work);
 	}
 exit:
 	mutex_unlock(&dev->dev_mutex);
@@ -4771,11 +4772,14 @@ static void vpu_receive_msg_event(struct vpu_dev *dev)
 		ctx = dev->ctx[msg.idx];
 		if (ctx)
 			count_event(&ctx->statistic, msg.msgid);
-		if (ctx != NULL) {
-			if (!ctx->ctx_released) {
-				send_msg_queue(ctx, &msg);
-				queue_work(ctx->instance_wq, &ctx->instance_work);
-			}
+		if (ctx != NULL && !ctx->ctx_released) {
+			send_msg_queue(ctx, &msg);
+			queue_work(ctx->instance_wq, ctx->instance_work);
+
+		} else {
+			vpu_err("msg [%d] %d is missed!%s\n",
+				msg.idx, msg.msgid,
+				ctx == NULL ? " ctx is NULL" : " ctx released");
 		}
 		mutex_unlock(&dev->dev_mutex);
 	}
@@ -4824,8 +4828,15 @@ static void vpu_msg_run_work(struct work_struct *work)
 
 static void vpu_msg_instance_work(struct work_struct *work)
 {
-	struct vpu_ctx *ctx = container_of(work, struct vpu_ctx, instance_work);
+	struct vpu_ctx_work *ctx_work;
+	struct vpu_ctx *ctx;
 	struct event_msg msg;
+
+
+	ctx_work = container_of(work, struct vpu_ctx_work, instance_work);
+	ctx = ctx_work->dev->ctx[ctx_work->str_index];
+	if (!ctx || ctx->ctx_released)
+		return;
 
 	memset(&msg, 0, sizeof(struct event_msg));
 
@@ -5929,7 +5940,8 @@ static int v4l2_open(struct file *filp)
 		ret = -ENOMEM;
 		goto err_alloc_wq;
 	}
-	INIT_WORK(&ctx->instance_work, vpu_msg_instance_work);
+	ctx->instance_work = &dev->ctx_work[idx].instance_work;
+
 
 	mutex_init(&ctx->instance_mutex);
 	mutex_init(&ctx->cmd_lock);
@@ -6102,11 +6114,12 @@ static int v4l2_release(struct file *filp)
 
 	mutex_lock(&ctx->dev->dev_mutex);
 	ctx->ctx_released = true;
-	cancel_work_sync(&ctx->instance_work);
+	mutex_unlock(&ctx->dev->dev_mutex);
+
+	cancel_work_sync(ctx->instance_work);
 	kfifo_free(&ctx->msg_fifo);
 	if (ctx->instance_wq)
 		destroy_workqueue(ctx->instance_wq);
-	mutex_unlock(&ctx->dev->dev_mutex);
 
 	if (ctx->tsm) {
 		destroyTSManager(ctx->tsm);
@@ -6396,6 +6409,20 @@ static int init_vpudev_parameters(struct vpu_dev *dev)
 	return 0;
 }
 
+static void vpu_dec_init_ctx_work(struct vpu_dev *dev)
+{
+	int i;
+
+	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
+		struct vpu_ctx_work *ctx_work = &dev->ctx_work[i];
+
+		ctx_work->str_index = i;
+		ctx_work->dev = dev;
+		INIT_WORK(&ctx_work->instance_work, vpu_msg_instance_work);
+
+	}
+}
+
 static int vpu_probe(struct platform_device *pdev)
 {
 	struct vpu_dev *dev;
@@ -6480,6 +6507,7 @@ static int vpu_probe(struct platform_device *pdev)
 
 	pm_runtime_put_sync(&pdev->dev);
 	device_create_file(&pdev->dev, &dev_attr_precheck_pattern);
+	vpu_dec_init_ctx_work(dev);
 
 	return 0;
 
@@ -6527,6 +6555,7 @@ static int vpu_remove(struct platform_device *pdev)
 	dev->debugfs_dbglog = NULL;
 	dev->debugfs_fwlog = NULL;
 	kfifo_free(&dev->mu_msg_fifo);
+	vpu_dec_cancel_work(dev);
 	destroy_workqueue(dev->workqueue);
 	if (dev->m0_p_fw_space_vir)
 		iounmap(dev->m0_p_fw_space_vir);
@@ -6603,15 +6632,15 @@ static void vpu_dec_cancel_work(struct vpu_dev *vpudev)
 
 	mutex_lock(&vpudev->dev_mutex);
 	vpudev->suspend = true;
+	mutex_unlock(&vpudev->dev_mutex);
+
 	cancel_work_sync(&vpudev->msg_work);
 	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
-		struct vpu_ctx *ctx = vpudev->ctx[i];
+		struct vpu_ctx_work *ctx_work = &vpudev->ctx_work[i];
 
-		if (!ctx)
-			continue;
-		cancel_work_sync(&vpudev->ctx[i]->instance_work);
+		cancel_work_sync(&ctx_work->instance_work);
 	}
-	mutex_unlock(&vpudev->dev_mutex);
+
 }
 
 
@@ -6625,10 +6654,10 @@ static void vpu_dec_resume_work(struct vpu_dev *vpudev)
 	for (i = 0; i < VPU_MAX_NUM_STREAMS; i++) {
 		struct vpu_ctx *ctx = vpudev->ctx[i];
 
-		if (!ctx)
+		if (!ctx || ctx->ctx_released)
 			continue;
-		if (!ctx->ctx_released)
-			queue_work(ctx->instance_wq, &ctx->instance_work);
+
+		queue_work(ctx->instance_wq, ctx->instance_work);
 	}
 	mutex_unlock(&vpudev->dev_mutex);
 }
