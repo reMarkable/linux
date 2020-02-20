@@ -73,8 +73,7 @@ static int imx_hdmimix_reset_set(struct reset_controller_dev *rcdev,
 		break;
 	case IMX_HDMIMIX_LCDIF_RESET:
 		val = IMX_HDMIMIX_RESET_CTL0_LCDIF_APB_RESETN |
-				IMX_HDMIMIX_RESET_CTL0_LCDIF_ASYNC_RESETN |
-				IMX_HDMIMIX_RESET_CTL0_NOC_RESETN;
+				IMX_HDMIMIX_RESET_CTL0_LCDIF_ASYNC_RESETN;
 		break;
 	default:
 		return -EINVAL;
