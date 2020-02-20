@@ -84,15 +84,6 @@
 		off-on-delay-us = <3480>;
 	};
 
-	reg_usb_otg1_vbus: regulator@0 {
-		compatible = "regulator-fixed";
-		regulator-name = "usb_otg1_vbus";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		gpio = <&lsio_gpio4 3 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-	};
-
 };
 
 &flexspi0 {
@@ -368,7 +359,8 @@
 };
 
 &usbotg1 {
-	vbus-supply = <&reg_usb_otg1_vbus>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg1>;
 	srp-disable;
 	hnp-disable;
 	adp-disable;
@@ -399,7 +391,12 @@
 		pinctrl_hog: hoggrp {
 			fsl,pins = <
 				IMX8DXL_COMP_CTL_GPIO_1V8_3V3_GPIORHB_PAD	0x000514a0
-				IMX8DXL_USB_SS3_TC0_LSIO_GPIO4_IO03		0x00000021
+			>;
+		};
+
+		pinctrl_usbotg1: otg1 {
+			fsl,pins = <
+				IMX8DXL_USB_SS3_TC0_CONN_USB_OTG1_PWR		0x00000021
 			>;
 		};
 
