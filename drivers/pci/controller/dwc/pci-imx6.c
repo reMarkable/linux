@@ -1657,11 +1657,13 @@ static void pci_imx_set_msi_en(struct pcie_port *pp)
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 
 	if (pci_msi_enabled()) {
+		dw_pcie_dbi_ro_wr_en(pci);
 		val = dw_pcie_readw_dbi(pci, PCIE_RC_IMX6_MSI_CAP +
 					PCI_MSI_FLAGS);
 		val |= PCI_MSI_FLAGS_ENABLE;
 		dw_pcie_writew_dbi(pci, PCIE_RC_IMX6_MSI_CAP + PCI_MSI_FLAGS,
 				   val);
+		dw_pcie_dbi_ro_wr_dis(pci);
 	}
 }
 
@@ -2719,6 +2721,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 			}
 			return ret;
 		}
+		pci_imx_set_msi_en(&imx6_pcie->pci->pp);
 
 		if (IS_ENABLED(CONFIG_RC_MODE_IN_EP_RC_SYS)
 				&& (imx6_pcie->hard_wired == 0))
