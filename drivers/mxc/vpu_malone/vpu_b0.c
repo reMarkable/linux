@@ -4298,8 +4298,10 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 		int wait_times = 0;
 
 		get_seq_info(&info, event_data, &pSeqInfo[ctx->str_index]);
-		if (!check_seq_info_is_valid(ctx->str_index, &info))
+		if (!check_seq_info_is_valid(ctx->str_index, &info)) {
+			vpu_dec_event_decode_error(ctx);
 			break;
+		}
 
 		while (ctx->wait_res_change_done && wait_times++ < 100) {
 			if (!vpu_dec_is_active(ctx))
