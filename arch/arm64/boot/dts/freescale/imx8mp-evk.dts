@@ -144,6 +144,12 @@
 		cpu-dai = <&micfil>;
 	};
 
+	sound-earc {
+		compatible = "fsl,imx-audio-xcvr";
+		model = "imx-audio-earc";
+		cpu-dai = <&earc>;
+	};
+
 	lvds_backlight: lvds_backlight {
 		compatible = "pwm-backlight";
 		pwms = <&pwm2 0 100000>;
@@ -591,6 +597,17 @@
 		 <&clk IMX8MP_CLK_DUMMY>;
 	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
 	fsl,sai-mclk-direction-output;
+	status = "okay";
+};
+
+&earc {
+	/**
+	 * Bit 0: TX enabled
+	 * Bit 1: RX enabled
+	 * Bits 3..2: 0=SPDIF, 1=ARC, 2=EARC, 3=RESERVED
+	 */
+	fsl,xcvr-mode = <0xb>; /* EARC,  RX + TX */
+	#sound-dai-cells = <0>;
 	status = "okay";
 };
 
