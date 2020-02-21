@@ -699,6 +699,16 @@
 
 &iomuxc {
 	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+
+	pinctrl_hog: hoggrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_HDMI_DDC_SCL__HDMIMIX_EARC_SCL	0x400001c3
+			MX8MP_IOMUXC_HDMI_DDC_SDA__HDMIMIX_EARC_SDA	0x400001c3
+			MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_EARC_DC_HPD	0x40000019
+			MX8MP_IOMUXC_HDMI_CEC__HDMIMIX_EARC_CEC		0x40000019
+		>;
+	};
 
 	pinctrl_pwm1: pwm1grp {
 		fsl,pins = <
@@ -1067,14 +1077,6 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06		0x19
 			MX8MP_IOMUXC_GPIO1_IO15__CCMSRCGPCMIX_CLKO2	0x59
-		>;
-	};
-
-	pinctrl_hdmi: hdmigrp {
-		fsl,pins = <
-			MX8MP_IOMUXC_HDMI_DDC_SCL__HDMIMIX_EARC_SCL 0x400001c3
-			MX8MP_IOMUXC_HDMI_DDC_SDA__HDMIMIX_EARC_SDA 0x400001c3
-			MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_EARC_DC_HPD  0x40000019
 		>;
 	};
 };
