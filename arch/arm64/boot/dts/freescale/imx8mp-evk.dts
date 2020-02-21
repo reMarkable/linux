@@ -96,11 +96,6 @@
 		};
 	};
 
-	tcm@00800000 {
-		compatible = "fsl,tcm";
-		reg = <0x0 0x00800000 0 0x1000>;
-	};
-
 	sound-hdmi {
 		compatible = "fsl,imx-audio-cdnhdmi";
 		model = "audio-hdmi";
