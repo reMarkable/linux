@@ -51,3 +51,7 @@
 	interrupts = <GIC_SPI 225 IRQ_TYPE_LEVEL_HIGH>;
 };
 
+&lpspi3 {
+	compatible = "fsl,imx8dxl-spi", "fsl,imx8qxp-spi", "fsl,imx7ulp-spi";
+	interrupts = <GIC_SPI 121 IRQ_TYPE_LEVEL_HIGH>;
+};
