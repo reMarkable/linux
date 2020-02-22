@@ -76,26 +76,26 @@ static inline
 int imx_sc_rm_find_memreg(struct imx_sc_ipc *ipc, u8 *mr, u64 addr_start,
 			  u64 addr_end)
 {
-	return -ENOTSUP;
+	return -EOPNOTSUPP;
 }
 
 static inline
 int imx_sc_rm_get_resource_owner(struct imx_sc_ipc *ipc, u16 resource, u8 *pt)
 {
-	return -ENOTSUP;
+	return -EOPNOTSUPP;
 }
 
 static inline
 int imx_sc_rm_set_memreg_permissions(struct imx_sc_ipc *ipc, u8 mr,
 				     u8 pt, u8 perm)
 {
-	return -ENOTSUP;
+	return -EOPNOTSUPP;
 }
 
 static inline
 int imx_sc_rm_get_did(struct imx_sc_ipc *ipc, u8 *did)
 {
-	return -ENOTSUP;
+	return -EOPNOTSUPP;
 }
 #endif
 #endif

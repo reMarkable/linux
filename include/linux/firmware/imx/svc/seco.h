@@ -34,13 +34,13 @@ static inline
 int imx_sc_seco_build_info(struct imx_sc_ipc *ipc, uint32_t *version,
 			   uint32_t *commit)
 {
-	return -ENOTSUP;
+	return -EOPNOTSUPP;
 }
 
 static inline
 int imx_sc_seco_sab_msg(struct imx_sc_ipc *ipc, u64 smsg_addr)
 {
-	return -ENOTSUP;
+	return -EOPNOTSUPP;
 }
 #endif /* IS_ENABLED(CONFIG_IMX_SCU) */
 
