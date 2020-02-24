@@ -266,7 +266,7 @@ static void count_event(struct vpu_statistic *statistic, u32 event)
 		statistic->event[VID_API_EVENT_DEC_CFG_INFO + 1]++;
 
 	statistic->current_event = event;
-	getrawmonotonic(&statistic->ts_event);
+	ktime_get_raw_ts64(&statistic->ts_event);
 }
 
 static void count_cmd(struct vpu_statistic *statistic, u32 cmdid)
@@ -279,7 +279,7 @@ static void count_cmd(struct vpu_statistic *statistic, u32 cmdid)
 	else
 		statistic->cmd[VID_API_CMD_YUV_READY + 1]++;
 	statistic->current_cmd = cmdid;
-	getrawmonotonic(&statistic->ts_cmd);
+	ktime_get_raw_ts64(&statistic->ts_cmd);
 }
 
 static u32 get_greatest_common_divisor(u32 a, u32 b)
@@ -1506,6 +1506,7 @@ static int v4l2_ioctl_qbuf(struct file *file,
 static void vpu_dec_send_ts(struct vpu_ctx *ctx, struct v4l2_buffer *buf)
 {
 	TSM_TIMESTAMP ts;
+	struct timespec64 ts64;
 
 	if (down_interruptible(&ctx->tsm_lock)) {
 		vpu_err("%s() get tsm lock fail\n", __func__);
@@ -1520,7 +1521,9 @@ static void vpu_dec_send_ts(struct vpu_ctx *ctx, struct v4l2_buffer *buf)
 	}
 	vpu_dbg(LVL_BIT_TS, "[OUTPUT TS]%32lld (%lld)\n",
 			ts, getTSManagerFrameInterval(ctx->tsm));
-	buf->timestamp = ns_to_timeval(ts);
+	ts64 = ns_to_timespec64(ts);
+	buf->timestamp.tv_sec = ts64.tv_sec;
+	buf->timestamp.tv_usec = ts64.tv_nsec / NSEC_PER_USEC;
 	buf->flags |= V4L2_BUF_FLAG_TIMESTAMP_COPY;
 
 	up(&ctx->tsm_lock);
@@ -5370,7 +5373,7 @@ static ssize_t show_instance_command_info(struct device *dev,
 
 	num += scnprintf(buf + num, PAGE_SIZE - num, "current command:\n");
 	num += scnprintf(buf + num, PAGE_SIZE - num,
-			"%10s:%40s;%10ld.%06ld\n", "command",
+			"%10s:%40s;%10lld.%06ld\n", "command",
 			get_cmd_str(statistic->current_cmd),
 			statistic->ts_cmd.tv_sec,
 			statistic->ts_cmd.tv_nsec / 1000);
@@ -5405,7 +5408,7 @@ static ssize_t show_instance_event_info(struct device *dev,
 
 	num += scnprintf(buf + num, PAGE_SIZE - num, "current event:\n");
 	num += scnprintf(buf + num, PAGE_SIZE - num,
-			"%10s:%40s;%10ld.%06ld\n", "event",
+			"%10s:%40s;%10lld.%06ld\n", "event",
 			get_event_str(statistic->current_event),
 			statistic->ts_event.tv_sec,
 			statistic->ts_event.tv_nsec / 1000);

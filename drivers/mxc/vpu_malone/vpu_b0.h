@@ -345,8 +345,8 @@ struct vpu_statistic {
 	unsigned long current_cmd;
 	unsigned long current_event;
 	unsigned long skipped_frame_count;
-	struct timespec ts_cmd;
-	struct timespec ts_event;
+	struct timespec64 ts_cmd;
+	struct timespec64 ts_event;
 	atomic64_t total_dma_size;
 	atomic64_t total_alloc_size;
 };

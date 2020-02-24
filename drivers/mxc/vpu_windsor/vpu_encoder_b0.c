@@ -179,7 +179,7 @@ static void count_event(struct vpu_ctx *ctx, u32 event)
 		attr->statistic.event[VID_API_ENC_EVENT_RESERVED]++;
 
 	attr->statistic.current_event = event;
-	getrawmonotonic(&attr->statistic.ts_event);
+	ktime_get_raw_ts64(&attr->statistic.ts_event);
 }
 
 static void count_cmd(struct vpu_attr *attr, u32 cmdid)
@@ -191,7 +191,7 @@ static void count_cmd(struct vpu_attr *attr, u32 cmdid)
 	else
 		attr->statistic.cmd[GTB_ENC_CMD_RESERVED]++;
 	attr->statistic.current_cmd = cmdid;
-	getrawmonotonic(&attr->statistic.ts_cmd);
+	ktime_get_raw_ts64(&attr->statistic.ts_cmd);
 }
 
 static void count_yuv_input(struct vpu_ctx *ctx)
@@ -1953,7 +1953,7 @@ static u32 get_vb2_plane_phy_addr(struct vb2_buffer *vb, unsigned int plane_no)
 static void record_start_time(struct vpu_ctx *ctx, enum QUEUE_TYPE type)
 {
 	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
-	struct timespec ts;
+	struct timespec64 ts;
 
 	if (!attr)
 		return;
@@ -1961,7 +1961,7 @@ static void record_start_time(struct vpu_ctx *ctx, enum QUEUE_TYPE type)
 	if (attr->ts_start[type])
 		return;
 
-	getrawmonotonic(&ts);
+	ktime_get_raw_ts64(&ts);
 	attr->ts_start[type] = ts.tv_sec * MSEC_PER_SEC +
 				ts.tv_nsec / NSEC_PER_MSEC;
 }
@@ -3851,12 +3851,12 @@ static int show_cmd_event_infos(struct vpu_statistic *statistic,
 
 	num += scnprintf(buf + num, size - num, "current status:\n");
 	num += scnprintf(buf + num, size - num,
-			"\t%-10s:%36s;%10ld.%06ld\n", "commond",
+			"\t%-10s:%36s;%10lld.%06ld\n", "commond",
 			get_cmd_str(statistic->current_cmd),
 			statistic->ts_cmd.tv_sec,
 			statistic->ts_cmd.tv_nsec / 1000);
 	num += scnprintf(buf + num, size - num,
-			"\t%-10s:%36s;%10ld.%06ld\n", "event",
+			"\t%-10s:%36s;%10lld.%06ld\n", "event",
 			get_event_str(statistic->current_event),
 			statistic->ts_event.tv_sec,
 			statistic->ts_event.tv_nsec / 1000);
@@ -4471,7 +4471,7 @@ static int enable_fps_sts(struct vpu_attr *attr)
 	sts->fps_sts_enable = true;
 
 	for (i = 0; i < VPU_FPS_STS_CNT; i++) {
-		getrawmonotonic(&sts->fps[i].ts);
+		ktime_get_raw_ts64(&sts->fps[i].ts);
 		sts->fps[i].frame_number = sts->encoded_count;
 	}
 
@@ -5143,7 +5143,7 @@ static void handle_vpu_core_watchdog(struct core_device *core)
 	check_vpu_core_is_hang(core);
 }
 
-static unsigned long get_timestamp_ns(struct timespec *ts)
+static unsigned long get_timestamp_ns(struct timespec64 *ts)
 {
 	if (!ts)
 		return 0;
@@ -5152,7 +5152,7 @@ static unsigned long get_timestamp_ns(struct timespec *ts)
 }
 
 static void calc_rt_fps(struct vpu_fps_sts *fps,
-			unsigned long number, struct timespec *ts)
+			unsigned long number, struct timespec64 *ts)
 {
 	unsigned long delta_num;
 	unsigned long delta_ts;
@@ -5181,12 +5181,12 @@ static void calc_rt_fps(struct vpu_fps_sts *fps,
 static void statistic_fps_info(struct vpu_statistic *sts)
 {
 	unsigned long encoded_count = sts->encoded_count;
-	struct timespec ts;
+	struct timespec64 ts;
 	int i;
 
 	if (!sts->fps_sts_enable)
 		return;
-	getrawmonotonic(&ts);
+	ktime_get_raw_ts64(&ts);
 	for (i = 0; i < VPU_FPS_STS_CNT; i++)
 		calc_rt_fps(&sts->fps[i], encoded_count, &ts);
 }

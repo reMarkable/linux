@@ -225,7 +225,7 @@ struct vpu_fps_sts {
 	unsigned int thd;
 	unsigned int times;
 	unsigned long frame_number;
-	struct timespec ts;
+	struct timespec64 ts;
 	unsigned long fps;
 };
 
@@ -234,8 +234,8 @@ struct vpu_statistic {
 	unsigned long event[VID_API_ENC_EVENT_RESERVED + 1];
 	unsigned long current_cmd;
 	unsigned long current_event;
-	struct timespec ts_cmd;
-	struct timespec ts_event;
+	struct timespec64 ts_cmd;
+	struct timespec64 ts_event;
 	unsigned long yuv_count;
 	unsigned long encoded_count;
 	unsigned long h264_count;
