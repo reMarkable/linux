@@ -570,7 +570,7 @@ static int fsl_xcvr_dai_probe(struct snd_soc_dai *dai)
 
 static struct snd_soc_dai_driver fsl_xcvr_dai = {
 	.probe  = fsl_xcvr_dai_probe,
-/*	.playback = {
+	.playback = {
 		.stream_name = "CPU-Playback",
 		.channels_min = 1,
 		.channels_max = 32,
@@ -578,7 +578,7 @@ static struct snd_soc_dai_driver fsl_xcvr_dai = {
 		.rate_max = 1536000,
 		.rates = SNDRV_PCM_RATE_KNOT,
 		.formats = FSL_XCVR_FORMATS,
-	}, */
+	},
 	.capture = {
 		.stream_name = "CPU-Capture",
 		.channels_min = 1,
