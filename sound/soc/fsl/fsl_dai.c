@@ -53,12 +53,7 @@ struct fsl_dai {
 	int num_drv;
 };
 
-static struct snd_soc_dai_driver fsl_esai_dai = {
-	.name = "esai0",
-};
-
-static struct snd_soc_dai_driver fsl_sai_dai = {
-	.name = "sai1",
+static struct snd_soc_dai_driver fsl_dai = {
 };
 
 static const struct snd_soc_component_driver fsl_dai_component = {
@@ -104,7 +99,8 @@ static int fsl_dai_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct fsl_dai *priv;
-	int dai_type;
+	char *dai_name;
+	int dai_type, dai_index;
 	int ret;
 	int i;
 
@@ -116,24 +112,40 @@ static int fsl_dai_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(&pdev->dev, priv);
 
+	ret = of_property_read_u32(np, "dai-index", &dai_index);
+	if (ret) {
+		dev_err(&pdev->dev, "dai-index missing or invalid\n");
+		return ret;
+	}
+
 	dai_type = fsl_get_dai_type(priv);
 	switch (dai_type) {
 	case FSL_DAI_TYPE_ESAI:
 		priv->clk_names = esai_clks;
 		priv->num_clks = FSL_DAI_ESAI_CLK_NUM;
-		priv->dai_drv = &fsl_esai_dai;
+		priv->dai_drv = &fsl_dai;
 		priv->num_drv = 1;
+		dai_name = devm_kasprintf(&pdev->dev, GFP_KERNEL, "esai%d",
+					  dai_index);
+		if (!dai_name)
+			return -ENOMEM;
 		break;
 	case FSL_DAI_TYPE_SAI:
 		priv->clk_names = sai_clks;
 		priv->num_clks = FSL_DAI_SAI_CLK_NUM;
-		priv->dai_drv = &fsl_sai_dai;
+		priv->dai_drv = &fsl_dai;
 		priv->num_drv = 1;
+		dai_name = devm_kasprintf(&pdev->dev, GFP_KERNEL, "sai%d",
+					  dai_index);
+		if (!dai_name)
+			return -ENOMEM;
 		break;
 	default:
 		dev_err(&pdev->dev, "Invalid DAI type %d\n", dai_type);
 		return -EINVAL;
 	}
+
+	fsl_dai.name = dai_name;
 
 	ret = fsl_dai_init_clocks(priv);
 	if (ret < 0) {
@@ -184,7 +196,7 @@ done_pm:
 	pm_runtime_enable(&pdev->dev);
 
 	ret = devm_snd_soc_register_component(&pdev->dev, &fsl_dai_component,
-					      priv->dai_drv, priv->num_drv);
+					      &fsl_dai, 1);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Failed to register DAI ret = %d\n", ret);
 		return ret;
