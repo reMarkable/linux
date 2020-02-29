@@ -16,6 +16,7 @@
 		#sound-dai-cells = <0>;
 		compatible = "fsl,esai-dai";
 
+		dai-index = <0>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_esai0>;
 
