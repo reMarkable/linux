@@ -1789,6 +1789,32 @@
 					};
 				};
 
+				isp_0: isp@32e10000 {
+					compatible = "fsl,imx8mp-isp";
+					reg = <0x32e10000 0x10000>;
+					interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
+					clocks = <&clk IMX8MP_CLK_MEDIA_ISP_SRC>;
+					clock-names = "isp_root";
+					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_ISP_SRC>;
+					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
+					assigned-clock-rates = <500000000>;
+					power-domains = <&ispdwp_pd>;
+					status = "disabled";
+				};
+
+				isp_1: isp@32e20000 {
+					compatible = "fsl,imx8mp-isp";
+					reg = <0x32e20000 0x10000>;
+					interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
+					clocks = <&clk IMX8MP_CLK_MEDIA_ISP_SRC>;
+					clock-names = "isp_root";
+					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_ISP_SRC>;
+					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
+					assigned-clock-rates = <500000000>;
+					power-domains = <&ispdwp_pd>;
+					status = "disabled";
+				};
+
 				mipi_csi_0: csi@32e40000 {
 					compatible = "fsl,imx8mp-mipi-csi", "fsl,imx8mn-mipi-csi";
 					reg = <0x32e40000 0x10000>;
