@@ -341,7 +341,8 @@
 			domain-index = <8>;
 			domain-name = "gpu3d";
 			parent-domains = <&gpumix_pd>;
-			clocks = <&clk IMX8MP_CLK_GPU3D_ROOT>;
+			clocks = <&clk IMX8MP_CLK_GPU3D_ROOT>,
+				 <&clk IMX8MP_CLK_GPU3D_SHADER_DIV>;
 		};
 
 		vpumix_pd: vpumix-pd {
