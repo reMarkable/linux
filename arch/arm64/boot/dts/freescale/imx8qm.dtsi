@@ -350,6 +350,11 @@
 			tsens-num = <6>;
 			#thermal-sensor-cells = <1>;
 		};
+
+		secvio: secvio {
+			compatible = "fsl,imx-sc-secvio";
+			nvmem = <&ocotp>;
+		};
 	};
 
 	thermal_zones: thermal-zones {
