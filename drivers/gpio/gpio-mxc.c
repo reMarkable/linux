@@ -28,7 +28,6 @@
 #define IMX_SC_PAD_FUNC_GET_WAKEUP	9
 #define IMX_SC_PAD_FUNC_SET_WAKEUP	4
 #define IMX_SC_PAD_WAKEUP_OFF		0
-#define IMX_SC_IRQ_GROUP_WAKE		3
 #define IMX_SC_IRQ_PAD			(1 << 1)
 #endif
 

@@ -17,8 +17,12 @@
 #include <linux/firmware/imx/svc/rm.h>
 #include <linux/firmware/imx/svc/seco.h>
 
+#define IMX_SC_IRQ_GROUP_WAKE       3U /* Wakeup interrupts */
+#define IMX_SC_IRQ_SECVIO            BIT(6)    /* Security violation */
+
 int imx_scu_enable_general_irq_channel(struct device *dev);
 int imx_scu_irq_register_notifier(struct notifier_block *nb);
 int imx_scu_irq_unregister_notifier(struct notifier_block *nb);
 int imx_scu_irq_group_enable(u8 group, u32 mask, u8 enable);
+int imx_scu_irq_get_status(u8 group, u32 *irq_status);
 #endif /* _SC_SCI_H */
