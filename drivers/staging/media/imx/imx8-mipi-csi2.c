@@ -628,6 +628,7 @@ static int mxc_csi2_get_sensor_fmt(struct mxc_mipi_csi2_dev *csi2dev)
 	if (!sen_sd)
 		return -EINVAL;
 
+	memset(&src_fmt, 0, sizeof(src_fmt));
 	src_fmt.pad = source_pad->index;
 	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 	ret = v4l2_subdev_call(sen_sd, pad, get_fmt, NULL, &src_fmt);
