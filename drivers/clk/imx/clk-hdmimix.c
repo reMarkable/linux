@@ -90,7 +90,7 @@ static int imx_hdmimix_clk_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_HDMIMIX_VSFD_CEA_CLK]      = imx_dev_clk_gate(dev, "vsfd_cea",          "hdmi_glb_apb", base + 0x50, 6);
 	clks[IMX8MP_CLK_HDMIMIX_TX_HPI_CLK]        = imx_dev_clk_gate(dev, "hdmi_tx_hpi",       "hdmi_glb_apb", base + 0x50, 13);
 	clks[IMX8MP_CLK_HDMIMIX_TX_APB_CLK]        = imx_dev_clk_gate(dev, "hdmi_tx_apb",       "hdmi_glb_apb", base + 0x50, 14);
-	clks[IMX8MP_CLK_HDMIMIX_TX_CEC_CLK]        = imx_dev_clk_gate(dev, "hdmi_cec",          "hdmi_glb_apb", base + 0x50, 15);
+	clks[IMX8MP_CLK_HDMIMIX_TX_CEC_CLK]        = imx_dev_clk_gate(dev, "hdmi_cec",          "hdmi_glb_32k", base + 0x50, 15);
 	clks[IMX8MP_CLK_HDMIMIX_TX_ESM_CLK]        = imx_dev_clk_gate(dev, "hdmi_esm",     "hdmi_glb_ref_266m", base + 0x50, 16);
 	clks[IMX8MP_CLK_HDMIMIX_TX_GPA_CLK]        = imx_dev_clk_gate(dev, "hdmi_tx_gpa",       "hdmi_glb_apb", base + 0x50, 17);
 	clks[IMX8MP_CLK_HDMIMIX_TX_PIXEL_CLK]      = imx_dev_clk_gate(dev, "hdmi_tx_pix",       "hdmi_glb_pix", base + 0x50, 18);
