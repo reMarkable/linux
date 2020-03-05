@@ -279,6 +279,8 @@ static int imx8mp_hdmi_phy_init(struct dw_hdmi *dw_hdmi, void *data,
 	/* HDMI PHY power up */
 	regmap_read(hdmi->regmap, 0x200, &val);
 	val &= ~0x8;
+	/* Enable CEC */
+	val |= 0x2;
 	regmap_write(hdmi->regmap, 0x200, val);
 
 	if (!hdmi->phy)
@@ -302,8 +304,11 @@ static void imx8mp_hdmi_phy_disable(struct dw_hdmi *dw_hdmi, void *data)
 	imx8mp_hdmi_pvi_disable();
 	imx8mp_hdmi_pvi_powerdown();
 
-	/* TODO Power down HDMI PHY */
+	/* TODO */
 	regmap_read(hdmi->regmap, 0x200, &val);
+	/* Disable CEC */
+	val &= ~0x2;
+	/* Power down HDMI PHY */
 	val |= 0x8;
     regmap_write(hdmi->regmap, 0x200, val);
 }
