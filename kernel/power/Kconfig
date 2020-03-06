@@ -194,6 +194,13 @@ config PM_TEST_SUSPEND
 config PM_SLEEP_DEBUG
 	def_bool y
 	depends on PM_DEBUG && PM_SLEEP
+	
+config PM_RESLEEP_LOCK
+	bool "Lock sleeping x seconds after wakeup"
+	depends on PM
+	---help---
+	This option will let you prevent sleep for x seconds after your machine
+	has woken from sleep.
 
 config DPM_WATCHDOG
 	bool "Device suspend/resume watchdog"

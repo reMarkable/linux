@@ -333,6 +333,44 @@ static int suspend_test(int level)
 	return 0;
 }
 
+#ifdef CONFIG_PM_RESLEEP_LOCK
+struct delayed_work resleep_work;
+static DEFINE_MUTEX(resleep_mutex);
+
+static void resleep_unlock(struct work_struct *work)
+{
+	mutex_unlock(&resleep_mutex);
+	pr_info("Sleep re-enabled\n");
+}
+#endif /* CONFIG_PM_RESLEEP_LOCK */
+
+static void resleep_timer(suspend_state_t state)
+{
+#ifdef CONFIG_PM_RESLEEP_LOCK
+	if (state != PM_SUSPEND_MEM)
+		return;
+
+	INIT_DELAYED_WORK(&resleep_work, &resleep_unlock);
+	if (!schedule_delayed_work(&resleep_work, msecs_to_jiffies(10*1000))) {
+		pr_warning("Failed to schedule delayed work, unlocking mutex\n");
+		mutex_unlock(&resleep_mutex);
+	}
+#endif /* CONFIG_PM_RESLEEP_LOCK */
+}
+
+static bool resleep_isok(suspend_state_t state)
+{
+#ifdef CONFIG_PM_RESLEEP_LOCK
+	if (state != PM_SUSPEND_MEM)
+		return true;
+
+	if (!mutex_trylock(&resleep_mutex))
+		return false;
+#endif /* CONFIG_PM_RESLEEP_LOCK */
+
+	return true;
+}
+
 /**
  * suspend_prepare - Prepare for entering system sleep state.
  *
@@ -346,6 +384,9 @@ static int suspend_prepare(suspend_state_t state)
 
 	if (!sleep_state_supported(state))
 		return -EPERM;
+
+	if (!resleep_isok(state))
+		return -EBUSY;
 
 	pm_prepare_console();
 
@@ -529,11 +570,13 @@ int suspend_devices_and_enter(suspend_state_t state)
  * Call platform code to clean up, restart processes, and free the console that
  * we've allocated. This routine is not called for hibernation.
  */
-static void suspend_finish(void)
+static void suspend_finish(suspend_state_t state)
 {
 	suspend_thaw_processes();
 	pm_notifier_call_chain(PM_POST_SUSPEND);
 	pm_restore_console();
+
+	resleep_timer(state);
 }
 
 /**
@@ -589,7 +632,7 @@ static int enter_state(suspend_state_t state)
  Finish:
 	events_check_enabled = false;
 	pm_pr_dbg("Finishing wakeup.\n");
-	suspend_finish();
+	suspend_finish(state);
  Unlock:
 	mutex_unlock(&system_transition_mutex);
 	return error;
