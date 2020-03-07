@@ -1094,6 +1094,8 @@ static int fsl_esai_probe(struct platform_device *pdev)
 
 	esai_priv->dma_params_tx.maxburst = 16;
 	esai_priv->dma_params_rx.maxburst = 16;
+	esai_priv->dma_params_rx.chan_name = "rx";
+	esai_priv->dma_params_tx.chan_name = "tx";
 	esai_priv->dma_params_tx.addr = res->start + REG_ESAI_ETDR;
 	esai_priv->dma_params_rx.addr = res->start + REG_ESAI_ERDR;
 
