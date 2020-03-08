@@ -942,6 +942,7 @@ static struct sk_buff *bnxt_rx_page_skb(struct bnxt *bp,
 	dma_addr -= bp->rx_dma_offset;
 	dma_unmap_page_attrs(&bp->pdev->dev, dma_addr, PAGE_SIZE, bp->rx_dir,
 			     DMA_ATTR_WEAK_ORDERING);
+	page_pool_release_page(rxr->page_pool, page);
 
 	if (unlikely(!payload))
 		payload = eth_get_headlen(bp->dev, data_ptr, len);
@@ -1767,8 +1768,12 @@ static int bnxt_rx_pkt(struct bnxt *bp, struct bnxt_cp_ring_info *cpr,
 
 		rc = -EIO;
 		if (rx_err & RX_CMPL_ERRORS_BUFFER_ERROR_MASK) {
-			netdev_warn(bp->dev, "RX buffer error %x\n", rx_err);
-			bnxt_sched_reset(bp, rxr);
+			bnapi->cp_ring.rx_buf_errors++;
+			if (!(bp->flags & BNXT_FLAG_CHIP_P5)) {
+				netdev_warn(bp->dev, "RX buffer error %x\n",
+					    rx_err);
+				bnxt_sched_reset(bp, rxr);
+			}
 		}
 		goto next_rx_no_len;
 	}
@@ -1990,6 +1995,9 @@ static int bnxt_async_event_process(struct bnxt *bp,
 		break;
 	case ASYNC_EVENT_CMPL_EVENT_ID_RESET_NOTIFY: {
 		u32 data1 = le32_to_cpu(cmpl->event_data1);
+
+		if (!bp->fw_health)
+			goto async_event_process_exit;
 
 		bp->fw_reset_timestamp = jiffies;
 		bp->fw_reset_min_dsecs = cmpl->timestamp_lo;
@@ -4434,8 +4442,9 @@ static int bnxt_hwrm_func_drv_rgtr(struct bnxt *bp)
 			    FUNC_DRV_RGTR_REQ_ENABLES_VER);
 
 	req.os_type = cpu_to_le16(FUNC_DRV_RGTR_REQ_OS_TYPE_LINUX);
-	flags = FUNC_DRV_RGTR_REQ_FLAGS_16BIT_VER_MODE |
-		FUNC_DRV_RGTR_REQ_FLAGS_HOT_RESET_SUPPORT;
+	flags = FUNC_DRV_RGTR_REQ_FLAGS_16BIT_VER_MODE;
+	if (bp->fw_cap & BNXT_FW_CAP_HOT_RESET)
+		flags |= FUNC_DRV_RGTR_REQ_FLAGS_HOT_RESET_SUPPORT;
 	if (bp->fw_cap & BNXT_FW_CAP_ERROR_RECOVERY)
 		flags |= FUNC_DRV_RGTR_REQ_FLAGS_ERROR_RECOVERY_SUPPORT;
 	req.flags = cpu_to_le32(flags);
@@ -6170,7 +6179,7 @@ static void bnxt_hwrm_set_coal_params(struct bnxt *bp,
 		tmr = bnxt_usec_to_coal_tmr(bp, hw_coal->coal_ticks_irq);
 		val = clamp_t(u16, tmr, 1,
 			      coal_cap->cmpl_aggr_dma_tmr_during_int_max);
-		req->cmpl_aggr_dma_tmr_during_int = cpu_to_le16(tmr);
+		req->cmpl_aggr_dma_tmr_during_int = cpu_to_le16(val);
 		req->enables |=
 			cpu_to_le16(BNXT_COAL_CMPL_AGGR_TMR_DURING_INT_ENABLE);
 	}
@@ -7092,14 +7101,6 @@ static int bnxt_hwrm_error_recovery_qcfg(struct bnxt *bp)
 	rc = _hwrm_send_message(bp, &req, sizeof(req), HWRM_CMD_TIMEOUT);
 	if (rc)
 		goto err_recovery_out;
-	if (!fw_health) {
-		fw_health = kzalloc(sizeof(*fw_health), GFP_KERNEL);
-		bp->fw_health = fw_health;
-		if (!fw_health) {
-			rc = -ENOMEM;
-			goto err_recovery_out;
-		}
-	}
 	fw_health->flags = le32_to_cpu(resp->flags);
 	if ((fw_health->flags & ERROR_RECOVERY_QCFG_RESP_FLAGS_CO_CPU) &&
 	    !(bp->fw_cap & BNXT_FW_CAP_KONG_MB_CHNL)) {
@@ -7873,7 +7874,7 @@ static void bnxt_setup_msix(struct bnxt *bp)
 	int tcs, i;
 
 	tcs = netdev_get_num_tc(dev);
-	if (tcs > 1) {
+	if (tcs) {
 		int i, off, count;
 
 		for (i = 0; i < tcs; i++) {
@@ -8762,6 +8763,9 @@ static int bnxt_hwrm_if_change(struct bnxt *bp, bool up)
 	}
 	if (resc_reinit || fw_reset) {
 		if (fw_reset) {
+			bnxt_free_ctx_mem(bp);
+			kfree(bp->ctx);
+			bp->ctx = NULL;
 			rc = bnxt_fw_init_one(bp);
 			if (rc) {
 				set_bit(BNXT_STATE_ABORT_ERR, &bp->state);
@@ -9270,10 +9274,6 @@ static void __bnxt_close_nic(struct bnxt *bp, bool irq_re_init,
 	bnxt_debug_dev_exit(bp);
 	bnxt_disable_napi(bp);
 	del_timer_sync(&bp->timer);
-	if (test_bit(BNXT_STATE_IN_FW_RESET, &bp->state) &&
-	    pci_is_enabled(bp->pdev))
-		pci_disable_device(bp->pdev);
-
 	bnxt_free_skbs(bp);
 
 	/* Save ring stats before shutdown */
@@ -9950,8 +9950,7 @@ static void bnxt_fw_health_check(struct bnxt *bp)
 	struct bnxt_fw_health *fw_health = bp->fw_health;
 	u32 val;
 
-	if (!fw_health || !fw_health->enabled ||
-	    test_bit(BNXT_STATE_IN_FW_RESET, &bp->state))
+	if (!fw_health->enabled || test_bit(BNXT_STATE_IN_FW_RESET, &bp->state))
 		return;
 
 	if (fw_health->tmr_counter) {
@@ -10050,8 +10049,15 @@ static void bnxt_fw_reset_close(struct bnxt *bp)
 {
 	__bnxt_close_nic(bp, true, false);
 	bnxt_ulp_irq_stop(bp);
+	/* When firmware is fatal state, disable PCI device to prevent
+	 * any potential bad DMAs before freeing kernel memory.
+	 */
+	if (test_bit(BNXT_STATE_FW_FATAL_COND, &bp->state))
+		pci_disable_device(bp->pdev);
 	bnxt_clear_int_mode(bp);
 	bnxt_hwrm_func_drv_unrgtr(bp);
+	if (pci_is_enabled(bp->pdev))
+		pci_disable_device(bp->pdev);
 	bnxt_free_ctx_mem(bp);
 	kfree(bp->ctx);
 	bp->ctx = NULL;
@@ -10412,6 +10418,23 @@ static void bnxt_init_dflt_coal(struct bnxt *bp)
 	bp->stats_coal_ticks = BNXT_DEF_STATS_COAL_TICKS;
 }
 
+static void bnxt_alloc_fw_health(struct bnxt *bp)
+{
+	if (bp->fw_health)
+		return;
+
+	if (!(bp->fw_cap & BNXT_FW_CAP_HOT_RESET) &&
+	    !(bp->fw_cap & BNXT_FW_CAP_ERROR_RECOVERY))
+		return;
+
+	bp->fw_health = kzalloc(sizeof(*bp->fw_health), GFP_KERNEL);
+	if (!bp->fw_health) {
+		netdev_warn(bp->dev, "Failed to allocate fw_health\n");
+		bp->fw_cap &= ~BNXT_FW_CAP_HOT_RESET;
+		bp->fw_cap &= ~BNXT_FW_CAP_ERROR_RECOVERY;
+	}
+}
+
 static int bnxt_fw_init_one_p1(struct bnxt *bp)
 {
 	int rc;
@@ -10458,6 +10481,7 @@ static int bnxt_fw_init_one_p2(struct bnxt *bp)
 		netdev_warn(bp->dev, "hwrm query adv flow mgnt failure rc: %d\n",
 			    rc);
 
+	bnxt_alloc_fw_health(bp);
 	rc = bnxt_hwrm_error_recovery_qcfg(bp);
 	if (rc)
 		netdev_warn(bp->dev, "hwrm query error recovery failure rc: %d\n",
@@ -10543,6 +10567,12 @@ static int bnxt_fw_init_one(struct bnxt *bp)
 	rc = bnxt_approve_mac(bp, bp->dev->dev_addr, false);
 	if (rc)
 		return rc;
+
+	/* In case fw capabilities have changed, destroy the unneeded
+	 * reporters and create newly capable ones.
+	 */
+	bnxt_dl_fw_reporters_destroy(bp, false);
+	bnxt_dl_fw_reporters_create(bp);
 	bnxt_fw_init_one_p3(bp);
 	return 0;
 }
@@ -10676,8 +10706,7 @@ static void bnxt_fw_reset_task(struct work_struct *work)
 		bnxt_queue_fw_reset_work(bp, bp->fw_reset_min_dsecs * HZ / 10);
 		return;
 	case BNXT_FW_RESET_STATE_ENABLE_DEV:
-		if (test_bit(BNXT_STATE_FW_FATAL_COND, &bp->state) &&
-		    bp->fw_health) {
+		if (test_bit(BNXT_STATE_FW_FATAL_COND, &bp->state)) {
 			u32 val;
 
 			val = bnxt_fw_health_readl(bp,
@@ -10966,11 +10995,23 @@ static bool bnxt_fltr_match(struct bnxt_ntuple_filter *f1,
 	struct flow_keys *keys1 = &f1->fkeys;
 	struct flow_keys *keys2 = &f2->fkeys;
 
-	if (keys1->addrs.v4addrs.src == keys2->addrs.v4addrs.src &&
-	    keys1->addrs.v4addrs.dst == keys2->addrs.v4addrs.dst &&
-	    keys1->ports.ports == keys2->ports.ports &&
-	    keys1->basic.ip_proto == keys2->basic.ip_proto &&
-	    keys1->basic.n_proto == keys2->basic.n_proto &&
+	if (keys1->basic.n_proto != keys2->basic.n_proto ||
+	    keys1->basic.ip_proto != keys2->basic.ip_proto)
+		return false;
+
+	if (keys1->basic.n_proto == htons(ETH_P_IP)) {
+		if (keys1->addrs.v4addrs.src != keys2->addrs.v4addrs.src ||
+		    keys1->addrs.v4addrs.dst != keys2->addrs.v4addrs.dst)
+			return false;
+	} else {
+		if (memcmp(&keys1->addrs.v6addrs.src, &keys2->addrs.v6addrs.src,
+			   sizeof(keys1->addrs.v6addrs.src)) ||
+		    memcmp(&keys1->addrs.v6addrs.dst, &keys2->addrs.v6addrs.dst,
+			   sizeof(keys1->addrs.v6addrs.dst)))
+			return false;
+	}
+
+	if (keys1->ports.ports == keys2->ports.ports &&
 	    keys1->control.flags == keys2->control.flags &&
 	    ether_addr_equal(f1->src_mac_addr, f2->src_mac_addr) &&
 	    ether_addr_equal(f1->dst_mac_addr, f2->dst_mac_addr))
@@ -11262,7 +11303,7 @@ int bnxt_get_port_parent_id(struct net_device *dev,
 		return -EOPNOTSUPP;
 
 	/* The PF and it's VF-reps only support the switchdev framework */
-	if (!BNXT_PF(bp))
+	if (!BNXT_PF(bp) || !(bp->flags & BNXT_FLAG_DSN_VALID))
 		return -EOPNOTSUPP;
 
 	ppid->id_len = sizeof(bp->switch_id);
@@ -11318,13 +11359,13 @@ static void bnxt_remove_one(struct pci_dev *pdev)
 	struct net_device *dev = pci_get_drvdata(pdev);
 	struct bnxt *bp = netdev_priv(dev);
 
-	if (BNXT_PF(bp)) {
+	if (BNXT_PF(bp))
 		bnxt_sriov_disable(bp);
-		bnxt_dl_unregister(bp);
-	}
 
+	bnxt_dl_fw_reporters_destroy(bp, true);
 	pci_disable_pcie_error_reporting(pdev);
 	unregister_netdev(dev);
+	bnxt_dl_unregister(bp);
 	bnxt_shutdown_tc(bp);
 	bnxt_cancel_sp_work(bp);
 	bp->sp_event = 0;
@@ -11337,6 +11378,8 @@ static void bnxt_remove_one(struct pci_dev *pdev)
 	bnxt_dcb_free(bp);
 	kfree(bp->edev);
 	bp->edev = NULL;
+	kfree(bp->fw_health);
+	bp->fw_health = NULL;
 	bnxt_cleanup_pci(bp);
 	bnxt_free_ctx_mem(bp);
 	kfree(bp->ctx);
@@ -11652,6 +11695,7 @@ static int bnxt_pcie_dsn_get(struct bnxt *bp, u8 dsn[])
 	put_unaligned_le32(dw, &dsn[0]);
 	pci_read_config_dword(pdev, pos + 4, &dw);
 	put_unaligned_le32(dw, &dsn[4]);
+	bp->flags |= BNXT_FLAG_DSN_VALID;
 	return 0;
 }
 
@@ -11667,6 +11711,14 @@ static int bnxt_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	if (version_printed++ == 0)
 		pr_info("%s", version);
+
+	/* Clear any pending DMA transactions from crash kernel
+	 * while loading driver in capture kernel.
+	 */
+	if (is_kdump_kernel()) {
+		pci_clear_master(pdev);
+		pcie_flr(pdev);
+	}
 
 	max_irqs = bnxt_get_max_irq(pdev);
 	dev = alloc_etherdev_mq(sizeof(*bp), max_irqs);
@@ -11763,9 +11815,7 @@ static int bnxt_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	if (BNXT_PF(bp)) {
 		/* Read the adapter's DSN to use as the eswitch switch_id */
-		rc = bnxt_pcie_dsn_get(bp, bp->switch_id);
-		if (rc)
-			goto init_err_pci_clean;
+		bnxt_pcie_dsn_get(bp, bp->switch_id);
 	}
 
 	/* MTU range: 60 - FW defined max */
@@ -11812,12 +11862,15 @@ static int bnxt_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 		bnxt_init_tc(bp);
 	}
 
+	bnxt_dl_register(bp);
+
 	rc = register_netdev(dev);
 	if (rc)
-		goto init_err_cleanup_tc;
+		goto init_err_cleanup;
 
 	if (BNXT_PF(bp))
-		bnxt_dl_register(bp);
+		devlink_port_type_eth_set(&bp->dl_port, bp->dev);
+	bnxt_dl_fw_reporters_create(bp);
 
 	netdev_info(dev, "%s found at mem %lx, node addr %pM\n",
 		    board_info[ent->driver_data].name,
@@ -11826,7 +11879,8 @@ static int bnxt_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	return 0;
 
-init_err_cleanup_tc:
+init_err_cleanup:
+	bnxt_dl_unregister(bp);
 	bnxt_shutdown_tc(bp);
 	bnxt_clear_int_mode(bp);
 
@@ -11862,10 +11916,10 @@ static void bnxt_shutdown(struct pci_dev *pdev)
 		dev_close(dev);
 
 	bnxt_ulp_shutdown(bp);
+	bnxt_clear_int_mode(bp);
+	pci_disable_device(pdev);
 
 	if (system_state == SYSTEM_POWER_OFF) {
-		bnxt_clear_int_mode(bp);
-		pci_disable_device(pdev);
 		pci_wake_from_d3(pdev, bp->wol);
 		pci_set_power_state(pdev, PCI_D3hot);
 	}
