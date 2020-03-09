@@ -85,7 +85,7 @@ static int tmu_get_temp(void *data, int *temp)
 			return -EAGAIN;
 	} else {
 		val = readl_relaxed(tmu->base + TRITSR);
-		ready = val & (sensor->hw_id + PROBE0_STATUS_OFFSET);
+		ready = val & (1 << (sensor->hw_id + PROBE0_STATUS_OFFSET));
 		val = (val >> sensor->hw_id * PROBE0_VAL_OFFSET) & TRITSR_VAL_MASK;
 		if (val & SIGN_BIT) /* negative */
 			val = (~(val & TEMP_VAL_MASK) + 1);
