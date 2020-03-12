@@ -845,6 +845,11 @@
 					     <0 100 IRQ_TYPE_LEVEL_HIGH>,
 					     <0 101 IRQ_TYPE_LEVEL_HIGH>;
 			};
+
+			qosc: qosc@02094000 {
+				compatible = "fsl,imx6sl-qosc";
+				reg = <0x02094000 0x4000>;
+			};
 		};
 
 		aips2: aips-bus@2100000 {
