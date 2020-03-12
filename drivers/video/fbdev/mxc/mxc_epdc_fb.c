@@ -57,6 +57,16 @@
 
 #include "epdc_regs.h"
 
+#define QOS_ENABLE
+/*
+ * MMDC_MAARCR[ARCR_RCH_EN] = 1 by default
+ * QoS=='F' is real time access
+ */
+#ifdef QOS_ENABLE
+#include <linux/of_address.h>
+#define QOS_EPDC_OFFSET	0x1400 // 0x1400 for 6SL, 0x1800 for 6SLL
+#endif
+
 /*
  * Enable this define to have a default panel
  * loaded during driver initialization
@@ -226,6 +236,9 @@ struct mxc_epdc_fb_data {
 	dma_cookie_t cookie;
 	struct scatterlist sg[2];
 	struct mutex pxp_mutex; /* protects access to PxP */
+#ifdef QOS_ENABLE
+	void __iomem *qos_base;
+#endif
 };
 
 struct waveform_data_header {
@@ -1213,6 +1226,13 @@ static void epdc_init_settings(struct mxc_epdc_fb_data *fb_data)
 	__raw_writel(fb_data->waveform_buffer_phys, EPDC_WVADDR);
 	__raw_writel(fb_data->working_buffer_phys, EPDC_WB_ADDR);
 	__raw_writel(fb_data->working_buffer_phys, EPDC_WB_ADDR_TCE);
+
+#ifdef QOS_ENABLE
+	u32 ot_wr, ot_rd;
+	ot_wr = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xd0);
+	ot_rd = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xe0);
+	dev_dbg(fb_data->dev, "EPDC QoS wr 0x%x, rd 0x%x\n", ot_wr, ot_rd);
+#endif
 
 	/* Disable clock */
 	clk_disable_unprepare(fb_data->epdc_clk_axi);
@@ -4810,6 +4830,31 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 
 	clk_prepare_enable(fb_data->epdc_clk_axi);
 	val = __raw_readl(EPDC_VERSION);
+
+#ifdef QOS_ENABLE
+	/* axi clock must enable for EPDC QoS access */
+	u32 ot_wr, ot_rd;
+	struct device_node *np = of_find_compatible_node(NULL, NULL, "fsl,imx6sl-qosc");
+	if (!np)
+		return -EINVAL;
+	fb_data->qos_base = of_iomap(np, 0);
+	WARN_ON(!fb_data->qos_base);
+	__raw_writel(0, fb_data->qos_base);		/* disable clkgate&soft_reset */
+	__raw_writel(0, fb_data->qos_base + 0x40);	/* enable all masters */
+	__raw_writel(0, fb_data->qos_base + QOS_EPDC_OFFSET);  /* Disable clkgate & soft_reset */
+	ot_wr = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xd0);
+	ot_rd = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xe0);
+	dev_dbg(fb_data->dev, "EPDC QoS wr 0x%x, rd 0x%x\n", ot_wr, ot_rd);
+
+	/*
+	__raw_writel(0x0f020f22, fb_data->qos_base + QOS_EPDC_OFFSET + 0xd0);
+	*/
+	__raw_writel(0x0f020f22, fb_data->qos_base + QOS_EPDC_OFFSET + 0xe0);
+	ot_wr = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xd0);
+	ot_rd = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xe0);
+	dev_dbg(fb_data->dev, "EPDC QoS wr 0x%x, rd 0x%x\n", ot_wr, ot_rd);
+#endif
+
 	clk_disable_unprepare(fb_data->epdc_clk_axi);
 	fb_data->rev = ((val & EPDC_VERSION_MAJOR_MASK) >>
 				EPDC_VERSION_MAJOR_OFFSET) * 10
