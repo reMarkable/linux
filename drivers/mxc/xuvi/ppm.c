@@ -672,6 +672,8 @@ static int ppm_stop(struct ppm_ctx *ctx)
 		dprintk(LVL_INFO, "stopped(%d): skip PPM_CMD_STOP\n",
 			ctx->fw_stopped);
 
+	pm_runtime_put_sync(dev->generic_dev);
+
 	return 0;
 }
 
@@ -953,6 +955,8 @@ static int ppm_probe(struct platform_device *pdev)
 	dev->fw_is_ready = false;
 
 	pm_runtime_enable(&pdev->dev);
+	pm_runtime_get_sync(&pdev->dev);
+	pm_runtime_put_sync(&pdev->dev);
 
 	return 0;
 
