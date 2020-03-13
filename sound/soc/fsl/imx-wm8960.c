@@ -81,7 +81,7 @@ static int hp_jack_status_check(void *data)
 	struct snd_soc_dapm_context *dapm = &jack->card->dapm;
 	int hp_status, ret;
 
-	hp_status = gpio_get_value(imx_hp_jack_gpio.gpio);
+	hp_status = gpio_get_value_cansleep(imx_hp_jack_gpio.gpio);
 
 	if (hp_status != priv->hp_active_low) {
 		snd_soc_dapm_disable_pin(dapm, "Ext Spk");
@@ -109,7 +109,7 @@ static int mic_jack_status_check(void *data)
 	struct snd_soc_dapm_context *dapm = &jack->card->dapm;
 	int mic_status, ret;
 
-	mic_status = gpio_get_value(imx_mic_jack_gpio.gpio);
+	mic_status = gpio_get_value_cansleep(imx_mic_jack_gpio.gpio);
 
 	if (mic_status != priv->mic_active_low) {
 		snd_soc_dapm_disable_pin(dapm, "Main MIC");
@@ -153,7 +153,7 @@ static ssize_t headphone_show(struct device_driver *dev, char *buf)
 	int hp_status;
 
 	/* Check if headphone is plugged in */
-	hp_status = gpio_get_value(imx_hp_jack_gpio.gpio);
+	hp_status = gpio_get_value_cansleep(imx_hp_jack_gpio.gpio);
 
 	if (hp_status != priv->hp_active_low)
 		strcpy(buf, "Headphone\n");
@@ -169,7 +169,7 @@ static ssize_t micphone_show(struct device_driver *dev, char *buf)
 	int mic_status;
 
 	/* Check if headphone is plugged in */
-	mic_status = gpio_get_value(imx_mic_jack_gpio.gpio);
+	mic_status = gpio_get_value_cansleep(imx_mic_jack_gpio.gpio);
 
 	if (mic_status != priv->mic_active_low)
 		strcpy(buf, "Mic Jack\n");
