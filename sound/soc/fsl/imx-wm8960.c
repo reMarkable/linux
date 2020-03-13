@@ -37,6 +37,8 @@ struct imx_wm8960_data {
 	unsigned int clk_frequency;
 	bool is_codec_master;
 	bool is_codec_rpmsg;
+	bool is_playback_only;
+	bool is_capture_only;
 	bool is_stream_in_use[2];
 	bool is_stream_opened[2];
 	struct regmap *gpr;
@@ -524,6 +526,30 @@ static int imx_wm8960_probe(struct platform_device *pdev)
 
 	if (of_property_read_bool(pdev->dev.of_node, "codec-master"))
 		data->is_codec_master = true;
+
+	if (of_property_read_bool(pdev->dev.of_node, "capture-only"))
+		data->is_capture_only = true;
+
+	if (of_property_read_bool(pdev->dev.of_node, "playback-only"))
+		data->is_playback_only = true;
+
+	if (data->is_capture_only && data->is_playback_only) {
+		ret = -EINVAL;
+		dev_err(&pdev->dev, "failed for playback only and capture only\n");
+		goto fail;
+	}
+
+	if (data->is_capture_only) {
+		imx_wm8960_dai[0].capture_only = true;
+		imx_wm8960_dai[1].capture_only = true;
+		imx_wm8960_dai[2].capture_only = true;
+	}
+
+	if (data->is_playback_only) {
+		imx_wm8960_dai[0].playback_only = true;
+		imx_wm8960_dai[1].playback_only = true;
+		imx_wm8960_dai[2].playback_only = true;
+	}
 
 	ret = of_parse_gpr(pdev, data);
 	if (ret)
