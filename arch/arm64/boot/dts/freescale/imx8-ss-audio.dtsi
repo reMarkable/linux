@@ -35,11 +35,13 @@ audio_subsys: bus@59000000 {
 			<0x592d0000 0x10000>, /* sai0 tx */
 			<0x592e0000 0x10000>, /* sai1 rx */
 			<0x592f0000 0x10000>, /* sai1 tx */
+			<0x59300000 0x10000>, /* sai2 rx */
+			<0x59310000 0x10000>, /* sai3 rx */
 			<0x59350000 0x10000>,
 			<0x59370000 0x10000>;
 		#dma-cells = <3>;
 		shared-interrupt;
-		dma-channels = <16>;
+		dma-channels = <18>;
 		interrupts = <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>, /* asrc 0 */
 				<GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 376 IRQ_TYPE_LEVEL_HIGH>,
@@ -54,6 +56,8 @@ audio_subsys: bus@59000000 {
 				<GIC_SPI 315 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 317 IRQ_TYPE_LEVEL_HIGH>, /* sai1 */
 				<GIC_SPI 317 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 319 IRQ_TYPE_LEVEL_HIGH>, /* sai2 */
+				<GIC_SPI 324 IRQ_TYPE_LEVEL_HIGH>, /* sai3 */
 				<GIC_SPI 391 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 393 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "edma0-chan0-rx", "edma0-chan1-rx", /* asrc0 */
@@ -63,6 +67,7 @@ audio_subsys: bus@59000000 {
 				"edma0-chan8-rx", "edma0-chan9-tx", /* spdif0 */
 				"edma0-chan12-rx", "edma0-chan13-tx", /* sai0 */
 				"edma0-chan14-rx", "edma0-chan15-tx", /* sai1 */
+				"edma0-chan16-rx", "edma0-chan17-rx", /* sai2, sai3 */
 				"edma0-chan21-tx",              /* gpt5 */
 				"edma0-chan23-rx";              /* gpt7 */
 		power-domains = <&pd IMX_SC_R_DMA_0_CH0>,
@@ -79,6 +84,8 @@ audio_subsys: bus@59000000 {
 				<&pd IMX_SC_R_DMA_0_CH13>,
 				<&pd IMX_SC_R_DMA_0_CH14>,
 				<&pd IMX_SC_R_DMA_0_CH15>,
+				<&pd IMX_SC_R_DMA_0_CH16>,
+				<&pd IMX_SC_R_DMA_0_CH17>,
 				<&pd IMX_SC_R_DMA_0_CH21>,
 				<&pd IMX_SC_R_DMA_0_CH23>;
 		power-domain-names = "edma0-chan0", "edma0-chan1",
@@ -88,6 +95,7 @@ audio_subsys: bus@59000000 {
 				     "edma0-chan8", "edma0-chan9",
 				     "edma0-chan12", "edma0-chan13",
 				     "edma0-chan14", "edma0-chan15",
+				     "edma0-chan16", "edma0-chan17",
 				     "edma0-chan21", "edma0-chan23";
 		status = "okay";
 	};

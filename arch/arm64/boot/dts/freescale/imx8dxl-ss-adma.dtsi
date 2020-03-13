@@ -44,6 +44,8 @@
 			<0x592d0000 0x10000>, /* sai0 tx */
 			<0x592e0000 0x10000>, /* sai1 rx */
 			<0x592f0000 0x10000>, /* sai1 tx */
+			<0x59300000 0x10000>, /* sai2 rx */
+			<0x59310000 0x10000>, /* sai3 rx */
 			<0x59350000 0x10000>, /* gpt0 */
 			<0x59360000 0x10000>, /* gpt1 */
 			<0x59370000 0x10000>, /* gpt2 */
@@ -60,6 +62,8 @@
 		<GIC_SPI 189 IRQ_TYPE_LEVEL_HIGH>,
 		<GIC_SPI 191 IRQ_TYPE_LEVEL_HIGH>, /* sai1 */
 		<GIC_SPI 191 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 193 IRQ_TYPE_LEVEL_HIGH>, /* sai2 */
+		<GIC_SPI 199 IRQ_TYPE_LEVEL_HIGH>, /* sai3 */
 		<GIC_SPI 268 IRQ_TYPE_LEVEL_HIGH>, /* gpt0 */
 		<GIC_SPI 269 IRQ_TYPE_LEVEL_HIGH>, /* gpt1 */
 		<GIC_SPI 270 IRQ_TYPE_LEVEL_HIGH>, /* gpt2 */
@@ -70,6 +74,7 @@
 			"edma0-chan8-rx", "edma0-chan9-tx", /* spdif0 */
 			"edma0-chan12-rx", "edma0-chan13-tx", /* sai0 */
 			"edma0-chan14-rx", "edma0-chan15-tx", /* sai1 */
+			"edma0-chan16-rx", "edma0-chan17-rx", /* sai2, sai3 */
 			"edma0-chan21-tx",              /* gpt0 */
 			"edma0-chan22-tx",              /* gpt1 */
 			"edma0-chan23-tx",              /* gpt2 */
@@ -86,6 +91,8 @@
 			<&pd IMX_SC_R_DMA_0_CH13>,
 			<&pd IMX_SC_R_DMA_0_CH14>,
 			<&pd IMX_SC_R_DMA_0_CH15>,
+			<&pd IMX_SC_R_DMA_0_CH16>,
+			<&pd IMX_SC_R_DMA_0_CH17>,
 			<&pd IMX_SC_R_DMA_0_CH21>,
 			<&pd IMX_SC_R_DMA_0_CH22>,
 			<&pd IMX_SC_R_DMA_0_CH23>,
@@ -96,6 +103,7 @@
 			     "edma0-chan8", "edma0-chan9",
 			     "edma0-chan12", "edma0-chan13",
 			     "edma0-chan14", "edma0-chan15",
+			     "edma0-chan16", "edma0-chan17",
 			     "edma0-chan21", "edma0-chan22",
 			     "edma0-chan23", "edma0-chan24";
 };
@@ -192,34 +200,23 @@
 	interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
 };
 
-&spdif0_lpcg {
-	status = "disabled";
+&sai0 {
+	interrupts = <GIC_SPI 188 IRQ_TYPE_LEVEL_HIGH>;
 };
 
-&sai0_lpcg {
-	status = "disabled";
+&sai1 {
+	interrupts = <GIC_SPI 190 IRQ_TYPE_LEVEL_HIGH>;
 };
 
-&sai1_lpcg {
-	status = "disabled";
+&sai2 {
+	interrupts = <GIC_SPI 192 IRQ_TYPE_LEVEL_HIGH>;
 };
 
-&sai2_lpcg {
-	status = "disabled";
+&sai3 {
+	interrupts = <GIC_SPI 198 IRQ_TYPE_LEVEL_HIGH>;
 };
 
-&sai3_lpcg {
-	status = "disabled";
-};
-
-&mqs0_lpcg {
-	status = "disabled";
-};
-
-&mclkout0_lpcg {
-	status = "disabled";
-};
-
-&mclkout1_lpcg {
-	status = "disabled";
+&spdif0 {
+	interrupts =  <GIC_SPI 326 IRQ_TYPE_LEVEL_HIGH>, /* rx */
+		      <GIC_SPI 328 IRQ_TYPE_LEVEL_HIGH>; /* tx */
 };
