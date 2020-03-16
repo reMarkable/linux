@@ -1956,6 +1956,7 @@
 		assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
 		assigned-clock-rates = <500000000>;
 		interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
+		power-domains = <&hsiomix_pd>;
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
@@ -1998,6 +1999,7 @@
 		assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
 		assigned-clock-rates = <500000000>;
 		interrupts = <GIC_SPI 149 IRQ_TYPE_LEVEL_HIGH>;
+		power-domains = <&hsiomix_pd>;
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
