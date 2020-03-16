@@ -613,6 +613,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 	u32 control;
 	int pcs;
 	struct scatterlist *s = NULL;
+	u8 td_size;
 
 	if (priv_ep->type == USB_ENDPOINT_XFER_ISOC)
 		num_trb = priv_ep->interval;
@@ -671,9 +672,18 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 	if (request->num_mapped_sgs)
 		s = request->sg;
 
+	if (priv_dev->dev_ver == DEV_VER_V2) {
+		td_size = DIV_ROUND_UP(request->length,
+				       priv_ep->endpoint.maxpacket);
+
+		if (priv_dev->gadget.speed == USB_SPEED_SUPER)
+			trb->length = TRB_TDL_SS_SIZE(td_size);
+		else
+			control |= TRB_TDL_HS_SIZE(td_size);
+	}
+
 	do {
 		u32 length;
-		u8 td_size = 0;
 
 		/* fill TRB */
 		control |= TRB_TYPE(TRB_NORMAL);
@@ -684,16 +694,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 		else
 			length = sg_dma_len(s);
 
-		if (priv_dev->dev_ver == DEV_VER_V2)
-			td_size = DIV_ROUND_UP(length,
-					       priv_ep->endpoint.maxpacket);
-
-		trb->length = TRB_BURST_LEN(16) | TRB_LEN(length);
-		if (priv_dev->gadget.speed == USB_SPEED_SUPER)
-			trb->length |= TRB_TDL_SS_SIZE(td_size);
-		else
-			control |= TRB_TDL_HS_SIZE(td_size);
-
+		trb->length |= TRB_BURST_LEN(16) | TRB_LEN(length);
 		pcs = priv_ep->pcs ? TRB_CYCLE : 0;
 
 		/*
@@ -720,6 +721,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 		priv_req->end_trb = priv_ep->enqueue;
 		cdns3_ep_inc_enq(priv_ep);
 		trb = priv_ep->trb_pool + priv_ep->enqueue;
+		trb->length = 0;
 	} while (sg_iter < num_trb);
 
 	trb = priv_req->trb;
