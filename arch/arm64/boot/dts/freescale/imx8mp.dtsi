@@ -1448,7 +1448,7 @@
 				power-domains = <&mediamix_pd>;
 				status = "disabled";
 
-				lcdif_disp0: port@0 {
+				lcdif1_disp: port@0 {
 					reg = <0>;
 
 					lcdif_to_dsim: endpoint {
@@ -2126,7 +2126,7 @@
 
 	display-subsystem {
 		compatible = "fsl,imx-display-subsystem";
-		ports = <&lcdif_disp0>;
+		ports = <&lcdif1_disp>;
 	};
 
 	imx_ion: imx_ion {
