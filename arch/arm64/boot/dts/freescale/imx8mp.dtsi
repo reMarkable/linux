@@ -692,7 +692,8 @@
 						  <&clk IMX8MP_CLK_AUDIO_AXI_SRC>,
 						  <&clk IMX8MP_CLK_IPG_AUDIO_ROOT>,
 						  <&clk IMX8MP_AUDIO_PLL1>,
-						  <&clk IMX8MP_AUDIO_PLL2>;
+						  <&clk IMX8MP_AUDIO_PLL2>,
+						  <&clk IMX8MP_VIDEO_PLL1>;
 				assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>,
 							 <&clk IMX8MP_SYS_PLL1_800M>,
 							 <&clk IMX8MP_SYS_PLL2_500M>,
@@ -705,7 +706,8 @@
 						       <800000000>,
 						       <400000000>,
 						       <393216000>,
-						       <361267200>;
+						       <361267200>,
+						       <2079000000>;
 			};
 
 			src: src@30390000 {
