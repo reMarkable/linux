@@ -1736,6 +1736,11 @@
 						compatible = "imx-isi-capture";
 						status = "disabled";
 					};
+
+					m2m_device{
+						compatible = "imx-isi-m2m";
+						status = "disabled";
+					};
 				};
 
 				isi_1: isi@32e02000 {
