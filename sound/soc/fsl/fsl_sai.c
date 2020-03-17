@@ -16,7 +16,6 @@
 #include <linux/slab.h>
 #include <linux/time.h>
 #include <linux/pm_qos.h>
-#include <linux/pm_domain.h>
 #include <sound/core.h>
 #include <sound/dmaengine_pcm.h>
 #include <sound/pcm_params.h>
@@ -1438,7 +1437,6 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	int index;
 	struct regmap_config fsl_sai_regmap_config = fsl_sai_v2_regmap_config;
 	unsigned long irqflags = 0;
-	int num_domains = 0;
 
 	sai = devm_kzalloc(&pdev->dev, sizeof(*sai), GFP_KERNEL);
 	if (!sai)
@@ -1488,26 +1486,6 @@ static int fsl_sai_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "failed to get mclk%d clock: %ld\n",
 					i, PTR_ERR(sai->mclk_clk[i]));
 			sai->mclk_clk[i] = NULL;
-		}
-	}
-
-	num_domains = of_count_phandle_with_args(np, "power-domains",
-						 "#power-domain-cells");
-	if (num_domains > 1) {
-		for (i = 0; i < num_domains; i++) {
-			struct device *pd_dev;
-			struct device_link *link;
-
-			pd_dev = dev_pm_domain_attach_by_id(&pdev->dev, i);
-			if (IS_ERR(pd_dev))
-				return PTR_ERR(pd_dev);
-
-			link = device_link_add(&pdev->dev, pd_dev,
-				DL_FLAG_STATELESS |
-				DL_FLAG_PM_RUNTIME |
-				DL_FLAG_RPM_ACTIVE);
-			if (IS_ERR(link))
-				return PTR_ERR(link);
 		}
 	}
 
