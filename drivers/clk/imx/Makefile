@@ -31,7 +31,7 @@ obj-$(CONFIG_CLK_IMX8MP) += clk-imx8mp.o clk-audiomix.o clk-hdmimix.o clk-gate-s
 obj-$(CONFIG_CLK_IMX8MQ) += clk-imx8mq.o
 obj-$(CONFIG_CLK_IMX8QXP) += clk-imx8qxp.o clk-imx8qxp-lpcg.o clk-imx8qxp-acm.o \
 			     clk-imx8qxp-rsrc.o clk-imx8qm-rsrc.o clk-imx8qm-acm.o \
-			     clk-imx8dxl-rsrc.o clk-imx8dxl-acm.o
+			     clk-imx8dxl-rsrc.o clk-imx8dxl-acm.o clk-imx-acm-utils.o
 obj-$(CONFIG_SOC_IMX1)   += clk-imx1.o
 obj-$(CONFIG_SOC_IMX21)  += clk-imx21.o
 obj-$(CONFIG_SOC_IMX25)  += clk-imx25.o
