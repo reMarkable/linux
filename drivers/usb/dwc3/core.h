@@ -1251,6 +1251,7 @@ struct dwc3 {
 
 	unsigned		dis_metastability_quirk:1;
 	unsigned		host_vbus_glitches:1;
+	unsigned		soft_itp_sync_quirk:1;
 
 	u16			imod_interval;
 };
