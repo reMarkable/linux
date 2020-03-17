@@ -1392,7 +1392,7 @@ static int fsl_spdif_probe(struct platform_device *pdev)
 		return PTR_ERR(regs);
 
 	spdif_priv->regmap = devm_regmap_init_mmio_clk(&pdev->dev,
-			"core", regs, &fsl_spdif_regmap_config);
+			NULL, regs, &fsl_spdif_regmap_config);
 	if (IS_ERR(spdif_priv->regmap)) {
 		dev_err(&pdev->dev, "regmap init failed\n");
 		return PTR_ERR(spdif_priv->regmap);
@@ -1494,9 +1494,15 @@ static int fsl_spdif_probe(struct platform_device *pdev)
 	spdif_priv->dma_params_tx.addr = res->start + REG_SPDIF_STL;
 	spdif_priv->dma_params_rx.addr = res->start + REG_SPDIF_SRL;
 
-	/*Clear the val bit for Tx*/
+	ret = clk_prepare_enable(spdif_priv->coreclk);
+	if (ret)
+		return ret;
+
+	/*Cleer the val bit for Tx*/
 	regmap_update_bits(spdif_priv->regmap, REG_SPDIF_SCR,
 					SCR_VAL_MASK, 1 << SCR_VAL_OFFSET);
+
+	clk_disable_unprepare(spdif_priv->coreclk);
 
 	pm_runtime_enable(&pdev->dev);
 
