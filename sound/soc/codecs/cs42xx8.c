@@ -17,7 +17,6 @@
 #include <linux/gpio/consumer.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
-#include <linux/pm_domain.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <sound/tlv.h>
@@ -535,11 +534,9 @@ EXPORT_SYMBOL_GPL(cs42xx8_of_match);
 
 int cs42xx8_probe(struct device *dev, struct regmap *regmap)
 {
-	struct device_node *np = dev->of_node;
 	const struct of_device_id *of_id;
 	struct cs42xx8_priv *cs42xx8;
 	int ret, val, i;
-	int num_domains = 0;
 
 	if (IS_ERR(regmap)) {
 		ret = PTR_ERR(regmap);
@@ -579,31 +576,13 @@ int cs42xx8_probe(struct device *dev, struct regmap *regmap)
 
 	cs42xx8->sysclk = clk_get_rate(cs42xx8->clk);
 
-	num_domains = of_count_phandle_with_args(np, "power-domains",
-						 "#power-domain-cells");
-	for (i = 0; i < num_domains; i++) {
-		struct device *pd_dev;
-		struct device_link *link;
-
-		pd_dev = dev_pm_domain_attach_by_id(dev, i);
-		if (IS_ERR(pd_dev))
-			return PTR_ERR(pd_dev);
-
-		link = device_link_add(dev, pd_dev,
-			DL_FLAG_STATELESS |
-			DL_FLAG_PM_RUNTIME |
-			DL_FLAG_RPM_ACTIVE);
-		if (IS_ERR(link))
-			return PTR_ERR(link);
-	}
-
-	if (of_property_read_bool(np, "fsl,txm-rxs")) {
+	if (of_property_read_bool(dev->of_node, "fsl,txm-rxs")) {
 		/* 0 --  rx,  1 -- tx */
 		cs42xx8->slave_mode[0] = true;
 		cs42xx8->slave_mode[1] = false;
 	}
 
-	if (of_property_read_bool(np, "fsl,txs-rxm")) {
+	if (of_property_read_bool(dev->of_node, "fsl,txs-rxm")) {
 		/* 0 --  rx,  1 -- tx */
 		cs42xx8->slave_mode[0] = false;
 		cs42xx8->slave_mode[1] = true;
