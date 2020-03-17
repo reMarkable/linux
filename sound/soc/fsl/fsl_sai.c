@@ -1460,12 +1460,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 		fsl_sai_regmap_config = fsl_sai_v3_regmap_config;
 
 	sai->regmap = devm_regmap_init_mmio_clk(&pdev->dev,
-			"bus", base, &fsl_sai_regmap_config);
-
-	/* Compatible with old DTB cases */
-	if (IS_ERR(sai->regmap) && PTR_ERR(sai->regmap) != -EPROBE_DEFER)
-		sai->regmap = devm_regmap_init_mmio_clk(&pdev->dev,
-				"sai", base, &fsl_sai_regmap_config);
+			NULL, base, &fsl_sai_regmap_config);
 	if (IS_ERR(sai->regmap)) {
 		dev_err(&pdev->dev, "regmap init failed\n");
 		return PTR_ERR(sai->regmap);
@@ -1574,6 +1569,11 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, sai);
+
+	ret = clk_prepare_enable(sai->bus_clk);
+	if (ret)
+		return ret;
+
 	ret = fsl_sai_check_ver(&pdev->dev);
 	if (ret < 0)
 		dev_warn(&pdev->dev, "Error reading SAI version: %d\n", ret);
@@ -1599,6 +1599,8 @@ static int fsl_sai_probe(struct platform_device *pdev)
 		regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
 				   FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
 	}
+
+	clk_disable_unprepare(sai->bus_clk);
 
 	sai->dma_params_rx.chan_name = "rx";
 	sai->dma_params_tx.chan_name = "tx";
