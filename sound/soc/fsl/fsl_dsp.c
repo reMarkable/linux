@@ -877,6 +877,93 @@ int fsl_dsp_configure(struct fsl_dsp *dsp_priv)
 	}
 }
 
+/**
+ * fsl_dsp_attach_pm_domains
+ */
+static int fsl_dsp_attach_pm_domains(struct device *dev,
+				     struct fsl_dsp *dsp)
+{
+	int ret;
+	int i;
+
+	if (dsp->num_domains <= 1)
+		return 0;
+
+	dsp->pd_dev = devm_kmalloc_array(dev, dsp->num_domains,
+					 sizeof(*dsp->pd_dev),
+					 GFP_KERNEL);
+	if (!dsp->pd_dev)
+		return -ENOMEM;
+
+	dsp->pd_dev_link = devm_kmalloc_array(dev,
+					      dsp->num_domains,
+					      sizeof(*dsp->pd_dev_link),
+					      GFP_KERNEL);
+	if (!dsp->pd_dev_link)
+		return -ENOMEM;
+
+	for (i = 0; i < dsp->num_domains; i++) {
+		dsp->pd_dev[i] = dev_pm_domain_attach_by_id(dev, i);
+		if (IS_ERR(dsp->pd_dev[i]))
+			return PTR_ERR(dsp->pd_dev[i]);
+
+		dsp->pd_dev_link[i] = device_link_add(dev,
+						      dsp->pd_dev[i],
+						      DL_FLAG_STATELESS |
+						      DL_FLAG_PM_RUNTIME |
+						      DL_FLAG_RPM_ACTIVE);
+		if (IS_ERR(dsp->pd_dev_link[i])) {
+			dev_pm_domain_detach(dsp->pd_dev[i], false);
+			ret = PTR_ERR(dsp->pd_dev_link[i]);
+			goto detach_pm;
+		}
+	}
+	return 0;
+
+detach_pm:
+	while (--i >= 0) {
+		device_link_del(dsp->pd_dev_link[i]);
+		dev_pm_domain_detach(dsp->pd_dev[i], false);
+	}
+	return ret;
+}
+
+/**
+ * fsl_dsp_detach_pm_domains
+ */
+static int fsl_dsp_detach_pm_domains(struct device *dev,
+				     struct fsl_dsp *dsp)
+{
+	int i;
+
+	if (dsp->num_domains <= 1)
+		return 0;
+
+	for (i = 0; i < dsp->num_domains; i++) {
+		device_link_del(dsp->pd_dev_link[i]);
+		dev_pm_domain_detach(dsp->pd_dev[i], false);
+	}
+
+	return 0;
+}
+
+/**
+ * fsl_dev_put_pm_domains
+ */
+static int fsl_dsp_put_pm_domains(struct device *dev,
+				  struct fsl_dsp *dsp)
+{
+	int i;
+
+	if (dsp->num_domains <= 1)
+		return 0;
+
+	for (i = 0; i < dsp->num_domains; i++)
+		pm_runtime_put_sync(dsp->pd_dev[i]);
+
+	return 0;
+}
+
 static int fsl_dsp_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -890,7 +977,6 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	dma_addr_t buf_phys;
 	int size, offset, i;
 	int ret;
-	int num_domains = 0;
 	char tmp[16];
 
 	dsp_priv = devm_kzalloc(&pdev->dev, sizeof(*dsp_priv), GFP_KERNEL);
@@ -920,25 +1006,11 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	dsp_priv->iram  = dsp_priv->paddr + IRAM_OFFSET;
 	dsp_priv->sram  = dsp_priv->paddr + SYSRAM_OFFSET;
 
-	num_domains = of_count_phandle_with_args(np, "power-domains",
-						 "#power-domain-cells");
-	if (num_domains > 1) {
-		for (i = 0; i < num_domains; i++) {
-			struct device *pd_dev;
-			struct device_link *link;
-
-			pd_dev = dev_pm_domain_attach_by_id(&pdev->dev, i);
-			if (IS_ERR(pd_dev))
-				return PTR_ERR(pd_dev);
-
-			link = device_link_add(&pdev->dev, pd_dev,
-				DL_FLAG_STATELESS |
-				DL_FLAG_PM_RUNTIME |
-				DL_FLAG_RPM_ACTIVE);
-			if (IS_ERR(link))
-				return PTR_ERR(link);
-		}
-	}
+	dsp_priv->num_domains = of_count_phandle_with_args(np, "power-domains",
+							   "#power-domain-cells");
+	ret = fsl_dsp_attach_pm_domains(&pdev->dev, dsp_priv);
+	if (ret)
+		return ret;
 
 	ret = fsl_dsp_configure(dsp_priv);
 	if (ret < 0)
@@ -955,6 +1027,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, dsp_priv);
 	pm_runtime_enable(&pdev->dev);
+	fsl_dsp_put_pm_domains(&pdev->dev, dsp_priv);
 
 	dsp_miscdev.fops = &dsp_fops,
 	dsp_miscdev.parent = &pdev->dev,
@@ -1098,6 +1171,9 @@ static int fsl_dsp_remove(struct platform_device *pdev)
 				dsp_priv->msg_buf_phys);
 	if (dsp_priv->sdram_vir_addr)
 		iounmap(dsp_priv->sdram_vir_addr);
+
+	pm_runtime_disable(&pdev->dev);
+	fsl_dsp_detach_pm_domains(&pdev->dev, dsp_priv);
 
 	return 0;
 }

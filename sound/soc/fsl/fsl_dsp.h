@@ -117,6 +117,9 @@ struct fsl_dsp {
 	struct clk *dsp_root_clk;
 	struct clk *debug_clk;
 	struct clk *mu2_clk;
+	struct device **pd_dev;
+	struct device_link **pd_dev_link;
+	int    num_domains;
 };
 
 #define IRAM_OFFSET		0x10000
