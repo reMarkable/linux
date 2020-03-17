@@ -1959,6 +1959,7 @@
 			xhci-no-64bit-support;
 			usb3-resume-missing-cas;
 			snps,dis-u2-freeclk-exists-quirk;
+			snps,soft-itp-sync;
 			snps,dis_u3_susphy_quirk;
 			status = "disabled";
 		};
@@ -2000,6 +2001,7 @@
 			xhci-no-64bit-support;
 			usb3-resume-missing-cas;
 			snps,dis-u2-freeclk-exists-quirk;
+			snps,soft-itp-sync;
 			snps,dis_u3_susphy_quirk;
 			status = "disabled";
 		};
