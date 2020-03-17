@@ -12,13 +12,16 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/pm_domain.h>
+#include <linux/pm_runtime.h>
 
 #include "clk.h"
 #include "clk-scu.h"
+#include "clk-imx-acm-utils.h"
 
 #include <dt-bindings/clock/imx8-clock.h>
 
 struct imx8dxl_acm_priv {
+	struct clk_imx_acm_pm_domains dev_pm;
 	void __iomem *reg;
 	u32 regs[0x20];
 };
@@ -82,7 +85,7 @@ static int imx8dxl_acm_clk_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct clk **clks;
 	void __iomem *base;
-	int num_domains;
+	int ret;
 	int i;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -111,23 +114,12 @@ static int imx8dxl_acm_clk_probe(struct platform_device *pdev)
 
 	clks = clk_data->clks;
 
-	num_domains = of_count_phandle_with_args(dev->of_node, "power-domains",
-						 "#power-domain-cells");
-	for (i = 0; i < num_domains; i++) {
-		struct device *pd_dev;
-		struct device_link *link;
+	ret = clk_imx_acm_attach_pm_domains(&pdev->dev, &priv->dev_pm);
+	if (ret)
+		return ret;
 
-		pd_dev = dev_pm_domain_attach_by_id(&pdev->dev, i);
-		if (IS_ERR(pd_dev))
-			return PTR_ERR(pd_dev);
-
-		link = device_link_add(&pdev->dev, pd_dev,
-			DL_FLAG_STATELESS |
-			DL_FLAG_PM_RUNTIME |
-			DL_FLAG_RPM_ACTIVE);
-		if (IS_ERR(link))
-			return PTR_ERR(link);
-	}
+	pm_runtime_enable(&pdev->dev);
+	pm_runtime_get_sync(&pdev->dev);
 
 	clks[IMX_ADMA_EXT_AUD_MCLK0]     = imx_clk_fixed("ext_aud_mclk0", 0);
 	clks[IMX_ADMA_EXT_AUD_MCLK1]     = imx_clk_fixed("ext_aud_mclk1", 0);
@@ -159,7 +151,22 @@ static int imx8dxl_acm_clk_probe(struct platform_device *pdev)
 				i, PTR_ERR(clks[i]));
 	}
 
-	return of_clk_add_provider(np, of_clk_src_onecell_get, clk_data);
+	ret = of_clk_add_provider(np, of_clk_src_onecell_get, clk_data);
+
+	pm_runtime_put_sync(&pdev->dev);
+
+	return ret;
+}
+
+static int imx8dxl_acm_clk_remove(struct platform_device *pdev)
+{
+	struct imx8dxl_acm_priv *priv = dev_get_drvdata(&pdev->dev);
+
+	pm_runtime_disable(&pdev->dev);
+
+	clk_imx_acm_detach_pm_domains(&pdev->dev, &priv->dev_pm);
+
+	return 0;
 }
 
 static const struct of_device_id imx8dxl_acm_match[] = {
@@ -167,7 +174,7 @@ static const struct of_device_id imx8dxl_acm_match[] = {
 	{ /* sentinel */ }
 };
 
-static int __maybe_unused imx8dxl_acm_suspend(struct device *dev)
+static int __maybe_unused imx8dxl_acm_runtime_suspend(struct device *dev)
 {
 	struct imx8dxl_acm_priv *priv = dev_get_drvdata(dev);
 
@@ -185,7 +192,7 @@ static int __maybe_unused imx8dxl_acm_suspend(struct device *dev)
 	return 0;
 }
 
-static int __maybe_unused imx8dxl_acm_resume(struct device *dev)
+static int __maybe_unused imx8dxl_acm_runtime_resume(struct device *dev)
 {
 	struct imx8dxl_acm_priv *priv = dev_get_drvdata(dev);
 
@@ -204,8 +211,10 @@ static int __maybe_unused imx8dxl_acm_resume(struct device *dev)
 }
 
 const struct dev_pm_ops imx8dxl_acm_pm_ops = {
-	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(imx8dxl_acm_suspend,
-				      imx8dxl_acm_resume)
+	SET_RUNTIME_PM_OPS(imx8dxl_acm_runtime_suspend,
+			   imx8dxl_acm_runtime_resume, NULL)
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+				      pm_runtime_force_resume)
 };
 
 static struct platform_driver imx8dxl_acm_clk_driver = {
@@ -216,6 +225,7 @@ static struct platform_driver imx8dxl_acm_clk_driver = {
 		.suppress_bind_attrs = true,
 	},
 	.probe = imx8dxl_acm_clk_probe,
+	.remove = imx8dxl_acm_clk_remove,
 };
 
 static int __init imx8dxl_acm_init(void)
