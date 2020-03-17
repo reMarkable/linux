@@ -345,7 +345,6 @@
 				clocks = <&clock_mclk_out1>;
 				clock-names = "mclk";
 				wlf,shared-lrclk;
-				power-domains = <&pd IMX_SC_R_MCLK_OUT_1>;
 				assigned-clocks = <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_PLL>,
 						  <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_SLV_BUS>,
 						  <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_MST_BUS>,
@@ -365,7 +364,6 @@
 				clocks = <&clock_mclk_out1>;
 				clock-names = "mclk";
 				wlf,shared-lrclk;
-				power-domains = <&pd IMX_SC_R_MCLK_OUT_1>;
 				assigned-clocks = <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_PLL>,
 						  <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_SLV_BUS>,
 						  <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_MST_BUS>,
@@ -385,7 +383,6 @@
 				clocks = <&clock_mclk_out1>;
 				clock-names = "mclk";
 				wlf,shared-lrclk;
-				power-domains = <&pd IMX_SC_R_MCLK_OUT_1>;
 				assigned-clocks = <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_PLL>,
 						  <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_SLV_BUS>,
 						  <&clk IMX_SC_R_AUDIO_PLL_0 IMX_SC_PM_CLK_MST_BUS>,
