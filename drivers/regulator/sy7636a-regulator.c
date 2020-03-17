@@ -34,9 +34,50 @@ static int get_vcom_voltage(struct regulator_dev *rdev)
 	return (val & 0x1FF) * 10;
 }
 
+static int get_power_good(struct regulator_dev *rdev, bool *is_good)
+{
+	int ret;
+	unsigned int val;
+
+	ret = regmap_read(rdev->regmap, SY7636A_REG_FAULT_FLAG, &val);
+	if (ret)
+		return ret;
+
+	*is_good = (val & SY7636A_FAULT_FLAG_PG);
+	return ret;
+}
+
+static int enable_regulator_with_pwr_good_verification(struct regulator_dev *rdev)
+{
+	bool pwr_good = 0;
+	int wait_cnt = 0;
+	int ret;
+
+	ret = regulator_enable_regmap(rdev);
+	if (ret)
+		return ret;
+
+	/* WAIT FOR PWR-GOOD */
+	while(!pwr_good && (wait_cnt < 500)) {
+		ret = get_power_good(rdev, &pwr_good);
+		if (ret)
+			return ret;
+
+		if (!pwr_good) {
+			usleep_range(1000, 1500);
+			wait_cnt++;
+		}
+	}
+
+	if (!pwr_good)
+		return -ETIME;
+
+	return 0;
+}
+
 static const struct regulator_ops sy7636a_vcom_volt_ops = {
 	.get_voltage = get_vcom_voltage,
-	.enable = regulator_enable_regmap,
+	.enable = enable_regulator_with_pwr_good_verification,
 	.disable = regulator_disable_regmap,
 	.is_enabled = regulator_is_enabled_regmap,
 };
