@@ -1016,7 +1016,7 @@ static int fsl_esai_probe(struct platform_device *pdev)
 		return PTR_ERR(regs);
 
 	esai_priv->regmap = devm_regmap_init_mmio_clk(&pdev->dev,
-			"core", regs, &fsl_esai_regmap_config);
+			NULL, regs, &fsl_esai_regmap_config);
 	if (IS_ERR(esai_priv->regmap)) {
 		dev_err(&pdev->dev, "failed to init regmap: %ld\n",
 				PTR_ERR(esai_priv->regmap));
@@ -1106,6 +1106,11 @@ static int fsl_esai_probe(struct platform_device *pdev)
 	dev_set_drvdata(&pdev->dev, esai_priv);
 
 	spin_lock_init(&esai_priv->lock);
+
+	ret = clk_prepare_enable(esai_priv->coreclk);
+	if (ret)
+		return ret;
+
 	ret = fsl_esai_hw_init(esai_priv);
 	if (ret)
 		return ret;
@@ -1118,6 +1123,8 @@ static int fsl_esai_probe(struct platform_device *pdev)
 	regmap_write(esai_priv->regmap, REG_ESAI_TSMB, 0);
 	regmap_write(esai_priv->regmap, REG_ESAI_RSMA, 0);
 	regmap_write(esai_priv->regmap, REG_ESAI_RSMB, 0);
+
+	clk_disable_unprepare(esai_priv->coreclk);
 
 	ret = devm_snd_soc_register_component(&pdev->dev, &fsl_esai_component,
 					      &fsl_esai_dai, 1);
