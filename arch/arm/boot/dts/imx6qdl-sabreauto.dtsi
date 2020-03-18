@@ -436,7 +436,6 @@
 	pinctrl-0 = <&pinctrl_enet>;
 	phy-mode = "rgmii-id";
 	fsl,magic-packet;
-	fsl,err006687-workaround-present;
 	status = "okay";
 };
 

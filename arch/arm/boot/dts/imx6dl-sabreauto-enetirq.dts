@@ -9,6 +9,7 @@
 	pinctrl-0 = <&pinctrl_enet &pinctrl_enet_irq>;
 	interrupts-extended = <&gpio1 6 IRQ_TYPE_LEVEL_HIGH>,
 			      <&gpc 0 119 IRQ_TYPE_LEVEL_HIGH>;
+	fsl,err006687-workaround-present;
 };
 
 &mlb {
