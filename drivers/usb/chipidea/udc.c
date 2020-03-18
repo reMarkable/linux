@@ -366,10 +366,12 @@ static int add_td_to_list(struct ci_hw_ep *hwep, struct ci_hw_req *hwreq,
 		node->ptr->token |= cpu_to_le32(mul << __ffs(TD_MULTO));
 	}
 
-	if (s)
+	if (s) {
 		temp = (u32) (sg_dma_address(s) + hwreq->req.actual);
-	else
+		node->td_remaining_size = CI_MAX_BUF_SIZE - length;
+	} else {
 		temp = (u32) (hwreq->req.dma + hwreq->req.actual);
+	}
 
 	if (length) {
 		node->ptr->page[0] = cpu_to_le32(temp);
@@ -453,8 +455,8 @@ static int prepare_td_per_sg(struct ci_hw_ep *hwep, struct ci_hw_req *hwreq,
 
 	hwreq->req.actual = 0;
 	while (rest > 0) {
-		unsigned int count = min(rest,
-			(unsigned int)(TD_PAGE_COUNT * CI_HDRC_PAGE_SIZE));
+		unsigned int count = min_t(unsigned int, rest,
+				CI_MAX_BUF_SIZE);
 
 		ret = add_td_to_list(hwep, hwreq, count, s);
 		if (ret < 0)
@@ -466,22 +468,56 @@ static int prepare_td_per_sg(struct ci_hw_ep *hwep, struct ci_hw_req *hwreq,
 	return ret;
 }
 
+static void ci_add_buffer_entry(struct td_node *node, struct scatterlist *s)
+{
+	int empty_td_slot_index = (CI_MAX_BUF_SIZE - node->td_remaining_size)
+			/ CI_HDRC_PAGE_SIZE;
+	int i;
+
+	node->ptr->token +=
+		cpu_to_le32(sg_dma_len(s) << __ffs(TD_TOTAL_BYTES));
+
+	for (i = empty_td_slot_index; i < TD_PAGE_COUNT; i++) {
+		u32 page = (u32) sg_dma_address(s) +
+			(i - empty_td_slot_index) * CI_HDRC_PAGE_SIZE;
+
+		page &= ~TD_RESERVED_MASK;
+		node->ptr->page[i] = cpu_to_le32(page);
+	}
+}
+
 static int prepare_td_for_sg(struct ci_hw_ep *hwep, struct ci_hw_req *hwreq)
 {
 	struct usb_request *req = &hwreq->req;
 	struct scatterlist *s = req->sg;
-	int ret;
+	int ret = 0, i = 0;
+	struct td_node *node = NULL;
 
 	if (!s || req->zero || req->length == 0) {
 		dev_err(hwep->ci->dev, "not supported operation for sg\n");
 		return -EINVAL;
 	}
 
-	do {
-		ret = prepare_td_per_sg(hwep, hwreq, s);
-		if (ret)
-			return ret;
-	} while ((s = sg_next(s)));
+	while (i++ < req->num_mapped_sgs) {
+		if (sg_dma_address(s) % PAGE_SIZE) {
+			dev_err(hwep->ci->dev, "not page aligned sg buffer\n");
+			return -EINVAL;
+		}
+
+		if (node && (node->td_remaining_size >= sg_dma_len(s))) {
+			ci_add_buffer_entry(node, s);
+			node->td_remaining_size -= sg_dma_len(s);
+		} else {
+			ret = prepare_td_per_sg(hwep, hwreq, s);
+			if (ret)
+				return ret;
+
+			node = list_entry(hwreq->tds.prev,
+				struct td_node, td);
+		}
+
+		s = sg_next(s);
+	}
 
 	return ret;
 }
