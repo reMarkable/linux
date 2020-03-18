@@ -2018,6 +2018,7 @@
 		assigned-clocks = <&clk IMX8MP_CLK_VPU_G1>, <&clk IMX8MP_CLK_VPU_BUS>;
 		assigned-clock-parents = <&clk IMX8MP_SYS_PLL3_OUT>, <&clk IMX8MP_SYS_PLL3_OUT>;
 		assigned-clock-rates = <600000000>, <600000000>;
+		power-domains = <&vpu_g1_pd>;
 		status = "disabled";
 	};
 
@@ -2032,6 +2033,7 @@
 		assigned-clocks = <&clk IMX8MP_CLK_VPU_G2>, <&clk IMX8MP_CLK_VPU_BUS>;
 		assigned-clock-parents = <&clk IMX8MP_VPU_PLL_OUT>, <&clk IMX8MP_SYS_PLL3_OUT>;
 		assigned-clock-rates = <400000000>, <600000000>;
+		power-domains = <&vpu_g2_pd>;
 		status = "disabled";
 	};
 
@@ -2046,6 +2048,7 @@
 		assigned-clocks = <&clk IMX8MP_CLK_VPU_VC8000E>,<&clk IMX8MP_CLK_VPU_BUS>;
 		assigned-clock-parents = <&clk IMX8MP_VPU_PLL_OUT>, <&clk IMX8MP_SYS_PLL3_OUT>;
 		assigned-clock-rates = <400000000>, <600000000>;
+		power-domains = <&vpu_h1_pd>;
 		status = "disabled";
 	};
 
