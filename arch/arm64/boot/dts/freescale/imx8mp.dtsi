@@ -265,6 +265,7 @@
 		/* HSIO SS */
 		hsiomix_pd: hsiomix-pd {
 			compatible = "fsl,imx8m-pm-domain";
+			active-wakeup;
 			#power-domain-cells = <0>;
 			domain-index = <0>;
 			domain-name = "hsiomix";
