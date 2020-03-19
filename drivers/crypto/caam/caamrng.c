@@ -44,6 +44,11 @@ struct caam_rng_ctx {
 	struct kfifo fifo;
 };
 
+struct caam_rng_job_ctx {
+	struct completion *done;
+	int *err;
+};
+
 static struct caam_rng_ctx *to_caam_rng_ctx(struct hwrng *r)
 {
 	return (struct caam_rng_ctx *)r->priv;
@@ -53,12 +58,12 @@ static struct caam_rng_ctx *to_caam_rng_ctx(struct hwrng *r)
 static void caam_rng_done(struct device *jrdev, u32 *desc, u32 err,
 			  void *context)
 {
-	struct completion *done = context;
+	struct caam_rng_job_ctx *jctx = context;
 
 	if (err)
-		caam_jr_strstatus(jrdev, err);
+		*jctx->err = caam_jr_strstatus(jrdev, err);
 
-	complete(done);
+	complete(jctx->done);
 }
 
 static u32 *caam_init_desc(u32 *desc, dma_addr_t dst_dma, int len)
@@ -81,7 +86,11 @@ static int caam_rng_read_one(struct device *jrdev,
 			     struct completion *done)
 {
 	dma_addr_t dst_dma;
-	int err;
+	int err, ret = 0;
+	struct caam_rng_job_ctx jctx = {
+		.done = done,
+		.err  = &ret,
+	};
 
 	len = min_t(int, len, CAAM_RNG_MAX_FIFO_STORE_SIZE);
 
@@ -94,7 +103,7 @@ static int caam_rng_read_one(struct device *jrdev,
 	init_completion(done);
 	err = caam_jr_enqueue(jrdev,
 			      caam_init_desc(desc, dst_dma, len),
-			      caam_rng_done, done);
+			      caam_rng_done, &jctx);
 	if (err == -EINPROGRESS) {
 		wait_for_completion(done);
 		err = 0;
@@ -102,7 +111,7 @@ static int caam_rng_read_one(struct device *jrdev,
 
 	dma_unmap_single(jrdev, dst_dma, len, DMA_FROM_DEVICE);
 
-	return err ?: len;
+	return err ?: (ret ?: len);
 }
 
 static void caam_rng_fill_async(struct caam_rng_ctx *ctx)
@@ -170,11 +179,14 @@ static inline void test_len(struct hwrng *rng, size_t len, bool wait)
 
 	buf = kzalloc(sizeof(u8) * len, GFP_KERNEL);
 	real_len = rng->read(rng, buf, len, wait);
-	if (real_len == 0 && wait)
-		pr_err("WAITING FAILED\n");
 	pr_info("wanted %zu bytes, got %d\n", len, real_len);
-	print_hex_dump(KERN_INFO, "random bytes@: ", DUMP_PREFIX_ADDRESS,
-		       16, 4, buf, real_len, 1);
+	if (real_len < 0)
+		pr_err("READ FAILED\n");
+	else if (real_len == 0 && wait)
+		pr_err("WAITING FAILED\n");
+	if (real_len > 0)
+		print_hex_dump(KERN_INFO, "random bytes@: ",
+			       DUMP_PREFIX_ADDRESS, 16, 4, buf, real_len, 1);
 	kfree(buf);
 }
 
