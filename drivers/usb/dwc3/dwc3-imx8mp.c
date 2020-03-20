@@ -81,9 +81,6 @@ static irqreturn_t dwc3_imx8mp_interrupt(int irq, void *_dwc_imx)
 	if (!dwc_imx->pm_suspended)
 		return IRQ_HANDLED;
 
-	/* Clear wakeup irq */
-	dwc_imx8mp_wakeup_disable(dwc_imx);
-
 	/*
 	 * runtime resume xhci or gadget, dwc3_imx8mp itself
 	 * as parent device will be resumed firstly by pm core
