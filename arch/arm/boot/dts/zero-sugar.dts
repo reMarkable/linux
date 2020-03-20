@@ -500,6 +500,7 @@
 		reg = <0x62>;
 		status = "okay";
 
+		epd-pwr-good-gpios = <&gpio6 21 GPIO_ACTIVE_HIGH>;
 		regulators {
 			compatible = "silergy,sy7636a-regulator";
 			reg_epdpmic: vcom {
