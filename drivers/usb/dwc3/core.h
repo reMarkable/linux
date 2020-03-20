@@ -1092,6 +1092,7 @@ struct dwc3 {
 	struct clk_bulk_data	*clks;
 	int			num_clks;
 
+	bool			core_inited;
 	struct reset_control	*reset;
 
 	struct usb_phy		*usb2_phy;
