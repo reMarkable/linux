@@ -33,6 +33,7 @@ struct imx_sc_chan {
 	struct mbox_chan *ch;
 	int idx;
 	struct completion tx_done;
+	u8 rx_pos;
 };
 
 struct imx_sc_ipc {
@@ -119,22 +120,20 @@ static void imx_scu_rx_callback(struct mbox_client *c, void *msg)
 	struct imx_sc_rpc_msg *hdr;
 	u32 *data = msg;
 
-	if (sc_chan->idx == 0) {
+	if (sc_chan->rx_pos == 0) {
 		hdr = msg;
 		sc_ipc->rx_size = hdr->size;
 		dev_dbg(sc_ipc->dev, "msg rx size %u\n", sc_ipc->rx_size);
-		if (sc_ipc->rx_size > 4)
-			dev_warn(sc_ipc->dev, "RPC does not support receiving over 4 words: %u\n",
-				 sc_ipc->rx_size);
 	}
 
-	sc_ipc->msg[sc_chan->idx] = *data;
+	sc_ipc->msg[sc_chan->rx_pos] = *data;
+	sc_chan->rx_pos += 4;
 	sc_ipc->count++;
 
 	dev_dbg(sc_ipc->dev, "mu %u msg %u 0x%x\n", sc_chan->idx,
 		sc_ipc->count, *data);
 
-	if ((sc_ipc->rx_size != 0) && (sc_ipc->count == sc_ipc->rx_size))
+	if (sc_ipc->count == sc_ipc->rx_size)
 		complete(&sc_ipc->done);
 }
 
@@ -207,16 +206,25 @@ int imx_scu_call_rpc(struct imx_sc_ipc *sc_ipc, void *msg, bool have_resp)
 	struct imx_sc_rpc_msg *hdr;
 	struct arm_smccc_res res;
 	int ret;
+	int i;
 
 	if (WARN_ON(!sc_ipc || !msg))
 		return -EINVAL;
 
 	mutex_lock(&sc_ipc->lock);
+
+	for (i = 4; i < 8; i++) {
+		struct imx_sc_chan *sc_chan = &sc_ipc->chans[i];
+
+		sc_chan->rx_pos = sc_chan->idx;
+	}
+
 	reinit_completion(&sc_ipc->done);
 
 	sc_ipc->msg = msg;
 	sc_ipc->count = 0;
 	sc_ipc->rx_size = 0;
+
 	if (xen_initial_domain()) {
 		arm_smccc_hvc(FSL_HVC_SC, (uint64_t)msg, !have_resp, 0, 0, 0,
 			      0, 0, &res);
