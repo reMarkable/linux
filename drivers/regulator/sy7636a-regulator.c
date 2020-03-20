@@ -19,6 +19,7 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/gpio/consumer.h>
 
 #include <linux/mfd/sy7636a.h>
 
@@ -49,28 +50,55 @@ static int get_power_good(struct regulator_dev *rdev, bool *is_good)
 
 static int enable_regulator_with_pwr_good_verification(struct regulator_dev *rdev)
 {
-	bool pwr_good = 0;
+	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
+	bool pwr_good = false;
 	int wait_cnt = 0;
 	int ret;
+	unsigned long t0, t1;
+	bool use_fault_reg = false;
 
+	dev_dbg(&rdev->dev, "enabling regulator\n");
+
+	t0 = jiffies;
 	ret = regulator_enable_regmap(rdev);
 	if (ret)
 		return ret;
 
 	/* WAIT FOR PWR-GOOD */
 	while(!pwr_good && (wait_cnt < 500)) {
-		ret = get_power_good(rdev, &pwr_good);
-		if (ret)
-			return ret;
+		if (!sy7636a->pgood_gpio | use_fault_reg) {
+			/* dev_dbg(&rdev->dev, "Reading FAULT FLAG reg\n"); */
+			ret = get_power_good(rdev, &pwr_good);
+			if (ret)
+				return ret;
+		} else {
+			/* dev_dbg(&rdev->dev, "Reading PGOOD GPIO\n"); */
+			ret = gpiod_get_value_cansleep(sy7636a->pgood_gpio);
+			if (ret < 0) {
+				dev_err(&rdev->dev,
+					"failed to read pgood gpio: %d, "
+					"falling back to FALT FLAG register\n",
+					ret);
+				use_fault_reg = true;
+			}
+			pwr_good = (ret > 0);
+		}
 
 		if (!pwr_good) {
 			usleep_range(1000, 1500);
 			wait_cnt++;
 		}
 	}
+	t1 = jiffies;
 
-	if (!pwr_good)
+	if (!pwr_good) {
+		dev_dbg(&rdev->dev, "pwr STILL NOT good after 500 ms\n");
 		return -ETIME;
+	}
+
+	dev_dbg(&rdev->dev, "pwr GOOD (took %du ms, %d waits) !\n",
+		jiffies_to_msecs(t1 - t0),
+		wait_cnt);
 
 	return 0;
 }
@@ -138,6 +166,7 @@ static int sy7636a_regulator_probe(struct platform_device *pdev)
 	struct sy7636a *sy7636a = dev_get_drvdata(pdev->dev.parent);
 	struct regulator_config config = { };
 	struct regulator_dev *rdev;
+	struct gpio_desc *gdp;
 
 	if (!sy7636a)
 		return -EPROBE_DEFER;
@@ -154,6 +183,26 @@ static int sy7636a_regulator_probe(struct platform_device *pdev)
 		dev_err(sy7636a->dev, "failed to register %s regulator\n",
 			pdev->name);
 		return PTR_ERR(rdev);
+	}
+
+	/* Register gpio 181 (EPD PMIC PGOOD) */
+	gdp = devm_gpiod_get(sy7636a->dev, "epd-pwr-good", GPIOD_IN);
+	if (IS_ERR(gdp)) {
+		if (PTR_ERR(gdp) != -ENOENT)
+			dev_warn(sy7636a->dev,
+				 "epd-pwr-good GPIO not given in DT, "
+				 "falling back to reading FAULT FLAG reg\n");
+
+		if (PTR_ERR(gdp) != -ENOSYS)
+			dev_warn(sy7636a->dev,
+				 "epd-pwr-good GPIO given is not valid, "
+				 "falling back to reading FAULT FLAG reg\n");
+	}
+	else {
+		sy7636a->pgood_gpio = gdp;
+		dev_info(sy7636a->dev,
+			"epd-pwr-good gpio registered (gpio %d)\n",
+			desc_to_gpio(sy7636a->pgood_gpio));
 	}
 
 	return 0;
