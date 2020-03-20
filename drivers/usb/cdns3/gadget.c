@@ -668,6 +668,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 
 	/* set incorrect Cycle Bit for first trb*/
 	control = priv_ep->pcs ? 0 : TRB_CYCLE;
+	trb->length = 0;
 	if (request->num_mapped_sgs)
 		s = request->sg;
 
