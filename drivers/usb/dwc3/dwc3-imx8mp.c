@@ -73,6 +73,16 @@ static void dwc_imx8mp_wakeup_disable(struct dwc3_imx8mp *dwc_imx)
 	writel(val, dwc_imx->glue_base + USB_WAKEUP_CTRL);
 }
 
+/* U3 wakeup enable only if hsiomix will not be off */
+static void dwc_imx8mp_wakeup_disable_u3(struct dwc3_imx8mp *dwc_imx)
+{
+	u32 val;
+
+	val = readl(dwc_imx->glue_base + USB_WAKEUP_CTRL);
+	val &= ~USB_WAKEUP_U3_EN;
+	writel(val, dwc_imx->glue_base + USB_WAKEUP_CTRL);
+}
+
 static irqreturn_t dwc3_imx8mp_interrupt(int irq, void *_dwc_imx)
 {
 	struct dwc3_imx8mp	*dwc_imx = _dwc_imx;
@@ -281,11 +291,16 @@ static int dwc3_imx8mp_resume(struct dwc3_imx8mp *dwc, pm_message_t msg)
 static int __maybe_unused dwc3_imx8mp_pm_suspend(struct device *dev)
 {
 	struct dwc3_imx8mp *dwc_imx = dev_get_drvdata(dev);
+	int ret;
+
+	ret = dwc3_imx8mp_suspend(dwc_imx, PMSG_SUSPEND);
 
 	if (device_may_wakeup(dwc_imx->dev))
 		enable_irq_wake(dwc_imx->irq);
+	else
+		dwc_imx8mp_wakeup_disable_u3(dwc_imx);
 
-	return dwc3_imx8mp_suspend(dwc_imx, PMSG_SUSPEND);
+	return ret;
 }
 
 static int __maybe_unused dwc3_imx8mp_pm_resume(struct device *dev)
