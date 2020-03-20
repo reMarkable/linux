@@ -115,6 +115,13 @@ struct regulator_desc desc = {
 	.of_match = of_match_ptr("vcom"),
 };
 
+static int sy7636a_regulator_init(struct sy7636a *sy7636a)
+{
+	return regmap_write(sy7636a->regmap,
+				SY7636A_REG_POWER_ON_DELAY_TIME,
+				0x0);
+}
+
 static int sy7636a_regulator_suspend(struct device *dev)
 {
 	int ret;
@@ -151,7 +158,7 @@ static int sy7636a_regulator_resume(struct device *dev)
 		return ret;
 	}
 
-	return 0;
+	return sy7636a_regulator_init(sy7636a);
 }
 
 static int sy7636a_regulator_probe(struct platform_device *pdev)
@@ -160,6 +167,7 @@ static int sy7636a_regulator_probe(struct platform_device *pdev)
 	struct regulator_config config = { };
 	struct regulator_dev *rdev;
 	struct gpio_desc *gdp;
+	int ret;
 
 	if (!sy7636a)
 		return -EPROBE_DEFER;
@@ -178,6 +186,12 @@ static int sy7636a_regulator_probe(struct platform_device *pdev)
 	dev_info(sy7636a->dev,
 		"Power good GPIO registered (gpio# %d)\n",
 		desc_to_gpio(sy7636a->pgood_gpio));
+
+	ret = sy7636a_regulator_init(sy7636a);
+	if (ret) {
+		dev_err(sy7636a->dev, "Failed to initialize regulator: %d\n", ret);
+		return ret;
+	}
 
 	config.dev = &pdev->dev;
 	config.dev->of_node = sy7636a->dev->of_node;
