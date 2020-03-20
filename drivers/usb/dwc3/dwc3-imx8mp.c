@@ -212,6 +212,11 @@ static int dwc3_imx8mp_probe(struct platform_device *pdev)
 	}
 	dwc->priv_data->set_role_post = dwc3_imx8mp_set_role_post;
 
+	if (dwc->dr_mode == USB_DR_MODE_HOST)
+		dwc->priv_data->set_role_post(dwc, DWC3_GCTL_PRTCAP_HOST);
+	else if (dwc->dr_mode == USB_DR_MODE_PERIPHERAL)
+		dwc->priv_data->set_role_post(dwc, DWC3_GCTL_PRTCAP_DEVICE);
+
 	device_init_wakeup(dev, 1);
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
