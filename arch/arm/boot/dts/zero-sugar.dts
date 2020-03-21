@@ -499,6 +499,8 @@
 		compatible = "silergy,sy7636a";
 		reg = <0x62>;
 		status = "okay";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_epdpmic>;
 
 		epd-pwr-good-gpios = <&gpio6 21 GPIO_ACTIVE_HIGH>;
 		regulators {
@@ -833,6 +835,13 @@
 			MX7D_PAD_SD2_CD_B__GPIO5_IO9		0x00000014
 			/* WiFi Sleep 32k */
 			MX7D_PAD_SD1_WP__CCM_CLKO2		0x00000014
+		>;
+	};
+
+	pinctrl_epdpmic: epdpmicgrp {
+		fsl,pins = <
+			MX7D_PAD_SAI2_RX_DATA__GPIO6_IO21 0x00000074
+			MX7D_PAD_ENET1_RGMII_TXC__GPIO7_IO11 0x00000014
 		>;
 	};
 
