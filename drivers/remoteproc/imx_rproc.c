@@ -13,6 +13,7 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/reset.h>
 #include <linux/remoteproc.h>
 
 #define IMX7D_SRC_SCR			0x0C
@@ -81,6 +82,8 @@ struct imx_rproc_dcfg {
 struct imx_rproc {
 	struct device			*dev;
 	struct regmap			*regmap;
+	struct reset_control		*enable;
+	struct reset_control		*non_sclr_rst;
 	struct rproc			*rproc;
 	const struct imx_rproc_dcfg	*dcfg;
 	struct imx_rproc_mem		mem[IMX7D_RPROC_MEM_MAX];
@@ -162,11 +165,18 @@ static int imx_rproc_start(struct rproc *rproc)
 	struct device *dev = priv->dev;
 	int ret;
 
-	if (!priv->regmap)
-		return -ENOTSUPP;
+	if (priv->enable) {
+		ret = reset_control_deassert(priv->enable);
+		if (!ret)
+			ret = reset_control_deassert(priv->non_sclr_rst);
+	} else {
+		if (!priv->regmap)
+			return -ENOTSUPP;
 
-	ret = regmap_update_bits(priv->regmap, dcfg->src_reg,
-				 dcfg->src_mask, dcfg->src_start);
+		ret = regmap_update_bits(priv->regmap, dcfg->src_reg,
+					 dcfg->src_mask, dcfg->src_start);
+	}
+
 	if (ret)
 		dev_err(dev, "Failed to enable M4!\n");
 
@@ -180,11 +190,18 @@ static int imx_rproc_stop(struct rproc *rproc)
 	struct device *dev = priv->dev;
 	int ret;
 
-	if (!priv->regmap)
-		return -ENOTSUPP;
+	if (priv->enable) {
+		ret = reset_control_assert(priv->enable);
+		if (!ret)
+			ret = reset_control_assert(priv->non_sclr_rst);
+	} else {
+		if (!priv->regmap)
+			return -ENOTSUPP;
 
-	ret = regmap_update_bits(priv->regmap, dcfg->src_reg,
-				 dcfg->src_mask, dcfg->src_stop);
+		ret = regmap_update_bits(priv->regmap, dcfg->src_reg,
+					 dcfg->src_mask, dcfg->src_stop);
+	}
+
 	if (ret)
 		dev_err(dev, "Failed to stop M4!\n");
 
@@ -323,7 +340,8 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	struct rproc *rproc;
 	struct regmap_config config = { .name = "imx-rproc" };
 	const struct imx_rproc_dcfg *dcfg;
-	struct regmap *regmap;
+	struct regmap *regmap = NULL;
+	struct reset_control *non_sclr_rst, *enable;
 	int ret;
 
 	regmap = syscon_regmap_lookup_by_phandle(np, "syscon");
@@ -333,6 +351,16 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	} else {
 		regmap_attach_dev(dev, regmap, &config);
 	}
+
+	non_sclr_rst = devm_reset_control_get_optional(dev, "non_sclr_rst");
+	if (IS_ERR(non_sclr_rst)) {
+		if (PTR_ERR(non_sclr_rst) == -EPROBE_DEFER)
+			return PTR_ERR(non_sclr_rst);
+	}
+
+	enable = devm_reset_control_get_optional(dev, "enable");
+	if (IS_ERR(enable))
+		return PTR_ERR(enable);
 
 	/* set some other name then imx */
 	rproc = rproc_alloc(dev, "imx-rproc", &imx_rproc_ops,
@@ -349,6 +377,8 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	priv = rproc->priv;
 	priv->rproc = rproc;
 	priv->regmap = regmap;
+	priv->non_sclr_rst = non_sclr_rst;
+	priv->enable = enable;
 	priv->dcfg = dcfg;
 	priv->dev = dev;
 
