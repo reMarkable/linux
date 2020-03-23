@@ -1505,6 +1505,7 @@ static int fsl_spdif_probe(struct platform_device *pdev)
 	clk_disable_unprepare(spdif_priv->coreclk);
 
 	pm_runtime_enable(&pdev->dev);
+	regcache_cache_only(spdif_priv->regmap, true);
 
 	/* Register with ASoC */
 	dev_set_drvdata(&pdev->dev, spdif_priv);
