@@ -307,7 +307,9 @@ static int fsl_asrc_prepare_io_buffer(struct fsl_asrc_pair *pair,
 					* (word_size * pair->channels * m2m->watermark[OUT]);
 	}
 
-	*sg_nodes = *dma_len / ASRC_MAX_BUFFER_SIZE + 1;
+	*sg_nodes = *dma_len / ASRC_MAX_BUFFER_SIZE;
+	if (*dma_len % ASRC_MAX_BUFFER_SIZE)
+		*sg_nodes += 1;
 
 	fifo_addr = asrc_priv->paddr + REG_ASRDx(dir, index);
 
