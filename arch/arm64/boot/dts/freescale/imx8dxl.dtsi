@@ -35,6 +35,8 @@
 		can0 = &flexcan1;
 		can1 = &flexcan2;
 		can2 = &flexcan3;
+		mmc0 = &usdhc1;
+		mmc1 = &usdhc2;
 	};
 
 	cpus: cpus {
