@@ -566,6 +566,8 @@ static void fsl_qspi_select_mem(struct fsl_qspi *q, struct spi_device *spi)
 
 static int fsl_qspi_read_ahb(struct fsl_qspi *q, const struct spi_mem_op *op)
 {
+	u32 start, len;
+
 	if (!needs_flash_size(q)) {
 		u32 size = q->devtype_data->ahb_buf_size;
 		memcpy_fromio(op->data.buf.in,
@@ -574,8 +576,8 @@ static int fsl_qspi_read_ahb(struct fsl_qspi *q, const struct spi_mem_op *op)
 		return 0;
 	}
 
-	u32 start = op->addr.val + q->selected * q->memmap_phy_size / 4;
-	u32 len = op->data.nbytes;
+	start = op->addr.val + q->selected * q->memmap_phy_size / 4;
+	len = op->data.nbytes;
 
 	/* if necessary, ioremap before AHB read */
 	if ((!q->ahb_addr) || start < q->memmap_start ||
