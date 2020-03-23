@@ -41,7 +41,8 @@ static int cdns_mhdp_imx_encoder_atomic_check(struct drm_encoder *encoder,
 	if (mhdp->plat_data->video_format != 0)
 		imx_crtc_state->bus_format = mhdp->plat_data->video_format;
 
-	if (mhdp->force_mode_set)
+	/* Force mode set to recovery weston  hdmi2.0 and DP dispaly */
+	if (mhdp->force_mode_set && conn_state->state->allow_modeset)
 		crtc_state->mode_changed = true;
 
 	return 0;
