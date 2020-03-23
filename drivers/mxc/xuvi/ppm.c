@@ -425,10 +425,9 @@ static int ppm_fw_download(struct ppm_dev *dev)
 		fw_size = dev->pfw->size;
 	}
 	memcpy(dev->fw_space_vir, image, fw_size);
-	if (dev->pfw) {
-		release_firmware(dev->pfw);
-		dev->pfw = NULL;
-	}
+
+	release_firmware(dev->pfw);
+	dev->pfw = NULL;
 
 	p[18] = 1;
 	ppm_run_fw(dev);
@@ -469,9 +468,6 @@ static void ppm_msg_run_work(struct work_struct *work)
 	struct ppm_dev *dev = container_of(work, struct ppm_dev, msg_work);
 	struct ppm_ctx *ctx;
 	struct event_msg msg;
-
-	if (!dev)
-		return;
 
 	memset(&msg, 0, sizeof(struct event_msg));
 
