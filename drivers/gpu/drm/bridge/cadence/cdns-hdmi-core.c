@@ -478,13 +478,12 @@ static void hotplug_work_func(struct work_struct *work)
 
 	if (connector->status == connector_status_connected) {
 		DRM_INFO("HDMI Cable Plug In\n");
+		/* force mode set to recovery weston HDMI2.0 video modes */
 		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI Cable Plug Out\n");
-		/* force mode set for cable replugin to recovery HDMI2.0 video modes */
-		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }

@@ -374,12 +374,12 @@ static void hotplug_work_func(struct work_struct *work)
 	if (connector->status == connector_status_connected) {
 		/* Cable connedted  */
 		DRM_INFO("HDMI/DP Cable Plug In\n");
+		/* force mode set to recovery weston DP video display */
+		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI/DP Cable Plug Out\n");
-		/* force mode set for cable replugin to recovery DP video modes */
-		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }
