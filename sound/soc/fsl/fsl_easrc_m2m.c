@@ -243,7 +243,9 @@ static long fsl_easrc_prepare_io_buffer(struct fsl_easrc_m2m *m2m,
 	if (*dma_len <= 0)
 		return 0;
 
-	*sg_nodes = *dma_len / m2m->dma_block[dir].max_buf_size + 1;
+	*sg_nodes = *dma_len / m2m->dma_block[dir].max_buf_size;
+	if (*dma_len % m2m->dma_block[dir].max_buf_size)
+		*sg_nodes += 1;
 
 	return fsl_easrc_dmaconfig(m2m, dma_chan, fifo_addr, dma_vaddr,
 				*dma_len, dir, bits);
