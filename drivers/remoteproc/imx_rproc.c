@@ -685,6 +685,7 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	const struct imx_rproc_dcfg *dcfg;
 	struct regmap *regmap = NULL;
 	struct reset_control *non_sclr_rst, *enable;
+	const char *fw_name = NULL;
 	int ret;
 
 	regmap = syscon_regmap_lookup_by_phandle(np, "syscon");
@@ -705,9 +706,11 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	if (IS_ERR(enable))
 		return PTR_ERR(enable);
 
+	of_property_read_string(np, "fsl,rproc-fw-name", &fw_name);
+
 	/* set some other name then imx */
 	rproc = rproc_alloc(dev, "imx-rproc", &imx_rproc_ops,
-			    NULL, sizeof(*priv));
+			    fw_name, sizeof(*priv));
 	if (!rproc)
 		return -ENOMEM;
 
