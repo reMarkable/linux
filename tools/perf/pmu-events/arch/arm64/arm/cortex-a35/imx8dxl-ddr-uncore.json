@@ -1,0 +1,594 @@
+[
+    {
+	"BriefDescription": " bytes of all masters read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.all",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of all masters write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.all",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of scu cortex-m4 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.scu_m4",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+
+	"BriefDescription": " bytes of scu cortex-m4 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.scu_m4",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of dap read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.dap",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0010\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of dap write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.dap",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0010\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of atb read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.atb",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0018\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of atb write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.atb",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0018\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of caam read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.caam",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0f00\\,axi\\_id\\=0x0060\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of caam write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.caam",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0f00\\,axi\\_id\\=0x0060\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of test port read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.test_port",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0028\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of test port write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.test_port",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0028\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of general cortex-m4 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.general_m4",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of general cortex-m4 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.general_m4",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of edma0 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.edma0",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma0 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.edma0",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma2 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.edma2",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x1812\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma2 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.edma2",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x1812\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma3 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.edma3",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x201a\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma3 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.edma3",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x201a\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif regular channel read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.lcdif_regular",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x2802\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif regular channel write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.lcdif_regular",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x2802\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif alpha channel read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.lcdif_alpha",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x2842\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif alpha channel write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.lcdif_alpha",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x2842\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+    {
+	"BriefDescription": " bytes of raw nand (gpmi dma) read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.gpmi_dma",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of raw nand (gpmi dma) write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.gpmi_dma",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of raw nand (bch) read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.bch",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of raw nand (bch) write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.bch",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x000b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet rx read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.enet_rx",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0803\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet rx write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.enet_rx",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0803\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet tx read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.enet_tx",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x080b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet tx write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.enet_tx",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x080b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of eqis rx read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.eqis_rx",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0813\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of eqis rx write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.eqis_rx",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0813\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usb2.0 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.usb",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x00b0\\,axi\\_id\\=0x040b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usb2.0 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.usb",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x00b0\\,axi\\_id\\=0x040b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc0 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.usdhc0",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc0 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.usdhc0",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x001b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc1 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.usdhc1",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0023\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc1 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.usdhc1",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0023\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc2 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.usdhc2",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x002b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc2 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.usdhc2",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x002b\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of hsio read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.hsio",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xfff8\\,axi\\_id\\=0x0004\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of hsio write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.hsio",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xfff8\\,axi\\_id\\=0x0004\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of lsio read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.lsio",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xfff8\\,axi\\_id\\=0x0005\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lsio write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.lsio",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xfff8\\,axi\\_id\\=0x0005\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+    {
+	"BriefDescription": " bytes of cortex-a35 read from ddr0",
+	"MetricName": "imx8dxl_ddr0_read.a35",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xfff8\\,axi\\_id\\=0x0006\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of cortex-a35 write to ddr0",
+	"MetricName": "imx8dxl_ddr0_write.a35",
+	"MetricExpr": "( imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xfff8\\,axi\\_id\\=0x0006\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+
+    {
+	"BriefDescription": " bytes of scu cortex-m4 read from db0",
+	"MetricName": "imx8dxl_db0_read.scu_m4",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+
+	"BriefDescription": " bytes of scu cortex-m4 write to db0",
+	"MetricName": "imx8dxl_db0_write.scu_m4",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of dap read from db0",
+	"MetricName": "imx8dxl_db0_read.dap",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of dap write to db0",
+	"MetricName": "imx8dxl_db0_write.dap",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0002\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of atb read from db0",
+	"MetricName": "imx8dxl_db0_read.atb",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of atb write to db0",
+	"MetricName": "imx8dxl_db0_write.atb",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of caam read from db0",
+	"MetricName": "imx8dxl_db0_read.caam",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x01e0\\,axi\\_id\\=0x000c\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of caam write to db0",
+	"MetricName": "imx8dxl_db0_write.caam",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x01e0\\,axi\\_id\\=0x000c\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of test port read from db0",
+	"MetricName": "imx8dxl_db0_read.test_port",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0005\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of test port write to db0",
+	"MetricName": "imx8dxl_db0_write.test_port",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0005\\,axi\\_port\\=0x0\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of general cortex-m4 read from db0",
+	"MetricName": "imx8dxl_db0_read.general_m4",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x1\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of general cortex-m4 write to db0",
+	"MetricName": "imx8dxl_db0_write.general_m4",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x1\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of edma0 read from db0",
+	"MetricName": "imx8dxl_db0_read.edma0",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma0 write to db0",
+	"MetricName": "imx8dxl_db0_write.edma0",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma2 read from db0",
+	"MetricName": "imx8dxl_db0_read.edma2",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0302\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma2 write to db0",
+	"MetricName": "imx8dxl_db0_write.edma2",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0302\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma3 read from db0",
+	"MetricName": "imx8dxl_db0_read.edma3",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0403\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of edma3 write to db0",
+	"MetricName": "imx8dxl_db0_write.edma3",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0403\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif regular channel read from db0",
+	"MetricName": "imx8dxl_db0_read.lcdif_regular",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0500\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif regular channel write to db0",
+	"MetricName": "imx8dxl_db0_write.lcdif_regular",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0500\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif alpha channel read from db0",
+	"MetricName": "imx8dxl_db0_read.lcdif_alpha",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0508\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lcdif alpha channel write to db0",
+	"MetricName": "imx8dxl_db0_write.lcdif_alpha",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0508\\,axi\\_port\\=0x2\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+    {
+	"BriefDescription": " bytes of raw nand (gpmi dma) read from db0",
+	"MetricName": "imx8dxl_db0_read.gpmi_dma",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of raw nand (gpmi dma) write to db0",
+	"MetricName": "imx8dxl_db0_write.gpmi_dma",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of raw nand (bch) read from db0",
+	"MetricName": "imx8dxl_db0_read.bch",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of raw nand (bch) write to db0",
+	"MetricName": "imx8dxl_db0_write.bch",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0001\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet rx read from db0",
+	"MetricName": "imx8dxl_db0_read.enet_rx",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0100\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet rx write to db0",
+	"MetricName": "imx8dxl_db0_write.enet_rx",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0100\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet tx read from db0",
+	"MetricName": "imx8dxl_db0_read.enet_tx",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0101\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of enet tx write to db0",
+	"MetricName": "imx8dxl_db0_write.enet_tx",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0101\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of eqis rx read from db0",
+	"MetricName": "imx8dxl_db0_read.eqis_rx",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0102\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of eqis rx write to db0",
+	"MetricName": "imx8dxl_db0_write.eqis_rx",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0102\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usb2.0 read from db0",
+	"MetricName": "imx8dxl_db0_read.usb",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0018\\,axi\\_id\\=0x0081\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usb2.0 write to db0",
+	"MetricName": "imx8dxl_db0_write.usb",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0018\\,axi\\_id\\=0x0081\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc0 read from db0",
+	"MetricName": "imx8dxl_db0_read.usdhc0",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc0 write to db0",
+	"MetricName": "imx8dxl_db0_write.usdhc0",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0003\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc1 read from db0",
+	"MetricName": "imx8dxl_db0_read.usdhc1",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0004\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc1 write to db0",
+	"MetricName": "imx8dxl_db0_write.usdhc1",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0004\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc2 read from db0",
+	"MetricName": "imx8dxl_db0_read.usdhc2",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0005\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of usdhc2 write to db0",
+	"MetricName": "imx8dxl_db0_write.usdhc2",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0x0000\\,axi\\_id\\=0x0005\\,axi\\_port\\=0x3\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of hsio read from db0",
+	"MetricName": "imx8dxl_db0_read.hsio",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x4\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of hsio write to db0",
+	"MetricName": "imx8dxl_db0_write.hsio",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x4\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+
+    {
+	"BriefDescription": " bytes of lsio read from db0",
+	"MetricName": "imx8dxl_db0_read.lsio",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x5\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of lsio write to db0",
+	"MetricName": "imx8dxl_db0_write.lsio",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x5\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+
+    {
+	"BriefDescription": " bytes of cortex-a35 read from db0",
+	"MetricName": "imx8dxl_db0_read.a35",
+	"MetricExpr": "( imx8_db0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x6\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    },
+    {
+	"BriefDescription": " bytes of cortex-a35 write to db0",
+	"MetricName": "imx8dxl_db0_write.a35",
+	"MetricExpr": "( imx8_db0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_port\\=0x6\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
+	"SocName": "i.MX8DXL"
+    }
+
+]
