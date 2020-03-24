@@ -44,6 +44,20 @@ properties:
       - $ref: /schemas/types.yaml#/definitions/uint32
       - enum: [0,1,2,3,4,5,6,7,8,9]
 
+  fsl,cmd_tag:
+    description:
+      Tag in message header for commands on this MU, default to 0x17
+    allOf:
+      - $ref: /schemas/types.yaml#/definitions/uint8
+      - enum: [0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e]
+
+  fsl,rsp_tag:
+    description:
+      Tag in message header for responses on this MU, default to 0xe1
+    allOf:
+      - $ref: /schemas/types.yaml#/definitions/uint8
+      - enum: [0xe1,0xe2,0xe3,0xe4,0xe5,0xe6,0xe7,0xe8]
+
 required:
   - compatible
   - mboxes
@@ -59,4 +73,6 @@ examples:
 
       fsl,seco_mu_id = <1>;
       fsl,seco_max_users = <4>;
+      fsl,cmd_tag = /bits/ 8 <0x17>;
+      fsl,rsp_tag = /bits/ 8 <0xe1>;
     };
