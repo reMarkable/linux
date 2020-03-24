@@ -75,8 +75,8 @@
 #define MESSAGE_SIZE(hdr) (((struct she_mu_hdr *)(&(hdr)))->size)
 #define MESSAGE_TAG(hdr) (((struct she_mu_hdr *)(&(hdr)))->tag)
 
-#define MESSAGING_TAG_COMMAND           (0x17u)
-#define MESSAGING_TAG_RESPONSE          (0xe1u)
+#define DEFAULT_MESSAGING_TAG_COMMAND           (0x17u)
+#define DEFAULT_MESSAGING_TAG_RESPONSE          (0xe1u)
 
 #define SECURE_RAM_BASE_ADDRESS	(0x31800000ULL)
 #define SECURE_RAM_BASE_ADDRESS_SCU	(0x20800000u)
@@ -157,6 +157,8 @@ struct seco_mu_priv {
 	struct mutex mu_cmd_lock;
 	struct device *dev;
 	u32 seco_mu_id;
+	u8 cmd_tag;
+	u8 rsp_tag;
 
 	struct mbox_client cl;
 	struct mbox_chan *tx_chan;
@@ -395,14 +397,14 @@ static ssize_t seco_mu_fops_write(struct file *fp, const char __user *buf,
 	header = dev_ctx->temp_cmd[0];
 
 	/* Check the message is valid according to tags */
-	if (MESSAGE_TAG(header) == MESSAGING_TAG_COMMAND) {
+	if (MESSAGE_TAG(header) == mu_priv->cmd_tag) {
 		/*
 		 * unlocked in seco_mu_receive_work_handler when the
 		 * response to this command is received.
 		 */
 		mutex_lock(&mu_priv->mu_cmd_lock);
 		mu_priv->waiting_rsp_dev = dev_ctx;
-	} else if (MESSAGE_TAG(header) == MESSAGING_TAG_RESPONSE) {
+	} else if (MESSAGE_TAG(header) == mu_priv->rsp_tag) {
 		/* Check the device context can send the command */
 		if (dev_ctx != mu_priv->cmd_receiver_dev) {
 			devctx_err(dev_ctx,
@@ -863,10 +865,10 @@ static void seco_mu_rx_callback(struct mbox_client *c, void *msg)
 	dev_dbg(dev, "Selecting device\n");
 
 	/* Incoming command: wake up the receiver if any. */
-	if (MESSAGE_TAG(header) == MESSAGING_TAG_COMMAND) {
+	if (MESSAGE_TAG(header) == priv->cmd_tag) {
 		dev_dbg(dev, "Selecting cmd receiver\n");
 		dev_ctx = priv->cmd_receiver_dev;
-	} else if (MESSAGE_TAG(header) == MESSAGING_TAG_RESPONSE) {
+	} else if (MESSAGE_TAG(header) == priv->rsp_tag) {
 		dev_dbg(dev, "Selecting rsp waiter\n");
 		dev_ctx = priv->waiting_rsp_dev;
 		is_response = true;
@@ -1057,6 +1059,14 @@ static int seco_mu_probe(struct platform_device *pdev)
 		dev_warn(dev, "%s: Not able to read mu_max_user", __func__);
 		max_nb_users = SECO_MU_DEFAULT_MAX_USERS;
 	}
+
+	ret = of_property_read_u8(np, "fsl,cmd_tag", &priv->cmd_tag);
+	if (ret)
+		priv->cmd_tag = DEFAULT_MESSAGING_TAG_COMMAND;
+
+	ret = of_property_read_u8(np, "fsl,rsp_tag", &priv->rsp_tag);
+	if (ret)
+		priv->rsp_tag = DEFAULT_MESSAGING_TAG_RESPONSE;
 
 	/* Mailbox client configuration */
 	priv->cl.dev = dev;
