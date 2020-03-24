@@ -104,16 +104,16 @@
 		simple-audio-card,name = "bt-sco-audio";
 		simple-audio-card,format = "i2s";
 		simple-audio-card,bitclock-inversion;
-		simple-audio-card,frame-master = <&btcodec>;
-		simple-audio-card,bitclock-master = <&btcodec>;
+		simple-audio-card,frame-master = <&btcpu>;
+		simple-audio-card,bitclock-master = <&btcpu>;
 
-		simple-audio-card,cpu {
+		btcpu: simple-audio-card,cpu {
 			sound-dai = <&sai2>;
 			dai-tdm-slot-num = <2>;
 			dai-tdm-slot-width = <16>;
 		};
 
-		btcodec: simple-audio-card,codec {
+		simple-audio-card,codec {
 			sound-dai = <&bt_sco_codec>;
 		};
 	};
