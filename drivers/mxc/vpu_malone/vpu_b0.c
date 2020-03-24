@@ -4262,11 +4262,14 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 			ctx->pos += wr_size;
 		}
 
-		vpu_dbg(LVL_INFO, "PICINFO GET: uPicType:%d uPicStruct:%d uPicStAddr:0x%x uFrameStoreID:%d uPercentInErr:%d, uRbspBytesCount=%d, ulLumBaseAddr[0]=%x, pQMeterInfo:%p, pPicInfo:%p, pDispInfo:%p, pPerfInfo:%p, pPerfDcpInfo:%p, uPicStartAddr=0x%x, uDpbmcCrc:%x\n",
-				pPicInfo[uStrIdx].uPicType, pPicInfo[uStrIdx].uPicStruct,
-				pPicInfo[uStrIdx].uPicStAddr, pPicInfo[uStrIdx].uFrameStoreID,
-				pPicInfo[uStrIdx].uPercentInErr, pPerfInfo->uRbspBytesCount, event_data[0],
-				pQMeterInfo, pPicInfo, pDispInfo, pPerfInfo, pPerfDcpInfo, uPicStartAddr, uDpbmcCrc);
+		vpu_dbg(LVL_BIT_FRAME_BYTES, "PICINFO GET: uPicType:%d uPicStruct:%d uPicStAddr:0x%x uFrameStoreID:%d uPercentInErr:%d, uRbspBytesCount=%d, uDpbmcCrc:%x\n",
+			pPicInfo[uStrIdx].uPicType, pPicInfo[uStrIdx].uPicStruct,
+			pPicInfo[uStrIdx].uPicStAddr, pPicInfo[uStrIdx].uFrameStoreID,
+			pPicInfo[uStrIdx].uPercentInErr, pPerfInfo->uRbspBytesCount,
+			uDpbmcCrc);
+		vpu_dbg(LVL_BIT_FRAME_BYTES, "PICINFO GET: ulLumBaseAddr[0]=%x, uPicStartAddr=0x%x, pQMeterInfo:%p, pPicInfo:%p, pDispInfo:%p, pPerfInfo:%p, pPerfDcpInfo:%p\n",
+			event_data[0], uPicStartAddr, pQMeterInfo, pPicInfo,
+			pDispInfo, pPerfInfo, pPerfDcpInfo);
 
 		down(&ctx->q_data[V4L2_SRC].drv_q_lock);
 		if (tsm_use_consumed_length)
@@ -6269,7 +6272,8 @@ static unsigned int v4l2_poll(struct file *filp, poll_table *wait)
 	src_q = &ctx->q_data[V4L2_SRC].vb2_q;
 	dst_q = &ctx->q_data[V4L2_DST].vb2_q;
 
-	if (ctx->firmware_finished && !list_empty(&dst_q->done_list))
+	if ((ctx->firmware_finished || ctx->wait_res_change_done) &&
+	     !list_empty(&dst_q->done_list))
 		rc = 0;
 
 	poll_wait(filp, &src_q->done_wq, wait);
