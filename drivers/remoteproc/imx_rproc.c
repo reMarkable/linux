@@ -91,6 +91,7 @@ struct imx_rproc {
 	const struct imx_rproc_dcfg	*dcfg;
 	struct imx_rproc_mem		mem[IMX7D_RPROC_MEM_MAX];
 	struct clk			*clk;
+	bool				ipc_only;
 	bool				early_boot;
 	void				*rsc_va;
 };
@@ -171,6 +172,11 @@ static int imx_rproc_start(struct rproc *rproc)
 	int ret;
 	u32 val;
 
+	if (priv->ipc_only) {
+		dev_info(dev, "%s: IPC only\n", __func__);
+		return 0;
+	}
+
 	if (priv->enable) {
 		if (!reset_control_status(priv->enable)) {
 			dev_info(dev, "alreay started\n");
@@ -206,6 +212,11 @@ static int imx_rproc_stop(struct rproc *rproc)
 	const struct imx_rproc_dcfg *dcfg = priv->dcfg;
 	struct device *dev = priv->dev;
 	int ret;
+
+	if (priv->ipc_only) {
+		dev_info(dev, "%s: IPC only\n", __func__);
+		return -EBUSY;
+	}
 
 	if (priv->enable) {
 		ret = reset_control_assert(priv->enable);
@@ -523,7 +534,11 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 	int ret;
 	u32 val;
 
-	if (of_get_property(dev->of_node, "early-booted", NULL)) {
+	if (of_get_property(dev->of_node, "ipc-only", NULL)) {
+		priv->ipc_only = true;
+		priv->early_boot = true;
+		priv->rproc->skip_fw_load_recovery = true;
+	} else if (of_get_property(dev->of_node, "early-booted", NULL)) {
 		priv->early_boot = true;
 	} else {
 		ret = regmap_read(priv->regmap, dcfg->src_reg, &val);
