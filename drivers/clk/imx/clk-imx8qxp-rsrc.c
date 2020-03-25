@@ -64,6 +64,8 @@ static u32 imx8qxp_clk_scu_rsrc_table[] = {
 	IMX_SC_R_AUDIO_PLL_0,
 	IMX_SC_R_PI_0,
 	IMX_SC_R_PI_0_PLL,
+	IMX_SC_R_PI_0_PWM_0,
+	IMX_SC_R_PI_0_I2C_0,
 	IMX_SC_R_MIPI_0,
 	IMX_SC_R_MIPI_0_PWM_0,
 	IMX_SC_R_MIPI_0_I2C_0,

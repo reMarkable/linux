@@ -228,6 +228,7 @@ static int imx8qxp_clk_probe(struct platform_device *pdev)
 	imx_clk_scu("pi_dpll_clk", IMX_SC_R_PI_0_PLL, IMX_SC_PM_CLK_PLL);
 	imx_clk_scu2("pi_per_div_clk", pll0_sels, ARRAY_SIZE(pll0_sels), IMX_SC_R_PI_0, IMX_SC_PM_CLK_PER);
 	imx_clk_scu("pi_mclk_div_clk", IMX_SC_R_PI_0, IMX_SC_PM_CLK_MISC0);
+	imx_clk_scu("pi_i2c0_div_clk", IMX_SC_R_PI_0_I2C_0, IMX_SC_PM_CLK_PER);
 
 	/* GPU SS */
 	imx_clk_scu("gpu_core0_clk",	 IMX_SC_R_GPU_0_PID0, IMX_SC_PM_CLK_PER);
