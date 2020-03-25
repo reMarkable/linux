@@ -162,6 +162,9 @@ static int imx_rproc_start(struct rproc *rproc)
 	struct device *dev = priv->dev;
 	int ret;
 
+	if (!priv->regmap)
+		return -ENOTSUPP;
+
 	ret = regmap_update_bits(priv->regmap, dcfg->src_reg,
 				 dcfg->src_mask, dcfg->src_start);
 	if (ret)
@@ -176,6 +179,9 @@ static int imx_rproc_stop(struct rproc *rproc)
 	const struct imx_rproc_dcfg *dcfg = priv->dcfg;
 	struct device *dev = priv->dev;
 	int ret;
+
+	if (!priv->regmap)
+		return -ENOTSUPP;
 
 	ret = regmap_update_bits(priv->regmap, dcfg->src_reg,
 				 dcfg->src_mask, dcfg->src_stop);
@@ -323,9 +329,10 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	regmap = syscon_regmap_lookup_by_phandle(np, "syscon");
 	if (IS_ERR(regmap)) {
 		dev_err(dev, "failed to find syscon\n");
-		return PTR_ERR(regmap);
+		regmap = NULL;
+	} else {
+		regmap_attach_dev(dev, regmap, &config);
 	}
-	regmap_attach_dev(dev, regmap, &config);
 
 	/* set some other name then imx */
 	rproc = rproc_alloc(dev, "imx-rproc", &imx_rproc_ops,
