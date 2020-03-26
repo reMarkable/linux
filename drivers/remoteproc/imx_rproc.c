@@ -8,6 +8,7 @@
 #include <linux/err.h>
 #ifdef CONFIG_IMX_SCU
 #include <linux/firmware/imx/sci.h>
+#include <dt-bindings/firmware/imx/rsrc.h>
 #endif
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
@@ -18,6 +19,7 @@
 #include <linux/of_device.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/platform_device.h>
+#include <linux/pm_domain.h>
 #include <linux/regmap.h>
 #include <linux/reset.h>
 #include <linux/remoteproc.h>
@@ -130,7 +132,15 @@ struct imx_rproc {
 	struct notifier_block		proc_nb;
 	u32				flags;
 	spinlock_t			mu_lock;
+	u32				rsrc;
+	int				num_domains;
+	struct device			**pm_devices;
+	struct device_link		**pm_devices_link;
 };
+
+#ifdef CONFIG_IMX_SCU
+static struct imx_sc_ipc *ipc_handle;
+#endif
 
 static const struct imx_rproc_att imx_rproc_att_imx8qxp[] = {
 	/* dev addr , sys addr  , size	    , flags */
@@ -294,6 +304,17 @@ static int imx_rproc_start(struct rproc *rproc)
 		return 0;
 	}
 
+#ifdef CONFIG_IMX_SCU
+	if (priv->dcfg->variant == IMX8QXP) {
+		ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, true, 0x34fe0000);
+		if (ret) {
+			dev_err(dev, "Failed to enable M4!\n");
+			return ret;
+		}
+		return 0;
+	}
+#endif
+
 	if (priv->enable) {
 		if (!reset_control_status(priv->enable)) {
 			dev_info(dev, "alreay started\n");
@@ -346,6 +367,17 @@ static int imx_rproc_stop(struct rproc *rproc)
 		}
 		return -EBUSY;
 	}
+
+#ifdef CONFIG_IMX_SCU
+	if (priv->dcfg->variant == IMX8QXP) {
+		ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, false, 0x34fe0000);
+		if (ret) {
+			dev_err(dev, "Failed to stop M4!\n");
+			return ret;
+		}
+		return 0;
+	}
+#endif
 
 	if (priv->enable) {
 		ret = reset_control_assert(priv->enable);
@@ -701,7 +733,18 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 	int ret;
 	u32 val;
 
-	if (of_get_property(dev->of_node, "ipc-only", NULL)) {
+	if (dcfg->variant == IMX8QXP) {
+		/*
+		 * Check whether M4 is owned by Linux. If not owned,
+		 * that means M4 is loaded by ROM, kicked by SCU
+		 */
+#ifdef CONFIG_IMX_SCU
+		if (!imx_sc_rm_is_resource_owned(ipc_handle, priv->rsrc)) {
+			priv->ipc_only = true;
+			priv->early_boot = true;
+		}
+#endif
+	} else if (of_get_property(dev->of_node, "ipc-only", NULL)) {
 		priv->ipc_only = true;
 		priv->early_boot = true;
 	} else if (of_get_property(dev->of_node, "early-booted", NULL)) {
@@ -856,6 +899,7 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	struct reset_control *non_sclr_rst, *enable;
 	const char *fw_name = NULL;
 	int ret;
+	int i __maybe_unused;
 
 	regmap = syscon_regmap_lookup_by_phandle(np, "syscon");
 	if (IS_ERR(regmap)) {
@@ -908,16 +952,6 @@ static int imx_rproc_probe(struct platform_device *pdev)
 			goto err_put_rproc;
 	}
 
-	ret = imx_rproc_configure_mode(priv);
-	if (ret)
-		goto err_put_mbox;
-
-	ret = imx_rproc_addr_init(priv, pdev);
-	if (ret) {
-		dev_err(dev, "failed on imx_rproc_addr_init\n");
-		goto err_put_rproc;
-	}
-
 	priv->clk = devm_clk_get_optional(dev, NULL);
 	if (IS_ERR(priv->clk)) {
 		dev_err(dev, "Failed to get clock\n");
@@ -944,7 +978,24 @@ static int imx_rproc_probe(struct platform_device *pdev)
 #ifdef CONFIG_IMX_SCU
 	priv->proc_nb.notifier_call = imx_rproc_partition_notify;
 
+
+	priv->num_domains = of_count_phandle_with_args(dev->of_node,
+						       "power-domains",
+						       "#power-domain-cells");
+	if (priv->num_domains < 0)
+		priv->num_domains = 0;
+
 	if (dcfg->variant == IMX8QXP) {
+		ret = imx_scu_get_handle(&ipc_handle);
+		if (ret)
+			goto err_put_mbox;
+
+		ret = of_property_read_u32(np, "core-id", &priv->rsrc);
+		if (ret) {
+			dev_err(&rproc->dev, "No reg <core resource id>\n");
+			goto err_put_mbox;
+		}
+
 		/*
 		 * Get muB partition id and enable irq in SCFW
 		 * default partition 3
@@ -967,8 +1018,45 @@ static int imx_rproc_probe(struct platform_device *pdev)
 			dev_warn(dev, "reqister scu notifier failed.\n");
 			goto err_put_clk;
 		}
+
+		if (priv->num_domains) {
+			priv->pm_devices = devm_kcalloc(dev, priv->num_domains,
+							sizeof(struct device),
+							GFP_KERNEL);
+			if (!priv->pm_devices)
+				goto err_put_clk;
+			priv->pm_devices_link = devm_kcalloc(dev,
+							     priv->num_domains,
+							     sizeof(struct device_link),
+							     GFP_KERNEL);
+			if (!priv->pm_devices)
+				goto err_put_clk;
+
+			for (i = 0; i < priv->num_domains; i++) {
+				priv->pm_devices[i] =
+					genpd_dev_pm_attach_by_id(dev, i);
+				if (!priv->pm_devices[i])
+					goto err_put_scu;
+				priv->pm_devices_link[i] =
+					device_link_add(dev, priv->pm_devices[i],
+							DL_FLAG_RPM_ACTIVE |
+							DL_FLAG_PM_RUNTIME |
+							DL_FLAG_STATELESS);
+				if (!priv->pm_devices_link[i])
+					goto err_put_scu;
+			}
+		}
 	}
 #endif
+	ret = imx_rproc_configure_mode(priv);
+	if (ret)
+		goto err_put_scu;
+
+	ret = imx_rproc_addr_init(priv, pdev);
+	if (ret) {
+		dev_err(dev, "failed on imx_rproc_addr_init\n");
+		goto err_put_scu;
+	}
 
 	ret = rproc_add(rproc);
 	if (ret) {
@@ -980,6 +1068,12 @@ static int imx_rproc_probe(struct platform_device *pdev)
 
 err_put_scu:
 #ifdef CONFIG_IMX_SCU
+	for (i = 0; i < priv->num_domains; i++) {
+		if (priv->pm_devices_link[i])
+			device_link_del(priv->pm_devices_link[i]);
+		if (priv->pm_devices[i])
+			dev_pm_domain_detach(priv->pm_devices[i], true);
+	}
 	imx_scu_irq_group_enable(5, BIT(priv->mub_partition), false);
 err_put_clk:
 #endif
