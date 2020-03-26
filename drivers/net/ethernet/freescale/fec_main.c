@@ -1144,7 +1144,8 @@ fec_restart(struct net_device *ndev)
 static int fec_enet_ipc_handle_init(struct fec_enet_private *fep)
 {
 	if (!(of_machine_is_compatible("fsl,imx8qm") ||
-	    of_machine_is_compatible("fsl,imx8qxp")))
+	    of_machine_is_compatible("fsl,imx8qxp") ||
+	    of_machine_is_compatible("fsl,imx8dxl")))
 		return 0;
 
 	return imx_scu_get_handle(&fep->ipc_handle);
