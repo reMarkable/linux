@@ -83,7 +83,13 @@ static int imx_audiomix_clk_resume(struct device *dev)
 	pm_runtime_get(dev);
 	clk_prepare_enable(clk_audio_root);
 
-	writel(audiomix_clk_saved_regs[0], base);
+	/*
+	 * Ignore bit26, which are clock gate for sdma clock root.
+	 * We need to keep it on as reset state for hardware issue
+	 * that sdma3' event logic depends on sdma2's clock gate.
+	 * keep it enabled can workaround the issue.
+	 */
+	writel(audiomix_clk_saved_regs[0] | 0x4000000, base);
 	writel(audiomix_clk_saved_regs[1], base + 0x4);
 
 	writel(audiomix_clk_saved_regs[2], base + 0x300);
@@ -168,7 +174,6 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_AUDIOMIX_PDM_IPG]     = imx_dev_clk_gate_shared(dev, "pdm_ipg_clk", "ipg_audio_root", base, 25, &shared_count_pdm);
 	clks[IMX8MP_CLK_AUDIOMIX_PDM_ROOT]    = imx_dev_clk_gate_shared(dev, "pdm_root_clk", "pdm", base, 25, &shared_count_pdm);
 
-	clks[IMX8MP_CLK_AUDIOMIX_SDMA2_ROOT]  = imx_dev_clk_gate(dev, "sdma2_root_clk", "ipg_audio_root", base, 26);
 	clks[IMX8MP_CLK_AUDIOMIX_SDMA3_ROOT]  = imx_dev_clk_gate(dev, "sdma3_root_clk", "ipg_audio_root", base, 27);
 	clks[IMX8MP_CLK_AUDIOMIX_SPBA2_ROOT]  = imx_dev_clk_gate(dev, "spba2_root_clk", "ipg_audio_root", base, 28);
 	clks[IMX8MP_CLK_AUDIOMIX_DSP_ROOT]    = imx_dev_clk_gate(dev, "dsp_root_clk",   "ipg_audio_root", base, 29);
