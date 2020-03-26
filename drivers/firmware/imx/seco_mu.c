@@ -856,7 +856,13 @@ static void seco_mu_rx_callback(struct mbox_client *c, void *msg)
 
 	/* The function can be called with NULL msg */
 	if (!msg) {
-		dev_warn(dev, "Message is invalid\n");
+		dev_err(dev, "Message is invalid\n");
+		return;
+	}
+
+	if (IS_ERR(msg)) {
+		dev_err(dev, "Error during reception of message: %ld\n",
+			PTR_ERR(msg));
 		return;
 	}
 
