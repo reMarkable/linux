@@ -1350,8 +1350,8 @@
 				compatible = "fsl,imx8mp-sdma", "fsl,imx7d-sdma";
 				reg = <0x30e10000 0x10000>;
 				interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SDMA2_ROOT>,
-					 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SDMA2_ROOT>;
+				clocks = <&clk IMX8MP_CLK_IPG_AUDIO_ROOT>,
+					 <&clk IMX8MP_CLK_AUDIO_AHB>;
 				clock-names = "ipg", "ahb";
 				#dma-cells = <3>;
 				fsl,sdma-ram-script-name = "imx/sdma/sdma-imx7d.bin";
