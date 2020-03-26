@@ -13,6 +13,7 @@
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
+#include <linux/jiffies.h>
 
 #define IMX_MU_xSR_GIPn(x)	BIT(28 + (3 - (x)))
 #define IMX_MU_xSR_RFn(x)	BIT(24 + (3 - (x)))
@@ -30,6 +31,9 @@
 
 #define IMX_MU_CHANS		16
 #define IMX_MU_CHAN_NAME_SIZE	20
+
+#define IMX_MU_SECO_TX_TOUT (msecs_to_jiffies(3000))
+#define IMX_MU_SECO_RX_TOUT (msecs_to_jiffies(3000))
 
 enum imx_mu_chan_type {
 	IMX_MU_TYPE_TX,		/* Tx */
@@ -99,7 +103,7 @@ static u32 imx_mu_read(struct imx_mu_priv *priv, u32 offs)
 
 static int imx_mu_tx_waiting_write(struct imx_mu_priv *priv, u32 idx, u32 val)
 {
-	u32 timeout = 500;
+	u64 timeout_time = get_jiffies_64() + IMX_MU_SECO_TX_TOUT;
 	u32 status;
 	u32 can_write;
 
@@ -108,10 +112,9 @@ static int imx_mu_tx_waiting_write(struct imx_mu_priv *priv, u32 idx, u32 val)
 	do {
 		status = imx_mu_read(priv, priv->dcfg->xSR);
 		can_write = status & IMX_MU_xSR_TEn(idx % 4);
-		timeout--;
-	} while (!can_write && timeout > 0);
+	} while (!can_write && time_is_after_jiffies64(timeout_time));
 
-	if (timeout == 0) {
+	if (!can_write) {
 		dev_err(priv->dev, "timeout trying to write %.8x at %d(%.8x)\n",
 			val, idx, status);
 		return -ETIME;
@@ -124,7 +127,7 @@ static int imx_mu_tx_waiting_write(struct imx_mu_priv *priv, u32 idx, u32 val)
 
 static int imx_mu_rx_waiting_read(struct imx_mu_priv *priv, u32 idx, u32 *val)
 {
-	u32 timeout = 500;
+	u64 timeout_time = get_jiffies_64() + IMX_MU_SECO_RX_TOUT;
 	u32 status;
 	u32 can_read;
 
@@ -133,10 +136,9 @@ static int imx_mu_rx_waiting_read(struct imx_mu_priv *priv, u32 idx, u32 *val)
 	do {
 		status = imx_mu_read(priv, priv->dcfg->xSR);
 		can_read = status & IMX_MU_xSR_RFn(idx % 4);
-		timeout--;
-	} while (!can_read && timeout > 0);
+	} while (!can_read && time_is_after_jiffies64(timeout_time));
 
-	if (timeout == 0) {
+	if (!can_read) {
 		dev_err(priv->dev, "timeout trying to read idx %d (%.8x)\n",
 			idx, status);
 		return -ETIME;
