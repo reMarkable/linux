@@ -54,6 +54,18 @@
 
 #define IMX7D_RPROC_MEM_MAX		8
 
+/*
+ * 1: indicated that remote processor is ready from re-initialization.
+ * Clear this bit after the RPMSG restore is finished at master side.
+ */
+#define REMOTE_IS_READY			BIT(0)
+
+/*
+ * The time consumption by remote ready is less than 1ms in the
+ * evaluation. Set the max wait timeout as 50ms here.
+ */
+#define REMOTE_READY_WAIT_MAX_RETRIES	500
+
 enum imx_rproc_variants {
 	IMX8QXP,
 	IMX8MQ,
@@ -109,11 +121,15 @@ struct imx_rproc {
 	bool				skip_fw_load_recovery;
 	void				*rsc_va;
 	struct mbox_client		cl;
+	struct mbox_client		cl_rxdb;
 	struct mbox_chan		*tx_ch;
 	struct mbox_chan		*rx_ch;
+	struct mbox_chan		*rxdb_ch;
 	struct delayed_work		rproc_work;
 	u32				mub_partition;
 	struct notifier_block		proc_nb;
+	u32				flags;
+	spinlock_t			mu_lock;
 };
 
 static const struct imx_rproc_att imx_rproc_att_imx8qxp[] = {
@@ -245,6 +261,20 @@ static const struct imx_rproc_dcfg imx_rproc_cfg_imx8qxp = {
 	.variant	= IMX8QXP,
 };
 
+bool imx_rproc_ready(struct rproc *rproc)
+{
+	struct imx_rproc *priv = rproc->priv;
+	int i;
+
+	for (i = 0; i < REMOTE_READY_WAIT_MAX_RETRIES; i++) {
+		if (priv->flags & REMOTE_IS_READY)
+			break;
+		udelay(100);
+	}
+
+	return true;
+}
+
 static int imx_rproc_start(struct rproc *rproc)
 {
 	struct imx_rproc *priv = rproc->priv;
@@ -256,8 +286,11 @@ static int imx_rproc_start(struct rproc *rproc)
 	if (priv->ipc_only) {
 		dev_info(dev, "%s: IPC only\n", __func__);
 		/* To partition M4, we need block userspace stop/start */
-		if (priv->skip_fw_load_recovery)
+		if (priv->skip_fw_load_recovery) {
 			priv->skip_fw_load_recovery = false;
+			/* Wait remoteproc ready restart itself */
+			imx_rproc_ready(rproc);
+		}
 		return 0;
 	}
 
@@ -286,6 +319,8 @@ static int imx_rproc_start(struct rproc *rproc)
 
 	if (ret)
 		dev_err(dev, "Failed to enable M4!\n");
+	else
+		imx_rproc_ready(rproc);
 
 	return ret;
 }
@@ -305,8 +340,10 @@ static int imx_rproc_stop(struct rproc *rproc)
 		 * To allow m4 partition reset trigger remoteproc crash
 		 * handler.
 		 */
-		if (priv->skip_fw_load_recovery)
+		if (priv->skip_fw_load_recovery) {
+			priv->flags &= ~REMOTE_IS_READY;
 			return 0;
+		}
 		return -EBUSY;
 	}
 
@@ -327,6 +364,7 @@ static int imx_rproc_stop(struct rproc *rproc)
 	} else {
 		priv->early_boot = false;
 		priv->rproc->skip_fw_load = false;
+		priv->flags &= ~REMOTE_IS_READY;
 	}
 
 	return ret;
@@ -670,6 +708,43 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 	return 0;
 }
 
+static void imx_rproc_rxdb_callback(struct mbox_client *cl, void *msg)
+{
+	struct rproc *rproc = dev_get_drvdata(cl->dev);
+	struct imx_rproc *priv = rproc->priv;
+	unsigned long flags;
+
+	spin_lock_irqsave(&priv->mu_lock, flags);
+	priv->flags |= REMOTE_IS_READY;
+	spin_unlock_irqrestore(&priv->mu_lock, flags);
+}
+
+static int imx_rproc_rxdb_channel_init(struct rproc *rproc)
+{
+	struct imx_rproc *priv = rproc->priv;
+	struct device *dev = priv->dev;
+	struct mbox_client *cl;
+	int ret = 0;
+
+	cl = &priv->cl_rxdb;
+	cl->dev = dev;
+	cl->rx_callback = imx_rproc_rxdb_callback;
+
+	/*
+	 * RX door bell is used to receive the ready signal from remote
+	 * after the partition reset of A core.
+	 */
+	priv->rxdb_ch = mbox_request_channel_byname(cl, "rxdb");
+	if (IS_ERR(priv->rxdb_ch)) {
+		ret = PTR_ERR(priv->rxdb_ch);
+		dev_dbg(cl->dev, "failed to request mbox chan rxdb, ret %d\n",
+			ret);
+		return ret;
+	}
+
+	return ret;
+}
+
 static void imx_rproc_vq_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -811,6 +886,8 @@ static int imx_rproc_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(dev, rproc);
 
+	spin_lock_init(&priv->mu_lock);
+
 	ret = imx_rproc_xtr_mbox_init(rproc);
 	if (ret) {
 		if (ret == -EPROBE_DEFER)
@@ -845,6 +922,10 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	}
 
 	INIT_DELAYED_WORK(&(priv->rproc_work), imx_rproc_vq_work);
+
+	ret = imx_rproc_rxdb_channel_init(rproc);
+	if (ret)
+		goto err_put_mbox;
 
 #ifdef CONFIG_IMX_SCU
 	priv->proc_nb.notifier_call = imx_rproc_partition_notify;
