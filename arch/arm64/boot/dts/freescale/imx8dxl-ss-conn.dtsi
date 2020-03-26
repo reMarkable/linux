@@ -52,6 +52,19 @@
 	assigned-clock-rates = <125000000>;
 };
 
+&dma_apbh {
+	compatible = "fsl,imx28-dma-apbh";
+	interrupts = <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>,
+		     <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>,
+		     <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>,
+		     <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>;
+};
+
+&gpmi {
+	compatible = "fsl,imx8qxp-gpmi-nand";
+	interrupts = <GIC_SPI 174 IRQ_TYPE_LEVEL_HIGH>;
+};
+
 &conn_subsys {
 
 	usb2_2_lpcg: clock-controller@5b280000 {
