@@ -41,10 +41,16 @@ struct dwc3_imx8mp {
 	struct device			*dev;
 	struct platform_device		*dwc3;
 	void __iomem			*glue_base;
-	struct clk			*bus_clk;
-	struct clk			*sleep_clk;
+	struct clk_bulk_data		*clks;
+	int				num_clks;
 	int				irq;
 	bool				pm_suspended;
+};
+
+static const struct clk_bulk_data dwc3_imx8mp_clks[] = {
+	{ .id = "hsio" },
+	{ .id = "bus" },
+	{ .id = "suspend" },
 };
 
 static void dwc_imx8mp_wakeup_enable(struct dwc3_imx8mp *dwc_imx)
@@ -74,13 +80,22 @@ static void dwc_imx8mp_wakeup_disable(struct dwc3_imx8mp *dwc_imx)
 }
 
 /* U3 wakeup enable only if hsiomix will not be off */
-static void dwc_imx8mp_wakeup_disable_u3(struct dwc3_imx8mp *dwc_imx)
+static int dwc_imx8mp_wakeup_disable_u3(struct dwc3_imx8mp *dwc_imx)
 {
 	u32 val;
+	int ret;
+
+	ret = clk_bulk_prepare_enable(dwc_imx->num_clks, dwc_imx->clks);
+	if (ret)
+		return ret;
 
 	val = readl(dwc_imx->glue_base + USB_WAKEUP_CTRL);
 	val &= ~USB_WAKEUP_U3_EN;
 	writel(val, dwc_imx->glue_base + USB_WAKEUP_CTRL);
+
+	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
+
+	return 0;
 }
 
 static irqreturn_t dwc3_imx8mp_interrupt(int irq, void *_dwc_imx)
@@ -149,27 +164,26 @@ static int dwc3_imx8mp_probe(struct platform_device *pdev)
 	if (IS_ERR(dwc_imx->glue_base))
 		return PTR_ERR(dwc_imx->glue_base);
 
-	dwc_imx->bus_clk = devm_clk_get(dev, "bus");
-	if (IS_ERR(dwc_imx->bus_clk)) {
-		dev_err(dev, "failed to get bus clock\n");
-		return PTR_ERR(dwc_imx->bus_clk);
+	dwc_imx->clks = devm_kmemdup(dev, dwc3_imx8mp_clks,
+			sizeof(dwc3_imx8mp_clks), GFP_KERNEL);
+	if (!dwc_imx->clks)
+		return -ENOMEM;
+
+	dwc_imx->num_clks = ARRAY_SIZE(dwc3_imx8mp_clks);
+	error = devm_clk_bulk_get(dev, dwc_imx->num_clks, dwc_imx->clks);
+	if (error) {
+		dev_err(dev, "Failed to request all necessary clocks\n");
+		return error;
 	}
 
-	dwc_imx->sleep_clk = devm_clk_get(dev, "sleep");
-	if (IS_ERR(dwc_imx->sleep_clk)) {
-		dev_err(dev, "failed to get sleep clock\n");
-		return PTR_ERR(dwc_imx->sleep_clk);
-	}
-
-	error = clk_prepare_enable(dwc_imx->bus_clk);
+	error = clk_bulk_prepare_enable(dwc_imx->num_clks, dwc_imx->clks);
 	if (error)
 		return error;
 
-	error = clk_prepare_enable(dwc_imx->sleep_clk);
-	if (error) {
-		clk_disable_unprepare(dwc_imx->bus_clk);
+	/* Double enable suspend clk to keep it always on  */
+	error = clk_prepare_enable(dwc_imx->clks[dwc_imx->num_clks-1].clk);
+	if (error)
 		return error;
-	}
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
@@ -233,8 +247,8 @@ static int dwc3_imx8mp_probe(struct platform_device *pdev)
 depopulate:
 	of_platform_depopulate(dev);
 disable_clks:
-	clk_disable_unprepare(dwc_imx->bus_clk);
-	clk_disable_unprepare(dwc_imx->sleep_clk);
+	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
+	clk_disable_unprepare(dwc_imx->clks[dwc_imx->num_clks-1].clk);
 
 	return error;
 }
@@ -247,8 +261,8 @@ static int dwc3_imx8mp_remove(struct platform_device *pdev)
 	pm_runtime_get_sync(dev);
 	of_platform_depopulate(dev);
 
-	clk_disable_unprepare(dwc->bus_clk);
-	clk_disable_unprepare(dwc->sleep_clk);
+	clk_bulk_disable_unprepare(dwc->num_clks, dwc->clks);
+	clk_disable_unprepare(dwc->clks[dwc->num_clks-1].clk);
 
 	pm_runtime_disable(dev);
 	pm_runtime_put_noidle(dev);
@@ -266,7 +280,7 @@ static int dwc3_imx8mp_suspend(struct dwc3_imx8mp *dwc, pm_message_t msg)
 	if (PMSG_IS_AUTO(msg) || device_may_wakeup(dwc->dev))
 		dwc_imx8mp_wakeup_enable(dwc);
 
-	clk_disable_unprepare(dwc->bus_clk);
+	clk_bulk_disable_unprepare(dwc->num_clks, dwc->clks);
 	dwc->pm_suspended = true;
 
 	return 0;
@@ -280,7 +294,7 @@ static int dwc3_imx8mp_resume(struct dwc3_imx8mp *dwc, pm_message_t msg)
 		return 0;
 
 	dwc->pm_suspended = false;
-	ret = clk_prepare_enable(dwc->bus_clk);
+	ret = clk_bulk_prepare_enable(dwc->num_clks, dwc->clks);
 
 	/* Wakeup disable */
 	dwc_imx8mp_wakeup_disable(dwc);
