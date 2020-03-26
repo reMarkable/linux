@@ -383,6 +383,8 @@ struct rproc_ops {
 	int (*load)(struct rproc *rproc, const struct firmware *fw);
 	int (*sanity_check)(struct rproc *rproc, const struct firmware *fw);
 	u32 (*get_boot_addr)(struct rproc *rproc, const struct firmware *fw);
+	void * (*memcpy)(struct rproc *rproc, void *dest,
+			 const void *src, size_t count, int flags);
 };
 
 /**

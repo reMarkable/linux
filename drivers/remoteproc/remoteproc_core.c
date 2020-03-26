@@ -72,6 +72,23 @@ static const char *rproc_crash_to_string(enum rproc_crash_type type)
 }
 
 /*
+ * rproc_memcpy() - memcpy verison for remoteproc usage
+ * @flags:
+ *	- 0 means to DA
+ *	- 1 means from DA
+ *
+ */
+void *rproc_memcpy(struct rproc *rproc, void *dest,
+		   const void *src, size_t count, int flags)
+{
+	if (rproc->ops->memcpy)
+		return rproc->ops->memcpy(rproc, dest, src, count, flags);
+
+	return memcpy(dest, src, count);
+}
+EXPORT_SYMBOL(rproc_memcpy);
+
+/*
  * This is the IOMMU fault handler we register with the IOMMU API
  * (when relevant; not all remote processors access memory through
  * an IOMMU).
@@ -1642,7 +1659,8 @@ static void rproc_coredump(struct rproc *rproc)
 					&segment->da, segment->size);
 				memset(data + offset, 0xff, segment->size);
 			} else {
-				memcpy(data + offset, ptr, segment->size);
+				rproc_memcpy(rproc, data + offset, ptr,
+					     segment->size, 1);
 			}
 		}
 
