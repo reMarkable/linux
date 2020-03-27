@@ -60,7 +60,7 @@ static void dwc_imx8mp_wakeup_enable(struct dwc3_imx8mp *dwc_imx)
 
 	val = readl(dwc_imx->glue_base + USB_WAKEUP_CTRL);
 
-	if (dwc->xhci)
+	if ((dwc->current_dr_role == DWC3_GCTL_PRTCAP_HOST) && dwc->xhci)
 		val |= USB_WAKEUP_EN | USB_WAKEUP_SS_CONN |
 		       USB_WAKEUP_U3_EN | USB_WAKEUP_DPDM_EN;
 	else if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE)
