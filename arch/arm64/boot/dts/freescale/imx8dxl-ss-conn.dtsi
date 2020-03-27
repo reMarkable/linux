@@ -74,7 +74,7 @@
 
 		bit-offset = <28>;
 		clocks = <&conn_ipg_clk>;
-		clock-output-names = "usboh3_2_ahb_clk";
+		clock-output-names = "usboh3_2_phy_ipg_clk";
 		power-domains = <&pd IMX_SC_R_USB_1_PHY>;
 	};
 
