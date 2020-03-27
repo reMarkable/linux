@@ -419,7 +419,9 @@
 			#power-domain-cells = <0>;
 			domain-index = <17>;
 			domain-name = "hdmimix";
-			clocks = <&clk IMX8MP_CLK_HDMI_ROOT>;
+			clocks = <&clk IMX8MP_CLK_HDMI_ROOT>,
+				 <&clk IMX8MP_CLK_HDMI_APB>,
+				 <&clk IMX8MP_CLK_HDMI_REF_266M>;
 		};
 
 		hdmi_phy_pd: hdmiphy-pd {
