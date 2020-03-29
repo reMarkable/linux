@@ -4,6 +4,7 @@
  * Copyright 2020 NXP, Peng Fan <peng.fan@nxp.com>
  */
 
+#include <linux/arm-smccc.h>
 #include <linux/clk.h>
 #include <linux/err.h>
 #ifdef CONFIG_IMX_SCU
@@ -23,6 +24,9 @@
 #include <linux/regmap.h>
 #include <linux/reset.h>
 #include <linux/remoteproc.h>
+
+#include <soc/imx/imx_sip.h>
+
 
 #include "remoteproc_internal.h"
 
@@ -54,7 +58,7 @@
 					 | IMX6SX_SW_M4C_NON_SCLR_RST \
 					 | IMX6SX_SW_M4C_RST)
 
-#define IMX7D_RPROC_MEM_MAX		8
+#define IMX7D_RPROC_MEM_MAX		16
 
 /*
  * 1: indicated that remote processor is ready from re-initialization.
@@ -71,6 +75,8 @@
 enum imx_rproc_variants {
 	IMX8QXP,
 	IMX8MQ,
+	IMX8MP,
+	IMX8MN,
 	IMX7D,
 	IMX6SX,
 };
@@ -157,6 +163,36 @@ static const struct imx_rproc_att imx_rproc_att_imx8qxp[] = {
 	{ 0x80000000, 0x80000000, 0x60000000, 0 },
 };
 
+static const struct imx_rproc_att imx_rproc_att_imx8mn[] = {
+	/* dev addr , sys addr  , size	    , flags */
+	/* ITCM   */
+	{ 0x00000000, 0x007E0000, 0x00020000, ATT_OWN },
+	/* OCRAM_S */
+	{ 0x00180000, 0x00180000, 0x00009000, 0 },
+	/* OCRAM */
+	{ 0x00900000, 0x00900000, 0x00020000, 0 },
+	/* OCRAM */
+	{ 0x00920000, 0x00920000, 0x00020000, 0 },
+	/* OCRAM */
+	{ 0x00940000, 0x00940000, 0x00050000, 0 },
+	/* QSPI Code - alias */
+	{ 0x08000000, 0x08000000, 0x08000000, 0 },
+	/* DDR (Code) - alias */
+	{ 0x10000000, 0x80000000, 0x0FFE0000, 0 },
+	/* DTCM */
+	{ 0x20000000, 0x00800000, 0x00020000, ATT_OWN },
+	/* OCRAM_S - alias */
+	{ 0x20180000, 0x00180000, 0x00008000, ATT_OWN },
+	/* OCRAM */
+	{ 0x20200000, 0x00900000, 0x00020000, ATT_OWN },
+	/* OCRAM */
+	{ 0x20220000, 0x00920000, 0x00020000, ATT_OWN },
+	/* OCRAM */
+	{ 0x20240000, 0x00940000, 0x00040000, ATT_OWN },
+	/* DDR (Data) */
+	{ 0x40000000, 0x40000000, 0x80000000, 0 },
+};
+
 static const struct imx_rproc_att imx_rproc_att_imx8mq[] = {
 	/* dev addr , sys addr  , size	    , flags */
 	/* TCML - alias */
@@ -235,6 +271,12 @@ static const struct imx_rproc_att imx_rproc_att_imx6sx[] = {
 	{ 0x80000000, 0x80000000, 0x60000000, 0 },
 };
 
+static const struct imx_rproc_dcfg imx_rproc_cfg_imx8mn = {
+	.att		= imx_rproc_att_imx8mn,
+	.att_size	= ARRAY_SIZE(imx_rproc_att_imx8mn),
+	.variant	= IMX8MN,
+};
+
 static const struct imx_rproc_dcfg imx_rproc_cfg_imx8mq = {
 	.src_reg	= IMX7D_SRC_SCR,
 	.src_mask	= IMX7D_M4_RST_MASK,
@@ -290,6 +332,7 @@ static int imx_rproc_start(struct rproc *rproc)
 	struct imx_rproc *priv = rproc->priv;
 	const struct imx_rproc_dcfg *dcfg = priv->dcfg;
 	struct device *dev = priv->dev;
+	struct arm_smccc_res res;
 	int ret;
 	u32 val;
 
@@ -315,7 +358,15 @@ static int imx_rproc_start(struct rproc *rproc)
 	}
 #endif
 
-	if (priv->enable) {
+	if (priv->dcfg->variant == IMX8MN) {
+		arm_smccc_smc(IMX_SIP_SRC, IMX_SIP_SRC_M4_STARTED, 0, 0, 0, 0, 0, 0, &res);
+		if (!res.a0) {
+			arm_smccc_smc(IMX_SIP_SRC, IMX_SIP_SRC_M4_START, 0, 0, 0, 0, 0, 0, &res);
+			ret = res.a0;
+		} else {
+			ret = 0;
+		}
+	} else if (priv->enable) {
 		if (!reset_control_status(priv->enable)) {
 			dev_info(dev, "alreay started\n");
 			return 0;
@@ -351,6 +402,7 @@ static int imx_rproc_stop(struct rproc *rproc)
 	struct imx_rproc *priv = rproc->priv;
 	const struct imx_rproc_dcfg *dcfg = priv->dcfg;
 	struct device *dev = priv->dev;
+	struct arm_smccc_res res;
 	int ret;
 
 	if (priv->ipc_only) {
@@ -379,7 +431,10 @@ static int imx_rproc_stop(struct rproc *rproc)
 	}
 #endif
 
-	if (priv->enable) {
+	if (priv->dcfg->variant == IMX8MN) {
+		arm_smccc_smc(IMX_SIP_SRC, IMX_SIP_SRC_M4_STOP, 0, 0, 0, 0, 0, 0, &res);
+		ret = res.a0;
+	} else if (priv->enable) {
 		ret = reset_control_assert(priv->enable);
 		if (!ret)
 			ret = reset_control_assert(priv->non_sclr_rst);
@@ -730,6 +785,7 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 {
 	const struct imx_rproc_dcfg *dcfg = priv->dcfg;
 	struct device *dev = priv->dev;
+	struct arm_smccc_res res;
 	int ret;
 	u32 val;
 
@@ -744,6 +800,9 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 			priv->early_boot = true;
 		}
 #endif
+	} else if (dcfg->variant == IMX8MN) {
+		arm_smccc_smc(IMX_SIP_SRC, IMX_SIP_SRC_M4_STARTED, 0, 0, 0, 0, 0, 0, &res);
+		priv->early_boot = !!res.a0;
 	} else if (of_get_property(dev->of_node, "ipc-only", NULL)) {
 		priv->ipc_only = true;
 		priv->early_boot = true;
@@ -1108,6 +1167,8 @@ static const struct of_device_id imx_rproc_of_match[] = {
 	{ .compatible = "fsl,imx6sx-cm4", .data = &imx_rproc_cfg_imx6sx },
 	{ .compatible = "fsl,imx8mq-cm4", .data = &imx_rproc_cfg_imx8mq },
 	{ .compatible = "fsl,imx8mm-cm4", .data = &imx_rproc_cfg_imx8mq },
+	{ .compatible = "fsl,imx8mn-cm7", .data = &imx_rproc_cfg_imx8mn },
+	{ .compatible = "fsl,imx8mp-cm7", .data = &imx_rproc_cfg_imx8mn },
 	{ .compatible = "fsl,imx8qxp-cm4", .data = &imx_rproc_cfg_imx8qxp },
 	{},
 };
