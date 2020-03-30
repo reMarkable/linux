@@ -1274,6 +1274,8 @@ static void flexcan_set_bittiming(struct net_device *dev)
 				/* for the TDC to work reliably, the offset has to use optimal settings */
 				reg_fdctrl |= FLEXCAN_FDCTRL_TDCOFF(((dbt->phase_seg1 - 1) + dbt->prop_seg + 2) *
 								    ((dbt->brp -1) + 1));
+			} else {
+				reg_fdctrl &= ~FLEXCAN_FDCTRL_TDCEN;
 			}
 			priv->write(reg_fdctrl, &regs->fdctrl);
 
@@ -1501,7 +1503,6 @@ static int flexcan_chip_start(struct net_device *dev)
 	/* FDCTRL */
 	if (priv->can.ctrlmode_supported & CAN_CTRLMODE_FD) {
 		reg_fdctrl = priv->read(&regs->fdctrl) & ~FLEXCAN_FDCTRL_FDRATE;
-		reg_fdctrl &= ~FLEXCAN_FDCTRL_TDCEN;
 		reg_fdctrl &= ~(FLEXCAN_FDCTRL_MBDSR1(0x3) | FLEXCAN_FDCTRL_MBDSR0(0x3));
 		reg_mcr = priv->read(&regs->mcr) & ~FLEXCAN_MCR_FDEN;
 		reg_ctrl2 = priv->read(&regs->ctrl2) & ~FLEXCAN_CTRL2_ISOCANFDEN;
