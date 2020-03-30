@@ -27,7 +27,6 @@
 
 #include <soc/imx/imx_sip.h>
 
-
 #include "remoteproc_internal.h"
 
 #define IMX7D_SRC_SCR			0x0C
