@@ -72,6 +72,7 @@
 #define REMOTE_READY_WAIT_MAX_RETRIES	500
 
 enum imx_rproc_variants {
+	IMX8QM,
 	IMX8QXP,
 	IMX8MQ,
 	IMX8MP,
@@ -94,7 +95,10 @@ struct imx_rproc_mem {
 
 /* att flags */
 /* M4 own area. Can be mapped at probe */
-#define ATT_OWN		BIT(1)
+#define ATT_OWN		BIT(31)
+/* I = [0:7] */
+#define ATT_CORE_MASK	0xffff
+#define ATT_CORE(I)	BIT((I))
 
 /* address translation table */
 struct imx_rproc_att {
@@ -138,6 +142,7 @@ struct imx_rproc {
 	u32				flags;
 	spinlock_t			mu_lock;
 	u32				rsrc;
+	u32				id;
 	int				num_domains;
 	struct device			**pm_devices;
 	struct device_link		**pm_devices_link;
@@ -146,6 +151,19 @@ struct imx_rproc {
 #ifdef CONFIG_IMX_SCU
 static struct imx_sc_ipc *ipc_handle;
 #endif
+
+static const struct imx_rproc_att imx_rproc_att_imx8qm[] = {
+	/* dev addr , sys addr  , size	    , flags */
+	{ 0x08000000, 0x08000000, 0x10000000, 0},
+	/* TCML */
+	{ 0x1FFE0000, 0x34FE0000, 0x00020000, ATT_OWN | ATT_CORE(0)},
+	{ 0x1FFE0000, 0x38FE0000, 0x00020000, ATT_OWN | ATT_CORE(1)},
+	/* TCMU */
+	{ 0x20000000, 0x35000000, 0x00020000, ATT_OWN | ATT_CORE(0)},
+	{ 0x20000000, 0x39000000, 0x00020000, ATT_OWN | ATT_CORE(1)},
+	/* DDR (Data) */
+	{ 0x80000000, 0x80000000, 0x60000000, 0 },
+};
 
 static const struct imx_rproc_att imx_rproc_att_imx8qxp[] = {
 	/* dev addr , sys addr  , size	    , flags */
@@ -312,6 +330,12 @@ static const struct imx_rproc_dcfg imx_rproc_cfg_imx8qxp = {
 	.variant	= IMX8QXP,
 };
 
+static const struct imx_rproc_dcfg imx_rproc_cfg_imx8qm = {
+	.att		= imx_rproc_att_imx8qm,
+	.att_size	= ARRAY_SIZE(imx_rproc_att_imx8qm),
+	.variant	= IMX8QM,
+};
+
 bool imx_rproc_ready(struct rproc *rproc)
 {
 	struct imx_rproc *priv = rproc->priv;
@@ -347,8 +371,13 @@ static int imx_rproc_start(struct rproc *rproc)
 	}
 
 #ifdef CONFIG_IMX_SCU
-	if (priv->dcfg->variant == IMX8QXP) {
-		ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, true, 0x34fe0000);
+	if (priv->dcfg->variant == IMX8QXP || priv->dcfg->variant == IMX8QM) {
+		if (priv->id == 1)
+			ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, true, 0x38fe0000);
+		else if (!priv->id)
+			ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, true, 0x34fe0000);
+		else
+			ret = -EINVAL;
 		if (ret) {
 			dev_err(dev, "Failed to enable M4!\n");
 			return ret;
@@ -420,8 +449,13 @@ static int imx_rproc_stop(struct rproc *rproc)
 	}
 
 #ifdef CONFIG_IMX_SCU
-	if (priv->dcfg->variant == IMX8QXP) {
-		ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, false, 0x34fe0000);
+	if (priv->dcfg->variant == IMX8QXP || priv->dcfg->variant == IMX8QM) {
+		if (priv->id == 1)
+			ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, false, 0x38fe0000);
+		else if (!priv->id)
+			ret = imx_sc_pm_cpu_start(ipc_handle, priv->rsrc, false, 0x34fe0000);
+		else
+			ret = -EINVAL;
 		if (ret) {
 			dev_err(dev, "Failed to stop M4!\n");
 			return ret;
@@ -465,6 +499,11 @@ static int imx_rproc_da_to_sys(struct imx_rproc *priv, u64 da,
 	/* parse address translation table */
 	for (i = 0; i < dcfg->att_size; i++) {
 		const struct imx_rproc_att *att = &dcfg->att[i];
+
+		if (att->flags & ATT_CORE_MASK) {
+			if (!((1 << priv->id) & (att->flags & ATT_CORE_MASK)))
+				continue;
+		}
 
 		if (da >= att->da && da + len < att->da + att->size) {
 			unsigned int offset = da - att->da;
@@ -551,6 +590,37 @@ static int imx_rproc_mem_release(struct rproc *rproc,
 	return 0;
 }
 
+static int check_dt_rsc_table(struct rproc *rproc)
+{
+	struct imx_rproc *priv = rproc->priv;
+	struct resource_table *resource_table;
+	struct device_node *np = priv->dev->of_node;
+	int elems;
+	int ret;
+
+	/*Parse device tree to get resource table */
+	elems = of_property_count_u32_elems(np, "rsrc-table");
+	if (elems < 0) {
+		dev_err(&rproc->dev, "no rsrc-table\n");
+		return elems;
+	}
+
+	resource_table = kzalloc(elems * sizeof(u32), GFP_KERNEL);
+	if (!resource_table)
+		return PTR_ERR(resource_table);
+
+	ret = of_property_read_u32_array(np, "rsrc-table",
+					 (u32 *)resource_table, elems);
+	if (ret)
+		return ret;
+
+	rproc->cached_table = resource_table;
+	rproc->table_ptr = resource_table;
+	rproc->table_sz = elems * sizeof(u32);
+
+	return 0;
+}
+
 static int imx_rproc_parse_fw(struct rproc *rproc, const struct firmware *fw)
 {
 	struct imx_rproc *priv = rproc->priv;
@@ -600,6 +670,9 @@ static int imx_rproc_parse_fw(struct rproc *rproc, const struct firmware *fw)
 		rproc_add_carveout(rproc, mem);
 		index++;
 	}
+
+	if (!check_dt_rsc_table(rproc))
+		return 0;
 
 	if (priv->early_boot) {
 		struct resource_table *table = NULL;
@@ -732,6 +805,11 @@ static int imx_rproc_addr_init(struct imx_rproc *priv,
 		if (!(att->flags & ATT_OWN))
 			continue;
 
+		if (att->flags & ATT_CORE_MASK) {
+			if (!((1 << priv->id) & (att->flags & ATT_CORE_MASK)))
+				continue;
+		}
+
 		if (b >= IMX7D_RPROC_MEM_MAX)
 			break;
 
@@ -789,7 +867,7 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 	int ret;
 	u32 val;
 
-	if (dcfg->variant == IMX8QXP) {
+	if (dcfg->variant == IMX8QXP || dcfg->variant == IMX8QM) {
 		/*
 		 * Check whether M4 is owned by Linux. If not owned,
 		 * that means M4 is loaded by ROM, kicked by SCU
@@ -1044,7 +1122,7 @@ static int imx_rproc_probe(struct platform_device *pdev)
 	if (priv->num_domains < 0)
 		priv->num_domains = 0;
 
-	if (dcfg->variant == IMX8QXP) {
+	if (dcfg->variant == IMX8QXP || dcfg->variant == IMX8QM) {
 		ret = imx_scu_get_handle(&ipc_handle);
 		if (ret)
 			goto err_put_mbox;
@@ -1052,6 +1130,12 @@ static int imx_rproc_probe(struct platform_device *pdev)
 		ret = of_property_read_u32(np, "core-id", &priv->rsrc);
 		if (ret) {
 			dev_err(&rproc->dev, "No reg <core resource id>\n");
+			goto err_put_mbox;
+		}
+
+		ret = of_property_read_u32(np, "core-index", &priv->id);
+		if (ret) {
+			dev_err(&rproc->dev, "No reg <core index id>\n");
 			goto err_put_mbox;
 		}
 
@@ -1170,6 +1254,7 @@ static const struct of_device_id imx_rproc_of_match[] = {
 	{ .compatible = "fsl,imx8mn-cm7", .data = &imx_rproc_cfg_imx8mn },
 	{ .compatible = "fsl,imx8mp-cm7", .data = &imx_rproc_cfg_imx8mn },
 	{ .compatible = "fsl,imx8qxp-cm4", .data = &imx_rproc_cfg_imx8qxp },
+	{ .compatible = "fsl,imx8qm-cm4", .data = &imx_rproc_cfg_imx8qm },
 	{},
 };
 MODULE_DEVICE_TABLE(of, imx_rproc_of_match);
