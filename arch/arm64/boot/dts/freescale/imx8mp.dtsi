@@ -2134,6 +2134,11 @@
 		status = "disabled";
 	};
 
+	i2c_rpbus_3: i2c-rpbus-3 {
+		compatible = "fsl,i2c-rpbus";
+		status = "disabled";
+	};
+
 	etm0: etm@28440000 {
 		compatible = "arm,coresight-etm4x", "arm,primecell";
 		reg = <0x0 0x28440000 0x0 0x10000>;
