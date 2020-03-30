@@ -45,6 +45,7 @@ struct dwc3_imx8mp {
 	int				num_clks;
 	int				irq;
 	bool				pm_suspended;
+	bool				wakeup_pending;
 };
 
 static const struct clk_bulk_data dwc3_imx8mp_clks[] = {
@@ -106,6 +107,8 @@ static irqreturn_t dwc3_imx8mp_interrupt(int irq, void *_dwc_imx)
 	if (!dwc_imx->pm_suspended)
 		return IRQ_HANDLED;
 
+	disable_irq_nosync(dwc_imx->irq);
+	dwc_imx->wakeup_pending = true;
 	/*
 	 * runtime resume xhci or gadget, dwc3_imx8mp itself
 	 * as parent device will be resumed firstly by pm core
@@ -113,7 +116,7 @@ static irqreturn_t dwc3_imx8mp_interrupt(int irq, void *_dwc_imx)
 	if ((dwc->current_dr_role == DWC3_GCTL_PRTCAP_HOST) && dwc->xhci)
 		pm_runtime_resume(&dwc->xhci->dev);
 	else if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE)
-		pm_runtime_resume(dwc->dev);
+		pm_runtime_get(dwc->dev);
 
 	return IRQ_HANDLED;
 }
@@ -288,6 +291,7 @@ static int dwc3_imx8mp_suspend(struct dwc3_imx8mp *dwc_imx, pm_message_t msg)
 
 static int dwc3_imx8mp_resume(struct dwc3_imx8mp *dwc_imx, pm_message_t msg)
 {
+	struct dwc3	*dwc = platform_get_drvdata(dwc_imx->dwc3);
 	int ret = 0;
 
 	if (!dwc_imx->pm_suspended)
@@ -298,6 +302,15 @@ static int dwc3_imx8mp_resume(struct dwc3_imx8mp *dwc_imx, pm_message_t msg)
 
 	/* Wakeup disable */
 	dwc_imx8mp_wakeup_disable(dwc_imx);
+
+	if (dwc_imx->wakeup_pending) {
+		dwc_imx->wakeup_pending = false;
+		if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE) {
+			pm_runtime_mark_last_busy(dwc->dev);
+			pm_runtime_put_autosuspend(dwc->dev);
+		}
+		enable_irq(dwc_imx->irq);
+	}
 
 	return ret;
 }
