@@ -350,13 +350,26 @@ static int dsp_platform_compr_pointer(struct snd_compr_stream *cstream,
 	struct snd_soc_component *component = snd_soc_rtdcom_lookup(rtd, FSL_DSP_COMP_NAME);
 	struct fsl_dsp *dsp_priv = snd_soc_component_get_drvdata(component);
 	struct dsp_data *drv = &dsp_priv->dsp_data;
+	struct xf_get_param_msg g_param[2];
+	int ret;
+
+	g_param[0].id = XA_RENDERER_CONFIG_PARAM_SAMPLE_RATE;
+	g_param[1].id = XA_RENDERER_CONFIG_PARAM_CONSUMED;
+	ret = xaf_comp_get_config(drv->client, &drv->component[1], 2, &g_param);
+	if (ret) {
+		dev_err(component->dev,
+			"get param[cmd:0x%x|val:0x%x] error, err = %d\n",
+			g_param[0].id, g_param[0].mixData.value, ret);
+		goto out;
+	}
 
 	tstamp->copied_total = drv->client->input_bytes;
 	tstamp->byte_offset = drv->client->input_bytes;
 	tstamp->pcm_frames = 0x900;
-	tstamp->pcm_io_frames = 0,
-	tstamp->sampling_rate = 48000;
+	tstamp->pcm_io_frames = g_param[0].mixData.value,
+	tstamp->sampling_rate = g_param[1].mixData.value;
 
+out:
 	return 0;
 }
 
