@@ -101,6 +101,8 @@
 };
 
 &adc0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_adc>;
 	vref-supply = <&reg_vref_1v8>;
 	status = "okay";
 };
@@ -681,6 +683,15 @@
 				IMX8DXL_PCIE_CTRL0_PERST_B_LSIO_GPIO4_IO00	0x06000021
 				IMX8DXL_PCIE_CTRL0_CLKREQ_B_LSIO_GPIO4_IO01	0x06000021
 				IMX8DXL_PCIE_CTRL0_WAKE_B_LSIO_GPIO4_IO02	0x04000021
+			>;
+		};
+
+		pinctrl_adc: adcgrp{
+			fsl,pins = <
+				IMX8DXL_ADC_IN0_ADMA_ADC_IN0	0x06000021
+				IMX8DXL_ADC_IN1_ADMA_ADC_IN1	0x06000021
+				IMX8DXL_ADC_IN4_ADMA_ADC_IN4	0x06000021
+				IMX8DXL_ADC_IN5_ADMA_ADC_IN5	0x06000021
 			>;
 		};
 };
