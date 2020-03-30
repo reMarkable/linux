@@ -17,9 +17,9 @@
 		#size-cells = <2>;
 		ranges;
 
-		rpmsg_reserved: rpmsg@0xb8000000 {
+		rpmsg_reserved: rpmsg@0xb8200000 {
 			no-map;
-			reg = <0 0xb8000000 0 0x400000>;
+			reg = <0 0xb8200000 0 0x200000>;
 		};
 	};
 
