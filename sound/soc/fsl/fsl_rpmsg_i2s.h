@@ -427,6 +427,7 @@ struct fsl_rpmsg_i2s {
 	int codec_wm8960;
 	int codec_cs42888;
 	int codec_ak4497;
+	int codec_in_dt;
 	int force_lpa;
 	int version;
 	int rates;
