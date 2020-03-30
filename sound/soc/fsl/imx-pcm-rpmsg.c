@@ -806,6 +806,9 @@ static int i2s_rpmsg_probe(struct rpmsg_device *rpdev)
 
 	rpmsg_i2s = container_of(i2s_info_g, struct fsl_rpmsg_i2s, i2s_info);
 
+	if (rpmsg_i2s->codec_in_dt)
+		return 0;
+
 	if (rpmsg_i2s->codec_wm8960) {
 		rpmsg_codec[0].audioindex = rpmsg_i2s->codec_wm8960 >> 16;
 		rpmsg_codec[0].shared_lrclk = true;
