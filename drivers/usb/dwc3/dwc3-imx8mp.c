@@ -255,14 +255,14 @@ disable_clks:
 
 static int dwc3_imx8mp_remove(struct platform_device *pdev)
 {
-	struct dwc3_imx8mp *dwc = platform_get_drvdata(pdev);
+	struct dwc3_imx8mp *dwc_imx = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
 
 	pm_runtime_get_sync(dev);
 	of_platform_depopulate(dev);
 
-	clk_bulk_disable_unprepare(dwc->num_clks, dwc->clks);
-	clk_disable_unprepare(dwc->clks[dwc->num_clks-1].clk);
+	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
+	clk_disable_unprepare(dwc_imx->clks[dwc_imx->num_clks-1].clk);
 
 	pm_runtime_disable(dev);
 	pm_runtime_put_noidle(dev);
@@ -271,33 +271,33 @@ static int dwc3_imx8mp_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int dwc3_imx8mp_suspend(struct dwc3_imx8mp *dwc, pm_message_t msg)
+static int dwc3_imx8mp_suspend(struct dwc3_imx8mp *dwc_imx, pm_message_t msg)
 {
-	if (dwc->pm_suspended)
+	if (dwc_imx->pm_suspended)
 		return 0;
 
 	/* Wakeup enable */
-	if (PMSG_IS_AUTO(msg) || device_may_wakeup(dwc->dev))
-		dwc_imx8mp_wakeup_enable(dwc);
+	if (PMSG_IS_AUTO(msg) || device_may_wakeup(dwc_imx->dev))
+		dwc_imx8mp_wakeup_enable(dwc_imx);
 
-	clk_bulk_disable_unprepare(dwc->num_clks, dwc->clks);
-	dwc->pm_suspended = true;
+	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
+	dwc_imx->pm_suspended = true;
 
 	return 0;
 }
 
-static int dwc3_imx8mp_resume(struct dwc3_imx8mp *dwc, pm_message_t msg)
+static int dwc3_imx8mp_resume(struct dwc3_imx8mp *dwc_imx, pm_message_t msg)
 {
 	int ret = 0;
 
-	if (!dwc->pm_suspended)
+	if (!dwc_imx->pm_suspended)
 		return 0;
 
-	dwc->pm_suspended = false;
-	ret = clk_bulk_prepare_enable(dwc->num_clks, dwc->clks);
+	dwc_imx->pm_suspended = false;
+	ret = clk_bulk_prepare_enable(dwc_imx->num_clks, dwc_imx->clks);
 
 	/* Wakeup disable */
-	dwc_imx8mp_wakeup_disable(dwc);
+	dwc_imx8mp_wakeup_disable(dwc_imx);
 
 	return ret;
 }
