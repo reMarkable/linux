@@ -1818,7 +1818,7 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 	u32			reg;
 	u32			timeout = 500;
 
-	if (pm_runtime_suspended(dwc->dev))
+	if (!dwc->core_inited)
 		return 0;
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
