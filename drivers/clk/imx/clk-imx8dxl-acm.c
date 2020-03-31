@@ -131,19 +131,19 @@ static int imx8dxl_acm_clk_probe(struct platform_device *pdev)
 	clks[IMX_ADMA_SAI2_RX_BCLK]      = imx_clk_fixed("sai2_rx_bclk", 0);
 	clks[IMX_ADMA_SAI3_RX_BCLK]      = imx_clk_fixed("sai3_rx_bclk", 0);
 
-	clks[IMX_ADMA_ACM_AUD_CLK0_SEL] = imx_clk_mux("acm_aud_clk0_sel", base+0x000000, 0, 5, aud_clk_sels, ARRAY_SIZE(aud_clk_sels));
-	clks[IMX_ADMA_ACM_AUD_CLK1_CLK]	= imx_clk_mux("acm_aud_clk1_sel", base+0x010000, 0, 5, aud_clk_sels, ARRAY_SIZE(aud_clk_sels));
+	clks[IMX_ADMA_ACM_AUD_CLK0_SEL] = imx_dev_clk_mux(dev, "acm_aud_clk0_sel", base+0x000000, 0, 5, aud_clk_sels, ARRAY_SIZE(aud_clk_sels));
+	clks[IMX_ADMA_ACM_AUD_CLK1_CLK]	= imx_dev_clk_mux(dev, "acm_aud_clk1_sel", base+0x010000, 0, 5, aud_clk_sels, ARRAY_SIZE(aud_clk_sels));
 
-	clks[IMX_ADMA_ACM_MCLKOUT0_SEL]	= imx_clk_mux("acm_mclkout0_sel", base+0x020000, 0, 3, mclk_out_sels, ARRAY_SIZE(mclk_out_sels));
-	clks[IMX_ADMA_ACM_MCLKOUT1_SEL]	= imx_clk_mux("acm_mclkout1_sel", base+0x030000, 0, 3, mclk_out_sels, ARRAY_SIZE(mclk_out_sels));
+	clks[IMX_ADMA_ACM_MCLKOUT0_SEL]	= imx_dev_clk_mux(dev, "acm_mclkout0_sel", base+0x020000, 0, 3, mclk_out_sels, ARRAY_SIZE(mclk_out_sels));
+	clks[IMX_ADMA_ACM_MCLKOUT1_SEL]	= imx_dev_clk_mux(dev, "acm_mclkout1_sel", base+0x030000, 0, 3, mclk_out_sels, ARRAY_SIZE(mclk_out_sels));
 
-	clks[IMX_ADMA_ACM_SAI0_MCLK_SEL] = imx_clk_mux("acm_sai0_mclk_sel", base+0x0E0000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
-	clks[IMX_ADMA_ACM_SAI1_MCLK_SEL] = imx_clk_mux("acm_sai1_mclk_sel", base+0x0F0000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
-	clks[IMX_ADMA_ACM_SAI2_MCLK_SEL] = imx_clk_mux("acm_sai2_mclk_sel", base+0x100000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
-	clks[IMX_ADMA_ACM_SAI3_MCLK_SEL] = imx_clk_mux("acm_sai3_mclk_sel", base+0x110000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI0_MCLK_SEL] = imx_dev_clk_mux(dev, "acm_sai0_mclk_sel", base+0x0E0000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI1_MCLK_SEL] = imx_dev_clk_mux(dev, "acm_sai1_mclk_sel", base+0x0F0000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI2_MCLK_SEL] = imx_dev_clk_mux(dev, "acm_sai2_mclk_sel", base+0x100000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
+	clks[IMX_ADMA_ACM_SAI3_MCLK_SEL] = imx_dev_clk_mux(dev, "acm_sai3_mclk_sel", base+0x110000, 0, 2, sai_mclk_sels, ARRAY_SIZE(sai_mclk_sels));
 
-	clks[IMX_ADMA_ACM_SPDIF0_TX_CLK_SEL] = imx_clk_mux("acm_spdif0_mclk_sel", base+0x1A0000, 0, 2, spdif_mclk_sels, ARRAY_SIZE(spdif_mclk_sels));
-	clks[IMX_ADMA_ACM_MQS_TX_CLK_SEL] = imx_clk_mux("acm_mqs_mclk_sel", base+0x1C0000, 0, 2, mqs_mclk_sels, ARRAY_SIZE(mqs_mclk_sels));
+	clks[IMX_ADMA_ACM_SPDIF0_TX_CLK_SEL] = imx_dev_clk_mux(dev, "acm_spdif0_mclk_sel", base+0x1A0000, 0, 2, spdif_mclk_sels, ARRAY_SIZE(spdif_mclk_sels));
+	clks[IMX_ADMA_ACM_MQS_TX_CLK_SEL] = imx_dev_clk_mux(dev, "acm_mqs_mclk_sel", base+0x1C0000, 0, 2, mqs_mclk_sels, ARRAY_SIZE(mqs_mclk_sels));
 
 	for (i = 0; i < clk_data->clk_num; i++) {
 		if (IS_ERR(clks[i]))
