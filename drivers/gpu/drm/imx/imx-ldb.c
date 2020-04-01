@@ -277,12 +277,6 @@ static void imx_ldb_set_clock(struct imx_ldb *ldb, int mux, int chno,
 	}
 
 	if (ldb->is_imx8m) {
-		struct clk *clk_pll;
-		struct clk *clk_root_parent;
-
-		clk_root_parent = clk_get_parent(ldb->clk_root);
-		clk_pll = clk_get_parent(clk_root_parent);
-		clk_set_rate(clk_pll, dual ? (serial_clk * 2) : serial_clk);
 		clk_set_rate(ldb->clk_root, serial_clk);
 		return;
 	}
