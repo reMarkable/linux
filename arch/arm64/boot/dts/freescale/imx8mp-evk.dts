@@ -119,7 +119,7 @@
 				<48000>,
 				<96000>,
 				<192000>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	sound-wm8960 {
@@ -179,6 +179,10 @@
 				    100>;
 		default-brightness-level = <80>;
 	};
+};
+
+&aud2htx {
+	status = "okay";
 };
 
 &clk {
@@ -543,6 +547,10 @@
 	};
 };
 
+&irqsteer_hdmi {
+	status = "okay";
+};
+
 &flexcan1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_flexcan1>;
@@ -558,11 +566,35 @@
 	status = "disabled";/* can2 pin conflict with pdm: gpio low select pdm, gpio high select can2 */
 };
 
+&hdmimix_clk {
+	status = "okay";
+};
+
+&hdmimix_reset {
+	status = "okay";
+};
+
+&hdmi_pavi {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmiphy {
+	status = "okay";
+};
+
 &lcdif1 {
 	status = "okay";
 };
 
 &lcdif2 {
+	status = "okay";
+};
+
+&lcdif3 {
 	status = "okay";
 };
 
