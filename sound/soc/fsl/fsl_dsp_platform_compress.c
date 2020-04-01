@@ -162,13 +162,16 @@ static int dsp_platform_compr_set_params(struct snd_compr_stream *cstream,
 			drv->codec_type, ret);
 		goto err_pool_alloc;
 	}
-
+	if (sysfs_streq(dsp_priv->audio_iface, "sai"))
+		drv->renderer_type = RENDER_SAI;
+	else
+		drv->renderer_type = RENDER_ESAI;
 	ret = xaf_comp_create(drv->client, p_proxy, &drv->component[1],
-			      RENDER_ESAI);
+			      drv->renderer_type);
 	if (ret) {
 		dev_err(component->dev,
 			"create component failed, type = %d, err = %d\n",
-			RENDER_ESAI, ret);
+			drv->renderer_type, ret);
 		goto err_comp0_create;
 	}
 
@@ -178,14 +181,14 @@ static int dsp_platform_compr_set_params(struct snd_compr_stream *cstream,
 		dev_err(component->dev,
 			"add component failed, type = %d, err = %d\n",
 			drv->codec_type, ret);
-		goto err_comp1_create;
+		goto err_comp0_create;
 	}
 
 	ret = xaf_comp_add(&drv->pipeline, &drv->component[1]);
 	if (ret) {
 		dev_err(component->dev,
 			"add component failed, type = %d, err = %d\n",
-			drv->codec_type, ret);
+			drv->renderer_type, ret);
 		goto err_comp1_create;
 	}
 

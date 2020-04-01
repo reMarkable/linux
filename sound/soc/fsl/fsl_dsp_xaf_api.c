@@ -190,7 +190,7 @@ int xaf_comp_create(struct xf_client *client, struct xf_proxy *proxy,
 
 	p_comp->comp_type = comp_type;
 
-	if (comp_type == RENDER_ESAI)
+	if (comp_type == RENDER_ESAI || comp_type == RENDER_SAI)
 		loadlib = false;
 
 	if (loadlib) {
@@ -210,6 +210,9 @@ int xaf_comp_create(struct xf_client *client, struct xf_proxy *proxy,
 		break;
 	case RENDER_ESAI:
 		p_comp->dec_id = "renderer/esai";
+		break;
+	case RENDER_SAI:
+		p_comp->dec_id = "renderer/sai";
 		break;
 
 	default:
@@ -283,7 +286,7 @@ int xaf_comp_delete(struct xf_client *client, struct xaf_comp *p_comp)
 	/* mark component as unusable from this point */
 	p_comp->active = false;
 
-	if (p_comp->comp_type == RENDER_ESAI)
+	if (p_comp->comp_type == RENDER_ESAI || p_comp->comp_type == RENDER_SAI)
 		loadlib = false;
 
 	p_handle = &p_comp->handle;

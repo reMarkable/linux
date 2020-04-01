@@ -971,6 +971,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	struct resource reserved_res;
 	struct fsl_dsp *dsp_priv;
 	const char *fw_name;
+	const char *audio_iface;
 	struct resource *res;
 	void __iomem *regs;
 	void *buf_virt;
@@ -1022,6 +1023,9 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 
 	ret = of_property_read_string(np, "fsl,dsp-firmware", &fw_name);
 	dsp_priv->fw_name = fw_name;
+
+	ret = of_property_read_string(np, "audio-interface", &audio_iface);
+	dsp_priv->audio_iface = audio_iface;
 
 	ret = of_property_read_u32(np, "fixup-offset", &dsp_priv->fixup_offset);
 
@@ -1156,6 +1160,28 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	if (IS_ERR(dsp_priv->mu2_clk))
 		dsp_priv->mu2_clk = NULL;
 
+	dsp_priv->sdma_root_clk = devm_clk_get(&pdev->dev, "sdma_root");
+	if (IS_ERR(dsp_priv->sdma_root_clk))
+		dsp_priv->sdma_root_clk = NULL;
+	dsp_priv->sai_ipg_clk = devm_clk_get(&pdev->dev, "sai_ipg");
+	if (IS_ERR(dsp_priv->sai_ipg_clk))
+		dsp_priv->sai_ipg_clk = NULL;
+	dsp_priv->sai_mclk = devm_clk_get(&pdev->dev, "sai_mclk");
+	if (IS_ERR(dsp_priv->sai_mclk))
+		dsp_priv->sai_mclk = NULL;
+	dsp_priv->pll8k_clk = devm_clk_get(&pdev->dev, "pll8k");
+	if (IS_ERR(dsp_priv->pll8k_clk))
+		dsp_priv->pll8k_clk = NULL;
+	dsp_priv->pll11k_clk = devm_clk_get(&pdev->dev, "pll11k");
+	if (IS_ERR(dsp_priv->pll11k_clk))
+		dsp_priv->pll11k_clk = NULL;
+	dsp_priv->uart_ipg_clk = devm_clk_get(&pdev->dev, "uart_ipg");
+	if (IS_ERR(dsp_priv->uart_ipg_clk))
+		dsp_priv->uart_ipg_clk = NULL;
+	dsp_priv->uart_per_clk = devm_clk_get(&pdev->dev, "uart_per");
+	if (IS_ERR(dsp_priv->uart_per_clk))
+		dsp_priv->uart_per_clk = NULL;
+
 	return 0;
 }
 
@@ -1242,6 +1268,43 @@ static int fsl_dsp_runtime_resume(struct device *dev)
 		goto mu2_clk;
 	}
 
+	ret = clk_prepare_enable(dsp_priv->sdma_root_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable sdma_root _clk ret = %d\n", ret);
+		return ret;
+	}
+	ret = clk_prepare_enable(dsp_priv->sai_ipg_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable sai_ipg_clk ret = %d\n", ret);
+		return ret;
+	}
+	ret = clk_prepare_enable(dsp_priv->sai_mclk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable sai_mclk ret = %d\n", ret);
+		return ret;
+	}
+	ret = clk_prepare_enable(dsp_priv->pll8k_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable pll8k_clk ret = %d\n", ret);
+		return ret;
+	}
+	ret = clk_prepare_enable(dsp_priv->pll11k_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable pll11k_clk ret = %d\n", ret);
+		return ret;
+	}
+	ret = clk_prepare_enable(dsp_priv->uart_ipg_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable uart_ipg_clk ret = %d\n", ret);
+		return ret;
+	}
+	ret = clk_prepare_enable(dsp_priv->uart_per_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable uart_per_clk ret = %d\n", ret);
+		return ret;
+	}
+
+
 	if (!dsp_priv->dsp_mu_init) {
 		MU_Init(dsp_priv->mu_base_virtaddr);
 		MU_EnableRxFullInt(dsp_priv->mu_base_virtaddr, 0);
@@ -1321,6 +1384,13 @@ static int fsl_dsp_runtime_suspend(struct device *dev)
 	clk_disable_unprepare(dsp_priv->dsp_root_clk);
 	clk_disable_unprepare(dsp_priv->debug_clk);
 	clk_disable_unprepare(dsp_priv->mu2_clk);
+	clk_disable_unprepare(dsp_priv->sdma_root_clk);
+	clk_disable_unprepare(dsp_priv->sai_ipg_clk);
+	clk_disable_unprepare(dsp_priv->sai_mclk);
+	clk_disable_unprepare(dsp_priv->pll8k_clk);
+	clk_disable_unprepare(dsp_priv->pll11k_clk);
+	clk_disable_unprepare(dsp_priv->uart_ipg_clk);
+	clk_disable_unprepare(dsp_priv->uart_per_clk);
 
 	return 0;
 }

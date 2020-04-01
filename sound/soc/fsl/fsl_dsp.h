@@ -70,6 +70,7 @@ union xf_client_link {
 struct fsl_dsp {
 	struct device			*dev;
 	const char			*fw_name;
+	const char			*audio_iface;
 	void __iomem			*regs;
 	void __iomem			*mu_base_virtaddr;
 	struct imx_sc_ipc		*dsp_ipcHandle;
@@ -117,6 +118,14 @@ struct fsl_dsp {
 	struct clk *dsp_root_clk;
 	struct clk *debug_clk;
 	struct clk *mu2_clk;
+	struct clk *sdma_root_clk;
+	struct clk *sai_ipg_clk;
+	struct clk *sai_mclk;
+	struct clk *pll8k_clk;
+	struct clk *pll11k_clk;
+	struct clk *uart_ipg_clk;
+	struct clk *uart_per_clk;
+
 	struct device **pd_dev;
 	struct device_link **pd_dev_link;
 	int    num_domains;

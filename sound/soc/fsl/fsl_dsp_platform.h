@@ -15,6 +15,7 @@ struct dsp_data {
 	struct xaf_pipeline    pipeline;
 	struct xaf_comp        component[2];
 	int codec_type;
+	int renderer_type;
 	int status;
 };
 
