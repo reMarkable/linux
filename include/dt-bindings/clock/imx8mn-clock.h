@@ -211,7 +211,8 @@
 #define IMX8MN_CLK_GPU_CORE_ROOT		193
 #define IMX8MN_CLK_GIC				194
 #define IMX8MN_CLK_A53_CORE			195
+#define IMX8MN_CLK_SNVS_ROOT			196
 
-#define IMX8MN_CLK_END				196
+#define IMX8MN_CLK_END				197
 
 #endif
