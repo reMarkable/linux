@@ -2128,7 +2128,8 @@
 
 	display-subsystem {
 		compatible = "fsl,imx-display-subsystem";
-		ports = <&lcdif1_disp>;
+		ports = <&lcdif1_disp>,
+			<&lcdif2_disp>;
 	};
 
 	imx_ion: imx_ion {
