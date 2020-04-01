@@ -17,6 +17,7 @@
 #include <sound/control.h>
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
+#include <linux/string.h>
 
 struct imx_dsp_audio_data {
 	struct snd_soc_dai_link dai[2];
@@ -29,22 +30,13 @@ static int imx_dsp_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	int ret;
-	u32 dai_format = SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_LEFT_J |
-			SND_SOC_DAIFMT_CBS_CFS;
 
 	ret = snd_soc_dai_set_sysclk(codec_dai, 0,
-					24576000, SND_SOC_CLOCK_IN);
+				     clk_get_rate(devm_clk_get(codec_dai->dev, "mclk")), SND_SOC_CLOCK_IN);
 	if (ret) {
 		dev_err(rtd->dev, "failed to set codec sysclk: %d\n", ret);
 		return ret;
 	}
-
-	ret = snd_soc_dai_set_fmt(codec_dai, dai_format);
-	if (ret) {
-		dev_err(rtd->dev, "failed to set codec dai fmt: %d\n", ret);
-		return ret;
-	}
-
 	return 0;
 }
 
@@ -161,7 +153,17 @@ static int imx_dsp_audio_probe(struct platform_device *pdev)
 
 	data->dai[1].name = "dsp hifi be";
 	data->dai[1].stream_name = "dsp hifi be";
-	data->dai[1].codecs->dai_name = "cs42888";
+	if (sysfs_streq(codec_np->name, "wm8960")) {
+		data->dai[1].codecs->dai_name = "wm8960-hifi";
+		data->dai[1].dai_fmt = SND_SOC_DAIFMT_NB_NF |
+				       SND_SOC_DAIFMT_I2S |
+				       SND_SOC_DAIFMT_CBS_CFS;
+	} else {
+		data->dai[1].codecs->dai_name = "cs42888";
+		data->dai[1].dai_fmt = SND_SOC_DAIFMT_LEFT_J |
+				       SND_SOC_DAIFMT_NB_NF |
+				       SND_SOC_DAIFMT_CBS_CFS;
+	}
 	data->dai[1].codecs->of_node = codec_np;
 	data->dai[1].cpus->dai_name = "snd-soc-dummy-dai";
 	data->dai[1].cpus->name = "snd-soc-dummy";
@@ -172,9 +174,6 @@ static int imx_dsp_audio_probe(struct platform_device *pdev)
 	data->dai[1].dpcm_capture = 0;
 	data->dai[1].no_pcm = 1,
 	data->dai[1].ignore_pmdown_time = 1,
-	data->dai[1].dai_fmt = SND_SOC_DAIFMT_LEFT_J |
-			    SND_SOC_DAIFMT_NB_NF |
-			    SND_SOC_DAIFMT_CBS_CFS;
 	data->dai[1].ops = &imx_dsp_ops_be;
 	data->dai[1].be_hw_params_fixup = be_hw_params_fixup;
 
