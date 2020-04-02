@@ -23,12 +23,16 @@ struct imx_pdm_data {
 	unsigned int decimation;
 };
 
-static u32 imx_pdm_mic_rates[] = { 8000, 16000, 32000, 48000, 64000 };
+static const unsigned int imx_pdm_mic_rates[] = {
+	8000,  11025, 12000, 16000,
+	22050, 24000, 32000, 44100,
+	48000, 64000,
+};
 static struct snd_pcm_hw_constraint_list imx_pdm_mic_rate_constrains = {
 	.count = ARRAY_SIZE(imx_pdm_mic_rates),
 	.list = imx_pdm_mic_rates,
 };
-static u32 imx_pdm_mic_channels[] = { 1 };
+static unsigned int imx_pdm_mic_channels[] = { 1, 2, 4, 6, 8 };
 static struct snd_pcm_hw_constraint_list imx_pdm_mic_channels_constrains = {
 	.count = ARRAY_SIZE(imx_pdm_mic_channels),
 	.list = imx_pdm_mic_channels,
@@ -70,14 +74,12 @@ static int imx_pdm_mic_hw_params(struct snd_pcm_substream *substream,
 	int ret;
 
 	/* set cpu dai format configuration */
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_A |
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_PDM |
 			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
 	if (ret) {
 		dev_err(card->dev, "fail to set cpu dai fmt: %d\n", ret);
 		return ret;
 	}
-	/* set tdm slots only one for now */
-	snd_soc_dai_set_tdm_slot(cpu_dai, 0, 0, 1, 32);
 	/* Set clock out */
 	ret = snd_soc_dai_set_bclk_ratio(cpu_dai, data->decimation);
 	if (ret) {
