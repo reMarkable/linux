@@ -45,7 +45,7 @@
 #include "imx7d.dtsi"
 
 / {
-	model = "reMarkable 2.0 Prototype 1";
+	model = "reMarkable 2.0";
 	compatible = "fsl,imx7d-sdb", "fsl,imx7d";
 
 	chosen {
