@@ -14,7 +14,7 @@
 #include "zero-gravitas-padctl.h"
 
 / {
-	model = "reMarkable Prototype 1";
+	model = "reMarkable 1.0";
 	compatible = "remarkable,zero-gravitas", "fsl,imx6sl";
 
 
