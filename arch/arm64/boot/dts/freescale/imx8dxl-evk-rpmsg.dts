@@ -13,7 +13,13 @@
 	 */
 	vdev-nums = <2>;
 	reg = <0x0 0x90000000 0x0 0x20000>;
-	memory-region = <&rpmsg_dma_reserved>;
+	memory-region = <&vdevbuffer>;
+	status = "disabled";
+};
+
+&imx8dxl_cm4 {
+	/* Assume you have partitioned M4, so M4 is ont controled by Linux */
+	/delete-property/ power-domains;
 	status = "okay";
 };
 
