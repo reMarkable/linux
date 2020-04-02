@@ -13,6 +13,7 @@
 #include <linux/io.h>
 #include <linux/of_platform.h>
 #include <linux/pm_runtime.h>
+#include <linux/busfreq-imx.h>
 
 #include "core.h"
 
@@ -172,21 +173,22 @@ static int dwc3_imx8mp_probe(struct platform_device *pdev)
 	if (!dwc_imx->clks)
 		return -ENOMEM;
 
+	request_bus_freq(BUS_FREQ_HIGH);
 	dwc_imx->num_clks = ARRAY_SIZE(dwc3_imx8mp_clks);
 	error = devm_clk_bulk_get(dev, dwc_imx->num_clks, dwc_imx->clks);
 	if (error) {
 		dev_err(dev, "Failed to request all necessary clocks\n");
-		return error;
+		goto rel_high_bus;
 	}
 
 	error = clk_bulk_prepare_enable(dwc_imx->num_clks, dwc_imx->clks);
 	if (error)
-		return error;
+		goto rel_high_bus;
 
 	/* Double enable suspend clk to keep it always on  */
 	error = clk_prepare_enable(dwc_imx->clks[dwc_imx->num_clks-1].clk);
 	if (error)
-		return error;
+		goto disable_bulk_clk;
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
@@ -250,8 +252,11 @@ static int dwc3_imx8mp_probe(struct platform_device *pdev)
 depopulate:
 	of_platform_depopulate(dev);
 disable_clks:
-	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
 	clk_disable_unprepare(dwc_imx->clks[dwc_imx->num_clks-1].clk);
+disable_bulk_clk:
+	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
+rel_high_bus:
+	release_bus_freq(BUS_FREQ_HIGH);
 
 	return error;
 }
@@ -266,6 +271,7 @@ static int dwc3_imx8mp_remove(struct platform_device *pdev)
 
 	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
 	clk_disable_unprepare(dwc_imx->clks[dwc_imx->num_clks-1].clk);
+	release_bus_freq(BUS_FREQ_HIGH);
 
 	pm_runtime_disable(dev);
 	pm_runtime_put_noidle(dev);
@@ -284,6 +290,7 @@ static int dwc3_imx8mp_suspend(struct dwc3_imx8mp *dwc_imx, pm_message_t msg)
 		dwc_imx8mp_wakeup_enable(dwc_imx);
 
 	clk_bulk_disable_unprepare(dwc_imx->num_clks, dwc_imx->clks);
+	release_bus_freq(BUS_FREQ_HIGH);
 	dwc_imx->pm_suspended = true;
 
 	return 0;
@@ -297,11 +304,16 @@ static int dwc3_imx8mp_resume(struct dwc3_imx8mp *dwc_imx, pm_message_t msg)
 	if (!dwc_imx->pm_suspended)
 		return 0;
 
-	dwc_imx->pm_suspended = false;
+	request_bus_freq(BUS_FREQ_HIGH);
 	ret = clk_bulk_prepare_enable(dwc_imx->num_clks, dwc_imx->clks);
+	if (ret) {
+		release_bus_freq(BUS_FREQ_HIGH);
+		return ret;
+	}
 
 	/* Wakeup disable */
 	dwc_imx8mp_wakeup_disable(dwc_imx);
+	dwc_imx->pm_suspended = false;
 
 	if (dwc_imx->wakeup_pending) {
 		dwc_imx->wakeup_pending = false;
