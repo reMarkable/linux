@@ -15,6 +15,8 @@
 #include "fsl_xcvr.h"
 #include "imx-pcm.h"
 
+#define FSL_XCVR_CAPDS_SIZE	256
+
 struct fsl_xcvr {
 	struct platform_device *pdev;
 	struct regmap *regmap;
@@ -31,6 +33,7 @@ struct fsl_xcvr {
 	struct snd_dmaengine_dai_dma_data dma_prms_tx;
 	struct snd_aes_iec958 rx_iec958;
 	struct snd_aes_iec958 tx_iec958;
+	u8 cap_ds[FSL_XCVR_CAPDS_SIZE];
 };
 
 static const u32 fsl_xcvr_earc_channels[] = { 1, 2, 8, 16, 32, }; /* one bit 6, 12 ? */
@@ -507,13 +510,20 @@ err_firmware:
 	val |= FSL_XCVR_EXT_CTRL_TX_FWM(FSL_XCVR_FIFO_WMK_TX);
 	/* disable DMA RD/WR */
 	mask |= FSL_XCVR_EXT_CTRL_DMA_RD_DIS | FSL_XCVR_EXT_CTRL_DMA_WR_DIS;
-	val |= FSL_XCVR_EXT_CTRL_DMA_RD_DIS | FSL_XCVR_EXT_CTRL_DMA_WR_DIS;
+	val  |= FSL_XCVR_EXT_CTRL_DMA_RD_DIS | FSL_XCVR_EXT_CTRL_DMA_WR_DIS;
+	/* Data RAM is 4KiB, last two pages: 8 and 9. Select page 8. */
+	mask |= FSL_XCVR_EXT_CTRL_PAGE_MASK;
+	val  |= FSL_XCVR_EXT_CTRL_PAGE(8);
+
 	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL, mask, val);
 	if (ret < 0) {
 		dev_err(dev, "Failed to set watermarks: %d\n", ret);
 		return ret;
 	}
 
+	/* Store Capabilities Data Structure into Data RAM */
+	memcpy_toio(xcvr->ram_addr + FSL_XCVR_CAP_DATA_STR, xcvr->cap_ds,
+		    FSL_XCVR_CAPDS_SIZE);
 	return 0;
 }
 
@@ -531,6 +541,15 @@ static int fsl_xcvr_type_bytes_info(struct snd_kcontrol *kcontrol,
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_BYTES;
 	uinfo->count = FIELD_SIZEOF(struct snd_aes_iec958, status);
+
+	return 0;
+}
+
+static int fsl_xcvr_type_capds_bytes_info(struct snd_kcontrol *kcontrol,
+					  struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_BYTES;
+	uinfo->count = FSL_XCVR_CAPDS_SIZE;
 
 	return 0;
 }
@@ -564,6 +583,28 @@ static int fsl_xcvr_tx_cs_put(struct snd_kcontrol *kcontrol,
 	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
 
 	memcpy(xcvr->tx_iec958.status, ucontrol->value.iec958.status, 24);
+
+	return 0;
+}
+
+static int fsl_xcvr_capds_get(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
+	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
+
+	memcpy(ucontrol->value.bytes.data, xcvr->cap_ds, FSL_XCVR_CAPDS_SIZE);
+
+	return 0;
+}
+
+static int fsl_xcvr_capds_put(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
+	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
+
+	memcpy(xcvr->cap_ds, ucontrol->value.bytes.data, FSL_XCVR_CAPDS_SIZE);
 
 	return 0;
 }
@@ -612,6 +653,15 @@ static struct snd_kcontrol_new fsl_xcvr_rx_ctls[] = {
 	},
 	SOC_ENUM_EXT("ARC Mode", fsl_xcvr_arc_mode_enum,
 		     fsl_xcvr_arc_mode_get, fsl_xcvr_arc_mode_put),
+	/* Capabilities data structure, bytes */
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_PCM,
+		.name = "Capabilities Data Structure",
+		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info = fsl_xcvr_type_capds_bytes_info,
+		.get = fsl_xcvr_capds_get,
+		.put = fsl_xcvr_capds_put,
+	},
 };
 
 static struct snd_kcontrol_new fsl_xcvr_tx_ctls[] = {

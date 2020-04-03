@@ -237,5 +237,6 @@
 #define FSL_XCVR_RX_CS_CTRL_1		0x24 /* Second RX CS control register */
 #define FSL_XCVR_RX_CS_BUFF_0		0x80 /* First  RX CS buffer */
 #define FSL_XCVR_RX_CS_BUFF_1		0xA0 /* Second RX CS buffer */
+#define FSL_XCVR_CAP_DATA_STR		0x300 /* Capabilities data structure */
 
 #endif /* __FSL_XCVR_H */
