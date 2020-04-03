@@ -134,9 +134,11 @@ struct imx_rproc {
 	void				*rsc_va;
 	struct mbox_client		cl;
 	struct mbox_client		cl_rxdb;
+	struct mbox_client		cl_txdb;
 	struct mbox_chan		*tx_ch;
 	struct mbox_chan		*rx_ch;
 	struct mbox_chan		*rxdb_ch;
+	struct mbox_chan		*txdb_ch;
 	struct delayed_work		rproc_work;
 	u32				mub_partition;
 	struct notifier_block		proc_nb;
@@ -447,6 +449,7 @@ static int imx_rproc_stop(struct rproc *rproc)
 	struct device *dev = priv->dev;
 	struct arm_smccc_res res;
 	int ret;
+	__u32 mmsg;
 
 	if (priv->ipc_only) {
 		dev_info(dev, "%s: IPC only\n", __func__);
@@ -463,6 +466,13 @@ static int imx_rproc_stop(struct rproc *rproc)
 		return -EBUSY;
 	}
 
+	if (priv->txdb_ch) {
+		ret = mbox_send_message(priv->txdb_ch, (void *)&mmsg);
+		if (ret) {
+			dev_err(dev, "txdb send fail: %d\n", ret);
+			return ret;
+		}
+	}
 #ifdef CONFIG_IMX_SCU
 	if (priv->dcfg->variant == IMX8QXP || priv->dcfg->variant == IMX8QM) {
 		if (priv->id == 1)
@@ -482,6 +492,8 @@ static int imx_rproc_stop(struct rproc *rproc)
 	if (priv->dcfg->variant == IMX8MN) {
 		arm_smccc_smc(IMX_SIP_SRC, IMX_SIP_SRC_M4_STOP, 0, 0, 0, 0, 0, 0, &res);
 		ret = res.a0;
+		if (res.a1)
+			dev_info(dev, "remotecore might not run into wfi, force stop: %ld %ld %ld\n", res.a0, res.a1, res.a2);
 	} else if (priv->enable) {
 		ret = reset_control_assert(priv->enable);
 		if (!ret)
@@ -928,7 +940,7 @@ static void imx_rproc_rxdb_callback(struct mbox_client *cl, void *msg)
 	spin_unlock_irqrestore(&priv->mu_lock, flags);
 }
 
-static int imx_rproc_rxdb_channel_init(struct rproc *rproc)
+static int imx_rproc_db_channel_init(struct rproc *rproc)
 {
 	struct imx_rproc *priv = rproc->priv;
 	struct device *dev = priv->dev;
@@ -949,6 +961,20 @@ static int imx_rproc_rxdb_channel_init(struct rproc *rproc)
 		dev_dbg(cl->dev, "failed to request mbox chan rxdb, ret %d\n",
 			ret);
 		return ret;
+	}
+
+	cl = &priv->cl_txdb;
+	cl->dev = dev;
+	cl->tx_block = true;
+	cl->tx_tout = 20;
+	cl->knows_txdone = false;
+
+	/* txdb is optional */
+	priv->txdb_ch = mbox_request_channel_byname(cl, "txdb");
+	if (IS_ERR(priv->txdb_ch)) {
+		dev_info(cl->dev, "No txdb, ret %d\n",
+			ret);
+		priv->txdb_ch = NULL;
 	}
 
 	return ret;
@@ -1123,7 +1149,7 @@ static int imx_rproc_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&(priv->rproc_work), imx_rproc_vq_work);
 
-	ret = imx_rproc_rxdb_channel_init(rproc);
+	ret = imx_rproc_db_channel_init(rproc);
 	if (ret)
 		goto err_put_mbox;
 
