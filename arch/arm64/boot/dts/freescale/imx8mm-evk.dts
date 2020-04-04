@@ -598,6 +598,7 @@
 		reg = <0x20>;
 		gpio-controller;
 		#gpio-cells = <2>;
+		vcc-supply = <&buck4_reg>;
 	};
 
 	ak4458_1: ak4458@10 {
