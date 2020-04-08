@@ -926,8 +926,6 @@ static int seco_mu_check_all_mu_supported(struct device *dev)
 		goto exit;
 	}
 
-dev_info(dev, "build info: %.8x", seco_ver);
-
 	if (((seco_ver & SECO_FW_VER_FEAT_MASK) >> SECO_FW_VER_FEAT_SHIFT)
 		< SECO_FW_VER_FEAT_MIN_ALL_MU) {
 		dev_err(dev, "current SECO FW do not support MU with Linux\n");
@@ -1075,13 +1073,17 @@ static int seco_mu_probe(struct platform_device *pdev)
 
 	ret = seco_mu_request_channel(dev, &priv->tx_chan, "txdb");
 	if (ret) {
-		dev_err(dev, "Failed to request txdb channel\n");
+		if (ret != -EPROBE_DEFER)
+			dev_err(dev, "Failed to request txdb channel\n");
+
 		goto exit;
 	}
 
 	ret = seco_mu_request_channel(dev, &priv->rx_chan, "rxdb");
 	if (ret) {
-		dev_err(dev, "Failed to request rxdb channel\n");
+		if (ret != -EPROBE_DEFER)
+			dev_err(dev, "Failed to request rxdb channel\n");
+
 		goto exit;
 	}
 
