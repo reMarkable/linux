@@ -1756,7 +1756,10 @@ static int v4l2_ioctl_streamon(struct file *file,
 	vpu_dbg(LVL_BIT_FLOW, "ctx[%d] %s on\n", ctx->str_index,
 		V4L2_TYPE_IS_OUTPUT(i) ? "OUTPUT" : "CAPTURE");
 
-	ctx->firmware_finished = false;
+	if (V4L2_TYPE_IS_OUTPUT(i)) {
+		ctx->firmware_finished = false;
+		ctx->eos_stop_added = false;
+	}
 
 	ret = vpu_dec_queue_enable(q_data, i);
 	if (!ret)
@@ -4620,9 +4623,6 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 	case VID_API_EVENT_STR_FMT_CHANGE:
 		break;
 	case VID_API_EVENT_FINISHED: {
-		if (ctx->eos_stop_added == false)
-			vpu_err("warning: receive VID_API_EVENT_FINISHED before eos_stop_added set\n");
-		ctx->eos_stop_added = false;
 		if (ctx->firmware_finished == true)
 			vpu_err("warning: receive VID_API_EVENT_FINISHED when firmware_finished == true\n");
 		ctx->firmware_finished = true;
@@ -6293,6 +6293,9 @@ static unsigned int v4l2_poll(struct file *filp, poll_table *wait)
 
 	src_q = &ctx->q_data[V4L2_SRC].vb2_q;
 	dst_q = &ctx->q_data[V4L2_DST].vb2_q;
+
+	if (ctx->firmware_finished && !src_q->streaming && !dst_q->streaming)
+		return POLLERR;
 
 	if ((ctx->firmware_finished || ctx->wait_res_change_done) &&
 	     !list_empty(&dst_q->done_list))
