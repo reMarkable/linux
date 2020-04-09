@@ -88,6 +88,14 @@
 		};
 	};
 
+	modem_reset: modem-reset {
+		compatible = "gpio-reset";
+		reset-gpios = <&pca6416_2 0 GPIO_ACTIVE_LOW>;
+		reset-delay-us = <2000>;
+		reset-post-delay-ms = <40>;
+		#reset-cells = <0>;
+	};
+
 	reg_can0_stby: regulator-can0-stby {
 		compatible = "regulator-fixed";
 		regulator-name = "can0-stby";
@@ -159,6 +167,7 @@
 		regulator-max-microvolt = <3300000>;
 		regulator-name = "m2_uart1_sel";
 		gpio = <&pca6416_1 6 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
 		regulator-always-on;
 	};
 
@@ -503,9 +512,10 @@
 };
 
 &lpuart1 {
-       pinctrl-names = "default";
-       pinctrl-1 = <&pinctrl_lpuart1>;
-       status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_lpuart1>;
+	resets = <&modem_reset>;
+	status = "okay";
 };
 
 &flexcan2 {
@@ -726,6 +736,7 @@
 		pinctrl_hog: hoggrp {
 			fsl,pins = <
 				IMX8DXL_COMP_CTL_GPIO_1V8_3V3_GPIORHB_PAD	0x000514a0
+				IMX8DXL_COMP_CTL_GPIO_1V8_3V3_GPIORHK_PAD	0x000014a0
 				IMX8DXL_SPI3_CS0_ADMA_ACM_MCLK_OUT1		0x0600004c
 				IMX8DXL_SNVS_TAMPER_OUT1_LSIO_GPIO2_IO05_IN	0x0600004c
 			>;
@@ -827,17 +838,17 @@
 
 		pinctrl_lpuart0: lpuart0grp {
 			fsl,pins = <
-				IMX8DXL_UART0_RX_ADMA_UART0_RX		0x0600004c
-				IMX8DXL_UART0_TX_ADMA_UART0_TX		0x0600004c
+				IMX8DXL_UART0_RX_ADMA_UART0_RX		0x06000020
+				IMX8DXL_UART0_TX_ADMA_UART0_TX		0x06000020
 			>;
 		};
 
                pinctrl_lpuart1: lpuart1grp {
                        fsl,pins = <
-                               IMX8DXL_UART1_TX_ADMA_UART1_TX          0x0600004c
-                               IMX8DXL_UART1_RX_ADMA_UART1_RX          0x0600004c
-                               IMX8DXL_UART1_RTS_B_ADMA_UART1_RTS_B    0x0600004c
-                               IMX8DXL_UART1_CTS_B_ADMA_UART1_CTS_B    0x0600004c
+				IMX8DXL_UART1_TX_ADMA_UART1_TX          0x06000020
+				IMX8DXL_UART1_RX_ADMA_UART1_RX          0x06000020
+				IMX8DXL_UART1_RTS_B_ADMA_UART1_RTS_B    0x06000020
+				IMX8DXL_UART1_CTS_B_ADMA_UART1_CTS_B    0x06000020
                        >;
                };
 
