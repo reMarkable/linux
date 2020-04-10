@@ -1896,6 +1896,7 @@
 				<0 0 0 3 &gic GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>,
 				<0 0 0 4 &gic GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 		fsl,max-link-speed = <3>;
+		power-domains = <&pcie_pd>;
 		resets = <&src IMX8MQ_RESET_PCIEPHY>,
 			 <&src IMX8MQ_RESET_PCIEPHY_PERST>,
 			 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_EN>,
