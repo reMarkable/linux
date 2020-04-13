@@ -1242,6 +1242,8 @@ static int imx_rproc_probe(struct platform_device *pdev)
 		goto err_put_scu;
 	}
 
+	rproc->auto_boot = of_property_read_bool(np, "fsl,rproc-auto-boot");
+
 	ret = rproc_add(rproc);
 	if (ret) {
 		dev_err(dev, "rproc_add failed\n");
