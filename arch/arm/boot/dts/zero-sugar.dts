@@ -362,6 +362,8 @@
 		max77818_fg: fuelgauge {
 			compatible = "maxim,max77818-fuelgauge";
 			power-supplies = <&max77818_chg>;
+			usb-phy1 = <&usbphynop1>;
+			usb-phy2 = <&usbphynop2>;
 			maxim,over-heat-temp = <600>; /* tenths of degree Celsius */
 			maxim,cold-temp = <(-200)>;
 			maxim,over-volt = <4400>; /* mV */
@@ -601,6 +603,7 @@
 	srp-disable;
 	hnp-disable;
 	dp-disable;
+	phy-charger-detection;
 	status = "okay";
 };
 
@@ -608,6 +611,7 @@
 	srp-disable;
 	hnp-disable;
 	asp-disable;
+	phy-charger-detection;
 	status = "okay";
 };
 
