@@ -176,17 +176,19 @@ static inline void test_len(struct hwrng *rng, size_t len, bool wait)
 {
 	u8 *buf;
 	int real_len;
+	struct caam_rng_ctx *ctx = to_caam_rng_ctx(rng);
+	struct device *dev = ctx->ctrldev;
 
 	buf = kzalloc(sizeof(u8) * len, GFP_KERNEL);
 	real_len = rng->read(rng, buf, len, wait);
-	pr_info("wanted %zu bytes, got %d\n", len, real_len);
+	dev_info(dev, "wanted %zu bytes, got %d\n", len, real_len);
 	if (real_len < 0)
-		pr_err("READ FAILED\n");
+		dev_err(dev, "READ FAILED\n");
 	else if (real_len == 0 && wait)
-		pr_err("WAITING FAILED\n");
+		dev_err(dev, "WAITING FAILED\n");
 	if (real_len > 0)
-		print_hex_dump(KERN_INFO, "random bytes@: ",
-			       DUMP_PREFIX_ADDRESS, 16, 4, buf, real_len, 1);
+		print_hex_dump_debug("random bytes@: ", DUMP_PREFIX_ADDRESS, 16,
+				     4, buf, real_len, 1);
 	kfree(buf);
 }
 
