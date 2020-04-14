@@ -9,7 +9,7 @@
 #include "imx8mp.dtsi"
 
 / {
-	model = "FSL i.MX8MP EVK";
+	model = "NXP i.MX8MPlus EVK board";
 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
 
 	reserved-memory {
