@@ -1683,7 +1683,7 @@ static const struct usb_gadget_ops usb_gadget_ops = {
 	.wakeup		= ci_udc_wakeup,
 	.set_selfpowered	= ci_udc_selfpowered,
 	.pullup		= ci_udc_pullup,
-	.vbus_draw	= ci_udc_vbus_draw,
+	/*.vbus_draw	= ci_udc_vbus_draw, */
 	.udc_start	= ci_udc_start,
 	.udc_stop	= ci_udc_stop,
 };
