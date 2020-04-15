@@ -288,9 +288,6 @@ static void ppm_msg_instance_work(struct work_struct *work)
 	    container_of(work, struct ppm_ctx, instance_work);
 	struct event_msg msg;
 
-	if (!ctx)
-		return;
-
 	memset(&msg, 0, sizeof(struct event_msg));
 
 	while (receive_msg_queue(ctx, &msg))
@@ -1166,14 +1163,6 @@ static bool is_ppm_poweroff(struct ppm_dev *ppmdev)
 
 }
 
-static int resume_mu(struct ppm_dev *ppmdev)
-{
-	if (!ppmdev)
-		return -EINVAL;
-
-	return 0;
-}
-
 static int resume_from_snapshot(struct ppm_dev *ppmdev)
 {
 	int ret = 0;
@@ -1211,8 +1200,6 @@ static int __maybe_unused ppm_resume(struct device *dev)
 
 	if (ppmdev->fw_is_ready == false)
 		goto exit;
-
-	resume_mu(ppmdev);
 
 	if (is_ppm_poweroff(ppmdev))
 		ret = resume_from_ppm_poweroff(ppmdev);
