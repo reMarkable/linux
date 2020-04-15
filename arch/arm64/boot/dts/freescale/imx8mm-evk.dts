@@ -284,6 +284,12 @@
 	status = "disabled";
 };
 
+&sai6 {
+	fsl,sai-monitor-spdif;
+	fsl,sai-asynchronous;
+	status = "okay";
+};
+
 &spdif1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_spdif1>;

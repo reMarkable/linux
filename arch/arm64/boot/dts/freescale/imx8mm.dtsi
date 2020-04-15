@@ -40,6 +40,11 @@
 		gpio2 = &gpio3;
 		gpio3 = &gpio4;
 		gpio4 = &gpio5;
+		sai1 = &sai1;
+		sai2 = &sai2;
+		sai3 = &sai3;
+		sai5 = &sai5;
+		sai6 = &sai6;
 	};
 
 	cpus {
