@@ -1681,7 +1681,7 @@ static int emvsim_resume(struct platform_device *pdev)
 {
 	struct emvsim_t *emvsim = platform_get_drvdata(pdev);
 
-	if (!emvsim->open_cnt) {
+	if (emvsim->open_cnt) {
 		clk_prepare_enable(emvsim->ipg);
 		clk_prepare_enable(emvsim->clk);
 	}
