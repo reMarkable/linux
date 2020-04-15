@@ -18,7 +18,7 @@ snd-soc-fsl-asrc-objs := fsl_asrc.o fsl_asrc_dma.o
 snd-soc-fsl-dsp-objs := fsl_dsp.o fsl_dsp_proxy.o fsl_dsp_pool.o \
 	fsl_dsp_library_load.o fsl_dsp_xaf_api.o fsl_dsp_cpu.o \
 	fsl_dsp_platform_compress.o
-snd-soc-fsl-sai-objs := fsl_sai.o
+snd-soc-fsl-sai-objs := fsl_sai.o fsl_sai_sysfs.o
 snd-soc-fsl-ssi-y := fsl_ssi.o
 snd-soc-fsl-ssi-$(CONFIG_DEBUG_FS) += fsl_ssi_dbg.o
 snd-soc-fsl-spdif-objs := fsl_spdif.o

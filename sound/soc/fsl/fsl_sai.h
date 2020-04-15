@@ -249,6 +249,7 @@ struct fsl_sai_dl_cfg {
 struct fsl_sai {
 	struct platform_device *pdev;
 	struct regmap *regmap;
+	struct regmap *regmap_gpr;
 	struct clk *bus_clk;
 	struct clk *mclk_clk[FSL_SAI_MCLK_MAX];
 	struct clk *pll8k_clk;
@@ -261,7 +262,10 @@ struct fsl_sai {
 	bool synchronous[2];
 	bool is_stream_opened[2];
 	bool is_dsd;
+	bool monitor_spdif;
+	bool monitor_spdif_start;
 
+	int gpr_idx;
 	int pcm_dl_cfg_cnt;
 	int dsd_dl_cfg_cnt;
 	struct fsl_sai_dl_cfg *pcm_dl_cfg;
@@ -285,6 +289,8 @@ struct fsl_sai {
 	struct fsl_sai_verid verid;
 	struct fsl_sai_param param;
 };
+
+const struct attribute_group *fsl_sai_get_dev_attribute_group(bool monitor_spdif);
 
 #define TX 1
 #define RX 0
