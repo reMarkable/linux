@@ -274,11 +274,9 @@ static int snvs_secvio_probe(struct platform_device *pdev)
 	}
 	svpriv->svregs = (struct snvs_full __force *)snvsregs;
 
-	svpriv->clk = devm_clk_get(&pdev->dev, "ipg");
-	if (IS_ERR(svpriv->clk)) {
-		dev_err(&pdev->dev, "can't get snvs clock\n");
-		svpriv->clk = NULL;
-	}
+	svpriv->clk = devm_clk_get_optional(&pdev->dev, "ipg");
+	if (IS_ERR(svpriv->clk))
+		return PTR_ERR(svpriv->clk);
 
 	clk_prepare_enable(svpriv->clk);
 
