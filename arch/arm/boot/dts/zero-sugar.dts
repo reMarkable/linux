@@ -101,6 +101,27 @@
 		enable-active-high;
 	};
 
+	reg_sdoe: regulator-sdoe {
+		compatible = "regulator-fixed";
+		regulator-name = "SDOE";
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&pinctrl_sdoe_reg>;
+		pinctrl-1 = <&pinctrl_sdoe_reg>;
+		gpio = <&gpio3 27 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_gdoe: regulator-gdoe {
+		compatible = "regulator-fixed";
+		regulator-name = "GDOE";
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&pinctrl_gdoe_reg>;
+		pinctrl-1 = <&pinctrl_gdoe_reg>;
+		gpio = <&gpio3 21 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
 	wifi_pwrseq: wifi_pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		pinctrl-names = "default", "sleep";
@@ -520,6 +541,7 @@
 	pinctrl-1 = <&pinctrl_lcdif>;
 	/* TODO: enable-gpio = <&extended_io 7 GPIO_ACTIVE_LOW>; */
 	lcd-supply = <&reg_epdpmic>;
+	lcd2-supply = <&reg_sdoe>;
 	display = <&display0>;
 	prevent-frying-pan;
 	status = "okay";
@@ -717,13 +739,13 @@
 			MX7D_PAD_LCD_DATA13__LCD_DATA13		0x79
 			MX7D_PAD_LCD_DATA14__LCD_DATA14		0x79
 			MX7D_PAD_LCD_DATA15__LCD_DATA15		0x79
-			MX7D_PAD_LCD_DATA16__LCD_DATA16		0x79
+
 			MX7D_PAD_LCD_DATA17__LCD_DATA17		0x79
 			MX7D_PAD_LCD_DATA18__LCD_DATA18		0x79
 			MX7D_PAD_LCD_DATA19__LCD_DATA19		0x79
 			MX7D_PAD_LCD_DATA20__LCD_DATA20		0x79
 			MX7D_PAD_LCD_DATA21__LCD_DATA21		0x79
-			MX7D_PAD_LCD_DATA22__LCD_DATA22		0x79
+
 			MX7D_PAD_LCD_DATA23__LCD_DATA23		0x79
 			MX7D_PAD_LCD_CLK__LCD_CLK		0x79
 			MX7D_PAD_LCD_ENABLE__LCD_ENABLE		0x79
@@ -876,6 +898,18 @@
 		fsl,pins = <
 			/* TOUCH_PWR_EN */
 			MX7D_PAD_GPIO1_IO11__GPIO1_IO11		0x14
+		>;
+	};
+
+	pinctrl_sdoe_reg: sdoereggrp {
+		fsl,pins = <
+			MX7D_PAD_LCD_DATA22__GPIO3_IO27		0x74
+		>;
+	};
+
+	pinctrl_gdoe_reg: gdoereggrp {
+		fsl,pins = <
+			MX7D_PAD_LCD_DATA16__GPIO3_IO21		0x74
 		>;
 	};
 
