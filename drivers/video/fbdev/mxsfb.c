@@ -252,6 +252,7 @@ struct mxsfb_info {
 	unsigned dotclk_delay;
 	const struct mxsfb_devdata *devdata;
 	struct regulator *reg_lcd;
+	struct regulator *reg_lcd2;
 	bool wait4vsync;
 	struct completion vsync_complete;
 	struct completion flip_complete;
@@ -701,6 +702,15 @@ static void mxsfb_enable_controller(struct fb_info *fb_info)
 		}
 	}
 
+	if (host->reg_lcd2) {
+		ret = regulator_enable(host->reg_lcd2);
+		if (ret) {
+			dev_err(&host->pdev->dev,
+				"lcd2 regulator enable failed:	%d\n", ret);
+			return;
+		}
+	}
+
 	if (host->dispdrv && host->dispdrv->drv->enable) {
 		ret = host->dispdrv->drv->enable(host->dispdrv, fb_info);
 		if (ret < 0)
@@ -727,6 +737,13 @@ static void mxsfb_enable_controller(struct fb_info *fb_info)
 				if (ret)
 					dev_err(&host->pdev->dev,
 						"lcd regulator disable failed: %d\n",
+						ret);
+			}
+			if (host->reg_lcd2) {
+				ret = regulator_disable(host->reg_lcd2);
+				if (ret)
+					dev_err(&host->pdev->dev,
+						"lcd2 regulator disable failed: %d\n",
 						ret);
 			}
 			return;
@@ -798,6 +815,12 @@ static void mxsfb_disable_controller(struct fb_info *fb_info)
 		if (ret)
 			dev_err(&host->pdev->dev,
 				"lcd regulator disable failed: %d\n", ret);
+	}
+	if (host->reg_lcd2) {
+		ret = regulator_disable(host->reg_lcd2);
+		if (ret)
+			dev_err(&host->pdev->dev,
+				"lcd2 regulator disable failed: %d\n", ret);
 	}
 }
 
@@ -2253,6 +2276,20 @@ static int mxsfb_probe(struct platform_device *pdev)
 					"Failed to get lcd-supply (errno %d), ignoring\n",
 					ret);
 			host->reg_lcd = NULL;
+		}
+	}
+
+	host->reg_lcd2 = devm_regulator_get(&pdev->dev, "lcd2");
+	if (IS_ERR(host->reg_lcd2)) {
+		ret = PTR_ERR(host->reg_lcd2);
+		if (ret == -EPROBE_DEFER) {
+			dev_warn(&pdev->dev, "lcd2-supply not ready, deferring\n");
+			goto fb_release;
+		} else {
+			dev_err(&pdev->dev,
+					"Failed to get lcd2-supply (errno %d), ignoring\n",
+					ret);
+			host->reg_lcd2 = NULL;
 		}
 	}
 
