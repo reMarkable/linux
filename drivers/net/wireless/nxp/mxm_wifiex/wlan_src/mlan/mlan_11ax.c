@@ -1,0 +1,762 @@
+/** @file mlan_11ax.c
+ *
+ *  @brief This file defines the private and adapter data
+ *  structures and declares global function prototypes used
+ *  in MLAN module.
+ *
+ *
+ *  Copyright 2014-2020 NXP
+ *
+ *  NXP CONFIDENTIAL
+ *  The source code contained or described herein and all documents related to
+ *  the source code (Materials) are owned by NXP, its
+ *  suppliers and/or its licensors. Title to the Materials remains with NXP,
+ *  its suppliers and/or its licensors. The Materials contain
+ *  trade secrets and proprietary and confidential information of NXP, its
+ *  suppliers and/or its licensors. The Materials are protected by worldwide copyright
+ *  and trade secret laws and treaty provisions. No part of the Materials may be
+ *  used, copied, reproduced, modified, published, uploaded, posted,
+ *  transmitted, distributed, or disclosed in any way without NXP's prior
+ *  express written permission.
+ *
+ *  No license under any patent, copyright, trade secret or other intellectual
+ *  property right is granted to or conferred upon you by disclosure or delivery
+ *  of the Materials, either expressly, by implication, inducement, estoppel or
+ *  otherwise. Any license under such intellectual property rights must be
+ *  express and approved by NXP in writing.
+ *
+ */
+
+#include "mlan.h"
+#include "mlan_join.h"
+#include "mlan_util.h"
+#include "mlan_ioctl.h"
+#include "mlan_fw.h"
+#include "mlan_main.h"
+#include "mlan_wmm.h"
+#include "mlan_11n.h"
+#include "mlan_11ax.h"
+#include "mlan_11ac.h"
+
+/********************************************************
+			Local Variables
+********************************************************/
+
+/********************************************************
+			Global Variables
+********************************************************/
+
+/********************************************************
+			Local Functions
+********************************************************/
+
+/********************************************************
+			Global Functions
+********************************************************/
+
+/**
+ *  @brief This function prints the 802.11ax HE mac capability
+ *
+ *  @param pmadapter     A pointer to mlan_adapter structure
+ *  @param cap           Capability value
+ *
+ *  @return        N/A
+ */
+void
+wlan_show_dot11axmaccap(pmlan_adapter pmadapter, t_u32 cap)
+{
+	ENTER();
+
+	LEAVE();
+	return;
+}
+
+/**
+ *  @brief This function check if AP support TWT Response.
+ *
+ *  @param pbss_desc    A pointer to BSSDescriptor_t structure
+ *
+ *  @return        MTRUE/MFALSE
+ */
+t_u8
+wlan_check_ap_11ax_twt_supported(BSSDescriptor_t *pbss_desc)
+{
+	if (!pbss_desc->phe_cap)
+		return MFALSE;
+	if (!(pbss_desc->phe_cap->he_mac_cap[0] & HE_MAC_CAP_TWT_REQ_SUPPORT))
+		return MFALSE;
+	if (!pbss_desc->pext_cap)
+		return MFALSE;
+	if (!ISSUPP_EXTCAP_EXT_TWT_RESP(pbss_desc->pext_cap->ext_cap))
+		return MFALSE;
+	return MTRUE;
+}
+
+/**
+ *  @brief This function check if we should enable TWT support
+ *
+ *  @param pbss_desc    A pointer to BSSDescriptor_t structure
+ *
+ *  @return        MTRUE/MFALSE
+ */
+t_u8
+wlan_check_11ax_twt_supported(mlan_private *pmpriv, BSSDescriptor_t *pbss_desc)
+{
+	MrvlIEtypes_He_cap_t *phecap = MNULL;
+	MrvlIEtypes_He_cap_t *hw_he_cap = MNULL;
+
+	if (!wlan_check_ap_11ax_twt_supported(pbss_desc))
+		return MFALSE;
+	if (pbss_desc->bss_band & BAND_A) {
+		hw_he_cap =
+			(MrvlIEtypes_He_cap_t *) & pmpriv->adapter->hw_he_cap;
+		phecap = (MrvlIEtypes_He_cap_t *) & pmpriv->user_he_cap;
+	} else {
+		hw_he_cap =
+			(MrvlIEtypes_He_cap_t *) & pmpriv->adapter->
+			hw_2g_he_cap;
+		phecap = (MrvlIEtypes_He_cap_t *) & pmpriv->user_2g_he_cap;
+	}
+	if (!(hw_he_cap->he_mac_cap[0] & HE_MAC_CAP_TWT_REQ_SUPPORT))
+		return MFALSE;
+	if (phecap->he_mac_cap[0] & HE_MAC_CAP_TWT_REQ_SUPPORT) ;
+	return MTRUE;
+	return MFALSE;
+}
+
+/**
+ *  @brief This function prints the 802.11ax HE PHY cap
+ *
+ *  @param pmadapter A pointer to mlan_adapter structure
+ *  @param support   Support value
+ *
+ *  @return        N/A
+ */
+void
+wlan_show_dot11axphycap(pmlan_adapter pmadapter, t_u32 support)
+{
+	ENTER();
+
+	LEAVE();
+	return;
+}
+
+/**
+ *  @brief This function fills the HE cap tlv out put format is LE, not CPU
+ *
+ *  @param priv         A pointer to mlan_private structure
+ *  @param band         5G or 2.4 G
+ *  @param phe_cap      A pointer to MrvlIEtypes_Data_t structure
+ *  @param flag         TREU--pvht_cap has the setting for resp
+ *                            MFALSE -- pvht_cap is clean
+ *
+ *  @return bytes added to the phe_cap
+ */
+t_u16
+wlan_fill_he_cap_tlv(mlan_private *pmpriv, t_u8 band,
+		     MrvlIEtypes_Extension_t * phe_cap, t_u8 flag)
+{
+	pmlan_adapter pmadapter = pmpriv->adapter;
+	t_u16 len = 0;
+
+	if (!phe_cap) {
+		LEAVE();
+		return 0;
+	}
+	if (band & BAND_A) {
+		memcpy_ext(pmadapter, (t_u8 *)phe_cap, pmpriv->user_he_cap,
+			   pmpriv->user_hecap_len,
+			   sizeof(MrvlIEtypes_He_cap_t));
+		len = pmpriv->user_hecap_len;
+	} else {
+		memcpy_ext(pmadapter, (t_u8 *)phe_cap, pmpriv->user_2g_he_cap,
+			   pmpriv->user_2g_hecap_len,
+			   sizeof(MrvlIEtypes_He_cap_t));
+		len = pmpriv->user_2g_hecap_len;
+	}
+	phe_cap->type = wlan_cpu_to_le16(phe_cap->type);
+	phe_cap->len = wlan_cpu_to_le16(phe_cap->len);
+
+	LEAVE();
+	return len;
+}
+
+/**
+ *  @brief This function append the 802_11ax HE capability  tlv
+ *
+ *  @param pmpriv       A pointer to mlan_private structure
+ *  @param pbss_desc    A pointer to BSSDescriptor_t structure
+ *  @param ppbuffer     A Pointer to command buffer pointer
+ *
+ *  @return bytes added to the buffer
+ */
+int
+wlan_cmd_append_11ax_tlv(mlan_private *pmpriv, BSSDescriptor_t *pbss_desc,
+			 t_u8 **ppbuffer)
+{
+	pmlan_adapter pmadapter = pmpriv->adapter;
+	MrvlIEtypes_He_cap_t *phecap = MNULL;
+	int len = 0;
+	t_u8 bw_80p80 = MFALSE;
+
+	ENTER();
+
+	/* Null Checks */
+	if (ppbuffer == MNULL) {
+		LEAVE();
+		return 0;
+	}
+	if (*ppbuffer == MNULL) {
+		LEAVE();
+		return 0;
+	}
+    /** check if AP support HE, if not return right away */
+	if (!pbss_desc->phe_cap) {
+		LEAVE();
+		return 0;
+	}
+	bw_80p80 = wlan_is_80_80_support(pmpriv, pbss_desc);
+	phecap = (MrvlIEtypes_He_cap_t *) * ppbuffer;
+	if (pbss_desc->bss_band & BAND_A) {
+		memcpy_ext(pmadapter, *ppbuffer, pmpriv->user_he_cap,
+			   pmpriv->user_hecap_len, pmpriv->user_hecap_len);
+		*ppbuffer += pmpriv->user_hecap_len;
+		len = pmpriv->user_hecap_len;
+	} else {
+		memcpy_ext(pmadapter, *ppbuffer, pmpriv->user_2g_he_cap,
+			   pmpriv->user_2g_hecap_len,
+			   pmpriv->user_2g_hecap_len);
+		*ppbuffer += pmpriv->user_2g_hecap_len;
+		len = pmpriv->user_2g_hecap_len;
+	}
+	phecap->type = wlan_cpu_to_le16(phecap->type);
+	phecap->len = wlan_cpu_to_le16(phecap->len);
+
+	if (bw_80p80) {
+		/** configure 2*2 to 1*1 to support 80+80Mhz*/
+		/** set 1*1 mcs rate for 80Mhz rx*/
+		phecap->he_txrx_mcs_support[0] &= ~(MBIT(0) | MBIT(1));
+		/** set 1*1 mcs rate for 80Mhz tx*/
+		phecap->he_txrx_mcs_support[3] &= ~(MBIT(0) | MBIT(1));
+		/** set 1*1 mcs rate for 160Mhz rx*/
+		phecap->he160_txrx_mcs_support[0] &= ~(MBIT(0) | MBIT(1));
+		/** set 1*1 mcs rate for 160Mhz tx*/
+		phecap->he160_txrx_mcs_support[3] &= ~(MBIT(0) | MBIT(1));
+		/** set 1*1 mcs rate for 80+80Mhz rx*/
+		phecap->he8080_txrx_mcs_support[0] &= ~(MBIT(0) | MBIT(1));
+		/** set 1*1 mcs rate for 80+80Mhz tx*/
+		phecap->he8080_txrx_mcs_support[3] &= ~(MBIT(0) | MBIT(1));
+	} else {
+		/** reset BIT3 and BIT4 channel width ,not support 80 + 80*/
+		/** not support 160Mhz now, if support,not reset bit3 */
+		phecap->he_phy_cap[0] &= ~(MBIT(3) | MBIT(4));
+	}
+
+	LEAVE();
+	return len;
+}
+
+/**
+ *  @brief This function save the 11ax cap from FW.
+ *
+ *  @param pmadapater   A pointer to mlan_adapter
+ *  @param hw_he_cap    A pointer to MrvlIEtypes_Extension_t
+ *
+ *  @return N/A
+ */
+void
+wlan_update_11ax_cap(mlan_adapter *pmadapter,
+		     MrvlIEtypes_Extension_t * hw_he_cap)
+{
+
+	MrvlIEtypes_He_cap_t *phe_cap = MNULL;
+	t_u8 i = 0;
+	t_u8 he_cap_2g = 0;
+
+	ENTER();
+	if ((hw_he_cap->len + sizeof(MrvlIEtypesHeader_t)) >
+	    sizeof(pmadapter->hw_he_cap)) {
+		PRINTM(MERROR, "hw_he_cap too big, len=%d\n", hw_he_cap->len);
+		LEAVE();
+		return;
+	}
+	phe_cap = (MrvlIEtypes_He_cap_t *) hw_he_cap;
+	if (phe_cap->
+	    he_phy_cap[0] & (AX_2G_40MHZ_SUPPORT | AX_2G_20MHZ_SUPPORT)) {
+		pmadapter->hw_2g_hecap_len =
+			hw_he_cap->len + sizeof(MrvlIEtypesHeader_t);
+		memcpy_ext(pmadapter, pmadapter->hw_2g_he_cap,
+			   (t_u8 *)hw_he_cap,
+			   hw_he_cap->len + sizeof(MrvlIEtypesHeader_t),
+			   sizeof(pmadapter->hw_2g_he_cap));
+		pmadapter->fw_bands |= BAND_GAX;
+		pmadapter->config_bands |= BAND_GAX;
+		he_cap_2g = MTRUE;
+		DBG_HEXDUMP(MCMD_D, "2.4G HE capability IE ",
+			    (t_u8 *)pmadapter->hw_2g_he_cap,
+			    pmadapter->hw_2g_hecap_len);
+	} else {
+		pmadapter->fw_bands |= BAND_AAX;
+		pmadapter->config_bands |= BAND_AAX;
+		pmadapter->hw_hecap_len =
+			hw_he_cap->len + sizeof(MrvlIEtypesHeader_t);
+		memcpy_ext(pmadapter, pmadapter->hw_he_cap, (t_u8 *)hw_he_cap,
+			   hw_he_cap->len + sizeof(MrvlIEtypesHeader_t),
+			   sizeof(pmadapter->hw_he_cap));
+		DBG_HEXDUMP(MCMD_D, "5G HE capability IE ",
+			    (t_u8 *)pmadapter->hw_he_cap,
+			    pmadapter->hw_hecap_len);
+	}
+	for (i = 0; i < pmadapter->priv_num; i++) {
+		if (pmadapter->priv[i]) {
+			pmadapter->priv[i]->config_bands =
+				pmadapter->config_bands;
+			if (he_cap_2g) {
+				pmadapter->priv[i]->user_2g_hecap_len =
+					pmadapter->hw_2g_hecap_len;
+				memcpy_ext(pmadapter,
+					   pmadapter->priv[i]->user_2g_he_cap,
+					   pmadapter->hw_2g_he_cap,
+					   pmadapter->hw_2g_hecap_len,
+					   sizeof(pmadapter->priv[i]->
+						  user_2g_he_cap));
+			} else {
+				pmadapter->priv[i]->user_hecap_len =
+					pmadapter->hw_hecap_len;
+				memcpy_ext(pmadapter,
+					   pmadapter->priv[i]->user_he_cap,
+					   pmadapter->hw_he_cap,
+					   pmadapter->hw_hecap_len,
+					   sizeof(pmadapter->priv[i]->
+						  user_he_cap));
+			}
+		}
+	}
+	LEAVE();
+	return;
+}
+
+/**
+ *  @brief This function check if 11AX is allowed in bandcfg
+ *
+ *  @param pmpriv       A pointer to mlan_private structure
+ *  @param bss_band     bss band
+ *
+ *  @return 0--not allowed, other value allowed
+ */
+t_u16
+wlan_11ax_bandconfig_allowed(mlan_private *pmpriv, t_u16 bss_band)
+{
+
+	if (!IS_FW_SUPPORT_11AX(pmpriv->adapter))
+		return MFALSE;
+	if (pmpriv->bss_mode == MLAN_BSS_MODE_IBSS) {
+		if (bss_band & BAND_G)
+			return (pmpriv->adapter->adhoc_start_band & BAND_GAX);
+		else if (bss_band & BAND_A)
+			return (pmpriv->adapter->adhoc_start_band & BAND_AAX);
+	} else {
+		if (bss_band & BAND_G)
+			return (pmpriv->config_bands & BAND_GAX);
+		else if (bss_band & BAND_A)
+			return (pmpriv->config_bands & BAND_AAX);
+	}
+	return MFALSE;
+}
+
+/**
+ *  @brief Set 11ax configuration
+ *
+ *  @param pmadapter    A pointer to mlan_adapter structure
+ *  @param pioctl_req   A pointer to ioctl request buffer
+ *
+ *  @return     MLAN_STATUS_PENDING --success, otherwise fail
+ */
+static mlan_status
+wlan_11ax_ioctl_hecfg(IN pmlan_adapter pmadapter, IN pmlan_ioctl_req pioctl_req)
+{
+	mlan_status ret = MLAN_STATUS_SUCCESS;
+	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
+	mlan_ds_11ax_cfg *cfg = MNULL;
+	t_u16 cmd_action = 0;
+
+	ENTER();
+
+	if (pioctl_req->buf_len < sizeof(mlan_ds_11ax_cfg)) {
+		PRINTM(MINFO, "MLAN bss IOCTL length is too short.\n");
+		pioctl_req->data_read_written = 0;
+		pioctl_req->buf_len_needed = sizeof(mlan_ds_11ax_cfg);
+		pioctl_req->status_code = MLAN_ERROR_INVALID_PARAMETER;
+		LEAVE();
+		return MLAN_STATUS_RESOURCE;
+	}
+
+	cfg = (mlan_ds_11ax_cfg *) pioctl_req->pbuf;
+
+	if ((cfg->param.he_cfg.band & MBIT(0)) &&
+	    !(pmadapter->fw_bands & BAND_GAX)) {
+		PRINTM(MERROR, "FW don't support 2.4G AX\n");
+		return MLAN_STATUS_FAILURE;
+	}
+	if ((cfg->param.he_cfg.band & MBIT(1)) &&
+	    !(pmadapter->fw_bands & BAND_AAX)) {
+		PRINTM(MERROR, "FW don't support 5G AX\n");
+		return MLAN_STATUS_FAILURE;
+	}
+	if (pioctl_req->action == MLAN_ACT_SET)
+		cmd_action = HostCmd_ACT_GEN_SET;
+	else
+		cmd_action = HostCmd_ACT_GEN_GET;
+
+	/* Send request to firmware */
+	ret = wlan_prepare_cmd(pmpriv,
+			       HostCmd_CMD_11AX_CFG,
+			       cmd_action,
+			       0,
+			       (t_void *)pioctl_req,
+			       (t_void *)&cfg->param.he_cfg);
+	if (ret == MLAN_STATUS_SUCCESS)
+		ret = MLAN_STATUS_PENDING;
+
+	LEAVE();
+	return ret;
+}
+
+/**
+ *  @brief 11ax configuration handler
+ *
+ *  @param pmadapter    A pointer to mlan_adapter structure
+ *  @param pioctl_req   A pointer to ioctl request buffer
+ *
+ *  @return     MLAN_STATUS_SUCCESS --success, otherwise fail
+ */
+mlan_status
+wlan_11ax_cfg_ioctl(pmlan_adapter pmadapter, pmlan_ioctl_req pioctl_req)
+{
+	mlan_status status = MLAN_STATUS_SUCCESS;
+	mlan_ds_11ax_cfg *cfg = MNULL;
+
+	ENTER();
+
+	cfg = (mlan_ds_11ax_cfg *) pioctl_req->pbuf;
+	switch (cfg->sub_command) {
+	case MLAN_OID_11AX_HE_CFG:
+		status = wlan_11ax_ioctl_hecfg(pmadapter, pioctl_req);
+		break;
+	case MLAN_OID_11AX_CMD_CFG:
+		status = wlan_11ax_ioctl_cmd(pmadapter, pioctl_req);
+		break;
+	default:
+		pioctl_req->status_code = MLAN_ERROR_IOCTL_INVALID;
+		status = MLAN_STATUS_FAILURE;
+		break;
+	}
+	LEAVE();
+	return status;
+}
+
+/**
+ *  @brief This function prepares 11ax cfg command
+ *
+ *  @param pmpriv       A pointer to mlan_private structure
+ *  @param cmd      A pointer to HostCmd_DS_COMMAND structure
+ *  @param cmd_action   the action: GET or SET
+ *  @param pdata_buf    A pointer to data buffer
+ *  @return         MLAN_STATUS_SUCCESS
+ */
+mlan_status
+wlan_cmd_11ax_cfg(IN pmlan_private pmpriv,
+		  IN HostCmd_DS_COMMAND *cmd,
+		  IN t_u16 cmd_action, IN t_void *pdata_buf)
+{
+	pmlan_adapter pmadapter = pmpriv->adapter;
+	HostCmd_DS_11AX_CFG *axcfg = &cmd->params.axcfg;
+	mlan_ds_11ax_he_cfg *hecfg = (mlan_ds_11ax_he_cfg *) pdata_buf;
+	MrvlIEtypes_Extension_t *tlv = MNULL;
+	t_u8 *pos = MNULL;
+
+	ENTER();
+	cmd->command = wlan_cpu_to_le16(HostCmd_CMD_11AX_CFG);
+	cmd->size = sizeof(HostCmd_DS_11AX_CFG) + S_DS_GEN;
+
+	axcfg->action = wlan_cpu_to_le16(cmd_action);
+	axcfg->band_config = hecfg->band & 0xFF;
+
+	pos = (t_u8 *)axcfg->val;
+    /**HE Capability */
+	if (hecfg->he_cap.len && (hecfg->he_cap.ext_id == HE_CAPABILITY)) {
+		tlv = (MrvlIEtypes_Extension_t *) pos;
+		tlv->type = wlan_cpu_to_le16(hecfg->he_cap.id);
+		tlv->len = wlan_cpu_to_le16(hecfg->he_cap.len);
+		memcpy_ext(pmadapter, &tlv->ext_id,
+			   &hecfg->he_cap.ext_id, hecfg->he_cap.len,
+			   MRVDRV_SIZE_OF_CMD_BUFFER - cmd->size);
+		cmd->size += hecfg->he_cap.len + sizeof(MrvlIEtypesHeader_t);
+		pos += hecfg->he_cap.len + sizeof(MrvlIEtypesHeader_t);
+	}
+
+	cmd->size = wlan_cpu_to_le16(cmd->size);
+
+	LEAVE();
+	return MLAN_STATUS_SUCCESS;
+}
+
+/**
+ *  @brief This function handles the command response of 11axcfg
+ *
+ *  @param pmpriv       A pointer to mlan_private structure
+ *  @param resp         A pointer to HostCmd_DS_COMMAND
+ *  @param pioctl_buf   A pointer to mlan_ioctl_req structure
+ *
+ *  @return        MLAN_STATUS_SUCCESS
+ */
+mlan_status
+wlan_ret_11ax_cfg(IN pmlan_private pmpriv,
+		  IN HostCmd_DS_COMMAND *resp, IN mlan_ioctl_req *pioctl_buf)
+{
+	pmlan_adapter pmadapter = pmpriv->adapter;
+	mlan_ds_11ax_cfg *cfg = MNULL;
+	mlan_ds_11ax_he_capa *hecap = MNULL;
+	HostCmd_DS_11AX_CFG *axcfg = &resp->params.axcfg;
+	MrvlIEtypes_Extension_t *tlv = MNULL;
+	t_u16 left_len = 0, tlv_type = 0, tlv_len = 0;
+
+	ENTER();
+
+	if (pioctl_buf == MNULL)
+		goto done;
+
+	cfg = (mlan_ds_11ax_cfg *) pioctl_buf->pbuf;
+	cfg->param.he_cfg.band = axcfg->band_config;
+	hecap = (mlan_ds_11ax_he_capa *) & cfg->param.he_cfg.he_cap;
+
+	/* TLV parse */
+	left_len = resp->size - sizeof(HostCmd_DS_11AX_CFG) - S_DS_GEN;
+	tlv = (MrvlIEtypes_Extension_t *) axcfg->val;
+	pmpriv->user_hecap_len = 0;
+
+	while (left_len > sizeof(MrvlIEtypesHeader_t)) {
+		tlv_type = wlan_le16_to_cpu(tlv->type);
+		tlv_len = wlan_le16_to_cpu(tlv->len);
+		if (tlv_type == EXTENSION) {
+			switch (tlv->ext_id) {
+			case HE_CAPABILITY:
+				hecap->id = tlv_type;
+				hecap->len = tlv_len;
+				memcpy_ext(pmadapter, (t_u8 *)&hecap->ext_id,
+					   (t_u8 *)&tlv->ext_id, tlv_len,
+					   sizeof(mlan_ds_11ax_he_capa) -
+					   sizeof(MrvlIEtypesHeader_t));
+				if (cfg->param.he_cfg.band & MBIT(1)) {
+					memcpy_ext(pmadapter,
+						   (t_u8 *)&pmpriv->user_he_cap,
+						   (t_u8 *)tlv,
+						   tlv_len +
+						   sizeof(MrvlIEtypesHeader_t),
+						   sizeof(pmpriv->user_he_cap));
+					pmpriv->user_hecap_len =
+						MIN(tlv_len +
+						    sizeof(MrvlIEtypesHeader_t),
+						    sizeof(pmpriv->
+							   user_he_cap));
+					PRINTM(MCMND, "user_hecap_len=%d\n",
+					       pmpriv->user_hecap_len);
+				} else {
+					memcpy_ext(pmadapter,
+						   (t_u8 *)&pmpriv->
+						   user_2g_he_cap, (t_u8 *)tlv,
+						   tlv_len +
+						   sizeof(MrvlIEtypesHeader_t),
+						   sizeof(pmpriv->
+							  user_2g_he_cap));
+					pmpriv->user_2g_hecap_len =
+						MIN(tlv_len +
+						    sizeof(MrvlIEtypesHeader_t),
+						    sizeof(pmpriv->
+							   user_2g_he_cap));
+					PRINTM(MCMND, "user_2g_hecap_len=%d\n",
+					       pmpriv->user_2g_hecap_len);
+				}
+				break;
+			default:
+				break;
+			}
+		}
+
+		left_len -= (sizeof(MrvlIEtypesHeader_t) + tlv_len);
+		tlv = (MrvlIEtypes_Extension_t *) ((t_u8 *)tlv + tlv_len +
+						   sizeof(MrvlIEtypesHeader_t));
+	}
+
+done:
+	LEAVE();
+	return MLAN_STATUS_SUCCESS;
+}
+
+/**
+ *  @brief 11ax command handler
+ *
+ *  @param pmadapter    A pointer to mlan_adapter structure
+ *  @param pioctl_req   A pointer to ioctl request buffer
+ *
+ *  @return     MLAN_STATUS_SUCCESS --success, otherwise fail
+ */
+mlan_status
+wlan_11ax_ioctl_cmd(pmlan_adapter pmadapter, pmlan_ioctl_req pioctl_req)
+{
+	mlan_status status = MLAN_STATUS_SUCCESS;
+	mlan_ds_11ax_cmd_cfg *cfg = MNULL;
+	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
+	t_u16 cmd_action = 0;
+
+	ENTER();
+
+	if (pioctl_req->buf_len < sizeof(mlan_ds_11ax_cmd_cfg)) {
+		PRINTM(MINFO, "MLAN bss IOCTL length is too short.\n");
+		pioctl_req->data_read_written = 0;
+		pioctl_req->buf_len_needed = sizeof(mlan_ds_11ax_cmd_cfg);
+		pioctl_req->status_code = MLAN_ERROR_INVALID_PARAMETER;
+		LEAVE();
+		return MLAN_STATUS_RESOURCE;
+	}
+	cfg = (mlan_ds_11ax_cmd_cfg *) pioctl_req->pbuf;
+
+	if (pioctl_req->action == MLAN_ACT_SET)
+		cmd_action = HostCmd_ACT_GEN_SET;
+	else
+		cmd_action = HostCmd_ACT_GEN_GET;
+
+	/* Send request to firmware */
+	status = wlan_prepare_cmd(pmpriv,
+				  HostCmd_CMD_11AX_CMD,
+				  cmd_action,
+				  0, (t_void *)pioctl_req, (t_void *)cfg);
+	if (status == MLAN_STATUS_SUCCESS)
+		status = MLAN_STATUS_PENDING;
+
+	LEAVE();
+	return status;
+}
+
+/**
+ *  @brief This function prepares 11ax command
+ *
+ *  @param pmpriv       A pointer to mlan_private structure
+ *  @param cmd      A pointer to HostCmd_DS_COMMAND structure
+ *  @param cmd_action   the action: GET or SET
+ *  @param pdata_buf    A pointer to data buffer
+ *  @return         MLAN_STATUS_SUCCESS
+ */
+mlan_status
+wlan_cmd_11ax_cmd(IN pmlan_private pmpriv,
+		  IN HostCmd_DS_COMMAND *cmd,
+		  IN t_u16 cmd_action, IN t_void *pdata_buf)
+{
+	pmlan_adapter pmadapter = pmpriv->adapter;
+	HostCmd_DS_11AX_CMD_CFG *axcmd = &cmd->params.axcmd;
+	mlan_ds_11ax_cmd_cfg *ds_11ax_cmd = (mlan_ds_11ax_cmd_cfg *) pdata_buf;
+	mlan_ds_11ax_sr_cmd *sr_cmd =
+		(mlan_ds_11ax_sr_cmd *) & ds_11ax_cmd->param;
+	mlan_ds_11ax_beam_cmd *beam_cmd =
+		(mlan_ds_11ax_beam_cmd *) & ds_11ax_cmd->param;
+	mlan_ds_11ax_htc_cmd *htc_cmd =
+		(mlan_ds_11ax_htc_cmd *) & ds_11ax_cmd->param;
+	MrvlIEtypes_Data_t *tlv = MNULL;
+
+	ENTER();
+	cmd->command = wlan_cpu_to_le16(HostCmd_CMD_11AX_CMD);
+	cmd->size = sizeof(HostCmd_DS_11AX_CMD_CFG) + S_DS_GEN;
+
+	axcmd->action = wlan_cpu_to_le16(cmd_action);
+	axcmd->sub_id = wlan_cpu_to_le16(ds_11ax_cmd->sub_id);
+	switch (ds_11ax_cmd->sub_id) {
+	case MLAN_11AXCMD_SR_SUBID:
+		tlv = (MrvlIEtypes_Data_t *)axcmd->val;
+		tlv->header.type = wlan_cpu_to_le16(sr_cmd->type);
+		tlv->header.len = wlan_cpu_to_le16(sr_cmd->len);
+		memcpy_ext(pmadapter, tlv->data,
+			   &sr_cmd->param.obss_pd_offset.offset, sr_cmd->len,
+			   sr_cmd->len);
+		cmd->size += +sizeof(MrvlIEtypesHeader_t) + sr_cmd->len;
+		break;
+	case MLAN_11AXCMD_BEAM_SUBID:
+		axcmd->val[0] = beam_cmd->value;
+		cmd->size += sizeof(t_u8);
+		break;
+	case MLAN_11AXCMD_HTC_SUBID:
+		axcmd->val[0] = htc_cmd->value;
+		cmd->size += sizeof(t_u8);
+		break;
+	default:
+		PRINTM(MERROR, "Unknown subcmd %x\n", ds_11ax_cmd->sub_id);
+		break;
+	}
+
+	cmd->size = wlan_cpu_to_le16(cmd->size);
+
+	LEAVE();
+	return MLAN_STATUS_SUCCESS;
+}
+
+/**
+ *  @brief This function handles the command response of 11axcmd
+ *
+ *  @param pmpriv       A pointer to mlan_private structure
+ *  @param resp         A pointer to HostCmd_DS_COMMAND
+ *  @param pioctl_buf   A pointer to mlan_ioctl_req structure
+ *
+ *  @return        MLAN_STATUS_SUCCESS
+ */
+mlan_status
+wlan_ret_11ax_cmd(IN pmlan_private pmpriv,
+		  IN HostCmd_DS_COMMAND *resp, IN mlan_ioctl_req *pioctl_buf)
+{
+	pmlan_adapter pmadapter = pmpriv->adapter;
+	mlan_ds_11ax_cmd_cfg *cfg = MNULL;
+	HostCmd_DS_11AX_CMD_CFG *axcmd = &resp->params.axcmd;
+	MrvlIEtypes_Data_t *tlv = MNULL;
+	t_s16 left_len = 0;
+	t_u16 tlv_type = 0, tlv_len = 0;
+
+	ENTER();
+
+	if (pioctl_buf == MNULL)
+		goto done;
+
+	cfg = (mlan_ds_11ax_cmd_cfg *) pioctl_buf->pbuf;
+	cfg->sub_id = wlan_le16_to_cpu(axcmd->sub_id);
+
+	switch (axcmd->sub_id) {
+	case MLAN_11AXCMD_SR_SUBID:
+		/* TLV parse */
+		left_len =
+			resp->size - sizeof(HostCmd_DS_11AX_CMD_CFG) - S_DS_GEN;
+		//tlv = (MrvlIEtypes_Extension_t *)axcfg->val;
+		tlv = (MrvlIEtypes_Data_t *)axcmd->val;
+		while (left_len > sizeof(MrvlIEtypesHeader_t)) {
+			tlv_type = wlan_le16_to_cpu(tlv->header.type);
+			tlv_len = wlan_le16_to_cpu(tlv->header.len);
+			memcpy_ext(pmadapter,
+				   cfg->param.sr_cfg.param.obss_pd_offset.
+				   offset, tlv->data, tlv_len, tlv_len);
+			left_len -= (sizeof(MrvlIEtypesHeader_t) + tlv_len);
+			tlv = (MrvlIEtypes_Data_t *)((t_u8 *)tlv + tlv_len +
+						     sizeof
+						     (MrvlIEtypesHeader_t));
+		}
+		break;
+	case MLAN_11AXCMD_BEAM_SUBID:
+		cfg->param.beam_cfg.value = *axcmd->val;
+		break;
+	case MLAN_11AXCMD_HTC_SUBID:
+		cfg->param.htc_cfg.value = *axcmd->val;
+		break;
+	default:
+		PRINTM(MERROR, "Unknown subcmd %x\n", axcmd->sub_id);
+		break;
+	}
+
+done:
+	LEAVE();
+	return MLAN_STATUS_SUCCESS;
+}

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# NXP Wireless device configuration
+#
+config MXMWIFIEX
+	tristate "NXP MxM WiFi Driver"
+	depends on CFG80211
+	---help---
+		This driver is multi-chip-multi-interface driver
+		(indicating Multi-Chip x Multi-Interface support) based on
+		NXP 802.11n/ac chipsets. If you choose to build it as a module,
+		it will be build 2 modules moal.ko and mlan.ko.
