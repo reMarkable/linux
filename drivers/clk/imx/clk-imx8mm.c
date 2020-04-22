@@ -769,25 +769,27 @@ static int pll_setting_show(struct seq_file *s, void *data)
 }
 DEFINE_SHOW_ATTRIBUTE(pll_setting);
 
-static int __init dfll_debug_init(void)
+static int __init pll_debug_init(void)
 {
 	struct dentry *root, *audio_pll1, *audio_pll2;
 
-	/* create a root dir for audio pll monitor */
-	root = debugfs_create_dir("audio_pll_monitor", NULL);
-	audio_pll1 = debugfs_create_dir("audio_pll1", root);
-	audio_pll2 = debugfs_create_dir("audio_pll2", root);
+	if (of_machine_is_compatible("fsl,imx8mm")) {
+		/* create a root dir for audio pll monitor */
+		root = debugfs_create_dir("audio_pll_monitor", NULL);
+		audio_pll1 = debugfs_create_dir("audio_pll1", root);
+		audio_pll2 = debugfs_create_dir("audio_pll2", root);
 
-	debugfs_create_file_unsafe("delta_k", 0444, audio_pll1,
-		clks[IMX8MM_AUDIO_PLL1], &delta_k_fops);
-	debugfs_create_file("pll_parameter", 0x444, audio_pll1,
-		clks[IMX8MM_AUDIO_PLL1], &pll_setting_fops);
-	debugfs_create_file_unsafe("delta_k", 0444, audio_pll2,
-		clks[IMX8MM_AUDIO_PLL2], &delta_k_fops);
-	debugfs_create_file("pll_parameter", 0x444, audio_pll2,
-		clks[IMX8MM_AUDIO_PLL2], &pll_setting_fops);
+		debugfs_create_file_unsafe("delta_k", 0444, audio_pll1,
+			clks[IMX8MM_AUDIO_PLL1], &delta_k_fops);
+		debugfs_create_file("pll_parameter", 0x444, audio_pll1,
+			clks[IMX8MM_AUDIO_PLL1], &pll_setting_fops);
+		debugfs_create_file_unsafe("delta_k", 0444, audio_pll2,
+			clks[IMX8MM_AUDIO_PLL2], &delta_k_fops);
+		debugfs_create_file("pll_parameter", 0x444, audio_pll2,
+			clks[IMX8MM_AUDIO_PLL2], &pll_setting_fops);
+	}
 
 	return 0;
 }
 #endif /* CONFIG_DEBUG_FS */
-late_initcall(dfll_debug_init);
+late_initcall(pll_debug_init);
