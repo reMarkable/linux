@@ -31,6 +31,10 @@
 	status = "disable";
 };
 
+&easrc {
+	status = "disable";
+};
+
 &uart4 {
 	/* console  for debug dsp*/
 	pinctrl-names = "default";
@@ -61,9 +65,11 @@
 		<&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>,
 		<&clk IMX8MP_AUDIO_PLL1_OUT>,
 		<&clk IMX8MP_AUDIO_PLL2_OUT>,
+		<&audiomix_clk IMX8MP_CLK_AUDIOMIX_ASRC_IPG>,
 		<&clk IMX8MP_CLK_UART4_ROOT>,
 		 <&clk IMX8MP_CLK_UART4_ROOT>;
-	clock-names = "ocram", "core", "debug", "mu2", "sdma_root", "sai_ipg", "sai_mclk", "pll8k", "pll11k", "uart_ipg", "uart_per";
+	clock-names = "ocram", "core", "debug", "mu2", "sdma_root", "sai_ipg", "sai_mclk", "pll8k", "pll11k",
+	"asrc_ipg", "uart_ipg", "uart_per";
 
 	power-domains = <&audiomix_pd>;
 	assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
