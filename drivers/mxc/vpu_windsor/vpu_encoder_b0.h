@@ -261,6 +261,10 @@ struct vpu_attr {
 	struct vpu_statistic statistic;
 	MEDIAIP_ENC_PARAM param;
 	struct v4l2_fract fival;
+	u32 h264_vui_sar_enable;
+	u32 h264_vui_sar_idc;
+	u32 h264_vui_sar_width;
+	u32 h264_vui_sar_height;
 
 	unsigned long ts_start[2];
 	unsigned long msg_count;

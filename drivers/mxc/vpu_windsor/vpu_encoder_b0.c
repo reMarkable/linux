@@ -57,7 +57,7 @@
 #include "vpu_encoder_mu.h"
 #include "vpu_encoder_pm.h"
 
-#define VPU_ENC_DRIVER_VERSION		"1.0.2"
+#define VPU_ENC_DRIVER_VERSION		"1.0.3"
 
 struct vpu_frame_info {
 	struct list_head list;
@@ -2764,11 +2764,44 @@ static int handle_event_start_done(struct vpu_ctx *ctx)
 	return 0;
 }
 
+static void vpu_enc_config_expert_mode_parm(struct vpu_ctx *ctx)
+{
+	struct vpu_attr *attr = NULL;
+	pMEDIAIP_ENC_EXPERT_MODE_PARAM param = NULL;
+
+	if (!ctx)
+		return;
+
+	attr = get_vpu_ctx_attr(ctx);
+	if (!attr)
+		return;
+
+	param = get_rpc_expert_mode_param(ctx);
+	if (!param)
+		return;
+
+	param->Config.frame_rate_num = attr->fival.numerator;
+	param->Config.frame_rate_den = attr->fival.denominator;
+	vpu_dbg(LVL_FLOW, "[%d:%d] h264 frame rate: %d/%d\n",
+		ctx->core_dev->id, ctx->str_index,
+		param->Config.frame_rate_num, param->Config.frame_rate_den);
+
+	param->Config.h264_aspect_ratio_present = attr->h264_vui_sar_enable;
+	param->Config.aspect_ratio = attr->h264_vui_sar_idc;
+	param->Config.h264_aspect_ratio_sar_width = attr->h264_vui_sar_width;
+	param->Config.h264_aspect_ratio_sar_height = attr->h264_vui_sar_height;
+	vpu_dbg(LVL_FLOW,
+		"[%d:%d] h264 vui sar:enable=%d, idc=%d, width=%d, height=%d\n",
+		ctx->core_dev->id, ctx->str_index,
+		attr->h264_vui_sar_enable,
+		attr->h264_vui_sar_idc,
+		attr->h264_vui_sar_width,
+		attr->h264_vui_sar_height);
+}
+
 static int handle_event_mem_request(struct vpu_ctx *ctx,
 				MEDIAIP_ENC_MEM_REQ_DATA *req_data)
 {
-	pMEDIAIP_ENC_EXPERT_MODE_PARAM pEncExpertModeParam = NULL;
-	struct vpu_attr *attr = NULL;
 	int ret;
 
 	if (!ctx || !req_data)
@@ -2779,10 +2812,9 @@ static int handle_event_mem_request(struct vpu_ctx *ctx,
 		vpu_err("fail to alloc encoder memory\n");
 		return ret;
 	}
-	pEncExpertModeParam = get_rpc_expert_mode_param(ctx);
-	attr = get_vpu_ctx_attr(ctx);
-	pEncExpertModeParam->Config.frame_rate_num = attr->fival.numerator;
-	pEncExpertModeParam->Config.frame_rate_den = attr->fival.denominator;
+
+	vpu_enc_config_expert_mode_parm(ctx);
+
 	vpu_ctx_send_cmd(ctx, GTB_ENC_CMD_STREAM_START, 0, NULL);
 	set_bit(VPU_ENC_STATUS_START_SEND, &ctx->status);
 	vpu_dbg(LVL_FLOW, "[%d:%d] start stream\n",

@@ -264,6 +264,64 @@ static int set_h264_cpb_size(struct v4l2_ctrl *ctrl)
 	return 0;
 }
 
+static int set_h264_vui_sar_enable(struct v4l2_ctrl *ctrl)
+{
+	struct vpu_ctx *ctx = v4l2_ctrl_to_ctx(ctrl);
+	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
+
+	vpu_dbg(LVL_CTRL, "set h264 vui sar enable %d\n", ctrl->val);
+	mutex_lock(&ctx->instance_mutex);
+	if (ctrl->val)
+		attr->h264_vui_sar_enable = 1;
+	else
+		attr->h264_vui_sar_enable = 0;
+	mutex_unlock(&ctx->instance_mutex);
+
+	return 0;
+}
+
+static int set_h264_vui_sar_idc(struct v4l2_ctrl *ctrl)
+{
+	struct vpu_ctx *ctx = v4l2_ctrl_to_ctx(ctrl);
+	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
+
+	vpu_dbg(LVL_CTRL, "set h264 vui sar idc %d\n", ctrl->val);
+	mutex_lock(&ctx->instance_mutex);
+	if (ctrl->val < V4L2_MPEG_VIDEO_H264_VUI_SAR_IDC_EXTENDED)
+		attr->h264_vui_sar_idc = ctrl->val;
+	else
+		attr->h264_vui_sar_idc = VPU_ENC_H264_EXTENDED_SAR;
+	mutex_unlock(&ctx->instance_mutex);
+
+	return 0;
+}
+
+static int set_h264_vui_sar_width(struct v4l2_ctrl *ctrl)
+{
+	struct vpu_ctx *ctx = v4l2_ctrl_to_ctx(ctrl);
+	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
+
+	vpu_dbg(LVL_CTRL, "set h264 vui sar width %d\n", ctrl->val);
+	mutex_lock(&ctx->instance_mutex);
+	attr->h264_vui_sar_width = ctrl->val;
+	mutex_unlock(&ctx->instance_mutex);
+
+	return 0;
+}
+
+static int set_h264_vui_sar_height(struct v4l2_ctrl *ctrl)
+{
+	struct vpu_ctx *ctx = v4l2_ctrl_to_ctx(ctrl);
+	struct vpu_attr *attr = get_vpu_ctx_attr(ctx);
+
+	vpu_dbg(LVL_CTRL, "set h264 vui sar height %d\n", ctrl->val);
+	mutex_lock(&ctx->instance_mutex);
+	attr->h264_vui_sar_height = ctrl->val;
+	mutex_unlock(&ctx->instance_mutex);
+
+	return 0;
+}
+
 static int add_ctrl_h264_profile(struct vpu_ctx *ctx)
 {
 	static const struct v4l2_ctrl_ops ctrl_h264_profile_ops = {
@@ -595,6 +653,87 @@ static int add_ctrl_h264_cpb_size(struct vpu_ctx *ctx)
 	return 0;
 }
 
+static int add_ctrl_h264_vui_sar_enable(struct vpu_ctx *ctx)
+{
+	static const struct v4l2_ctrl_ops ctrl_vui_sar_enable_ops = {
+		.s_ctrl = set_h264_vui_sar_enable,
+	};
+	struct v4l2_ctrl *ctrl;
+
+	ctrl = v4l2_ctrl_new_std(&ctx->ctrl_handler,
+				&ctrl_vui_sar_enable_ops,
+				V4L2_CID_MPEG_VIDEO_H264_VUI_SAR_ENABLE,
+				0, 1, 1, 1);
+	if (!ctrl) {
+		vpu_err("add ctrl h264 vui sar enable fail\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int add_ctrl_h264_vui_sar_idc(struct vpu_ctx *ctx)
+{
+	static const struct v4l2_ctrl_ops ctrl_vui_sar_idc_ops = {
+		.s_ctrl = set_h264_vui_sar_idc,
+	};
+	struct v4l2_ctrl *ctrl;
+
+	ctrl = v4l2_ctrl_new_std_menu(&ctx->ctrl_handler,
+				&ctrl_vui_sar_idc_ops,
+				V4L2_CID_MPEG_VIDEO_H264_VUI_SAR_IDC,
+				V4L2_MPEG_VIDEO_H264_VUI_SAR_IDC_EXTENDED,
+				0x0,
+				V4L2_MPEG_VIDEO_H264_VUI_SAR_IDC_1x1);
+
+
+	if (!ctrl) {
+		vpu_err("add ctrl h264 vui sar idc fail\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int add_ctrl_h264_vui_sar_width(struct vpu_ctx *ctx)
+{
+	static const struct v4l2_ctrl_ops ctrl_vui_sar_width_ops = {
+		.s_ctrl = set_h264_vui_sar_width,
+	};
+	struct v4l2_ctrl *ctrl;
+
+	ctrl = v4l2_ctrl_new_std(&ctx->ctrl_handler,
+				&ctrl_vui_sar_width_ops,
+				V4L2_CID_MPEG_VIDEO_H264_VUI_EXT_SAR_WIDTH,
+				0, USHRT_MAX, 1, 1);
+
+	if (!ctrl) {
+		vpu_err("add ctrl h264 vui sar width fail\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int add_ctrl_h264_vui_sar_height(struct vpu_ctx *ctx)
+{
+	static const struct v4l2_ctrl_ops ctrl_vui_sar_height_ops = {
+		.s_ctrl = set_h264_vui_sar_height,
+	};
+	struct v4l2_ctrl *ctrl;
+
+	ctrl = v4l2_ctrl_new_std(&ctx->ctrl_handler,
+				&ctrl_vui_sar_height_ops,
+				V4L2_CID_MPEG_VIDEO_H264_VUI_EXT_SAR_HEIGHT,
+				0, USHRT_MAX, 1, 1);
+	if (!ctrl) {
+		vpu_err("add ctrl h264 vui sar height fail\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int vpu_enc_register_ctrls(struct vpu_ctx *ctx)
 {
 	add_ctrl_h264_profile(ctx);
@@ -612,6 +751,10 @@ static int vpu_enc_register_ctrls(struct vpu_ctx *ctx)
 	add_ctrl_display_re_ordering(ctx);
 	add_ctrl_force_key_frame(ctx);
 	add_ctrl_h264_cpb_size(ctx);
+	add_ctrl_h264_vui_sar_enable(ctx);
+	add_ctrl_h264_vui_sar_idc(ctx);
+	add_ctrl_h264_vui_sar_width(ctx);
+	add_ctrl_h264_vui_sar_height(ctx);
 
 	return 0;
 }
