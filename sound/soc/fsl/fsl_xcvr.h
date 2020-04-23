@@ -8,15 +8,9 @@
 #ifndef __FSL_XCVR_H
 #define __FSL_XCVR_H
 
-#define FSL_XCVR_AMODE_SPDIF	(0x00 << 2)
-#define FSL_XCVR_AMODE_ARC	(0x01 << 2)
-#define FSL_XCVR_AMODE_EARC	(0x02 << 2)
-#define FSL_XCVR_AMODE_RESERVED	(0x03 << 2)
-#define FSL_XCVR_AMODE_MASK	GENMASK(3, 2)
-
-#define FSL_XCVR_DMODE_TX	BIT(0)
-#define FSL_XCVR_DMODE_RX	BIT(1)
-#define FSL_XCVR_DMODE_MASK	GENMASK(1, 0)
+#define FSL_XCVR_MODE_SPDIF	0
+#define FSL_XCVR_MODE_ARC	1
+#define FSL_XCVR_MODE_EARC	2
 
 /* XCVR Registers */
 #define FSL_XCVR_REG_OFFSET		0x800 /* regs offset */
