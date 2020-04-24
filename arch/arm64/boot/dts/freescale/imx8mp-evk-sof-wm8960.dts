@@ -77,6 +77,14 @@
 	compatible = "fsl,imx8mp-dsp";
 	reg = <0x0 0x3B6E8000 0x0 0x88000>;
 	tplg-name = "sof-imx8mp-wm8960.tplg";
+
+	clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_OCRAMA_IPG>,
+			<&audiomix_clk IMX8MP_CLK_AUDIOMIX_DSP_ROOT>,
+			<&audiomix_clk IMX8MP_CLK_AUDIOMIX_DSPDBG_ROOT>,
+			<&audiomix_clk IMX8MP_CLK_AUDIOMIX_MU2_ROOT>,
+			<&audiomix_clk IMX8MP_CLK_AUDIOMIX_SDMA3_ROOT>,
+			<&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_IPG>;
+	clock-names = "ocram", "core", "debug", "mu2", "sdma3", "sai3_ipg";
 	machine-drv-name = "asoc-simple-card";
 	status = "okay";
 };
