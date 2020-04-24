@@ -38,8 +38,8 @@
 		label = "wm8960-audio";
 		simple-audio-card,bitclock-master = <&sndcodec>;
 		simple-audio-card,frame-master = <&sndcodec>;
-		hp-det-gpio = <&gpio4 0 0>;
-		mic-det-gpio = <&gpio4 0 0>;
+		simple-audio-card,hp-det-gpio = <&gpio4 0 0>;
+		simple-audio-card,mic-det-gpio = <&gpio4 0 0>;
 		simple-audio-card,widgets =
 			"Headphone", "Headphone Jack",
 			"Speaker", "Ext Spk",
@@ -90,3 +90,6 @@
 	status = "disabled";
 };
 
+&sdma3 {
+	status = "disabled";
+};
