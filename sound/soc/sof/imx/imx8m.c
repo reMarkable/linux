@@ -15,11 +15,9 @@
 #include <linux/module.h>
 #include <sound/sof.h>
 #include <sound/sof/xtensa.h>
-#include <linux/firmware/imx/ipc.h>
 #include <linux/firmware/imx/dsp.h>
 #include <linux/clk.h>
 
-#include <dt-bindings/firmware/imx/rsrc.h>
 #include "../ops.h"
 #include "../../fsl/fsl_dsp_audiomix.h"
 
