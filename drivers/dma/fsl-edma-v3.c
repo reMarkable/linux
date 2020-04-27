@@ -807,7 +807,8 @@ static int fsl_edma3_alloc_chan_resources(struct dma_chan *chan)
 				32, 0);
 	pm_runtime_get_sync(fsl_chan->dev);
 	/* clear meaningless pending irq anyway */
-	writel(1, fsl_chan->membase + EDMA_CH_INT);
+	if (readl(fsl_chan->membase + EDMA_CH_INT))
+		writel(1, fsl_chan->membase + EDMA_CH_INT);
 
 	ret = devm_request_irq(&pdev->dev, fsl_chan->txirq,
 			fsl_edma3_tx_handler, fsl_chan->edma3->irqflag,
