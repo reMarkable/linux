@@ -288,6 +288,25 @@ static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 	u32 m_ctl = 0, v_ctl = 0, m_isr = 0, v_isr = 0, val;
 	int ret = 0;
 
+	if (tx && xcvr->mode == FSL_XCVR_MODE_SPDIF) {
+		val  = FSL_XCVR_TX_DPTH_CTRL_BYPASS_FEM;
+		val |= FSL_XCVR_TX_DPTH_CTRL_FRM_FMT;
+		ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_DPTH_CTRL_SET, val);
+		if (ret < 0) {
+			dev_err(dai->dev, "Failed to set TX_DPTH: %d\n", ret);
+			return ret;
+		}
+	} else {
+		/* Release M0+ reset */
+		ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL,
+					 FSL_XCVR_EXT_CTRL_CORE_RESET, 0);
+		if (ret < 0) {
+			dev_err(dai->dev, "M0+ core release failed: %d\n", ret);
+			return ret;
+		}
+		mdelay(100);
+	}
+
 	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_IER0,
 				 FSL_XCVR_IRQ_EARC_ALL, FSL_XCVR_IRQ_EARC_ALL);
 	if (ret < 0) {
@@ -334,24 +353,6 @@ static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 	if (ret < 0) {
 		dev_err(dai->dev, "Error while setting M0 ISR: %d\n", ret);
 		return ret;
-	}
-
-	if (tx && xcvr->mode == FSL_XCVR_MODE_SPDIF) {
-		val  = FSL_XCVR_TX_DPTH_CTRL_BYPASS_FEM;
-		val |= FSL_XCVR_TX_DPTH_CTRL_FRM_FMT;
-		ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_DPTH_CTRL_SET, val);
-		if (ret < 0) {
-			dev_err(dai->dev, "Failed to set TX_DPTH: %d\n", ret);
-			return ret;
-		}
-	} else {
-		/* Release M0+ reset */
-		ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL,
-					 FSL_XCVR_EXT_CTRL_CORE_RESET, 0);
-		if (ret < 0) {
-			dev_err(dai->dev, "M0+ core release failed: %d\n", ret);
-			return ret;
-		}
 	}
 
 	return 0;
