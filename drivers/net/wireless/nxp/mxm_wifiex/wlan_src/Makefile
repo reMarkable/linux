@@ -265,6 +265,7 @@ ifeq ($(GCC_VERSION),1)
 endif
 	ccflags-y += -Wno-stringop-overflow
 	ccflags-y += -Wno-tautological-compare
+	ccflags-y += -Wno-packed-bitfield-compat
 
 #############################################################################
 # Make Targets
