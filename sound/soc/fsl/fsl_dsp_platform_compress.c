@@ -366,8 +366,8 @@ static int dsp_platform_compr_pointer(struct snd_compr_stream *cstream,
 	tstamp->copied_total = drv->client->input_bytes;
 	tstamp->byte_offset = drv->client->input_bytes;
 	tstamp->pcm_frames = 0x900;
-	tstamp->pcm_io_frames = g_param[0].mixData.value,
-	tstamp->sampling_rate = g_param[1].mixData.value;
+	tstamp->pcm_io_frames = g_param[1].mixData.value;
+	tstamp->sampling_rate = g_param[0].mixData.value;
 
 out:
 	return 0;
