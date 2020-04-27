@@ -838,8 +838,15 @@ static void fsl_edma3_free_chan_resources(struct dma_chan *chan)
 
 	vchan_dma_desc_free_list(&fsl_chan->vchan, &head);
 	dma_pool_destroy(fsl_chan->tcd_pool);
+
+	spin_lock_irqsave(&fsl_chan->vchan.lock, flags);
 	fsl_chan->tcd_pool = NULL;
 	fsl_chan->used = false;
+	/* Clear interrupt before power off */
+	if (readl(fsl_chan->membase + EDMA_CH_INT))
+		writel(1, fsl_chan->membase + EDMA_CH_INT);
+	spin_unlock_irqrestore(&fsl_chan->vchan.lock, flags);
+
 	pm_runtime_put_sync(fsl_chan->dev);
 }
 
