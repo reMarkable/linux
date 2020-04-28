@@ -133,6 +133,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8qxp-mek-dom0.dtb imx8qxp-mek-root.dtb \
 			  imx8qxp-mek-inmate.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8dxl-evk.dtb imx8dxl-evk-rpmsg.dtb \
 			  imx8dxl-evk-enet0.dtb imx8dxl-evk-pcie.dtb \
+			  imx8dxl-evk-lpspi-slave.dtb \
 			  imx8dxl-ddr3-evk.dtb
 dtb-$(CONFIG_ARCH_S32) += s32v234-evb.dtb \
 			  s32v234-sbc.dtb

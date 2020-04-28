@@ -322,7 +322,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpspi3>;
 	pinctrl-assert-gpios = <&pca6416_1 7 GPIO_ACTIVE_HIGH>;
-	status = "disabled";
+	status = "okay";
 
 	spidev0: spi@0 {
 		reg = <0>;
