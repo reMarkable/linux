@@ -660,9 +660,9 @@ static void imx_ldb_encoder_disable(struct drm_encoder *encoder)
 		imx_ldb_ch->phy_is_on = false;
 	}
 
-	if (imx_ldb_ch == &ldb->channel[0])
+	if (imx_ldb_ch == &ldb->channel[0] || dual)
 		ldb->ldb_ctrl &= ~LDB_CH0_MODE_EN_MASK;
-	else if (imx_ldb_ch == &ldb->channel[1])
+	else if (imx_ldb_ch == &ldb->channel[1] || dual)
 		ldb->ldb_ctrl &= ~LDB_CH1_MODE_EN_MASK;
 
 	regmap_write(ldb->regmap, ldb->ldb_ctrl_reg, ldb->ldb_ctrl);
