@@ -791,5 +791,5 @@ static int __init pll_debug_init(void)
 
 	return 0;
 }
-#endif /* CONFIG_DEBUG_FS */
 late_initcall(pll_debug_init);
+#endif /* CONFIG_DEBUG_FS */
