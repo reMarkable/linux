@@ -670,7 +670,6 @@ woal_sdio_suspend(struct device *dev)
 #ifdef MMC_PM_FUNC_SUSPENDED
 		handle->suspend_notify_req = MTRUE;
 #endif
-		woal_sched_timeout(100);
 		hs_actived =
 			woal_enable_hs(woal_get_priv
 				       (handle, MLAN_BSS_ROLE_ANY));

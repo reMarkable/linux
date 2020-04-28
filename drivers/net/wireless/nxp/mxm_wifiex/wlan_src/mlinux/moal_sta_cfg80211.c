@@ -3453,7 +3453,8 @@ woal_cfg80211_reg_notifier(struct wiphy *wiphy,
 		break;
 	}
 	if (priv->wdev && priv->wdev->wiphy &&
-	    (request->initiator != NL80211_REGDOM_SET_BY_COUNTRY_IE)) {
+	    (request->initiator != NL80211_REGDOM_SET_BY_COUNTRY_IE) &&
+	    (MTRUE != is_cfg80211_special_region_code(region))) {
 		band = priv->phandle->band;
 		priv->phandle->band = IEEE80211_BAND_2GHZ;
 		woal_send_domain_info_cmd_fw(priv, MOAL_IOCTL_WAIT);
