@@ -45,6 +45,15 @@ config DRM_DUMB_VGA_DAC
 	  Support for non-programmable RGB to VGA DAC bridges, such as ADI
 	  ADV7123, TI THS8134 and THS8135 or passive resistor ladder DACs.
 
+config DRM_FSL_IMX_LVDS_BRIDGE
+	tristate "Freescale i.MX LVDS display bridge"
+	depends on MFD_SYSCON
+	depends on OF
+	select DRM_PANEL_BRIDGE
+	help
+	  Support Freescale i.MX parallel to LVDS Display Bridge (LDB).
+	  This bridge is embedded in a SoC.
+
 config DRM_LVDS_ENCODER
 	tristate "Transparent parallel to LVDS encoder support"
 	depends on OF
