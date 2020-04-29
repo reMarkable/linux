@@ -305,6 +305,7 @@
 #include "imx8dxl-ss-hsio.dtsi"
 #include "imx8dxl-ss-ddr.dtsi"
 #include "imx8dxl-ss-security.dtsi"
+#include "imx8qxp-ss-lcdif.dtsi"
 
 &edma2 {
 	status = "okay";
