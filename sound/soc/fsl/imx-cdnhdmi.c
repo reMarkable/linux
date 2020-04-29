@@ -458,8 +458,9 @@ static int imx_cdnhdmi_probe(struct platform_device *pdev)
 
 	data->support_channels[0] = 2;
 	data->support_channels[1] = 4;
-	data->support_channels[2] = 8;
-	data->support_channels_num = 3;
+	data->support_channels[2] = 6;
+	data->support_channels[3] = 8;
+	data->support_channels_num = 4;
 
 	of_property_read_u32(pdev->dev.of_node, "protocol",
 					&data->protocol);
