@@ -277,6 +277,7 @@ struct hdmi_codec_priv {
 	unsigned long busy;
 	struct snd_soc_jack *jack;
 	unsigned int jack_status;
+	struct snd_aes_iec958 iec;
 };
 
 static const struct snd_soc_dapm_widget hdmi_widgets[] = {
@@ -385,6 +386,51 @@ static int hdmi_codec_chmap_ctl_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+/*
+ * ALSA iec958 controls
+ */
+static int hdmi_codec_iec958_info(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_IEC958;
+	uinfo->count = 1;
+	return 0;
+}
+
+static int hdmi_codec_iec958_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *comp = snd_kcontrol_chip(kcontrol);
+	struct hdmi_codec_priv *hcp = snd_soc_component_get_drvdata(comp);
+	int i;
+
+	for (i = 0; i < 24; i++)
+		ucontrol->value.iec958.status[i] = hcp->iec.status[i];
+
+	return 0;
+}
+
+static int hdmi_codec_iec958_put(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *comp = snd_kcontrol_chip(kcontrol);
+	struct hdmi_codec_priv *hcp = snd_soc_component_get_drvdata(comp);
+	int i;
+
+	for (i = 0; i < 24; i++)
+		hcp->iec.status[i] = ucontrol->value.iec958.status[i];
+
+	return 0;
+}
+
+static const struct snd_kcontrol_new hdmi_codec_controls = {
+	.iface = SNDRV_CTL_ELEM_IFACE_PCM,
+	.name = SNDRV_CTL_NAME_IEC958("", PLAYBACK, DEFAULT),
+	.info = hdmi_codec_iec958_info,
+	.get = hdmi_codec_iec958_get,
+	.put = hdmi_codec_iec958_put,
+};
+
 static int hdmi_codec_startup(struct snd_pcm_substream *substream,
 			      struct snd_soc_dai *dai)
 {
@@ -462,6 +508,15 @@ static int hdmi_codec_hw_params(struct snd_pcm_substream *substream,
 		dev_err(dai->dev, "Creating IEC958 channel status failed %d\n",
 			ret);
 		return ret;
+	}
+
+	if (hcp->iec.status[0] || hcp->iec.status[1] || hcp->iec.status[2] ||
+	    hcp->iec.status[3] || hcp->iec.status[4]) {
+		hp.iec.status[0] = hcp->iec.status[0];
+		hp.iec.status[1] = hcp->iec.status[1];
+		hp.iec.status[2] = hcp->iec.status[2];
+		hp.iec.status[3] = hcp->iec.status[3];
+		hp.iec.status[4] = hcp->iec.status[4];
 	}
 
 	hdmi_audio_infoframe_init(&hp.cea);
@@ -634,6 +689,14 @@ static int hdmi_codec_pcm_new(struct snd_soc_pcm_runtime *rtd,
 	/* default chmap supported is stereo */
 	hcp->chmap_info->chmap = hdmi_codec_stereo_chmaps;
 	hcp->chmap_idx = HDMI_CODEC_CHMAP_IDX_UNKNOWN;
+
+	kctl = snd_ctl_new1(&hdmi_codec_controls, dai->component);
+	if (!kctl)
+		return -ENOMEM;
+
+	ret = snd_ctl_add(rtd->card->snd_card, kctl);
+	if (ret < 0)
+		return ret;
 
 	/* add ELD ctl with the device number corresponding to the PCM stream */
 	kctl = snd_ctl_new1(&hdmi_eld_ctl, dai->component);
