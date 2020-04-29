@@ -2036,10 +2036,13 @@ static int cdns3_gadget_pullup(struct usb_gadget *gadget, int is_on)
 	if (!priv_dev->start_gadget)
 		return 0;
 
-	if (is_on)
+	if (is_on) {
 		writel(USB_CONF_DEVEN, &priv_dev->regs->usb_conf);
-	else
+	} else {
+		writel(~0, &priv_dev->regs->ep_ists);
+		writel(~0, &priv_dev->regs->usb_ists);
 		writel(USB_CONF_DEVDS, &priv_dev->regs->usb_conf);
+	}
 
 	return 0;
 }
