@@ -784,7 +784,7 @@ static void imx_rproc_kick(struct rproc *rproc, int vqid)
 
 	mmsg = vqid << 16;
 
-	priv->cl.tx_tout = 20;
+	priv->cl.tx_tout = 50;
 	err = mbox_send_message(priv->tx_ch, (void *)&mmsg);
 	if (err < 0)
 		dev_err(priv->dev, "%s: failed (%d, err:%d)\n",
@@ -966,7 +966,7 @@ static int imx_rproc_db_channel_init(struct rproc *rproc)
 	cl = &priv->cl_txdb;
 	cl->dev = dev;
 	cl->tx_block = true;
-	cl->tx_tout = 20;
+	cl->tx_tout = 50;
 	cl->knows_txdone = false;
 
 	/* txdb is optional */
@@ -1011,7 +1011,7 @@ static int imx_rproc_xtr_mbox_init(struct rproc *rproc)
 	cl = &priv->cl;
 	cl->dev = dev;
 	cl->tx_block = true;
-	cl->tx_tout = 20;
+	cl->tx_tout = 50;
 	cl->knows_txdone = false;
 	cl->rx_callback = imx_rproc_rx_callback;
 
