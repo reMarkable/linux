@@ -98,7 +98,7 @@ struct clk *imx_dev_clk_gate_shared(struct device *dev, const char *name,
 	shgate->lock = &imx_ccm_lock;
 	shgate->share_count = share_count;
 
-	clk = clk_register(NULL, &gate->hw);
+	clk = clk_register(dev, &gate->hw);
 	if (IS_ERR(clk))
 		kfree(shgate);
 
