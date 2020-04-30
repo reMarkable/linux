@@ -2274,27 +2274,11 @@ err:
 	return -ENOMEM;
 }
 
-static void cdns3_gadget_disable(struct cdns3 *cdns)
-{
-	struct cdns3_device *priv_dev;
-
-	priv_dev = cdns->gadget_dev;
-
-	if (priv_dev->gadget_driver) {
-		priv_dev->gadget_driver->disconnect(&priv_dev->gadget);
-		usb_gadget_disconnect(&priv_dev->gadget);
-	}
-
-	priv_dev->gadget.speed = USB_SPEED_UNKNOWN;
-}
-
 void cdns3_gadget_exit(struct cdns3 *cdns)
 {
 	struct cdns3_device *priv_dev;
 
 	priv_dev = cdns->gadget_dev;
-
-	cdns3_gadget_disable(cdns);
 
 	pm_runtime_mark_last_busy(cdns->dev);
 	pm_runtime_put_autosuspend(cdns->dev);
@@ -2447,12 +2431,13 @@ static void __cdns3_gadget_stop(struct cdns3 *cdns)
 	struct cdns3_device *priv_dev = cdns->gadget_dev;
 	unsigned long flags;
 
-	cdns3_gadget_disable(cdns);
-	spin_lock_irqsave(&priv_dev->lock, flags);
-	usb_gadget_set_state(&priv_dev->gadget, USB_STATE_NOTATTACHED);
 	/* disable interrupt for device */
 	writel(0, &priv_dev->regs->usb_ien);
-	writel(USB_CONF_DEVDS, &priv_dev->regs->usb_conf);
+	if (priv_dev->gadget_driver)
+		usb_gadget_disconnect(&priv_dev->gadget);
+
+	spin_lock_irqsave(&priv_dev->lock, flags);
+	usb_gadget_set_state(&priv_dev->gadget, USB_STATE_NOTATTACHED);
 	priv_dev->start_gadget = 0;
 	spin_unlock_irqrestore(&priv_dev->lock, flags);
 }
