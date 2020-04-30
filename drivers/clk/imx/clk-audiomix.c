@@ -45,7 +45,7 @@ static const char *imx_pdm_sels[] = {"pdm", "sai_pll_div2", "dummy", "dummy" };
 static const char *imx_sai_pll_ref_sels[] = {"osc_24m", "dummy", "dummy", "dummy", };
 static const char *imx_sai_pll_bypass_sels[] = {"sai_pll", "sai_pll_ref_sel", };
 
-static int imx_audiomix_clk_suspend(struct device *dev)
+static int imx_audiomix_clk_runtime_suspend(struct device *dev)
 {
 	void __iomem *base;
 
@@ -69,18 +69,16 @@ static int imx_audiomix_clk_suspend(struct device *dev)
 	audiomix_clk_saved_regs[13] = readl(base + 0x410);
 
 	clk_disable_unprepare(clk_audio_root);
-	pm_runtime_put(dev);
 
 	return 0;
 }
 
-static int imx_audiomix_clk_resume(struct device *dev)
+static int imx_audiomix_clk_runtime_resume(struct device *dev)
 {
 	void __iomem *base;
 
 	base = dev_get_drvdata(dev->parent);
 
-	pm_runtime_get(dev);
 	clk_prepare_enable(clk_audio_root);
 
 	/*
@@ -125,6 +123,7 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 		return PTR_ERR(base);
 
 	pm_runtime_enable(dev);
+	pm_runtime_get_sync(dev);
 
 	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_REF_SEL] = imx_dev_clk_mux(dev, "sai_pll_ref_sel", base + 0x400, 0, 2, imx_sai_pll_ref_sels, ARRAY_SIZE(imx_sai_pll_ref_sels));
 	clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL] = imx_dev_clk_pll14xx(dev, "sai_pll", "sai_pll_ref_sel", base + 0x400, &imx_audiomix_sai_pll);
@@ -203,11 +202,17 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	pm_runtime_put_sync(dev);
+
 	return 0;
 }
 
-UNIVERSAL_DEV_PM_OPS(imx_audiomix_clk_pm_ops, imx_audiomix_clk_suspend,
-			imx_audiomix_clk_resume, imx_audiomix_clk_resume);
+static const struct dev_pm_ops imx_audiomix_clk_pm_ops = {
+	SET_RUNTIME_PM_OPS(imx_audiomix_clk_runtime_suspend,
+			   imx_audiomix_clk_runtime_resume, NULL)
+	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+				pm_runtime_force_resume)
+};
 
 static const struct of_device_id imx_audiomix_clk_of_match[] = {
 	{ .compatible = "fsl,imx8mp-audiomix-clk" },
