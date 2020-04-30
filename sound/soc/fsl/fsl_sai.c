@@ -1492,10 +1492,8 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, sai);
-
-	ret = clk_prepare_enable(sai->bus_clk);
-	if (ret)
-		return ret;
+	pm_runtime_enable(&pdev->dev);
+	pm_runtime_get_sync(&pdev->dev);
 
 	ret = fsl_sai_check_ver(&pdev->dev);
 	if (ret < 0)
@@ -1542,7 +1540,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "fail to create sys group\n");
 	}
 
-	clk_disable_unprepare(sai->bus_clk);
+	pm_runtime_put_sync(&pdev->dev);
 
 	sai->dma_params_rx.chan_name = "rx";
 	sai->dma_params_tx.chan_name = "tx";
@@ -1552,8 +1550,6 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	sai->dma_params_tx.maxburst = FSL_SAI_MAXBURST_TX;
 
 	sai->pinctrl = devm_pinctrl_get(&pdev->dev);
-
-	pm_runtime_enable(&pdev->dev);
 
 	regcache_cache_only(sai->regmap, true);
 
