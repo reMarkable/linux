@@ -2088,7 +2088,7 @@
 	};
 
 	ml_vipsi: vipsi@38500000 {
-		compatible = "fsl,imx8-gpu";
+		compatible = "fsl,imx8-gpu", "fsl,imx8-vipsi";
 		reg = <0x0 0x38500000 0x0 0x20000>;
 		interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&clk IMX8MP_CLK_NPU_ROOT>,
