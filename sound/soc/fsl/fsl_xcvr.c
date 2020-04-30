@@ -1195,6 +1195,7 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, xcvr);
 	pm_runtime_enable(dev);
+	regcache_cache_only(xcvr->regmap, true);
 
 	ret = devm_snd_soc_register_component(dev, &fsl_xcvr_comp,
 					      &fsl_xcvr_dai, 1);
