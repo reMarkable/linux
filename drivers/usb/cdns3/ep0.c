@@ -861,13 +861,7 @@ void cdns3_ep0_config(struct cdns3_device *priv_dev)
 		max_packet_size = 512;
 
 	priv_ep = priv_dev->eps[0];
-
-	if (!list_empty(&priv_ep->pending_req_list)) {
-		struct usb_request *request;
-
-		request = cdns3_next_request(&priv_ep->pending_req_list);
-		list_del_init(&request->list);
-	}
+	INIT_LIST_HEAD(&priv_ep->pending_req_list);
 
 	priv_dev->u1_allowed = 0;
 	priv_dev->u2_allowed = 0;
