@@ -726,7 +726,9 @@ static int imx_ldb_encoder_atomic_check(struct drm_encoder *encoder,
 	struct imx_ldb_channel *imx_ldb_ch = enc_to_imx_ldb_ch(encoder);
 	struct imx_ldb *ldb = imx_ldb_ch->ldb;
 	struct drm_display_info *di = &conn_state->connector->display_info;
+	struct drm_display_mode *mode = &crtc_state->adjusted_mode;
 	u32 bus_format = imx_ldb_ch->bus_format;
+	int dual = ldb->ldb_ctrl & LDB_SPLIT_MODE_EN;
 
 	/* Bus format description in DT overrides connector display info. */
 	if (!bus_format && di->num_bus_formats) {
@@ -762,6 +764,17 @@ static int imx_ldb_encoder_atomic_check(struct drm_encoder *encoder,
 
 	imx_crtc_state->di_hsync_pin = 2;
 	imx_crtc_state->di_vsync_pin = 3;
+
+	if (ldb->is_imx8m) {
+		/*
+		 * Due to limited video PLL frequency points on i.MX8mp,
+		 * we do mode fixup here in case any mode is unsupported.
+		 */
+		if (dual)
+			mode->clock = mode->clock > 100000 ? 148500 : 74250;
+		else
+			mode->clock = 74250;
+	}
 
 	return 0;
 }
