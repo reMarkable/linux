@@ -628,7 +628,7 @@ static int check_dt_rsc_table(struct rproc *rproc)
 	/*Parse device tree to get resource table */
 	elems = of_property_count_u32_elems(np, "rsrc-table");
 	if (elems < 0) {
-		dev_err(&rproc->dev, "no rsrc-table\n");
+		dev_err(&rproc->dev, "no dtb rsrc-table\n");
 		return elems;
 	}
 
@@ -716,6 +716,12 @@ static int imx_rproc_parse_fw(struct rproc *rproc, const struct firmware *fw)
 		}
 
 		table = (struct resource_table *)priv->rsc_va;
+
+		if (table->ver != 1 || table->reserved[0] || table->reserved[1]) {
+			dev_err(priv->dev, "Invalid rsrc table header\n");
+			return 0;
+		}
+
 		/* Assuming that the resource table fits in 1kB is fair */
 		rproc->cached_table = kmemdup(table, SZ_1K, GFP_KERNEL);
 		if (!rproc->cached_table)
