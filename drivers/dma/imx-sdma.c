@@ -495,6 +495,8 @@ static int sdma_config_write(struct dma_chan *chan,
 
 static int sdma_get_firmware(struct sdma_engine *sdma,
 		const char *fw_name);
+static int sdma_get_firmware_wait(struct sdma_engine *sdma,
+		const char *fw_name);
 
 static struct sdma_driver_data sdma_imx31 = {
 	.chnenbl0 = SDMA_CHNENBL0_IMX31,
@@ -1477,6 +1479,14 @@ static int sdma_runtime_suspend(struct device *dev)
 	clk_disable(sdma->clk_ipg);
 	clk_disable(sdma->clk_ahb);
 
+	/* free channel0 bd */
+	if (sdma->iram_pool)
+		gen_pool_free(sdma->iram_pool, (unsigned long)sdma->bd0,
+			      PAGE_SIZE);
+	else
+		dma_free_coherent(sdma->dev, PAGE_SIZE, sdma->bd0,
+				  sdma->bd0_phys);
+
 	return 0;
 }
 
@@ -1524,7 +1534,10 @@ static int sdma_runtime_resume(struct device *dev)
 	/* Initializes channel's priorities */
 	sdma_set_channel_priority(&sdma->channel[0], 7);
 
-	ret = sdma_get_firmware(sdma, sdma->fw_name);
+	if (sdma->drvdata->pm_runtime)
+		ret = sdma_get_firmware_wait(sdma, sdma->fw_name);
+	else
+		ret = sdma_get_firmware(sdma, sdma->fw_name);
 	if (ret)
 		dev_warn(sdma->dev, "failed to get firmware.\n");
 
@@ -2082,7 +2095,7 @@ static void sdma_load_firmware(const struct firmware *fw, void *context)
 
 	sdma->fw_loaded = true;
 
-	dev_info(sdma->dev, "loaded firmware %d.%d\n",
+	dev_info_once(sdma->dev, "loaded firmware %d.%d\n",
 			header->version_major,
 			header->version_minor);
 
@@ -2166,6 +2179,23 @@ static int sdma_get_firmware(struct sdma_engine *sdma,
 			GFP_KERNEL, sdma, sdma_load_firmware);
 
 	return ret;
+}
+
+static int sdma_get_firmware_wait(struct sdma_engine *sdma,
+		const char *fw_name)
+{
+	const struct firmware *fw = NULL;
+	int ret;
+
+	ret = request_firmware(&fw, fw_name, sdma->dev);
+	if (ret < 0 || !fw) {
+		dev_err(sdma->dev, "unable to find firmware\n");
+		return ret;
+	}
+
+	sdma_load_firmware(fw, (void *)sdma);
+
+	return 0;
 }
 
 static int sdma_init_sw(struct sdma_engine *sdma)
