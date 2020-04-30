@@ -21,10 +21,11 @@
 /delete-node/ &lvds_bridge;
 
 &ldb {
-	fsl,data-mapping = "spwg";
 	fsl,dual-channel;
 
 	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+
 		/delete-node/ port@1;
 
 		port@1 {
