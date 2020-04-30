@@ -58,6 +58,7 @@
 #include "gc_hal_kernel_device.h"
 #include "gc_hal_driver.h"
 #include <linux/slab.h>
+#include <linux/pm_qos.h>
 
 #if defined(CONFIG_PM_OPP)
 #include <linux/pm_opp.h>
@@ -494,6 +495,11 @@ struct imx_priv
 
     int gpu3dCount;
 
+#ifdef CONFIG_PM
+    int pm_qos_core;
+    struct pm_qos_request pm_qos;
+#endif
+
 #if defined(CONFIG_PM_OPP)
     struct gpu_govern imx_gpu_govern;
 #endif
@@ -834,6 +840,12 @@ static int patch_param_imx8_subsystem(struct platform_device *pdev,
 
         if (!pdev_gpu)
             break;
+
+#ifdef CONFIG_PM
+        if(of_device_is_compatible(core_node,"fsl,imx8-vipsi")) {
+            priv->pm_qos_core = core;
+        }
+#endif
 
         irqLine = platform_get_irq(pdev_gpu, 0);
 
@@ -1185,6 +1197,10 @@ int init_priv(void)
 {
     memset(&imxPriv, 0, sizeof(imxPriv));
 
+#ifdef CONFIG_PM
+    imxPriv.pm_qos_core = -1;
+#endif
+
 #ifdef CONFIG_GPU_LOW_MEMORY_KILLER
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
     task_free_register(&task_nb);
@@ -1477,6 +1493,9 @@ static inline int set_power(int gpu, int enable)
 
 #ifdef CONFIG_PM
         pm_runtime_get_sync(priv->pmdev[gpu]);
+        if(priv->pm_qos_core == gpu) {
+            pm_qos_add_request(&(priv->pm_qos), PM_QOS_CPU_DMA_LATENCY, 0);
+        }
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,0,0)
@@ -1520,6 +1539,9 @@ static inline int set_power(int gpu, int enable)
     } else {
 #ifdef CONFIG_PM
         pm_runtime_put_sync(priv->pmdev[gpu]);
+        if(priv->pm_qos_core == gpu) {
+            pm_qos_remove_request(&(priv->pm_qos));
+        }
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
