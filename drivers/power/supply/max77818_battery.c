@@ -101,6 +101,71 @@
 	} \
 )
 
+
+/* Magic to enable optional macro param */
+#define VARGS_(_10, _9, _8, _7, _6, _5, _4, _3, _2, _1, N, ...) N
+#define VARGS(...) VARGS_(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
+#define CONCAT_(a, b) a##b
+#define CONCAT(a, b) CONCAT_(a, b)
+
+/* Common macro to be used from any context having access to the common
+ * max77818 struct defined in the max77818 MFD driver */
+#define MAX77818_DO_NON_FGCC_OP_3(max77818_dev, op, op_description) ( \
+{ \
+	int ret = 0; \
+	bool restore_state = 0; \
+\
+	if (!max77818_dev) { \
+		dev_err(max77818_dev->dev, \
+			"max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP_3\n"); \
+		ret = -EINVAL; \
+	} \
+	else { \
+		mutex_lock(&max77818_dev->lock); \
+\
+		dev_dbg(max77818_dev->dev, "Clearing FGCC mode\n"); \
+\
+		ret = max77818_set_fgcc_mode(max77818_dev, \
+					     false, \
+					     &restore_state); \
+		if (ret) { \
+			dev_err(max77818_dev->dev, \
+				"Failed to clear FGCC bit in CONFIG register\n"); \
+		} \
+		else { \
+			dev_dbg(max77818_dev->dev, op_description); \
+			ret = op; \
+\
+			if (ret) { \
+				dev_err(max77818_dev->dev, \
+					"Failed to read charger mode from charger driver\n"); \
+			} \
+			else { \
+				if (restore_state) { \
+					dev_dbg(max77818_dev->dev, "Restoring FGCC mode\n"); \
+\
+					ret = max77818_set_fgcc_mode(max77818_dev, true, NULL); \
+					if (ret) { \
+						dev_err(max77818_dev->dev, \
+							"Failed to set FGCC bit in CONFIG register\n"); \
+					} \
+				} \
+				else { \
+					dev_dbg(max77818_dev->dev, \
+						"Leaving FGCC bit as it were (OFF)\n"); \
+				} \
+			} \
+		} \
+	} \
+	mutex_unlock(&max77818_dev->lock); \
+	ret; \
+})
+
+#define MAX77818_DO_NON_FGCC_OP_2(max77818_dev, op) MAX77818_DO_NON_FGCC_OP_3(max77818_dev, op, "")
+#define MAX77818_DO_NON_FGCC_OP(...) ( CONCAT(MAX77818_DO_NON_FGCC_OP_, VARGS(__VA_ARGS__))(__VA_ARGS__) )
+
+
 /* Parameter to be given from u-boot after doing update
  * in order to verify that all custom FG parameters
  * are configured according to DT */
@@ -133,6 +198,12 @@ MODULE_PARM_DESC(post_fgcc_change_delay_us,
 struct max77818_chip {
 	struct device *dev;
 	int irq;
+	struct max77818_dev *max77818_dev;
+
+//	int fg_irq;
+//	int chg_irq;
+//	int chg_chgin_irq;
+//	int chg_wcin_irq;
 	struct regmap *regmap;
 	struct power_supply *battery;
 	struct max17042_platform_data *pdata;
@@ -181,6 +252,41 @@ struct max77818_of_property {
 			    unsigned int value);
 	bool is_learned_value;
 };
+
+static int max77818_set_fgcc_mode(struct max77818_dev *max77818_dev,
+				  bool enabled,
+				  bool *cur_mode)
+{
+	unsigned int read_data;
+	int ret;
+
+	if (cur_mode) {
+		ret = regmap_read(max77818_dev->regmap_fg, MAX17042_CONFIG, &read_data);
+		if (ret) {
+			dev_err(max77818_dev->dev, "Failed to read CONFIG register\n");
+			return ret;
+		}
+		*cur_mode = (read_data & CONFIG_FGCC_BIT);
+	}
+
+	dev_dbg(max77818_dev->dev, "Turning %s FGCC\n", enabled ? "on" : "off");
+	ret = regmap_update_bits(max77818_dev->regmap_fg,
+				 MAX17042_CONFIG,
+				 CONFIG_FGCC_BIT,
+				 enabled ? CONFIG_FGCC_BIT : 0x0000);
+
+	if (ret) {
+		dev_err(max77818_dev->dev,
+			"Failed to %s FGCC bit in CONFIG register\n",
+			enabled ? "set" : "clear");
+		return ret;
+	}
+
+	dev_dbg(max77818_dev->dev, "Waiting %d us after FGCC mode change..\n", post_fgcc_change_delay_us);
+	usleep_range(post_fgcc_change_delay_us, post_fgcc_change_delay_us + 100000);
+
+	return 0;
+}
 
 static bool max77818_do_complete_update(struct max77818_chip *chip)
 {
@@ -328,147 +434,50 @@ health_error:
 	return ret;
 }
 
-static int max77818_set_fgcc_mode(struct max77818_chip *chip, bool enabled, bool *cur_mode)
-{
-	unsigned int read_data;
-	int ret;
-
-	if (cur_mode) {
-		ret = regmap_read(chip->regmap, MAX17042_CONFIG, &read_data);
-		if (ret) {
-			dev_err(chip->dev, "Failed to read CONFIG register\n");
-			return ret;
-		}
-		*cur_mode = (read_data & CONFIG_FGCC_BIT);
-	}
-
-	dev_dbg(chip->dev, "Turning %s FGCC\n", enabled ? "on" : "off");
-	ret = regmap_update_bits(chip->regmap,
-				 MAX17042_CONFIG,
-				 CONFIG_FGCC_BIT,
-				 enabled ? CONFIG_FGCC_BIT : 0x0000);
-
-	if (ret) {
-		dev_err(chip->dev,
-			"Failed to %s FGCC bit in CONFIG register\n",
-			enabled ? "set" : "clear");
-		return ret;
-	}
-
-	dev_dbg(chip->dev, "Waiting %d us after FGCC mode change..\n", post_fgcc_change_delay_us);
-	usleep_range(post_fgcc_change_delay_us, post_fgcc_change_delay_us + 100000);
-
-	return 0;
-}
-
 static int max77818_set_charger_mode(struct max77818_chip *chip,
 				     const union power_supply_propval *val)
 {
-	bool restore_state;
 	int ret;
 
-	if (!chip->charger) {
+	if (!chip->charger)
 		return -ENODEV;
-	}
 
-	mutex_lock(&chip->lock);
-
-	dev_dbg(chip->dev, "Clearing FGCC mode\n");
-	ret = max77818_set_fgcc_mode(chip, false, &restore_state);
-	if (ret) {
-		dev_err(chip->dev,
-			"Failed to clear FGCC bit in CONFIG register\n");
-		goto out;
-	}
-
-	dev_dbg(chip->dev,
-		"Trying to set charger mode (%d) through charger driver\n",
-		val->intval);
-
-	ret = power_supply_set_property(chip->charger,
-					POWER_SUPPLY_PROP_CHARGER_MODE,
-					val);
-	if (ret) {
+	ret = MAX77818_DO_NON_FGCC_OP(
+			chip->max77818_dev,
+			power_supply_set_property(chip->charger,
+						  POWER_SUPPLY_PROP_CHARGER_MODE,
+						  val),
+			"Setting charger mode through charger driver");
+	if (ret)
 		dev_err(chip->dev,
 			"Failed to forward charger mode to charger driver\n");
-		goto out;
-	}
 
-	if (restore_state) {
-		dev_dbg(chip->dev,
-			"Restoring FGCC mode\n");
-
-		ret = max77818_set_fgcc_mode(chip, true, NULL);
-		if (ret) {
-			dev_err(chip->dev,
-				"Failed to set FGCC bit in CONFIG register\n");
-			goto out;
-		}
-	}
-	else {
-		dev_dbg(chip->dev,
-			"Leaving FGCC bit as it were (OFF)\n");
-	}
-
-out:
-	mutex_unlock(&chip->lock);
 	return ret;
 }
 
 static int max77818_get_charger_mode(struct max77818_chip *chip,
 				     int *charger_mode)
 {
-	bool restore_state;
 	union power_supply_propval val;
 	int ret;
 
 	if (!chip->charger)
 		return -ENODEV;
 
-	mutex_lock(&chip->lock);
 
-	dev_dbg(chip->dev,
-		"Clearing FGCC mode\n");
-
-	ret = max77818_set_fgcc_mode(chip, false, &restore_state);
-	if (ret) {
-		dev_err(chip->dev,
-			"Failed to clear FGCC bit in CONFIG register\n");
-		goto out;
-	}
-
-	dev_dbg(chip->dev,
-		"Trying to read charger mode through charger driver\n");
-
-	ret = power_supply_get_property(chip->charger,
-					POWER_SUPPLY_PROP_CHARGER_MODE,
-					&val);
-	if (ret) {
+	ret = MAX77818_DO_NON_FGCC_OP(
+			chip->max77818_dev,
+			power_supply_get_property(chip->charger,
+						  POWER_SUPPLY_PROP_CHARGER_MODE,
+						  &val),
+			"Reading charger mode from charger driver");
+	if (ret)
 		dev_err(chip->dev,
 			"Failed to read charger mode from charger driver\n");
-		goto out;
-	}
 
-	*charger_mode = val.intval;
+	else
+		*charger_mode = val.intval;
 
-	if (restore_state) {
-		dev_dbg(chip->dev,
-			"Restoring FGCC mode\n");
-
-		ret = max77818_set_fgcc_mode(chip, true, NULL);
-		if (ret) {
-			dev_err(chip->dev,
-				"Failed to set FGCC bit in CONFIG register\n");
-			goto out;
-		}
-	}
-	else {
-		dev_dbg(chip->dev,
-			"Leaving FGCC bit as it were (OFF)\n");
-	}
-
-out:
-	mutex_unlock(&chip->lock);
 	return ret;
 }
 
@@ -1327,47 +1336,15 @@ static void max77818_charger_detection_worker_usb1(struct work_struct *work)
 	else
 		val.intval = max_current;
 
-	mutex_lock(&chip->lock);
-
-	dev_dbg(chip->dev, "Clearing FGCC mode\n");
-	ret = max77818_set_fgcc_mode(chip, false, &restore_state);
-	if (ret) {
-		dev_err(chip->dev,
-			"Failed to clear FGCC bit in CONFIG register\n");
-		goto out;
-	}
-
-	dev_dbg(chip->dev,
-		"Trying to set max current (%d) through charger driver\n",
-		max_current);
-
-	ret = power_supply_set_property(chip->charger,
-					POWER_SUPPLY_PROP_CURRENT_MAX,
-					&val);
-	if (ret) {
+	ret = MAX77818_DO_NON_FGCC_OP(
+			chip->max77818_dev,
+			power_supply_set_property(chip->charger,
+						  POWER_SUPPLY_PROP_CURRENT_MAX,
+						  &val),
+			"Setting max current through charger driver");
+	if (ret)
 		dev_err(chip->dev,
 			"Failed to set max current in charger driver\n");
-		goto out;
-	}
-
-	if (restore_state) {
-		dev_dbg(chip->dev,
-			"Restoring FGCC mode\n");
-
-		ret = max77818_set_fgcc_mode(chip, true, NULL);
-		if (ret) {
-			dev_err(chip->dev,
-				"Failed to set FGCC bit in CONFIG register\n");
-			goto out;
-		}
-	}
-	else {
-		dev_dbg(chip->dev,
-			"Leaving FGCC bit as it were (OFF)\n");
-	}
-
-out:
-	mutex_unlock(&chip->lock);
 }
 
 static void max77818_charger_detection_worker_usb2(struct work_struct *work)
@@ -1394,47 +1371,15 @@ static void max77818_charger_detection_worker_usb2(struct work_struct *work)
 	else
 		val.intval = max_current;
 
-	mutex_lock(&chip->lock);
-
-	dev_dbg(chip->dev, "Clearing FGCC mode\n");
-	ret = max77818_set_fgcc_mode(chip, false, &restore_state);
-	if (ret) {
-		dev_err(chip->dev,
-			"Failed to clear FGCC bit in CONFIG register\n");
-		goto out;
-	}
-
-	dev_dbg(chip->dev,
-		"Trying to set max current (%d) through charger driver\n",
-		max_current);
-
-	ret = power_supply_set_property(chip->charger,
-					POWER_SUPPLY_PROP_CURRENT_MAX2,
-					&val);
-	if (ret) {
+	ret = MAX77818_DO_NON_FGCC_OP(
+			chip->max77818_dev,
+			power_supply_set_property(chip->charger,
+						  POWER_SUPPLY_PROP_CURRENT_MAX2,
+						  &val),
+				"Setting max current through charger driver");
+	if (ret)
 		dev_err(chip->dev,
 			"Failed to set max current in charger driver\n");
-		goto out;
-	}
-
-	if (restore_state) {
-		dev_dbg(chip->dev,
-			"Restoring FGCC mode\n");
-
-		ret = max77818_set_fgcc_mode(chip, true, NULL);
-		if (ret) {
-			dev_err(chip->dev,
-				"Failed to set FGCC bit in CONFIG register\n");
-			goto out;
-		}
-	}
-	else {
-		dev_dbg(chip->dev,
-			"Leaving FGCC bit as it were (OFF)\n");
-	}
-
-out:
-	mutex_unlock(&chip->lock);
 }
 
 static int max77818_charger_detection_notifier_call_usb1(struct notifier_block *nb,
@@ -1484,6 +1429,7 @@ static int max77818_probe(struct platform_device *pdev)
 
 	mutex_init(&chip->lock);
 
+	chip->max77818_dev = max77818;
 	chip->dev = dev;
 	chip->regmap = max77818->regmap_fg;
 
