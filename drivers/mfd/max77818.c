@@ -129,6 +129,7 @@ static int max77818_i2c_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, me);
 
+	mutex_init(&me->lock);
 	me->dev = &client->dev;
 	me->irq = client->irq;
 	me->pmic = client;

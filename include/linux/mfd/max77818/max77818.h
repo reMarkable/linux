@@ -10,6 +10,8 @@
  * the Linux kernel binary object.
  */
 
+#include <linux/mutex.h>
+
 #ifndef __MAX77818_MFD_H__
 #define __MAX77818_MFD_H__
 
@@ -98,6 +100,8 @@ struct max77818_dev {
 	struct regmap *regmap_pmic;
 	struct regmap *regmap_chg;
 	struct regmap *regmap_fg;
+
+	struct mutex lock;
 };
 
 #endif /* !__MAX77818_MFD_H__ */
