@@ -1,0 +1,75 @@
+#ifndef __MAX17818_UTILS_H_
+#define __MAX17818_UTILS_H_
+
+#include <linux/mfd/max77818/max77818.h>
+
+/* Exported function required for modules external to the max77818_battery
+ * module to be able to use the MAX77818_DO_NON_FGCC_OP macrov*/
+int max77818_set_fgcc_mode(struct max77818_dev *max77818_dev,
+			   bool enabled,
+			   bool *cur_mode);
+
+/* Magic to enable optional macro param */
+#define VARGS_(_10, _9, _8, _7, _6, _5, _4, _3, _2, _1, N, ...) N
+#define VARGS(...) VARGS_(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
+#define CONCAT_(a, b) a##b
+#define CONCAT(a, b) CONCAT_(a, b)
+
+/* Common macro to be used from any context having access to the common
+ * max77818 struct defined in the max77818 MFD driver */
+#define MAX77818_DO_NON_FGCC_OP_3(max77818_dev, op, op_description) ( \
+{ \
+	int ret = 0; \
+	bool restore_state = 0; \
+\
+	if (!max77818_dev) { \
+		dev_err(max77818_dev->dev, \
+			"max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP_3\n"); \
+		ret = -EINVAL; \
+	} \
+	else { \
+		mutex_lock(&max77818_dev->lock); \
+\
+		dev_dbg(max77818_dev->dev, "Clearing FGCC mode\n"); \
+\
+		ret = max77818_set_fgcc_mode(max77818_dev, \
+					     false, \
+					     &restore_state); \
+		if (ret) { \
+			dev_err(max77818_dev->dev, \
+				"Failed to clear FGCC bit in CONFIG register\n"); \
+		} \
+		else { \
+			dev_dbg(max77818_dev->dev, op_description); \
+			ret = op; \
+\
+			if (ret) { \
+				dev_err(max77818_dev->dev, \
+					"Failed to read charger mode from charger driver\n"); \
+			} \
+			else { \
+				if (restore_state) { \
+					dev_dbg(max77818_dev->dev, "Restoring FGCC mode\n"); \
+\
+					ret = max77818_set_fgcc_mode(max77818_dev, true, NULL); \
+					if (ret) { \
+						dev_err(max77818_dev->dev, \
+							"Failed to set FGCC bit in CONFIG register\n"); \
+					} \
+				} \
+				else { \
+					dev_dbg(max77818_dev->dev, \
+						"Leaving FGCC bit as it were (OFF)\n"); \
+				} \
+			} \
+		} \
+	} \
+	mutex_unlock(&max77818_dev->lock); \
+	ret; \
+})
+
+#define MAX77818_DO_NON_FGCC_OP_2(max77818_dev, op) MAX77818_DO_NON_FGCC_OP_3(max77818_dev, op, "")
+#define MAX77818_DO_NON_FGCC_OP(...) ( CONCAT(MAX77818_DO_NON_FGCC_OP_, VARGS(__VA_ARGS__))(__VA_ARGS__) )
+
+#endif /* __MAX17818_UTILS_H_ */

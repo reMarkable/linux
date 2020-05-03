@@ -341,6 +341,13 @@ config BATTERY_MAX1721X
 	  Say Y here to enable support for the MAX17211/MAX17215 standalone
 	  battery gas-gauge.
 
+config BATTERY_MAX77818_UTILS
+	tristate "Maxime MAX77818 Fuel Gauge common/external functions"
+	help
+	  This is automatically selected when the MAX77818 MFD driver is
+	  selected, due to required Max77818 Fuel Gauge device access during
+	  initiation of the MFD device.
+										.
 config BATTERY_MAX77818
 	tristate "Maxime MAX77818 Fuel Gauge"
 	depends on I2C
