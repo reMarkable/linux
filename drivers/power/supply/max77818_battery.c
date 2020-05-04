@@ -1437,7 +1437,7 @@ static int max77818_probe(struct platform_device *pdev)
 		chip->charger = power_supply_get_by_name(
 					chip->battery->supplied_from[0]);
 		if (!chip->charger) {
-			dev_warn(dev, "SBA: Failed to reference charger, "
+			dev_warn(dev, "Failed to reference charger, "
 				      "OTG/charger IRQ handling will not"
 				      "be available - verify DT config\n");
 		}
