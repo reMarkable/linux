@@ -30,6 +30,8 @@
 #include <linux/pm_runtime.h>
 #include <linux/mfd/core.h>
 #include <linux/mfd/max77818/max77818.h>
+#include <linux/power/max17042_battery.h>
+#include <linux/power/max77818_battery_utils.h>
 
 #define I2C_ADDR_PMIC		(0xcc >> 1) /* PMIC (CLOGIC/SAFELDOs) */
 #define I2C_ADDR_CHARGER	(0xd2 >> 1) /* Charger */
@@ -37,6 +39,52 @@
 
 #define REG_PMICID		0x20
 #define REG_PMICREV        	0x21
+
+static int max77818_chg_handle_pre_irq(void *irq_drv_data)
+{
+	struct max77818_dev *max77818_dev = (struct max77818_dev*) irq_drv_data;
+	bool restore_state = 0;
+	int ret = 0;
+
+	if (!max77818_dev) {
+		dev_err(max77818_dev->dev,
+			"No driver data, unable to disable FGCC\n");
+		return -EINVAL;
+	}
+
+	ret = MAX77818_START_NON_FGCC_OP(
+			max77818_dev,
+			restore_state,
+			"Disabling FGCC before handling charger interrupt");
+	if (ret)
+		dev_err(max77818_dev->dev,
+			"Failed to disable FGCC\n");
+
+	return ret;
+}
+
+static int max77818_chg_handle_post_irq(void *irq_drv_data)
+{
+	struct max77818_dev *max77818_dev = (struct max77818_dev*) irq_drv_data;
+	bool restore_state = 1;
+	int ret = 0;
+
+	if (!max77818_dev) {
+		dev_err(max77818_dev->dev,
+			"No driver data, unable to disable FGCC\n");
+		return -EINVAL;
+	}
+
+	ret = MAX77818_FINISH_NON_FGCC_OP(
+			max77818_dev,
+			restore_state,
+			"Enabling FGCC after handling charger interrupt");
+	if (ret)
+		dev_err(max77818_dev->dev,
+			"Failed to enable FGCC\n");
+
+	return ret;
+}
 
 static const struct regmap_config max77818_regmap_config = {
 	.reg_bits = 8,
@@ -93,13 +141,15 @@ static const struct regmap_irq max77818_chg_irqs[] = {
 	{ .reg_offset = 0, .mask = BIT_CHG_AICL_I, 	},
 };
 
-static const struct regmap_irq_chip max77818_chg_irq_chip = {
+static struct regmap_irq_chip max77818_chg_irq_chip = {
 	.name = "max77818 chg",
 	.status_base = REG_CHARGER_INT,
 	.mask_base = REG_CHARGER_INT_MASK,
 	.num_regs = 1,
 	.irqs = max77818_chg_irqs,
 	.num_irqs = ARRAY_SIZE(max77818_chg_irqs),
+	.handle_pre_irq = max77818_chg_handle_pre_irq,
+	.handle_post_irq = max77818_chg_handle_post_irq,
 };
 
 static struct mfd_cell max77818_devices[] = {
@@ -119,7 +169,6 @@ static int max77818_i2c_probe(struct i2c_client *client,
 			      const struct i2c_device_id *id)
 {
 	struct max77818_dev *me;
-	struct regmap *rp;
 	u32 chip_id, chip_rev;
 	int ret;
 
@@ -153,11 +202,10 @@ static int max77818_i2c_probe(struct i2c_client *client,
 
 	me->chg = i2c_new_dummy(client->adapter, I2C_ADDR_CHARGER);
 	if (!me->chg) {
-		dev_warn(me->dev, "failed to allocate I2C device for CHG\n");
+		dev_err(me->dev, "failed to allocate I2C device for CHG\n");
+		return ret;
 	}
-	else {
-		i2c_set_clientdata(me->chg, me);
-	}
+	i2c_set_clientdata(me->chg, me);
 
 	me->fg = i2c_new_dummy(client->adapter, I2C_ADDR_FUEL_GAUGE);
 	if (!me->fg) {
@@ -166,16 +214,15 @@ static int max77818_i2c_probe(struct i2c_client *client,
 	}
 	i2c_set_clientdata(me->fg, me);
 
-	rp = devm_regmap_init_i2c(me->chg, &max77818_regmap_config);
-	if (IS_ERR(rp)) {
-		ret = PTR_ERR(rp);
+	me->regmap_chg = devm_regmap_init_i2c(me->chg, &max77818_regmap_config);
+	if (IS_ERR_OR_NULL(me->regmap_chg)) {
+		ret = PTR_ERR(me->regmap_chg);
 		dev_warn(me->dev, "failed to initialize CHG regmap: %d\n", ret);
+		goto unreg_fg;
 	}
-	else
-		me->regmap_chg = rp;
 
 	me->regmap_fg= devm_regmap_init_i2c(me->fg, &max77818_regmap_config_fg);
-	if (IS_ERR(me->regmap_fg)) {
+	if (IS_ERR_OR_NULL(me->regmap_fg)) {
 		ret = PTR_ERR(me->regmap_fg);
 		dev_err(me->dev, "failed to initialize FG regmap: %d\n", ret);
 		goto unreg_fg;
@@ -184,14 +231,16 @@ static int max77818_i2c_probe(struct i2c_client *client,
 	/* Disable all interrupt source */
 	regmap_write(me->regmap_pmic, REG_INTSRCMASK, 0xff);
 
+	/* Register overall interrupt source (sys, fg, chg) */
 	ret = regmap_add_irq_chip(me->regmap_pmic, me->irq,
 				  IRQF_ONESHOT | IRQF_SHARED, 0,
 				  &max77818_intsrc_irq_chip, &me->irqc_intsrc);
 	if (ret) {
-		dev_err(me->dev, "failed to add insrc irq chip: %d\n", ret);
+		dev_err(me->dev, "failed to add intsrc irq chip: %d\n", ret);
 		goto unreg_fg;
 	}
 
+	/* Register system chip irq */
 	ret = regmap_add_irq_chip(me->regmap_pmic, me->irq,
 				  IRQF_ONESHOT | IRQF_SHARED, 0,
 				  &max77818_sys_irq_chip, &me->irqc_sys);
@@ -200,15 +249,22 @@ static int max77818_i2c_probe(struct i2c_client *client,
 		goto del_irqc_intsrc;
 	}
 
-	if (me->regmap_chg) {
-		ret = regmap_add_irq_chip(me->regmap_chg, me->irq,
-					  IRQF_ONESHOT | IRQF_SHARED, 0,
-					  &max77818_chg_irq_chip, &me->irqc_chg);
+	/* Register charger chip irq */
+	max77818_chg_irq_chip.irq_drv_data = me;
+	ret = MAX77818_DO_NON_FGCC_OP(
+			me,
+			regmap_add_irq_chip(me->regmap_chg,
+					    me->irq,
+					    IRQF_ONESHOT | IRQF_SHARED,
+					    0,
+					    &max77818_chg_irq_chip,
+					    &me->irqc_chg),
+			"adding charger chip irq\n");
 
-		if (ret)
-			dev_warn(me->dev, "failed to add chg irq chip: %d\n", ret);
+	if (ret) {
+		dev_warn(me->dev, "failed to add chg irq chip: %d\n", ret);
+		goto del_irqc_sys;
 	}
-
 
 	pm_runtime_set_active(me->dev);
 
@@ -225,6 +281,7 @@ static int max77818_i2c_probe(struct i2c_client *client,
 
 del_irqc_chg:
 	regmap_del_irq_chip(me->irq, me->irqc_chg);
+del_irqc_sys:
 	regmap_del_irq_chip(me->irq, me->irqc_sys);
 del_irqc_intsrc:
 	regmap_del_irq_chip(me->irq, me->irqc_intsrc);
