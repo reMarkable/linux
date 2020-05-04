@@ -121,27 +121,29 @@ MODULE_PARM_DESC(config_update,
 
 struct max77818_chip {
 	struct device *dev;
-	int irq;
 	struct max77818_dev *max77818_dev;
 
-//	int fg_irq;
-//	int chg_irq;
-//	int chg_chgin_irq;
-//	int chg_wcin_irq;
+	int fg_irq;
+	int chg_irq;
+	int chg_chgin_irq;
+	int chg_wcin_irq;
 	struct regmap *regmap;
 	struct power_supply *battery;
 	struct max17042_platform_data *pdata;
-	struct work_struct work;
+	struct work_struct init_work;
+	struct work_struct chg_isr_work;
 	bool init_complete;
 	struct power_supply *charger;
 	struct usb_phy *usb_phy[2];
 	struct notifier_block charger_detection_nb[2];
 	struct work_struct charger_detection_work[2];
+	int status_ex;
 	struct mutex lock;
 };
 
 static enum power_supply_property max77818_battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
+	POWER_SUPPLY_PROP_STATUS_EX,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
@@ -166,6 +168,11 @@ static enum power_supply_property max77818_battery_props[] = {
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_CHARGER_MODE,
+};
+
+static const char * const max77818_status_ex_text[] = {
+	"Charger not connected", "POGO connected", "USB-C connected",
+	"POGO/USB-C connected", "Changing", "Unknown"
 };
 
 struct max77818_of_property {
@@ -264,6 +271,39 @@ static int max77818_get_status(struct max77818_chip *chip, int *status)
 	else
 		*status = POWER_SUPPLY_STATUS_CHARGING;
 
+	return 0;
+}
+
+static int max77818_get_status_ex(struct max77818_chip *chip, int *status_ex)
+{
+	union power_supply_propval val;
+	//bool restore_state;
+	int ret = 0;
+
+	mutex_lock(&chip->lock);
+
+	ret = MAX77818_DO_NON_FGCC_OP(
+			chip->max77818_dev,
+			power_supply_get_property(chip->charger,
+						  POWER_SUPPLY_PROP_STATUS_EX,
+						  &val),
+			"Requesting status_ex from charger");
+	if (ret) {
+		dev_err(chip->dev,
+			"Changing status_ex -> UNKNOWN\n");
+		*status_ex = POWER_SUPPLY_STATUS_EX_UNKNOWN;
+	}
+	else {
+		dev_dbg(chip->dev, "Changing status_ex -> %s\n",
+			max77818_status_ex_text[val.intval]);
+		*status_ex = val.intval;
+	}
+	dev_dbg(chip->dev, "Sending status_ex change notification\n");
+	sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
+
+	power_supply_changed(chip->charger);
+
+	mutex_unlock(&chip->lock);
 	return 0;
 }
 
@@ -390,6 +430,13 @@ static int max77818_get_property(struct power_supply *psy,
 		if (ret < 0)
 			return ret;
 		break;
+	case POWER_SUPPLY_PROP_STATUS_EX:
+		/* status_ex is just a shadow value of the status_ex prop
+		 * reported by the charger driver, updated upon receiving
+		 * a connection change interrupt from the charger */
+		val->intval = chip->status_ex;
+		break;
+
 	case POWER_SUPPLY_PROP_PRESENT:
 		/*
 		 * MAX17042_STATUS_BattAbsent bit is not working for some
@@ -1117,7 +1164,7 @@ static int max77818_init_chip(struct max77818_chip *chip)
 	return 0;
 }
 
-static irqreturn_t max77818_thread_handler(int id, void *dev)
+static irqreturn_t max77818_fg_isr(int id, void *dev)
 {
 	struct max77818_chip *chip = dev;
 	u32 val;
@@ -1141,10 +1188,52 @@ static irqreturn_t max77818_thread_handler(int id, void *dev)
 	return IRQ_HANDLED;
 }
 
+static void max77818_charger_isr_work(struct work_struct *work)
+{
+	struct max77818_chip *chip =
+		container_of(work, struct max77818_chip, chg_isr_work);
+	int ret;
+
+	dev_dbg(chip->dev, "Changing status_ex -> CHANGING\n");
+	chip->status_ex = POWER_SUPPLY_STATUS_EX_CHANGING;
+
+	dev_dbg(chip->dev, "Sending status_ex change notification\n");
+	sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
+
+	dev_dbg(chip->dev, "Reading updated connection state from charger\n");
+	ret = max77818_get_status_ex(chip, &chip->status_ex);
+	if (ret) {
+		dev_err(chip->dev, "failed to read status_ex from charger\n");
+		chip->status_ex = POWER_SUPPLY_STATUS_EX_UNKNOWN;
+		sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
+	}
+
+	dev_dbg(chip->dev, "Sending status_ex change notification\n");
+	sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
+}
+
+static irqreturn_t max77818_charger_connection_change_isr(int irq, void *data)
+{
+	struct max77818_chip *chip = data;
+
+	schedule_work(&chip->chg_isr_work);
+
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t max77818_charger_isr(int irq, void *data)
+{
+	/*
+	 * This IRQ handler needs to do nothing, as it's here only for
+	 * manipulate top max77818 mfd irq_chip to handle BIT_CHGR_INT.
+	 */
+	return IRQ_HANDLED;
+}
+
 static void max77818_init_worker(struct work_struct *work)
 {
 	struct max77818_chip *chip = container_of(work, struct max77818_chip,
-						  work);
+						  init_work);
 	int ret;
 
 	dev_dbg(chip->dev, "Doing complete re-config\n");
@@ -1310,6 +1399,7 @@ static int max77818_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct max77818_chip *chip;
 	u32 val;
+	bool fgcc_restore_state = true;
 	int ret;
 
 	chip = devm_kzalloc(dev, sizeof(*chip), GFP_KERNEL);
@@ -1404,20 +1494,102 @@ static int max77818_probe(struct platform_device *pdev)
 	/* Disable max SOC alert and set min SOC alert as 10% by default */
 	regmap_write(chip->regmap, MAX17042_SALRT_Th, (0xff << 8) | 0x0a );
 
-	chip->irq = regmap_irq_get_virq(max77818->irqc_intsrc, MAX77818_FG_INT);
-	if (chip->irq <= 0) {
-		dev_err(dev, "failed to get virq: %d\n", chip->irq);
+	/* Register irq handler for the FG interrupt */
+	chip->fg_irq = regmap_irq_get_virq(max77818->irqc_intsrc,
+					   MAX77818_FG_INT);
+	if (chip->fg_irq <= 0) {
+		dev_err(dev, "failed to get virq: %d\n", chip->fg_irq);
 		return -ENODEV;
 	}
 
-	ret = devm_request_threaded_irq(dev, chip->irq, NULL,
-					max77818_thread_handler, 0,
+	ret = devm_request_threaded_irq(dev, chip->fg_irq, NULL,
+					max77818_fg_isr, 0,
 					chip->battery->desc->name,
 					chip);
 	if (ret) {
 		dev_err(dev, "failed to request irq: %d\n", ret);
 		return ret;
 	}
+
+	/* Init worker to be used by the charger interrupt handler */
+	INIT_WORK(&chip->chg_isr_work, max77818_charger_isr_work);
+
+	/* Disable FGCC during charger device irq handler registration */
+	ret = MAX77818_START_NON_FGCC_OP(
+			max77818,
+			fgcc_restore_state,
+			"Starting registration of irq handlers for the charger "
+			"interrupts\n");
+	if (ret)
+		dev_err(dev,
+			"Failed to disable FGCC before charger device irq "
+			"handler registration\n");
+
+	/* Register irq handler for the charger interrupt */
+	chip->chg_irq = regmap_irq_get_virq(max77818->irqc_intsrc,
+					    MAX77818_CHGR_INT);
+	if (chip->chg_irq <= 0) {
+		dev_err(dev, "failed to get virq: %d\n", chip->chg_irq);
+		return -ENODEV;
+	}
+
+	ret = devm_request_threaded_irq(dev, chip->chg_irq, NULL,
+					max77818_charger_isr, 0,
+					"charger", chip);
+	if (ret) {
+		dev_err(dev, "failed to request charger irq: %d\n", ret);
+		return ret;
+	}
+
+	/* Register irq handler for the CHGIN interrupt */
+	chip->chg_chgin_irq = regmap_irq_get_virq(max77818->irqc_chg,
+						  CHG_IRQ_CHGIN_I);
+	if (chip->chg_chgin_irq <= 0) {
+		dev_err(dev, "failed to get chgin virq: %d\n",
+			chip->chg_chgin_irq);
+		return -ENODEV;
+	}
+	dev_dbg(dev, "chgin irq: %d\n", chip->chg_chgin_irq);
+
+	ret = devm_request_threaded_irq(dev, chip->chg_chgin_irq, NULL,
+					max77818_charger_connection_change_isr,
+					0, "charger-chgin", chip);
+	if (ret) {
+		dev_err(dev, "failed to reqeust chgin irq: %d\n", ret);
+		return ret;
+	}
+
+	/* Register irq handler for the WCIN interrupt */
+	chip->chg_wcin_irq = regmap_irq_get_virq(max77818->irqc_chg,
+					    CHG_IRQ_WCIN_I);
+	if (chip->chg_wcin_irq <= 0) {
+		dev_err(dev, "failed to get wcin virq: %d\n", chip->chg_wcin_irq);
+		return -ENODEV;
+	}
+	dev_dbg(dev, "wcin irq: %d\n", chip->chg_wcin_irq);
+
+	ret = devm_request_threaded_irq(dev, chip->chg_wcin_irq, NULL,
+					max77818_charger_connection_change_isr,
+					0, "charger-wcin", chip);
+	if (ret) {
+		dev_err(dev, "failed to reqeust wcin irq: %d\n", ret);
+		return ret;
+	}
+
+	ret = MAX77818_FINISH_NON_FGCC_OP(
+			max77818,
+			fgcc_restore_state,
+			"Finishing registering of irq handlers for the charger "
+			"interrupts\n");
+	if (ret)
+		dev_err(dev,
+			"Failed to re-enable FGCC after charger device irq "
+			"handler registration\n");
+
+	/* Do an initial connection status read from the charger driver */
+	ret = max77818_get_status_ex(chip, &chip->status_ex);
+	if (ret)
+		dev_err(chip->dev, "failed to read status_ex from charger\n");
 
 	/* Read the POR bit set when the device boots from a total power loss.
 	 * If this bit is set, the device is given its initial config read from
@@ -1436,8 +1608,8 @@ static int max77818_probe(struct platform_device *pdev)
 	 */
 	regmap_read(chip->regmap, MAX17042_STATUS, &val);
 	if ((val & STATUS_POR_BIT) || max77818_do_complete_update(chip)) {
-		INIT_WORK(&chip->work, max77818_init_worker);
-		schedule_work(&chip->work);
+		INIT_WORK(&chip->init_work, max77818_init_worker);
+		schedule_work(&chip->init_work);
 	} else if (max77818_do_partial_update(chip)) {
 		max77818_write_custom_params(chip);
 	} else if (max77818_do_param_verification(chip)) {
