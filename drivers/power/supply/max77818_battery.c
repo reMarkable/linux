@@ -1422,7 +1422,7 @@ static int max77818_probe(struct platform_device *pdev)
 	psy_cfg.drv_data = chip;
 	psy_cfg.of_node = dev->of_node;
 
-	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
+	SYNC_CLEAR_FLAG(chip->init_complete, &chip->lock);
 	chip->battery = devm_power_supply_register(dev, &max77818_psy_desc,
 						   &psy_cfg);
 	if (IS_ERR(chip->battery)) {
