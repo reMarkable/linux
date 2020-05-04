@@ -63,12 +63,16 @@ int snvs_reader(struct device *dev, u32 id, u32 *value, u8 mul)
 	switch (mul) {
 	case 5:
 		v5 = &value[4];
+		fallthrough;
 	case 4:
 		v4 = &value[3];
+		fallthrough;
 	case 3:
 		v3 = &value[2];
+		fallthrough;
 	case 2:
 		v2 = &value[1];
+		fallthrough;
 	case 1:
 		v1 = &value[0];
 		break;
