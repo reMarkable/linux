@@ -82,7 +82,8 @@ static const char * const power_supply_charger_mode_text[] = {
 };
 
 static const char * const power_supply_status_ex_text[] = {
-	"Charger not connected", "POGO connected", "USB-C connected", "POGO/USB-C connected"
+	"Charger not connected", "POGO connected", "USB-C connected",
+	"POGO/USB-C connected", "Changing", "Unknown"
 };
 
 static ssize_t power_supply_show_usb_type(struct device *dev,
