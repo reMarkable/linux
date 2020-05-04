@@ -10,16 +10,11 @@
 /* Parameter to be given from command line in order to tune the delay introduced after
  * clearing the FGCC bit before forwarding requests to the charger driver */
 static int post_fgcc_change_delay_us = 100000;
-//module_param(post_fgcc_change_delay_us, int, 0644);
-//MODULE_PARM_DESC(post_fgcc_change_delay_us,
-//		 "Debug parameter used to tune the post FGCC change delay introduced "
-//		  "to let the charger/fuelgauge take back charging control before doing "
-//		  "any other configuration changes on either");
 
 /* DO NOT CALL DIRECTLY !!
  *
  * ONLY TO _BE CALLED FROM MAX77818_DO_NON_FGCC_OP macro */
-int max77818_set_fgcc_mode(struct max77818_dev *max77818_dev,
+int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 				  bool enabled,
 				  bool *cur_mode)
 {
