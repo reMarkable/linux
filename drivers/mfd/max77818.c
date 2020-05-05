@@ -47,8 +47,7 @@ static int max77818_chg_handle_pre_irq(void *irq_drv_data)
 	int ret = 0;
 
 	if (!max77818_dev) {
-		dev_err(max77818_dev->dev,
-			"No driver data, unable to disable FGCC\n");
+		printk("%s: No driver data, unable to disable FGCC\n", __func__);
 		return -EINVAL;
 	}
 
@@ -70,8 +69,7 @@ static int max77818_chg_handle_post_irq(void *irq_drv_data)
 	int ret = 0;
 
 	if (!max77818_dev) {
-		dev_err(max77818_dev->dev,
-			"No driver data, unable to disable FGCC\n");
+		printk("%s: No driver data, unable to disable FGCC\n", __func__);
 		return -EINVAL;
 	}
 

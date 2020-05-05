@@ -24,8 +24,7 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 	bool restore_state = 0; \
 \
 	if (!max77818_dev) { \
-		dev_err(max77818_dev->dev, \
-			"max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP\n"); \
+		printk("%s: max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP\n", __func__); \
 		ret = -EINVAL; \
 	} \
 	else { \
@@ -58,8 +57,7 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 	int ret = 0; \
 \
 	if (!max77818_dev) { \
-		dev_err(max77818_dev->dev, \
-			"max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP\n"); \
+		printk("%s: max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP\n", __func__); \
 		ret = -EINVAL; \
 	} \
 	else { \
@@ -94,8 +92,7 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 	bool restore_state = 0; \
 \
 	if (!max77818_dev) { \
-		dev_err(max77818_dev->dev, \
-			"max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP\n"); \
+		printk("%s: max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP\n", __func__); \
 		ret = -EINVAL; \
 	} \
 	else { \
