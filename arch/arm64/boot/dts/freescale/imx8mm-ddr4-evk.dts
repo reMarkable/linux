@@ -73,6 +73,10 @@
 	status = "disabled";
 };
 
+&snvs_pwrkey {
+	status = "okay";
+};
+
 &usdhc1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
