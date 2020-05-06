@@ -633,7 +633,7 @@ static void imx6_pcie_detach_pd(struct device *dev)
 
 static int imx6_pcie_attach_pd(struct device *dev)
 {
-	int ret;
+	int ret = 0;
 	struct imx6_pcie *imx6_pcie = dev_get_drvdata(dev);
 	struct device_link *link;
 
