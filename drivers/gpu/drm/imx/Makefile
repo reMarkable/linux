@@ -8,6 +8,9 @@ obj-$(CONFIG_DRM_IMX_LCDIF_MUX_DISPLAY) += lcdif-mux-display.o
 obj-$(CONFIG_DRM_IMX_PARALLEL_DISPLAY) += parallel-display.o
 obj-$(CONFIG_DRM_IMX_TVE) += imx-tve.o
 obj-$(CONFIG_DRM_IMX_LDB) += imx-ldb.o
+obj-$(CONFIG_DRM_IMX8QM_LDB) += imx8qm-ldb.o
+obj-$(CONFIG_DRM_IMX8QXP_LDB) += imx8qxp-ldb.o
+obj-$(CONFIG_DRM_IMX8MP_LDB) += imx8mp-ldb.o
 
 obj-$(CONFIG_DRM_IMX_DPU) += dpu/
 obj-$(CONFIG_DRM_IMX_IPUV3) += ipuv3/
