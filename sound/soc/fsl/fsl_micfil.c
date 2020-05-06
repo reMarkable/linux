@@ -32,6 +32,7 @@ struct fsl_micfil {
 	struct platform_device *pdev;
 	struct regmap *regmap;
 	const struct fsl_micfil_soc_data *soc;
+	struct clk *busclk;
 	struct clk *mclk;
 	struct clk *clk_src[MICFIL_CLK_SRC_NUM];
 	struct snd_dmaengine_dai_dma_data dma_params_rx;
@@ -2217,6 +2218,13 @@ static int fsl_micfil_probe(struct platform_device *pdev)
 		return PTR_ERR(micfil->mclk);
 	}
 
+	micfil->busclk = devm_clk_get(&pdev->dev, "ipg_clk");
+	if (IS_ERR(micfil->busclk)) {
+		dev_err(&pdev->dev, "failed to get ipg clock: %ld\n",
+			PTR_ERR(micfil->busclk));
+		return PTR_ERR(micfil->busclk);
+	}
+
 	/* get audio pll1 and pll2 */
 	micfil->clk_src[MICFIL_AUDIO_PLL1] = devm_clk_get(&pdev->dev, "pll8k");
 	if (IS_ERR(micfil->clk_src[MICFIL_AUDIO_PLL1]))
@@ -2237,7 +2245,7 @@ static int fsl_micfil_probe(struct platform_device *pdev)
 		return PTR_ERR(regs);
 
 	micfil->regmap = devm_regmap_init_mmio_clk(&pdev->dev,
-						   "ipg_clk",
+						   NULL,
 						   regs,
 						   &fsl_micfil_regmap_config);
 	if (IS_ERR(micfil->regmap)) {
@@ -2331,6 +2339,7 @@ static int fsl_micfil_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, micfil);
 
 	pm_runtime_enable(&pdev->dev);
+	regcache_cache_only(micfil->regmap, true);
 
 	fsl_micfil_dai.capture.formats = micfil->soc->formats;
 
@@ -2385,6 +2394,8 @@ static int __maybe_unused fsl_micfil_runtime_suspend(struct device *dev)
 	if (state == MICFIL_HWVAD_OFF)
 		clk_disable_unprepare(micfil->mclk);
 
+	clk_disable_unprepare(micfil->busclk);
+
 	return 0;
 }
 
@@ -2393,6 +2404,10 @@ static int __maybe_unused fsl_micfil_runtime_resume(struct device *dev)
 	struct fsl_micfil *micfil = dev_get_drvdata(dev);
 	int ret;
 	u32 state;
+
+	ret = clk_prepare_enable(micfil->busclk);
+	if (ret < 0)
+		return ret;
 
 	state = atomic_read(&micfil->hwvad_state);
 
