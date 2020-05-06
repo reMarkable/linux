@@ -2377,6 +2377,7 @@ static int __cdns3_gadget_init(struct cdns3 *cdns)
 	priv_dev->gadget.name = "usb-ss-gadget";
 	priv_dev->gadget.sg_supported = 1;
 	priv_dev->gadget.quirk_avoids_skb_reserve = 1;
+	priv_dev->gadget.irq = cdns->irq;
 
 	spin_lock_init(&priv_dev->lock);
 	INIT_WORK(&priv_dev->pending_status_wq,
