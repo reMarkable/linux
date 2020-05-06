@@ -1482,10 +1482,16 @@ static int max77818_init_charger_detection(struct max77818_chip *chip)
 				    &chip->charger_detection_nb[1]);
 	if (ret) {
 		dev_err(dev, "usb_register_notifier failed: %d\n", ret);
-		return ret;
+		goto unreg_usb_phy0_notifier;
 	}
 
 	return 0;
+
+unreg_usb_phy0_notifier:
+	usb_unregister_notifier(chip->usb_phy[0],
+				&chip->charger_detection_nb[0]);
+
+	return ret;
 }
 
 static int max77818_init_fg_interrupt_handling(struct max77818_dev *max77818,
@@ -1522,6 +1528,7 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 {
 	struct device *dev = chip->dev;
 	bool fgcc_restore_state;
+	bool skip_final_fgcc_op_finish = false;
 	int ret;
 
 	/* Init worker to be used by the charger interrupt handler */
@@ -1545,7 +1552,8 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 					    MAX77818_CHGR_INT);
 	if (chip->chg_irq <= 0) {
 		dev_err(dev, "failed to get virq: %d\n", chip->chg_irq);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto finish_fgcc_op;
 	}
 
 	ret = devm_request_threaded_irq(dev, chip->chg_irq, NULL,
@@ -1553,7 +1561,7 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 					"charger", chip);
 	if (ret) {
 		dev_err(dev, "failed to request charger irq: %d\n", ret);
-		return ret;
+		goto finish_fgcc_op;
 	}
 
 	/* Register irq handler for the CHGIN interrupt */
@@ -1562,7 +1570,8 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 	if (chip->chg_chgin_irq <= 0) {
 		dev_err(dev, "failed to get chgin virq: %d\n",
 			chip->chg_chgin_irq);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto free_chg_irq;
 	}
 	dev_dbg(dev, "chgin irq: %d\n", chip->chg_chgin_irq);
 
@@ -1571,7 +1580,7 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 					0, "charger-chgin", chip);
 	if (ret) {
 		dev_err(dev, "failed to reqeust chgin irq: %d\n", ret);
-		return ret;
+		goto free_chg_irq;
 	}
 
 	/* Register irq handler for the WCIN interrupt */
@@ -1579,7 +1588,8 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 					    CHG_IRQ_WCIN_I);
 	if (chip->chg_wcin_irq <= 0) {
 		dev_err(dev, "failed to get wcin virq: %d\n", chip->chg_wcin_irq);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto free_chgin_irq;
 	}
 	dev_dbg(dev, "wcin irq: %d\n", chip->chg_wcin_irq);
 
@@ -1588,22 +1598,42 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 					0, "charger-wcin", chip);
 	if (ret) {
 		dev_err(dev, "failed to reqeust wcin irq: %d\n", ret);
-		return ret;
+		goto free_chgin_irq;
 	}
 
 	ret = MAX77818_FINISH_NON_FGCC_OP(
 			max77818,
 			fgcc_restore_state,
-			"Finishing registering of irq handlers for the charger "
+			"Finishing registration of irq handlers for the charger "
 			"interrupts\n");
 	if (ret) {
 		dev_err(dev,
 			"Failed to re-enable FGCC after charger device irq "
 			"handler registration\n");
-		return ret;
+		skip_final_fgcc_op_finish = true;
+		goto free_wcin_irq;
 	}
 
 	return 0;
+
+free_wcin_irq:
+	free_irq(chip->chg_wcin_irq, NULL);
+free_chgin_irq:
+	free_irq(chip->chg_chgin_irq, NULL);
+free_chg_irq:
+	free_irq(chip->chg_irq, NULL);
+finish_fgcc_op:
+	if (!skip_final_fgcc_op_finish)
+		if (MAX77818_FINISH_NON_FGCC_OP(
+				max77818,
+				fgcc_restore_state,
+				"Finishing (failed) registration of irq handlers "
+				"for the charger interrupts\n"))
+			dev_err(dev,
+			"Failed to re-enable FGCC after failed charger device "
+			"irq handler registration\n");
+
+	return ret;
 }
 
 static int max77818_probe(struct platform_device *pdev)
@@ -1653,19 +1683,19 @@ static int max77818_probe(struct platform_device *pdev)
 	ret = max77818_init_charger_detection(chip);
 	if (ret) {
 		dev_err(dev, "Failed to init charger detection\n");
-		return ret;
+		goto unreg_supply;
 	}
 
 	ret = max77818_init_fg_interrupt_handling(max77818, chip);
 	if (ret) {
 		dev_err(dev, "Failed to init FG interrupt handling\n");
-		return ret;
+		goto unreg_chg_det;
 	}
 
 	ret = max77818_init_chg_interrupt_handling(max77818, chip);
 	if (ret) {
 		dev_err(dev, "Failed to init charger interrupt handling\n");
-		return ret;
+		goto unreg_fg_irq;
 	}
 
 	/* Do an initial connection status read from the charger driver */
@@ -1703,6 +1733,19 @@ static int max77818_probe(struct platform_device *pdev)
 	}
 
 	return 0;
+
+unreg_fg_irq:
+	free_irq(chip->fg_irq, NULL);
+unreg_chg_det:
+	usb_unregister_notifier(chip->usb_phy[0],
+				&chip->charger_detection_nb[0]);
+
+	usb_unregister_notifier(chip->usb_phy[1],
+				&chip->charger_detection_nb[1]);
+unreg_supply:
+	power_supply_unregister(chip->battery);
+
+	return ret;
 }
 
 static struct platform_driver max77818_fg_driver = {
