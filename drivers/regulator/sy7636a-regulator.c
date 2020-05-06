@@ -39,6 +39,7 @@ static int disable_regulator(struct regulator_dev *rdev)
 	int ret = 0;
 	mutex_lock(&sy7636a->reglock);
 	ret = regulator_disable_regmap(rdev);
+	usleep_range(30000, 35000);
 	mutex_unlock(&sy7636a->reglock);
 	return ret;
 }
@@ -49,7 +50,7 @@ static int enable_regulator_pgood(struct regulator_dev *rdev)
 	int pwr_good = 0;
 	int ret = 0;
 	unsigned long t0, t1;
-	const unsigned int wait_time = 100;
+	const unsigned int wait_time = 500;
 	unsigned int wait_cnt;
 
 	t0 = jiffies;
