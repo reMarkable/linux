@@ -96,6 +96,7 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 		ret = -EINVAL; \
 	} \
 	else { \
+		dev_dbg(max77818_dev->dev, "Applying lock\n"); \
 		mutex_lock(&max77818_dev->lock); \
 \
 		dev_dbg(max77818_dev->dev, "Clearing FGCC mode\n"); \
@@ -132,6 +133,7 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 				} \
 			} \
 		} \
+		dev_dbg(max77818_dev->dev, "Releasing lock\n"); \
 		mutex_unlock(&max77818_dev->lock); \
 	} \
 	ret; \
