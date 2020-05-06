@@ -31,6 +31,7 @@
 
 #define PHY_CTRL6			0x18
 #define PHY_CTRL6_RXTERM_OVERRIDE_SEL	BIT(29)
+#define PHY_CTRL6_ALT_CLK_EN		BIT(1)
 #define PHY_CTRL6_ALT_CLK_SEL		BIT(0)
 
 struct imx8mq_usb_phy {
@@ -79,9 +80,9 @@ static int imx8mp_usb_phy_init(struct phy *phy)
 	value |= (PHY_CTRL0_FSEL_24M << 5);
 	writel(value, imx_phy->base + PHY_CTRL0);
 
-	/* disable alt_clk_sel */
+	/* Disable alt_clk_en and use internal MPLL clocks */
 	value = readl(imx_phy->base + PHY_CTRL6);
-	value &= ~PHY_CTRL6_ALT_CLK_SEL;
+	value &= ~(PHY_CTRL6_ALT_CLK_SEL | PHY_CTRL6_ALT_CLK_EN);
 	writel(value, imx_phy->base + PHY_CTRL6);
 
 	value = readl(imx_phy->base + PHY_CTRL1);
