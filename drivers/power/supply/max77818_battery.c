@@ -1413,47 +1413,9 @@ static int max77818_charger_detection_notifier_call_usb2(struct notifier_block *
 	return NOTIFY_OK;
 }
 
-static int max77818_probe(struct platform_device *pdev)
+static int max77818_init_otg_supply(struct max77818_chip *chip)
 {
-	struct max77818_dev *max77818 = dev_get_drvdata(pdev->dev.parent);
-	struct power_supply_config psy_cfg = {};
-	struct device *dev = &pdev->dev;
-	struct max77818_chip *chip;
-	u32 val;
-	bool fgcc_restore_state = true;
-	int ret;
-
-	chip = devm_kzalloc(dev, sizeof(*chip), GFP_KERNEL);
-	if (!chip)
-		return -ENOMEM;
-
-	mutex_init(&chip->lock);
-
-	chip->max77818_dev = max77818;
-	chip->dev = dev;
-	chip->regmap = max77818->regmap_fg;
-
-	chip->pdata = max77818_get_pdata(chip);
-	if (!chip->pdata) {
-		dev_err(dev, "no platform data provided\n");
-		return -EINVAL;
-	}
-
-	/* Get non device related driver config from DT */
-	max77818_get_driver_config(chip);
-
-	platform_set_drvdata(pdev, chip);
-	psy_cfg.drv_data = chip;
-	psy_cfg.of_node = dev->of_node;
-
-	SYNC_CLEAR_FLAG(chip->init_complete, &chip->lock);
-	chip->battery = devm_power_supply_register(dev, &max77818_psy_desc,
-						   &psy_cfg);
-	if (IS_ERR(chip->battery)) {
-		ret = PTR_ERR(chip->battery);
-		dev_err(dev, "failed to regiser supply: %d \n", ret);
-		return ret;
-	}
+	struct device *dev = chip->dev;
 
 	dev_dbg(dev, "Trying to reference charger (expecting charger as"
 		     "first supply in given list of supplies)\n");
@@ -1466,6 +1428,14 @@ static int max77818_probe(struct platform_device *pdev)
 				      "be available - verify DT config\n");
 		}
 	}
+
+	return 0;
+}
+
+static int max77818_init_charger_detection(struct max77818_chip *chip)
+{
+	struct device *dev = chip->dev;
+	int ret;
 
 	dev_dbg(dev,
 		"Trying to reference usb-phy1 (for receiving charger "
@@ -1515,6 +1485,15 @@ static int max77818_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	return 0;
+}
+
+static int max77818_init_fg_interrupt_handling(struct max77818_dev *max77818,
+						struct max77818_chip *chip)
+{
+	struct device *dev = chip->dev;
+	int ret;
+
 	/* Disable max SOC alert and set min SOC alert as 10% by default */
 	regmap_write(chip->regmap, MAX17042_SALRT_Th, (0xff << 8) | 0x0a );
 
@@ -1535,6 +1514,16 @@ static int max77818_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	return 0;
+}
+
+static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
+						struct max77818_chip *chip)
+{
+	struct device *dev = chip->dev;
+	bool fgcc_restore_state;
+	int ret;
+
 	/* Init worker to be used by the charger interrupt handler */
 	INIT_WORK(&chip->chg_isr_work, max77818_charger_isr_work);
 
@@ -1544,10 +1533,12 @@ static int max77818_probe(struct platform_device *pdev)
 			fgcc_restore_state,
 			"Starting registration of irq handlers for the charger "
 			"interrupts\n");
-	if (ret)
+	if (ret) {
 		dev_err(dev,
 			"Failed to disable FGCC before charger device irq "
 			"handler registration\n");
+		return ret;
+	}
 
 	/* Register irq handler for the charger interrupt */
 	chip->chg_irq = regmap_irq_get_virq(max77818->irqc_intsrc,
@@ -1605,10 +1596,77 @@ static int max77818_probe(struct platform_device *pdev)
 			fgcc_restore_state,
 			"Finishing registering of irq handlers for the charger "
 			"interrupts\n");
-	if (ret)
+	if (ret) {
 		dev_err(dev,
 			"Failed to re-enable FGCC after charger device irq "
 			"handler registration\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int max77818_probe(struct platform_device *pdev)
+{
+	struct max77818_dev *max77818 = dev_get_drvdata(pdev->dev.parent);
+	struct power_supply_config psy_cfg = {};
+	struct device *dev = &pdev->dev;
+	struct max77818_chip *chip;
+	u32 val;
+	int ret;
+
+	chip = devm_kzalloc(dev, sizeof(*chip), GFP_KERNEL);
+	if (!chip)
+		return -ENOMEM;
+
+	mutex_init(&chip->lock);
+
+	chip->max77818_dev = max77818;
+	chip->dev = dev;
+	chip->regmap = max77818->regmap_fg;
+
+	chip->pdata = max77818_get_pdata(chip);
+	if (!chip->pdata) {
+		dev_err(dev, "no platform data provided\n");
+		return -EINVAL;
+	}
+
+	/* Get non device related driver config from DT */
+	max77818_get_driver_config(chip);
+
+	platform_set_drvdata(pdev, chip);
+	psy_cfg.drv_data = chip;
+	psy_cfg.of_node = dev->of_node;
+
+	SYNC_CLEAR_FLAG(chip->init_complete, &chip->lock);
+	chip->battery = devm_power_supply_register(dev, &max77818_psy_desc,
+						   &psy_cfg);
+
+	if (IS_ERR(chip->battery)) {
+		ret = PTR_ERR(chip->battery);
+		dev_err(dev, "failed to register supply: %d \n", ret);
+		return ret;
+	}
+
+	max77818_init_otg_supply(chip);
+
+	ret = max77818_init_charger_detection(chip);
+	if (ret) {
+		dev_err(dev, "Failed to init charger detection\n");
+		return ret;
+	}
+
+	ret = max77818_init_fg_interrupt_handling(max77818, chip);
+	if (ret) {
+		dev_err(dev, "Failed to init FG interrupt handling\n");
+		return ret;
+	}
+
+	ret = max77818_init_chg_interrupt_handling(max77818, chip);
+	if (ret) {
+		dev_err(dev, "Failed to init charger interrupt handling\n");
+		return ret;
+	}
 
 	/* Do an initial connection status read from the charger driver */
 	ret = max77818_get_status_ex(chip, &chip->status_ex);
