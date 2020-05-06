@@ -238,31 +238,6 @@ static int imx_rpmsg_gpio_direction_output(struct gpio_chip *gc,
 	return gpio_send_message(port, &msg, &gpio_rpmsg, true);
 }
 
-static int gpio_rpmsg_probe(struct rpmsg_device *rpdev)
-{
-	gpio_rpmsg.rpdev = rpdev;
-	dev_info(&rpdev->dev, "new channel: 0x%x -> 0x%x!\n",
-			rpdev->src, rpdev->dst);
-
-	init_completion(&gpio_rpmsg.cmd_complete);
-	mutex_init(&gpio_rpmsg.lock);
-
-	return 0;
-}
-
-static struct rpmsg_device_id gpio_rpmsg_id_table[] = {
-	{ .name = "rpmsg-io-channel" },
-	{},
-};
-
-static struct rpmsg_driver gpio_rpmsg_driver = {
-	.drv.name	= "gpio_rpmsg",
-	.drv.owner	= THIS_MODULE,
-	.id_table	= gpio_rpmsg_id_table,
-	.probe		= gpio_rpmsg_probe,
-	.callback	= gpio_rpmsg_cb,
-};
-
 static int imx_rpmsg_irq_set_type(struct irq_data *d, u32 type)
 {
 	struct imx_rpmsg_gpio_port *port = irq_data_get_irq_chip_data(d);
@@ -399,7 +374,6 @@ static int imx_rpmsg_gpio_probe(struct platform_device *pdev)
 
 	return 0;
 }
-
 static const struct of_device_id imx_rpmsg_gpio_dt_ids[] = {
 	{ .compatible = "fsl,imx-rpmsg-gpio" },
 	{ /* sentinel */ }
@@ -413,15 +387,35 @@ static struct platform_driver imx_rpmsg_gpio_driver = {
 	.probe = imx_rpmsg_gpio_probe,
 };
 
-static int __init gpio_imx_rpmsg_init(void)
+static int gpio_rpmsg_probe(struct rpmsg_device *rpdev)
 {
-	int ret;
+	gpio_rpmsg.rpdev = rpdev;
+	dev_info(&rpdev->dev, "new channel: 0x%x -> 0x%x!\n",
+			rpdev->src, rpdev->dst);
 
-	ret = register_rpmsg_driver(&gpio_rpmsg_driver);
-	if (ret)
-		return ret;
+	init_completion(&gpio_rpmsg.cmd_complete);
+	mutex_init(&gpio_rpmsg.lock);
 
 	return platform_driver_register(&imx_rpmsg_gpio_driver);
+}
+
+static struct rpmsg_device_id gpio_rpmsg_id_table[] = {
+	{ .name = "rpmsg-io-channel" },
+	{},
+};
+
+static struct rpmsg_driver gpio_rpmsg_driver = {
+	.drv.name	= "gpio_rpmsg",
+	.drv.owner	= THIS_MODULE,
+	.id_table	= gpio_rpmsg_id_table,
+	.probe		= gpio_rpmsg_probe,
+	.callback	= gpio_rpmsg_cb,
+};
+
+
+static int __init gpio_imx_rpmsg_init(void)
+{
+	return register_rpmsg_driver(&gpio_rpmsg_driver);
 }
 device_initcall(gpio_imx_rpmsg_init);
 
