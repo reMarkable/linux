@@ -670,7 +670,7 @@ static int mxsfb_check_var(struct fb_var_screeninfo *var,
 	return 0;
 }
 
-static void mxsfb_enable_controller(struct fb_info *fb_info)
+static int mxsfb_enable_controller(struct fb_info *fb_info)
 {
 	struct mxsfb_info *host = fb_info->par;
 	u32 reg;
@@ -686,7 +686,7 @@ static void mxsfb_enable_controller(struct fb_info *fb_info)
 		if (ret < 0) {
 			dev_err(&host->pdev->dev, "failed to setup"
 				"dispdrv:%s\n", host->dispdrv->drv->name);
-			return;
+			return ret;
 		}
 		host->sync = fb_info->var.sync;
 	}
@@ -696,7 +696,7 @@ static void mxsfb_enable_controller(struct fb_info *fb_info)
 		if (ret) {
 			dev_err(&host->pdev->dev,
 				"lcd regulator enable failed:	%d\n", ret);
-			return;
+			return ret;
 		}
 	}
 
@@ -705,7 +705,7 @@ static void mxsfb_enable_controller(struct fb_info *fb_info)
 		if (ret) {
 			dev_err(&host->pdev->dev,
 				"lcd2 regulator enable failed:	%d\n", ret);
-			return;
+			return ret;
 		}
 	}
 
@@ -744,7 +744,7 @@ static void mxsfb_enable_controller(struct fb_info *fb_info)
 						"lcd2 regulator disable failed: %d\n",
 						ret);
 			}
-			return;
+			return ret;
 		}
 		clk_enable_pix(host);
 #ifdef CONFIG_FB_IMX64_DEBUG
@@ -771,6 +771,7 @@ static void mxsfb_enable_controller(struct fb_info *fb_info)
 
 	host->enabled = 1;
 
+	return 0;
 }
 
 static void mxsfb_disable_controller(struct fb_info *fb_info)
@@ -1094,11 +1095,14 @@ static int mxsfb_ioctl(struct fb_info *fb_info, unsigned int cmd,
 static int mxsfb_blank(int blank, struct fb_info *fb_info)
 {
 	struct mxsfb_info *host = fb_info->par;
+	int ret = 0;
+	int prev_blank;
 
 #ifdef CONFIG_FB_IMX64_DEBUG
 	return 0;
 #endif
 
+	prev_blank = host->cur_blank;
 	host->cur_blank = blank;
 
 	switch (blank) {
@@ -1129,11 +1133,13 @@ static int mxsfb_blank(int blank, struct fb_info *fb_info)
 
 			writel(0, host->base + LCDC_CTRL);
 			mxsfb_set_par(host->fb_info);
-			mxsfb_enable_controller(fb_info);
+			ret = mxsfb_enable_controller(fb_info);
+			if (ret)
+				host->cur_blank = prev_blank;
 		}
 		break;
 	}
-	return 0;
+	return ret;
 }
 
 static int mxsfb_pan_display(struct fb_var_screeninfo *var,
