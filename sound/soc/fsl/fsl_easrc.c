@@ -2294,7 +2294,7 @@ static int fsl_easrc_probe(struct platform_device *pdev)
 
 	easrc->paddr = res->start;
 
-	easrc->regmap = devm_regmap_init_mmio_clk(&pdev->dev, "mem", regs,
+	easrc->regmap = devm_regmap_init_mmio_clk(&pdev->dev, NULL, regs,
 						  &fsl_easrc_regmap_config);
 	if (IS_ERR(easrc->regmap)) {
 		dev_err(&pdev->dev, "failed to init regmap");
