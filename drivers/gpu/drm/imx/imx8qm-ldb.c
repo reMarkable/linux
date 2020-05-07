@@ -404,9 +404,11 @@ imx8qm_ldb_bind(struct device *dev, struct device *master, void *data)
 				 DRM_MODE_ENCODER_LVDS, NULL);
 	}
 
+	pm_runtime_enable(dev);
+
 	ret = ldb_bind(ldb, encoder);
 	if (ret)
-		return ret;
+		goto disable_pm_runtime;
 
 	for_each_child_of_node(np, child) {
 		struct imx8qm_ldb_channel *imx8qm_ldb_ch;
@@ -458,13 +460,16 @@ get_phy:
 
 		ret = imx_drm_encoder_parse_of(drm, encoder[i], ldb_ch->child);
 		if (ret)
-			return ret;
+			goto disable_pm_runtime;
 	}
 
 	return 0;
 
 free_child:
 	of_node_put(child);
+disable_pm_runtime:
+	pm_runtime_disable(dev);
+
 	return ret;
 }
 
@@ -483,6 +488,8 @@ static void imx8qm_ldb_unbind(struct device *dev, struct device *master,
 
 		phy_exit(imx8qm_ldb_ch->phy);
 	}
+
+	pm_runtime_disable(dev);
 }
 
 static const struct component_ops imx8qm_ldb_ops = {
