@@ -72,7 +72,7 @@
 };
 
 &cameradev {
-	status = "disabled";
+	status = "okay";
 };
 
 &isi_0 {
@@ -81,6 +81,10 @@
 
 &isi_1 {
 	status = "disabled";
+};
+
+&isp_0 {
+	status = "okay";
 };
 
 &mipi_csi_0 {
