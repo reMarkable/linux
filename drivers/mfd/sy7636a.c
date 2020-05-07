@@ -54,6 +54,45 @@ static const char *states[] = {
 	"Thermal shutdown",
 };
 
+int get_vcom_voltage_mv(struct regmap *regmap)
+{
+	int ret;
+	unsigned int val, val_h;
+
+	ret = regmap_read(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L, &val);
+	if (ret)
+		return ret;
+
+	ret = regmap_read(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_H, &val_h);
+	if (ret)
+		return ret;
+
+	val |= (val_h << 8);
+
+	return (val & 0x1FF) * 10;
+}
+
+int set_vcom_voltage_mv(struct regmap *regmap, unsigned int vcom)
+{
+	int ret;
+	unsigned int val;
+
+	if (vcom < 0 || vcom > 5000)
+		return -EINVAL;
+
+	val = (unsigned int)(vcom / 10) & 0x1ff;
+
+	ret = regmap_write(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L, val);
+	if (ret)
+		return ret;
+
+	ret = regmap_write(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_H, val >> 8);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 static ssize_t state_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
@@ -97,9 +136,45 @@ static ssize_t powergood_show(struct device *dev, struct device_attribute *attr,
 }
 static DEVICE_ATTR(power_good, S_IRUGO, powergood_show, NULL);
 
+static ssize_t vcom_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	int ret;
+	struct sy7636a *sy7636a = dev_get_drvdata(dev);
+
+	ret = get_vcom_voltage_mv(sy7636a->regmap);
+	if (ret < 0)
+		return ret;
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", -ret);
+}
+
+static ssize_t vcom_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	int vcom;
+	struct sy7636a *sy7636a = dev_get_drvdata(dev);
+
+	ret = kstrtoint(buf, 0, &vcom);
+	if (ret)
+		return ret;
+
+	if (vcom > 0 || vcom < -5000)
+		return -EINVAL;
+
+	ret = set_vcom_voltage_mv(sy7636a->regmap, (unsigned int)(-vcom));
+	if (ret)
+		return ret;
+
+	return count;
+}
+static DEVICE_ATTR(vcom, S_IRUGO | S_IWUSR, vcom_show, vcom_store);
+
 static struct attribute *sy7636a_sysfs_attrs[] = {
 	&dev_attr_state.attr,
 	&dev_attr_power_good.attr,
+	&dev_attr_vcom.attr,
 	NULL,
 };
 
