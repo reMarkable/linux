@@ -1311,7 +1311,7 @@ static const struct power_supply_desc max77818_psy_desc = {
 	.num_properties = ARRAY_SIZE(max77818_battery_props),
 };
 
-static void max77818_charger_detection_worker_usb1(struct work_struct *work)
+static void max77818_charger_detection_worker_chgin(struct work_struct *work)
 {
 	struct max77818_chip *chip = container_of(work,
 						  struct max77818_chip,
@@ -1348,7 +1348,7 @@ static void max77818_charger_detection_worker_usb1(struct work_struct *work)
 			"Failed to set max current in charger driver\n");
 }
 
-static void max77818_charger_detection_worker_usb2(struct work_struct *work)
+static void max77818_charger_detection_worker_wcin(struct work_struct *work)
 {
 	struct max77818_chip *chip = container_of(work,
 						  struct max77818_chip,
@@ -1383,7 +1383,7 @@ static void max77818_charger_detection_worker_usb2(struct work_struct *work)
 			"Failed to set max current in charger driver\n");
 }
 
-static int max77818_charger_detection_notifier_call_usb1(struct notifier_block *nb,
+static int max77818_charger_detection_notifier_call_chgin(struct notifier_block *nb,
 							 unsigned long val, void *v)
 {
 	struct max77818_chip *chip = container_of(nb,
@@ -1399,7 +1399,7 @@ static int max77818_charger_detection_notifier_call_usb1(struct notifier_block *
 	return NOTIFY_OK;
 }
 
-static int max77818_charger_detection_notifier_call_usb2(struct notifier_block *nb,
+static int max77818_charger_detection_notifier_call_wcin(struct notifier_block *nb,
 							 unsigned long val, void *v)
 {
 	struct max77818_chip *chip = container_of(nb,
@@ -1463,9 +1463,9 @@ static int max77818_init_charger_detection(struct max77818_chip *chip)
 		"Trying to register notification handler (worker) for "
 		"chgin interface charger detection notifications \n");
 	INIT_WORK(&chip->charger_detection_work[0],
-		  max77818_charger_detection_worker_usb1);
+		  max77818_charger_detection_worker_chgin);
 	chip->charger_detection_nb[0].notifier_call =
-			max77818_charger_detection_notifier_call_usb1;
+			max77818_charger_detection_notifier_call_chgin;
 	ret = usb_register_notifier(chip->usb_phy[0],
 				    &chip->charger_detection_nb[0]);
 	if (ret) {
@@ -1477,9 +1477,9 @@ static int max77818_init_charger_detection(struct max77818_chip *chip)
 		"Trying to register notification handler (worker) for "
 		"wcin interface charger detection notifications \n");
 	INIT_WORK(&chip->charger_detection_work[1],
-		  max77818_charger_detection_worker_usb2);
+		  max77818_charger_detection_worker_wcin);
 	chip->charger_detection_nb[1].notifier_call =
-			max77818_charger_detection_notifier_call_usb2;
+			max77818_charger_detection_notifier_call_wcin;
 	ret = usb_register_notifier(chip->usb_phy[1],
 				    &chip->charger_detection_nb[1]);
 	if (ret) {
