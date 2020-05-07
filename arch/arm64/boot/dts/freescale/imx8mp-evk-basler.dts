@@ -22,7 +22,7 @@
 
 &i2c2 {
 	basler_camera@36 {
-		compatible = "basler,basler-camera", "basler-camera";
+		compatible = "basler,basler-camera-vvcam", "basler-camera-vvcam";
 		reg = <0x36>;
 		csi_id = <0x00>;
 		status = "okay";
