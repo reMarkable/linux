@@ -1714,6 +1714,7 @@
 				gpr = <&mediamix_blk_ctl>;
 				clocks = <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
 				clock-names = "apb";
+				power-domains = <&mediamix_pd>;
 				status = "disabled";
 
 				ldb_phy1: port@0 {
