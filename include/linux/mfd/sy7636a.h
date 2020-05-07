@@ -43,4 +43,7 @@ struct sy7636a {
 	struct mutex reglock;
 };
 
+int get_vcom_voltage_mv(struct regmap *regmap);
+int set_vcom_voltage_mv(struct regmap *regmap, unsigned int vcom);
+
 #endif /* __LINUX_MFD_SY7636A_H */

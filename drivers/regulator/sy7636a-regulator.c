@@ -23,27 +23,23 @@
 
 #include <linux/mfd/sy7636a.h>
 
-static int get_vcom_voltage(struct regulator_dev *rdev)
+static int get_vcom_voltage_op(struct regulator_dev *rdev)
 {
 	int ret;
-	unsigned int val;
-
-	ret = regmap_read(rdev->regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L, &val);
-	if (ret)
+	ret = get_vcom_voltage_mv(rdev->regmap);
+	if (ret < 0)
 		return ret;
 
-	return (val & 0x1FF) * 10;
+	return ret * 1000;
 }
 
 static int disable_regulator(struct regulator_dev *rdev)
 {
 	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
 	int ret = 0;
-
 	mutex_lock(&sy7636a->reglock);
 	ret = regulator_disable_regmap(rdev);
 	mutex_unlock(&sy7636a->reglock);
-
 	return ret;
 }
 
@@ -97,7 +93,7 @@ static int enable_regulator_pgood(struct regulator_dev *rdev)
 }
 
 static const struct regulator_ops sy7636a_vcom_volt_ops = {
-	.get_voltage = get_vcom_voltage,
+	.get_voltage = get_vcom_voltage_op,
 	.enable = enable_regulator_pgood,
 	.disable = disable_regulator,
 	.is_enabled = regulator_is_enabled_regmap,
@@ -125,17 +121,12 @@ static int sy7636a_regulator_init(struct sy7636a *sy7636a)
 static int sy7636a_regulator_suspend(struct device *dev)
 {
 	int ret;
-	unsigned int val;
-
 	struct sy7636a *sy7636a = dev_get_drvdata(dev->parent);
 
-	ret = regmap_read(sy7636a->regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L, &val);
-	if (ret) {
-		dev_warn(dev, "Unable to read vcom value, returned %d\n", ret);
-		return ret;
-	}
+	ret = get_vcom_voltage_mv(sy7636a->regmap);
 
-	sy7636a->vcom = val;
+	if (ret > 0)
+		sy7636a->vcom = (unsigned int)ret;
 
 	return 0;
 }
@@ -146,16 +137,13 @@ static int sy7636a_regulator_resume(struct device *dev)
 
 	struct sy7636a *sy7636a = dev_get_drvdata(dev->parent);
 
-	if (!sy7636a->vcom || sy7636a->vcom > 0x01FF) {
+	if (!sy7636a->vcom || sy7636a->vcom > 5000) {
 		dev_warn(dev, "Vcom value invalid, and thus not restored\n");
-		return -EINVAL;
 	}
-
-	ret = regmap_write(sy7636a->regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L,
-			sy7636a->vcom);
-	if (ret) {
-		dev_warn(dev, "Unable to write vcom value, returned %d\n", ret);
-		return ret;
+	else {
+		ret = set_vcom_voltage_mv(sy7636a->regmap, sy7636a->vcom);
+		if (ret)
+			return ret;
 	}
 
 	return sy7636a_regulator_init(sy7636a);
