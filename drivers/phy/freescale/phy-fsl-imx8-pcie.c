@@ -58,6 +58,9 @@ static int imx8_pcie_phy_init(struct phy *phy)
 	writel(0x4, imx8_phy->base + 0x73c);
 	writel(0x4, imx8_phy->base + 0x6ec);
 
+	/* Configure TX drive level  */
+	writel(0x2d, imx8_phy->base + 0x404);
+
 	return 0;
 }
 
