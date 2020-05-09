@@ -225,6 +225,7 @@
 };
 
 &irqsteer_lvds0 {
+	reg = <0x56240000 0x10000>;
 	xen,passthrough;
 };
 
@@ -248,6 +249,10 @@
 	xen,passthrough;
 	#stream-id-cells = <1>;
 	iommus = <&smmu>;
+};
+
+&sdhc0_lpcg {
+	xen,passthrough;
 };
 
 &lsio_mu2 {
