@@ -628,16 +628,9 @@ static int imx_mu_remove(struct platform_device *pdev)
 static int imx_mu_suspend_noirq(struct device *dev)
 {
 	struct imx_mu_priv *priv = dev_get_drvdata(dev);
-	int ret;
 
-	ret = clk_prepare_enable(priv->clk);
-	if (ret) {
-		dev_err(dev, "failed to enable clock\n");
-		return ret;
-	}
-
-	priv->xcr = imx_mu_read(priv, priv->dcfg->xCR);
-	clk_disable_unprepare(priv->clk);
+	if (!priv->clk)
+		priv->xcr = imx_mu_read(priv, priv->dcfg->xCR);
 
         return 0;
 }
@@ -645,13 +638,6 @@ static int imx_mu_suspend_noirq(struct device *dev)
 static int imx_mu_resume_noirq(struct device *dev)
 {
 	struct imx_mu_priv *priv = dev_get_drvdata(dev);
-	int ret;
-
-	ret = clk_prepare_enable(priv->clk);
-	if (ret) {
-		dev_err(dev, "failed to enable clock\n");
-		return ret;
-	}
 
 	/*
 	 * ONLY restore MU when context lost, the TIE could
@@ -661,9 +647,8 @@ static int imx_mu_resume_noirq(struct device *dev)
 	 * send failed, may lead to system freeze. This issue
 	 * is observed by testing freeze mode suspend.
 	 */
-	if (!imx_mu_read(priv, priv->dcfg->xCR))
+	if (!imx_mu_read(priv, priv->dcfg->xCR) && !priv->clk)
 		imx_mu_write(priv, priv->xcr, priv->dcfg->xCR);
-	clk_disable_unprepare(priv->clk);
 
 	return 0;
 }
