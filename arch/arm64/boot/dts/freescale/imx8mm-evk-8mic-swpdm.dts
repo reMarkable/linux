@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright 2020 NXP
+ */
+
+#include "imx8mm-evk-8mic-revE.dts"
+
+/ {
+	sound-micfil {
+		status = "disabled";
+	};
+
+	sound-swpdm {
+		compatible = "fsl,imx-pdm-mic";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_swpdm_mute_irq>;
+		mute-gpios = <&gpio5 8 GPIO_ACTIVE_LOW>;
+		model = "imx-swpdm-audio";
+		audio-cpu = <&sai5>;
+		decimation = <128>;
+		status = "okay";
+	};
+};
+
+&micfil {
+	status = "disabled";
+};
+
+&sai5 {
+	status = "okay";
+};
