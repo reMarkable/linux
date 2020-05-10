@@ -23,6 +23,7 @@ struct fsl_xcvr {
 	struct platform_device *pdev;
 	struct regmap *regmap;
 	struct clk *ipg_clk;
+	struct clk *pll_ipg_clk;
 	struct clk *phy_clk;
 	struct clk *spba_clk;
 	struct reset_control *reset;
@@ -222,10 +223,12 @@ static int fsl_xcvr_ai_write(struct fsl_xcvr *xcvr, u8 reg, u32 data, bool phy)
 	return 0;
 }
 
-static int fsl_xcvr_en_phy(struct fsl_xcvr *xcvr, bool earc, u32 freq)
+static int __maybe_unused fsl_xcvr_en_phy_pll(struct fsl_xcvr *xcvr, bool earc,
+					      u32 freq)
 {
 	struct device *dev = &xcvr->pdev->dev;
 	u32 i, div = 0, log2;
+	int ret;
 
 	for (i = 0; i < ARRAY_SIZE(fsl_xcvr_pll_cfg); i++) {
 		if (fsl_xcvr_pll_cfg[i].fout % freq == 0) {
@@ -238,6 +241,18 @@ static int fsl_xcvr_en_phy(struct fsl_xcvr *xcvr, bool earc, u32 freq)
 		return -EINVAL;
 
 	log2 = ilog2(div);
+
+	/* Release AI interface from reset */
+	ret = regmap_write(xcvr->regmap, FSL_XCVR_PHY_AI_CTRL_SET,
+			   FSL_XCVR_PHY_AI_CTRL_AI_RESETN);
+	if (ret < 0) {
+		dev_err(dev, "Error while setting IER0: %d\n", ret);
+		return ret;
+	}
+
+	/* PLL: BANDGAP_SET: EN_VBG (enable bandgap) */
+	fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_BANDGAP_SET,
+			  FSL_XCVR_PLL_BANDGAP_EN_VBG, 0);
 
 	/* PLL: CTRL0: DIV_INTEGER */
 	fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_CTRL0, fsl_xcvr_pll_cfg[i].mfi, 0);
@@ -280,18 +295,65 @@ static int fsl_xcvr_en_phy(struct fsl_xcvr *xcvr, bool earc, u32 freq)
 	return 0;
 }
 
+static int __maybe_unused fsl_xcvr_en_aud_pll(struct fsl_xcvr *xcvr, bool earc,
+					      u32 freq)
+{
+	struct device *dev = &xcvr->pdev->dev;
+	int ret;
+
+	clk_disable_unprepare(xcvr->phy_clk);
+	ret = clk_set_rate(xcvr->phy_clk, freq);
+	if (ret < 0) {
+		dev_err(dev, "Error while setting AUD PLL rate: %d\n", ret);
+		return ret;
+	}
+	ret = clk_prepare_enable(xcvr->phy_clk);
+	if (ret) {
+		dev_err(dev, "failed to start PHY clock: %d\n", ret);
+		return ret;
+	}
+
+	/* Release AI interface from reset */
+	ret = regmap_write(xcvr->regmap, FSL_XCVR_PHY_AI_CTRL_SET,
+			   FSL_XCVR_PHY_AI_CTRL_AI_RESETN);
+	if (ret < 0) {
+		dev_err(dev, "Error while setting IER0: %d\n", ret);
+		return ret;
+	}
+
+	if (earc) { /* eARC mode */
+		/* PHY: CTRL_SET: TX_DIFF_OE, PHY_EN */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
+				  FSL_XCVR_PHY_CTRL_TSDIFF_OE |
+				  FSL_XCVR_PHY_CTRL_PHY_EN, 1);
+		/* PHY: CTRL2_SET: EARC_TX_MODE */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL2_SET,
+				  FSL_XCVR_PHY_CTRL2_EARC_TXMS, 1);
+	} else { /* SPDIF mode */
+		/* PHY: CTRL_SET: TX_CLK_AUD_SS */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
+				  FSL_XCVR_PHY_CTRL_TX_CLK_AUD_SS, 1);
+		/* PHY: CTRL_SET: SPDIF_EN */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
+				  FSL_XCVR_PHY_CTRL_SPDIF_EN, 1);
+	}
+
+	dev_dbg(dev, "PLL Fexp: %u\n", freq);
+
+	return 0;
+}
+
 static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 			    struct snd_soc_dai *dai)
 {
 	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-	u32 m_ctl = 0, v_ctl = 0, m_isr = 0, v_isr = 0, val;
+	u32 m_ctl = 0, v_ctl = 0, m_isr = 0, v_isr = 0;
 	int ret = 0;
 
 	if (tx && xcvr->mode == FSL_XCVR_MODE_SPDIF) {
-		val  = FSL_XCVR_TX_DPTH_CTRL_BYPASS_FEM;
-		val |= FSL_XCVR_TX_DPTH_CTRL_FRM_FMT;
-		ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_DPTH_CTRL_SET, val);
+		ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_DPTH_CTRL_SET,
+				   FSL_XCVR_TX_DPTH_CTRL_FRM_FMT);
 		if (ret < 0) {
 			dev_err(dai->dev, "Failed to set TX_DPTH: %d\n", ret);
 			return ret;
@@ -469,7 +531,7 @@ static int fsl_xcvr_hw_params(struct snd_pcm_substream *substream,
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 	u32 r = params_rate(params), ch = params_channels(params);
 	snd_pcm_format_t f = params_format(params);
-	u32 reg, val, bclk = 32 * r * ch;
+	u32 reg, val, fout = 32 * r * ch * 10 * 2;
 	int i, ret;
 
 	if (!tx)
@@ -496,18 +558,9 @@ static int fsl_xcvr_hw_params(struct snd_pcm_substream *substream,
 		}
 	}
 
-	switch (xcvr->mode) {
-	case FSL_XCVR_MODE_EARC:
-		bclk *= 10;
-		break;
-	case FSL_XCVR_MODE_SPDIF:
-		bclk *= 2;
-		break;
-	}
-
-	ret = fsl_xcvr_en_phy(xcvr, (xcvr->mode == FSL_XCVR_MODE_EARC), bclk);
+	ret = fsl_xcvr_en_aud_pll(xcvr, false, fout);
 	if (ret < 0) {
-		dev_err(dai->dev, "Failed to set TX freq %u: %d\n", bclk, ret);
+		dev_err(dai->dev, "Failed to set TX freq %u: %d\n", fout, ret);
 		return ret;
 	}
 
@@ -698,17 +751,6 @@ err_firmware:
 	memcpy_toio(xcvr->ram_addr + FSL_XCVR_CAP_DATA_STR, xcvr->cap_ds,
 		    FSL_XCVR_CAPDS_SIZE);
 
-	/* Release AI interface from reset */
-	ret = regmap_write(xcvr->regmap, FSL_XCVR_PHY_AI_CTRL_SET,
-			   FSL_XCVR_PHY_AI_CTRL_AI_RESETN);
-	if (ret < 0) {
-		dev_err(dev, "Error while setting IER0: %d\n", ret);
-		return ret;
-	}
-
-	/* PLL: BANDGAP_SET: EN_VBG (enable bandgap) */
-	fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_BANDGAP_SET,
-			  FSL_XCVR_PLL_BANDGAP_EN_VBG, 0);
 	return 0;
 }
 
@@ -1119,6 +1161,12 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 		return PTR_ERR(xcvr->spba_clk);
 	}
 
+	xcvr->pll_ipg_clk = devm_clk_get(dev, "pll_ipg");
+	if (IS_ERR(xcvr->pll_ipg_clk)) {
+		dev_err(dev, "failed to get pll_ipg clock\n");
+		return PTR_ERR(xcvr->pll_ipg_clk);
+	}
+
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
 	ram_res.start = res->start;
@@ -1229,6 +1277,7 @@ static int fsl_xcvr_runtime_suspend(struct device *dev)
 
 	clk_disable_unprepare(xcvr->spba_clk);
 	clk_disable_unprepare(xcvr->phy_clk);
+	clk_disable_unprepare(xcvr->pll_ipg_clk);
 	clk_disable_unprepare(xcvr->ipg_clk);
 
 	return 0;
@@ -1245,9 +1294,15 @@ static int fsl_xcvr_runtime_resume(struct device *dev)
 		return ret;
 	}
 
+	ret = clk_prepare_enable(xcvr->pll_ipg_clk);
+	if (ret) {
+		dev_err(dev, "failed to start PLL IPG clock.\n");
+		return ret;
+	}
+
 	ret = clk_prepare_enable(xcvr->phy_clk);
 	if (ret) {
-		dev_err(dev, "failed to start PHY clock.\n");
+		dev_err(dev, "failed to start PHY clock: %d\n", ret);
 		clk_disable_unprepare(xcvr->ipg_clk);
 		return ret;
 	}
