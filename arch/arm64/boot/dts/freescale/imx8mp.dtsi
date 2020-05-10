@@ -1325,8 +1325,9 @@
 						     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
 					clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_EARC_IPG>,
 						 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_EARC_PHY>,
-						 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SPBA2_ROOT>;
-					clock-names = "ipg", "phy", "spba";
+						 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SPBA2_ROOT>,
+						 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_AUDPLL_ROOT>;
+					clock-names = "ipg", "phy", "spba", "pll_ipg";
 					dmas = <&sdma2 30 2 0>, <&sdma2 31 2 0>;
 					dma-names = "rx", "tx";
 					fsl,xcvr-fw = "imx/xcvr/xcvr-imx8mp.bin";
