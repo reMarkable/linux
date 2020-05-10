@@ -22,13 +22,23 @@ static struct clk_onecell_data clk_data;
 static uint32_t audiomix_clk_saved_regs[14];
 static struct clk *clk_audio_root;
 
+/* descending order */
 static const struct imx_pll14xx_rate_table imx_audiomix_sai_pll_tbl[] = {
-	PLL_1443X_RATE(650000000U, 325, 3, 2, 0),
+	PLL_1443X_RATE(245760000U, 328, 4, 3, 0xae15),
+	PLL_1443X_RATE(225792000U, 226, 3, 3, 0xcac1),
+	PLL_1443X_RATE(122880000U, 328, 4, 4, 0xae15),
+	PLL_1443X_RATE(112896000U, 226,	3, 4, 0xcac1),
+	PLL_1443X_RATE(61440000U, 328, 4, 5, 0xae15),
+	PLL_1443X_RATE(56448000U, 226, 3, 5, 0xcac1),
+	PLL_1443X_RATE(49152000U, 393, 3, 6, 0x374c),
+	PLL_1443X_RATE(45158400U, 241, 2, 6, 0xd845),
+	PLL_1443X_RATE(40960000U, 109, 1, 6, 0x3a07),
 };
 
 static const struct imx_pll14xx_clk imx_audiomix_sai_pll = {
 	.type = PLL_1443X,
 	.rate_table = imx_audiomix_sai_pll_tbl,
+	.rate_count = ARRAY_SIZE(imx_audiomix_sai_pll_tbl),
 };
 
 static const char *imx_sai_mclk2_sels[] = {"sai1", "sai2", "sai3", "dummy",
@@ -185,7 +195,7 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_AUDIOMIX_AUDPLL_ROOT] = imx_dev_clk_gate(dev, "aud_pll_clk",  "ipg_audio_root", base + 4, 3);
 	clks[IMX8MP_CLK_AUDIOMIX_MU2_ROOT]    = imx_dev_clk_gate(dev, "mu2_root_clk", "ipg_audio_root", base + 4, 4);
 	clks[IMX8MP_CLK_AUDIOMIX_MU3_ROOT]    = imx_dev_clk_gate(dev, "mu3_root_clk", "ipg_audio_root", base + 4, 5);
-	clks[IMX8MP_CLK_AUDIOMIX_EARC_PHY]    = imx_dev_clk_gate(dev, "earc_phy_clk", "ipg_audio_root", base + 4, 6);
+	clks[IMX8MP_CLK_AUDIOMIX_EARC_PHY]    = imx_dev_clk_gate(dev, "earc_phy_clk", "sai_pll_out", base + 4, 6);
 
 	clks[IMX8MP_CLK_AUDIOMIX_PDM_SEL] = imx_dev_clk_mux(dev, "pdm_sel", base + 0x318, 1, 4, imx_pdm_sels, ARRAY_SIZE(imx_pdm_sels));
 
