@@ -652,6 +652,19 @@ static void fsl_dsp_start(struct fsl_dsp *dsp_priv)
 	}
 }
 
+static bool fsl_dsp_is_reset(struct fsl_dsp *dsp_priv)
+{
+	switch (dsp_priv->dsp_board_type) {
+	case DSP_IMX8QM_TYPE:
+	case DSP_IMX8QXP_TYPE:
+		return true;
+	case DSP_IMX8MP_TYPE:
+		return imx_audiomix_dsp_reset(dsp_priv->audiomix);
+	default:
+		return true;
+	}
+}
+
 static void dsp_load_firmware(const struct firmware *fw, void *context)
 {
 	struct fsl_dsp *dsp_priv = context;
@@ -1317,6 +1330,17 @@ static int fsl_dsp_runtime_resume(struct device *dev)
 		return ret;
 	}
 
+	if (!dsp_priv->dsp_mu_init && !proxy->is_ready && !fsl_dsp_is_reset(dsp_priv)) {
+		dsp_priv->dsp_mu_init = 1;
+		proxy->is_ready = 1;
+	}
+
+	/*
+	 * Use PID for checking the audiomix is reset or not.
+	 * After resetting, the PID should be 0, then we set the PID=1 in resume.
+	 */
+	if (!dsp_priv->dsp_mu_init && !proxy->is_ready && dsp_priv->dsp_board_type == DSP_IMX8MP_TYPE)
+		imx_audiomix_dsp_pid_set(dsp_priv->audiomix, 0x1);
 
 	if (!dsp_priv->dsp_mu_init) {
 		MU_Init(dsp_priv->mu_base_virtaddr);
@@ -1373,16 +1397,8 @@ static int fsl_dsp_runtime_suspend(struct device *dev)
 	struct xf_proxy *proxy = &dsp_priv->proxy;
 	int i;
 
-	/*
-	 * FIXME:
-	 * DSP in i.MX865 don't have dedicate power control
-	 * which bind with audiomix. if the audiomix power
-	 * on, we can't reload the firmware.
-	 */
-	if (dsp_priv->dsp_board_type != DSP_IMX8MP_TYPE) {
-		dsp_priv->dsp_mu_init = 0;
-		proxy->is_ready = 0;
-	}
+	dsp_priv->dsp_mu_init = 0;
+	proxy->is_ready = 0;
 
 	for (i = 0; i < 4; i++)
 		clk_disable_unprepare(dsp_priv->asrck_clk[i]);
@@ -1423,10 +1439,6 @@ static int fsl_dsp_suspend(struct device *dev)
 			dev_err(dev, "dsp suspend fail\n");
 			return ret;
 		}
-	}
-	if (dsp_priv->dsp_board_type == DSP_IMX8MP_TYPE) {
-		dsp_priv->dsp_mu_init = 0;
-		proxy->is_ready = 0;
 	}
 
 	ret = pm_runtime_force_suspend(dev);

@@ -15,5 +15,7 @@
 
 struct imx_audiomix_dsp_data;
 void imx_audiomix_dsp_start(struct imx_audiomix_dsp_data *data);
+void imx_audiomix_dsp_pid_set(struct imx_audiomix_dsp_data *data, u32 val);
+bool imx_audiomix_dsp_reset(struct imx_audiomix_dsp_data *data);
 
 #endif
