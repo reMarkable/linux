@@ -66,7 +66,6 @@ static int be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 
 static const struct snd_soc_dapm_route imx_dsp_audio_map[] = {
 	{"Playback",  NULL, "Compress Playback"},/* dai route for be and fe */
-	{"Playback",  NULL, "Playback"},
 };
 
 static int imx_dsp_audio_probe(struct platform_device *pdev)
