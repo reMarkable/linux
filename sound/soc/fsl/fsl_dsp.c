@@ -1003,12 +1003,16 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	pm_runtime_get_sync(&pdev->dev);
 
 	ret = fsl_dsp_configure(dsp_priv);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) {
+		pm_runtime_put_sync(&pdev->dev);
+		goto configure_fail;
+	}
 
 	ret = dsp_mu_init(dsp_priv);
-	if (ret)
-		return ret;
+	if (ret) {
+		pm_runtime_put_sync(&pdev->dev);
+		goto mu_init_fail;
+	}
 
 	pm_runtime_put_sync(&pdev->dev);
 	dsp_priv->dsp_mu_init = 0;
@@ -1027,18 +1031,20 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	ret = misc_register(&dsp_miscdev);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register misc device %d\n", ret);
-		return ret;
+		goto misc_register_fail;
 	}
 
 	reserved_node = of_parse_phandle(np, "memory-region", 0);
 	if (!reserved_node) {
 		dev_err(&pdev->dev, "failed to get reserved region node\n");
-		return -ENODEV;
+		ret = -ENODEV;
+		goto reserved_node_fail;
 	}
 
 	if (of_address_to_resource(reserved_node, 0, &reserved_res)) {
 		dev_err(&pdev->dev, "failed to get reserved region address\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto reserved_node_fail;
 	}
 
 	dsp_priv->sdram_phys_addr = reserved_res.start;
@@ -1046,14 +1052,16 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 									+ 1;
 	if (dsp_priv->sdram_reserved_size <= 0) {
 		dev_err(&pdev->dev, "invalid value of reserved region size\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto reserved_node_fail;
 	}
 
 	dsp_priv->sdram_vir_addr = ioremap_wc(dsp_priv->sdram_phys_addr,
 						dsp_priv->sdram_reserved_size);
 	if (!dsp_priv->sdram_vir_addr) {
 		dev_err(&pdev->dev, "failed to remap sdram space for dsp firmware\n");
-		return -ENXIO;
+		ret = -ENXIO;
+		goto reserved_node_fail;
 	}
 	memset_io(dsp_priv->sdram_vir_addr, 0, dsp_priv->sdram_reserved_size);
 
@@ -1062,7 +1070,8 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	buf_virt = dma_alloc_coherent(&pdev->dev, size, &buf_phys, GFP_KERNEL);
 	if (!buf_virt) {
 		dev_err(&pdev->dev, "failed alloc memory.\n");
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto alloc_coherent_fail;
 	}
 
 	/* msg ring buffer memory */
@@ -1107,7 +1116,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	ret = devm_snd_soc_register_component(&pdev->dev, &dsp_soc_platform_drv, NULL, 0);
 	if (ret) {
 		dev_err(&pdev->dev, "registering soc platform failed\n");
-		return ret;
+		goto register_component_fail;
 	}
 
 	dsp_priv->esai_ipg_clk = devm_clk_get(&pdev->dev, "esai_ipg");
@@ -1172,6 +1181,21 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 		dsp_priv->uart_per_clk = NULL;
 
 	return 0;
+
+register_component_fail:
+	dma_free_coherent(&pdev->dev, size, dsp_priv->msg_buf_virt,
+				dsp_priv->msg_buf_phys);
+alloc_coherent_fail:
+	if (dsp_priv->sdram_vir_addr)
+		iounmap(dsp_priv->sdram_vir_addr);
+reserved_node_fail:
+	misc_deregister(&dsp_miscdev);
+misc_register_fail:
+mu_init_fail:
+configure_fail:
+	pm_runtime_disable(&pdev->dev);
+	fsl_dsp_detach_pm_domains(&pdev->dev, dsp_priv);
+	return ret;
 }
 
 static int fsl_dsp_remove(struct platform_device *pdev)
