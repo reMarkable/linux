@@ -162,7 +162,8 @@ static struct fsl_spdif_soc_data fsl_spdif_imx8mm = {
 	.rx_burst = FSL_SPDIF_RXFIFO_WML,
 	.interrupts = 1,
 	.tx_formats = FSL_SPDIF_FORMATS_PLAYBACK,
-	.rx_rates = (FSL_SPDIF_RATES_CAPTURE | SNDRV_PCM_RATE_192000),
+	.rx_rates = (FSL_SPDIF_RATES_CAPTURE | SNDRV_PCM_RATE_88200 |
+		     SNDRV_PCM_RATE_176400 | SNDRV_PCM_RATE_192000),
 	.constrain_period_size = false,
 };
 
