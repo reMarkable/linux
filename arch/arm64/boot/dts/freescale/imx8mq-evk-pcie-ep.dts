@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2020 NXP
+ */
+
+/dts-v1/;
+
+#include "imx8mq-evk.dts"
+
+&pcie0{
+	status = "disabled";
+};
+
+&pcie1{
+	status = "disabled";
+};
+
+&pcie1_ep{
+	status = "okay";
+};

@@ -1950,6 +1950,30 @@
 		status = "disabled";
 	};
 
+	pcie_ep: pcie_ep@33800000 {
+		compatible = "fsl,imx8mp-pcie-ep";
+		reg = <0x0 0x33800000 0x0 0x000400000>,
+		      <0x0 0x18000000 0x0 0x08000000>;
+		reg-names = "regs", "addr_space";
+		num-lanes = <1>;
+		interrupts = <GIC_SPI 127 IRQ_TYPE_LEVEL_HIGH>; /* eDMA */
+		interrupt-names = "dma";
+		fsl,max-link-speed = <3>;
+		power-domains = <&pcie_pd>;
+		resets = <&src IMX8MQ_RESET_PCIEPHY>,
+			 <&src IMX8MQ_RESET_PCIEPHY_PERST>,
+			 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_EN>,
+			 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_CLK_REQ>,
+			 <&src IMX8MQ_RESET_PCIE_CTRL_APPS_TURNOFF>;
+		reset-names = "pciephy", "pciephy_perst", "apps", "clkreq", "turnoff";
+		phys = <&pcie_phy>;
+		phy-names = "pcie-phy";
+		fsl,imx8mp-hsio-mix = <&hsio_mix>;
+		num-ib-windows = <4>;
+		num-ob-windows = <4>;
+		status = "disabled";
+	};
+
 	gpu_3d: gpu3d@38000000 {
 		compatible = "fsl,imx8-gpu";
 		reg = <0x0 0x38000000 0x0 0x8000>;
