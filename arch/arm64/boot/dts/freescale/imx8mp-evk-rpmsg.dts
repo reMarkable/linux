@@ -58,6 +58,7 @@
 		fsl,audioindex = <0> ;
 		fsl,dma-buffer-size = <0x6000000>;
 		fsl,enable-lpa;
+		power-domains = <&audiomix_pd>;
 		status = "okay";
 	};
 
