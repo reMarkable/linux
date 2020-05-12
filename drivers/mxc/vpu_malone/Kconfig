@@ -6,6 +6,7 @@ menu "MXC VPU(Video Processing Unit) MALONE DECODER support"
 
 config MXC_VPU_MALONE
 	  tristate "Support for MXC VPU(Video Processing Unit) MALONE B0 DECODER"
+	  depends on VIDEO_V4L2
 	  default y
 	---help---
 	  The VPU codec device provides codec function for H.265 H.264 MPEG2 MPEG4 etc.
