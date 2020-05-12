@@ -4640,7 +4640,7 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 		vpu_err("ctx[%d] warning: VID_API_EVENT_FIRMWARE_XCPT,exception info: %s\n",
 				ctx->str_index, xcpt_info);
 		ctx->hang_status = true;
-		send_eos_event(ctx);
+		vpu_dec_event_decode_error(ctx);
 		}
 		break;
 	case VID_API_EVENT_DEC_CFG_INFO:
