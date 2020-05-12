@@ -2869,8 +2869,6 @@ static void v4l2_vpu_send_cmd(struct vpu_ctx *ctx,
 static void dump_input_data_to_local(struct vpu_ctx *ctx, void *src, u_int32 len)
 {
 	struct file *fp;
-	mm_segment_t fs;
-	loff_t pos;
 	char input_file[64];
 
 	if (!vpu_datadump_ena)
@@ -2889,12 +2887,8 @@ static void dump_input_data_to_local(struct vpu_ctx *ctx, void *src, u_int32 len
 		vpu_dbg(LVL_WARN, "warning: open file(%s) fail\n", input_file);
 		return;
 	}
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-	pos = fp->f_pos;
-	vfs_write(fp, src, len, &pos);
-	fp->f_pos = pos;
-	set_fs(fs);
+
+	kernel_write(fp, src, len, &(fp->f_pos));
 	filp_close(fp, NULL);
 }
 
