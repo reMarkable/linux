@@ -1077,17 +1077,6 @@ static irqreturn_t irq0_isr(int irq, void *devid)
 		dev_dbg(dev, "RX/TX FIFO full/empty\n");
 	if (isr & FSL_XCVR_IRQ_ARC_MODE)
 		dev_dbg(dev, "CMDC SM falls out of eARC mode\n");
-	if (isr & FSL_XCVR_IRQ_CMDC_STATUS_UPD) {
-		dev_dbg(dev, "CMDC status update\n");
-		regmap_read(regmap, FSL_XCVR_EXT_STATUS, &val);
-		if (val & FSL_XCVR_EXT_STUS_RX_CMDC_COTO) {
-			dev_dbg(dev, "RX CMDC comma timeout\n");
-			/* Set eARC fallback mode*/
-			val = fsl_xcvr_arc_mode_ints[xcvr->arc_mode_idx];
-			regmap_update_bits(xcvr->regmap, FSL_XCVR_ISR_SET,
-					   val, val);
-		}
-	}
 	if (isr & FSL_XCVR_IRQ_DMA_RD_REQ)
 		dev_dbg(dev, "DMA read request\n");
 	if (isr & FSL_XCVR_IRQ_DMA_WR_REQ)
