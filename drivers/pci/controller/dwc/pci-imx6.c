@@ -90,6 +90,7 @@ enum imx6_pcie_variants {
 	IMX8MM_EP,
 	IMX8MP_EP,
 	IMX6SX_EP,
+	IMX7D_EP,
 };
 
 #define IMX6_PCIE_FLAG_IMX6_PHY			BIT(0)
@@ -743,6 +744,7 @@ static int imx6_pcie_enable_ref_clk(struct imx6_pcie *imx6_pcie)
 				   IMX6Q_GPR1_PCIE_REF_CLK_EN, 1 << 16);
 		break;
 	case IMX7D:
+	case IMX7D_EP:
 		break;
 	case IMX8MQ:
 	case IMX8MM:
@@ -966,6 +968,7 @@ static void imx6_pcie_clk_disable(struct imx6_pcie *imx6_pcie)
 		clk_disable_unprepare(imx6_pcie->pcie_inbound_axi);
 		break;
 	case IMX7D:
+	case IMX7D_EP:
 		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
 				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL,
 				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL);
@@ -1008,6 +1011,7 @@ static void imx6_pcie_assert_core_reset(struct imx6_pcie *imx6_pcie)
 
 	switch (imx6_pcie->drvdata->variant) {
 	case IMX7D:
+	case IMX7D_EP:
 	case IMX8MQ:
 	case IMX8MM:
 	case IMX8MQ_EP:
@@ -1269,6 +1273,7 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 		imx8_pcie_wait_for_phy_pll_lock(imx6_pcie);
 		break;
 	case IMX7D:
+	case IMX7D_EP:
 		reset_control_deassert(imx6_pcie->pciephy_reset);
 
 		/* Workaround for ERR010728, failure of PCI-e PLL VCO to
@@ -1604,6 +1609,7 @@ static void imx6_pcie_init_phy(struct imx6_pcie *imx6_pcie)
 		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG0);
 		break;
 	case IMX7D:
+	case IMX7D_EP:
 		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
 				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL, 0);
 		break;
@@ -1723,6 +1729,7 @@ static void imx6_pcie_ltssm_enable(struct device *dev)
 				   IMX6Q_GPR12_PCIE_CTL_2);
 		break;
 	case IMX7D:
+	case IMX7D_EP:
 	case IMX8MQ:
 	case IMX8MM:
 	case IMX8MP:
@@ -2088,6 +2095,7 @@ static void imx6_pcie_ltssm_disable(struct device *dev)
 				   IMX6Q_GPR12_PCIE_CTL_2, 0);
 		break;
 	case IMX7D:
+	case IMX7D_EP:
 	case IMX8MQ:
 	case IMX8MM:
 	case IMX8MP:
@@ -2426,6 +2434,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 
 		/* fall through */
 	case IMX7D:
+	case IMX7D_EP:
 		if (dbi_base->start == IMX8MQ_PCIE2_BASE_ADDR)
 			imx6_pcie->controller_id = 1;
 
@@ -2752,6 +2761,10 @@ static const struct imx6_pcie_drvdata drvdata[] = {
 		.mode = DW_PCIE_EP_TYPE,
 		.flags = IMX6_PCIE_FLAG_IMX6_PHY,
 	},
+	[IMX7D_EP] = {
+		.variant = IMX7D_EP,
+		.mode = DW_PCIE_EP_TYPE,
+	},
 };
 
 static const struct of_device_id imx6_pcie_of_match[] = {
@@ -2770,6 +2783,7 @@ static const struct of_device_id imx6_pcie_of_match[] = {
 	{ .compatible = "fsl,imx8mm-pcie-ep", .data = &drvdata[IMX8MM_EP], },
 	{ .compatible = "fsl,imx8mp-pcie-ep", .data = &drvdata[IMX8MP_EP], },
 	{ .compatible = "fsl,imx6sx-pcie-ep", .data = &drvdata[IMX6SX_EP], },
+	{ .compatible = "fsl,imx7d-pcie-ep", .data = &drvdata[IMX7D_EP], },
 	{},
 };
 
