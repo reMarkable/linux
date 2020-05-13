@@ -56,6 +56,27 @@
 		reg = <0x80000000 0x40000000>;
 	};
 
+	thermal-zones {
+		epd-thermal {
+			thermal-sensors = <&epd_pmic>;
+			polling-delay-passive = <30000>;
+			polling-delay = <30000>;
+			trips {
+				trip0 {
+					temperature = <49000>;
+					hysteresis = <2000>;
+					type = "passive";
+				};
+
+				trip1 {
+					temperature = <50000>;
+					hysteresis = <2000>;
+					type = "critical";
+				};
+			};
+		};
+	};
+
 	reg_vref_1v8: regulator-vref-1v8 {
 		compatible = "regulator-fixed";
 		regulator-name = "vref-1v8";
@@ -520,12 +541,13 @@
 	pinctrl-1 = <&pinctrl_i2c4>;
 	status = "okay";
 
-	sy7636a@62 {
+	epd_pmic: sy7636a@62 {
 		compatible = "silergy,sy7636a";
 		reg = <0x62>;
 		status = "okay";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_epdpmic>;
+		#thermal-sensor-cells = <0>;
 
 		epd-pwr-good-gpios = <&gpio6 21 GPIO_ACTIVE_HIGH>;
 		regulators {
