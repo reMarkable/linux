@@ -403,6 +403,13 @@ depends on (ARCH_STI || ARCH_STM32) && OF
 source "drivers/thermal/st/Kconfig"
 endmenu
 
+config SY7636A_THERMAL
+	tristate "SY7636A thermal management"
+	depends on MFD_SY7636A
+	help
+	  Enable the sy7636a thermal driver, which supports the
+	  temperature sensor embedded in Silabs SY7636A chip.
+
 config TANGO_THERMAL
 	tristate "Tango thermal management"
 	depends on ARCH_TANGO || COMPILE_TEST

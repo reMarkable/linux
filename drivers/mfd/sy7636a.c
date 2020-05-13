@@ -27,6 +27,7 @@ static const struct regmap_config sy7636a_regmap_config = {
 static const struct mfd_cell sy7636a_cells[] = {
 	{ .name = "sy7636a-regulator", },
 	{ .name = "sy7636a-temperature", },
+	{ .name = "sy7636a-thermal", },
 };
 
 static const struct of_device_id of_sy7636a_match_table[] = {
