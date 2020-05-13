@@ -1,5 +1,15 @@
 [
     {
+	"PublicDescription": "calculate lpddr4 bandwidth usage",
+	"BriefDescription": "imx8mp: lpddr4 bandwidth usage",
+	"MetricName": "imx8mp-lpddr4-bandwidth-usage",
+	"MetricExpr": "(( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\/ + imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\/ ) / duration_time) / (1000 * 1000000 * 4 * 4)",
+	"MetricGroup": "i.MX8MP_DDR_MON",
+	"ScaleUnit": "1e2%",
+	"SocName": "i.MX8MP"
+    },
+
+    {
 	"PublicDescription": "bytes of all masters read from DDR",
 	"BriefDescription": "imx8mp: bytes of all masters read from ddr0",
 	"MetricName": "imx8mp-ddr0-all-r",
