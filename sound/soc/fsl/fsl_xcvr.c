@@ -492,24 +492,23 @@ static void fsl_xcvr_shutdown(struct snd_pcm_substream *substream,
 				      (xcvr->mode == FSL_XCVR_MODE_ARC));
 		fsl_xcvr_activate_ctl(dai, fsl_xcvr_earc_capds_kctl.name,
 				      (xcvr->mode == FSL_XCVR_MODE_EARC));
-	}
-	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_IER0,
-				 FSL_XCVR_IRQ_EARC_ALL, 0);
-	if (ret < 0) {
-		dev_err(dai->dev, "Failed to set IER0: %d\n", ret);
-		return;
+
+		ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_IER0,
+					 FSL_XCVR_IRQ_EARC_ALL, 0);
+		if (ret < 0) {
+			dev_err(dai->dev, "Failed to set IER0: %d\n", ret);
+			return;
+		}
+
+		/* clear SPDIF MODE */
+		if (xcvr->mode == FSL_XCVR_MODE_SPDIF)
+			mask |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
 	}
 
-	switch (xcvr->mode) {
-	case FSL_XCVR_MODE_SPDIF:
-		/* clear SPDIF MODE */
-		mask |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
-		break;
-	case FSL_XCVR_MODE_EARC:
+	if (xcvr->mode == FSL_XCVR_MODE_EARC) {
 		/* set CMDC RESET */
 		mask |= FSL_XCVR_EXT_CTRL_CMDC_RESET(tx);
 		val  |= FSL_XCVR_EXT_CTRL_CMDC_RESET(tx);
-		break;
 	}
 
 	/* set DPATH RESET */
