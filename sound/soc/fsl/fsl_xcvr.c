@@ -382,8 +382,10 @@ static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 		/* set SPDIF MODE */
 		m_ctl |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
 		v_ctl |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
-		m_isr |= FSL_XCVR_ISR_SET_SPDIF_MODE(tx);
-		v_isr |= FSL_XCVR_ISR_SET_SPDIF_MODE(tx);
+		if (!tx) {
+			m_isr |= FSL_XCVR_ISR_SET_SPDIF_MODE(tx);
+			v_isr |= FSL_XCVR_ISR_SET_SPDIF_MODE(tx);
+		}
 		if (xcvr->streams == 3) { // both Tx and Rx are in use
 			m_isr |= FSL_XCVR_ISR_DMAC_SPARE_INT;
 			v_isr |= FSL_XCVR_ISR_DMAC_SPARE_INT;
