@@ -44,8 +44,6 @@ static struct imx8mp_hdmi_pavi *gpavi;
 /* PAI APIs  */
 void imx8mp_hdmi_pai_enable(int channel)
 {
-	clk_prepare_enable(gpavi->clk_pai);
-
 	/* PAI set */
 	writel((0x3030000 | ((channel-1) << 8)),
 			gpavi->base + HTX_PAI_CTRL_EXT);
@@ -59,32 +57,12 @@ void imx8mp_hdmi_pai_disable(void)
 {
 	/* stop PAI */
 	writel(0, gpavi->base + HTX_PAI_CTRL);
-
-	clk_disable_unprepare(gpavi->clk_pai);
 }
 EXPORT_SYMBOL(imx8mp_hdmi_pai_disable);
-
-void imx8mp_hdmi_pai_powerup(void)
-{
-	/* deassert pai reset */
-	if (!gpavi->reset_pai)
-		reset_control_deassert(gpavi->reset_pai);
-}
-EXPORT_SYMBOL(imx8mp_hdmi_pai_powerup);
-
-void imx8mp_hdmi_pai_powerdown(void)
-{
-	/* set pai reset */
-	if (!gpavi->reset_pai)
-		reset_control_assert(gpavi->reset_pai);
-}
-EXPORT_SYMBOL(imx8mp_hdmi_pai_powerdown);
 
 /* PVI APIs  */
 void imx8mp_hdmi_pvi_enable(struct drm_display_mode *mode)
 {
-	clk_prepare_enable(gpavi->clk_pvi);
-
 	writel(0x00000003, gpavi->base + HTX_PVI_IRQ_MASK);
 	writel(0x08970464, gpavi->base + HTX_TMG_GEN_DISP_LRC);
 	writel(0x00bf0029, gpavi->base + HTX_TMG_GEN_DE_ULC);
@@ -113,25 +91,38 @@ void imx8mp_hdmi_pvi_disable(void)
 {
 	/* Stop PVI */
 	writel(0x0, gpavi->base + HTX_PVI_CTRL);
-	clk_disable_unprepare(gpavi->clk_pvi);
 }
 EXPORT_SYMBOL(imx8mp_hdmi_pvi_disable);
 
-void imx8mp_hdmi_pvi_powerup(void)
+void imx8mp_hdmi_pavi_powerup(void)
 {
+	clk_prepare_enable(gpavi->clk_pvi);
+	clk_prepare_enable(gpavi->clk_pai);
+
+	/* deassert pai reset */
+	if (!gpavi->reset_pai)
+		reset_control_deassert(gpavi->reset_pai);
+
 	/* deassert pvi reset */
 	if (!gpavi->reset_pvi)
 		reset_control_deassert(gpavi->reset_pvi);
 }
-EXPORT_SYMBOL(imx8mp_hdmi_pvi_powerup);
+EXPORT_SYMBOL(imx8mp_hdmi_pavi_powerup);
 
-void imx8mp_hdmi_pvi_powerdown(void)
+void imx8mp_hdmi_pavi_powerdown(void)
 {
 	/* set pvi reset */
 	if (!gpavi->reset_pvi)
 		reset_control_assert(gpavi->reset_pvi);
+
+	/* set pai reset */
+	if (!gpavi->reset_pai)
+		reset_control_assert(gpavi->reset_pai);
+
+	clk_disable_unprepare(gpavi->clk_pai);
+	clk_disable_unprepare(gpavi->clk_pvi);
 }
-EXPORT_SYMBOL(imx8mp_hdmi_pvi_powerdown);
+EXPORT_SYMBOL(imx8mp_hdmi_pavi_powerdown);
 
 struct imx8mp_hdmi_pavi *imx8mp_hdmi_pavi_init(void)
 {

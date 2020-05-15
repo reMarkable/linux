@@ -26,13 +26,12 @@ struct imx8mp_hdmi_pavi {
 
 void imx8mp_hdmi_pai_enable(int channel);
 void imx8mp_hdmi_pai_disable(void);
-void imx8mp_hdmi_pai_powerup(void);
-void imx8mp_hdmi_pai_powerdown(void);
 
 void imx8mp_hdmi_pvi_enable(struct drm_display_mode *mode);
 void imx8mp_hdmi_pvi_disable(void);
-void imx8mp_hdmi_pvi_powerup(void);
-void imx8mp_hdmi_pvi_powerdown(void);
+
+void imx8mp_hdmi_pavi_powerup(void);
+void imx8mp_hdmi_pavi_powerdown(void);
 
 struct imx8mp_hdmi_pavi *imx8mp_hdmi_pavi_init(void);
 

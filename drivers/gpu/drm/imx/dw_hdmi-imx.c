@@ -273,7 +273,7 @@ static int imx8mp_hdmi_phy_init(struct dw_hdmi *dw_hdmi, void *data,
 	dw_hdmi_phy_reset(dw_hdmi);
 
 	/* enable PVI */
-	imx8mp_hdmi_pvi_powerup();
+	imx8mp_hdmi_pavi_powerup();
 	imx8mp_hdmi_pvi_enable(mode);
 
 	/* HDMI PHY power up */
@@ -302,7 +302,7 @@ static void imx8mp_hdmi_phy_disable(struct dw_hdmi *dw_hdmi, void *data)
 
 	/* disable PVI */
 	imx8mp_hdmi_pvi_disable();
-	imx8mp_hdmi_pvi_powerdown();
+	imx8mp_hdmi_pavi_powerdown();
 
 	/* TODO */
 	regmap_read(hdmi->regmap, 0x200, &val);
@@ -337,14 +337,12 @@ static int imx8mp_hdmimix_setup(struct imx_hdmi *hdmi)
 
 void imx8mp_hdmi_enable_audio(struct dw_hdmi *dw_hdmi, void *data, int channel)
 {
-	imx8mp_hdmi_pai_powerup();
 	imx8mp_hdmi_pai_enable(channel);
 }
 
 void imx8mp_hdmi_disable_audio(struct dw_hdmi *dw_hdmi, void *data)
 {
 	imx8mp_hdmi_pai_disable();
-	imx8mp_hdmi_pai_powerdown();
 }
 
 static const struct dw_hdmi_phy_ops imx8mp_hdmi_phy_ops = {
