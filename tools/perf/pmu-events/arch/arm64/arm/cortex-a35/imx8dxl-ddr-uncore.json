@@ -1,5 +1,20 @@
 [
     {
+	"BriefDescription": "lpddr4 bandwidth usage",
+	"MetricName": "imx8dxl_lpddr4.bandwidth_usage",
+	"MetricExpr": "(( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ + imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ ) * 4 * 2 / duration_time) / (600 * 1000000 * 4 * 2)",
+	"ScaleUnit": "1e2%",
+	"SocName": "i.MX8DXL"
+    },
+   {
+	"BriefDescription": "ddr3l bandwidth usage",
+	"MetricName": "imx8dxl_ddr3l.bandwidth_usage",
+	"MetricExpr": "(( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ + imx8_ddr0\\/axid\\-write\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ ) * 4 * 2 / duration_time) / (467 * 1000000 * 4 * 2)",
+	"ScaleUnit": "1e2%",
+	"SocName": "i.MX8DXL"
+    },
+
+    {
 	"BriefDescription": " bytes of all masters read from ddr0",
 	"MetricName": "imx8dxl_ddr0_read.all",
 	"MetricExpr": "( imx8_ddr0\\/axid\\-read\\,axi\\_mask\\=0xffff\\,axi\\_id\\=0x0000\\,axi\\_channel\\=0x0\\/ ) * 4 * 2",
