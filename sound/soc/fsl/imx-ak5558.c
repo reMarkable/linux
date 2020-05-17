@@ -91,6 +91,10 @@ static const u32 ak5558_channels[] = {
 	1, 2, 4, 6, 8,
 };
 
+static const u32 ak5552_channels[] = {
+	1, 2,
+};
+
 static unsigned long ak5558_get_mclk_rate(struct snd_pcm_substream *substream,
 					  struct snd_pcm_hw_params *params)
 {
@@ -314,8 +318,14 @@ static int imx_aif_startup(struct snd_pcm_substream *substream)
 		return ret;
 
 	if (!data->tdm_mode) {
-		constraint_channels.list = ak5558_channels;
-		constraint_channels.count = ARRAY_SIZE(ak5558_channels);
+		if (of_device_is_compatible(card->dev->of_node,
+					    "fsl,imx-audio-ak5552")) {
+			constraint_channels.list = ak5552_channels;
+			constraint_channels.count = ARRAY_SIZE(ak5552_channels);
+		} else {
+			constraint_channels.list = ak5558_channels;
+			constraint_channels.count = ARRAY_SIZE(ak5558_channels);
+		}
 		ret = snd_pcm_hw_constraint_list(runtime, 0,
 						 SNDRV_PCM_HW_PARAM_CHANNELS,
 						 &constraint_channels);
@@ -526,6 +536,7 @@ fail:
 }
 
 static const struct of_device_id imx_ak5558_dt_ids[] = {
+	{ .compatible = "fsl,imx-audio-ak5552", },
 	{ .compatible = "fsl,imx-audio-ak5558", },
 	{ .compatible = "fsl,imx-audio-ak5558-mq", },
 	{ },
