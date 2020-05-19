@@ -6570,6 +6570,7 @@ static int vpu_probe(struct platform_device *pdev)
 	if (!dev)
 		return -ENOMEM;
 
+	dev->generic_dev = get_device(&pdev->dev);
 	dev->plat_dev = pdev;
 	ret = vpu_attach_pm_domains(dev);
 	if (ret)
@@ -6589,23 +6590,11 @@ static int vpu_probe(struct platform_device *pdev)
 		goto err_dev_iounmap;
 	}
 
-	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
-	if (ret) {
-		vpu_err("error: %s unable to register v4l2 dev\n", __func__);
-		goto err_dev_iounmap;
-	}
-
 	platform_set_drvdata(pdev, dev);
-
-	ret = create_vpu_video_device(dev);
-	if (ret) {
-		vpu_err("error: %s create vpu video device fail\n", __func__);
-		goto err_unreg_v4l2;
-	}
 
 	ret = vpu_sc_check_fuse(dev, formats_compressed_dec, ARRAY_SIZE(formats_compressed_dec));
 	if (ret)
-		goto err_rm_vdev;
+		goto err_dev_iounmap;
 
 	dev->mu_msg_buffer_size =
 		sizeof(u_int32) * VPU_MAX_NUM_STREAMS * VID_API_MESSAGE_LIMIT;
@@ -6614,7 +6603,7 @@ static int vpu_probe(struct platform_device *pdev)
 	dev->mu_msg_buffer = vzalloc(dev->mu_msg_buffer_size);
 	if (!dev->mu_msg_buffer) {
 		vpu_err("error: fail to alloc mu msg fifo\n");
-		goto err_rm_vdev;
+		goto err_dev_iounmap;
 	}
 	ret = kfifo_init(&dev->mu_msg_fifo,
 			dev->mu_msg_buffer, dev->mu_msg_buffer_size);
@@ -6634,11 +6623,15 @@ static int vpu_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&dev->delayed_msg_work, vpu_msg_run_delayed_work);
 
 	pm_runtime_enable(&pdev->dev);
-	pm_runtime_get_sync(&pdev->dev);
+	ret = pm_runtime_get_sync(&pdev->dev);
+	if (ret < 0) {
+		vpu_err("failed to request mailbox, ret = %d\n", ret);
+		pm_runtime_set_suspended(&pdev->dev);
+		goto err_pm_runtime_get_sync;
+	}
 
 	vpu_enable_hw(dev);
 
-	dev->generic_dev = get_device(&pdev->dev);
 
 	ret = init_vpudev_parameters(dev);
 	if (ret) {
@@ -6650,27 +6643,32 @@ static int vpu_probe(struct platform_device *pdev)
 	device_create_file(&pdev->dev, &dev_attr_precheck_pattern);
 	vpu_dec_init_ctx_work(dev);
 
+	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
+	if (ret) {
+		vpu_err("error: %s unable to register v4l2 dev\n", __func__);
+		goto err_poweroff;
+	}
+	ret = create_vpu_video_device(dev);
+	if (ret) {
+		vpu_err("error: %s create vpu video device fail\n", __func__);
+		goto err_unreg_v4l2;
+	}
+
 	return 0;
 
+err_unreg_v4l2:
+	v4l2_device_unregister(&dev->v4l2_dev);
 err_poweroff:
 	destroy_workqueue(dev->workqueue);
 	vpu_disable_hw(dev);
 	pm_runtime_put_sync(&pdev->dev);
+err_pm_runtime_get_sync:
 	pm_runtime_disable(&pdev->dev);
 err_free_fifo:
 	vfree(dev->mu_msg_buffer);
 	dev->mu_msg_buffer = NULL;
 	dev->mu_msg_buffer_size = 0;
-err_rm_vdev:
-	if (dev->pvpu_decoder_dev) {
-		video_unregister_device(dev->pvpu_decoder_dev);
-		dev->pvpu_decoder_dev = NULL;
-	}
-err_unreg_v4l2:
-	v4l2_device_unregister(&dev->v4l2_dev);
 err_dev_iounmap:
-	if (dev->regs_base)
-		iounmap(dev->regs_base);
 err_det_pm:
 	vpu_detach_pm_domains(dev);
 err_put_dev:
@@ -6678,8 +6676,6 @@ err_put_dev:
 		put_device(dev->generic_dev);
 		dev->generic_dev = NULL;
 	}
-
-	devm_kfree(&pdev->dev, dev);
 
 	return ret;
 }
@@ -6726,7 +6722,6 @@ static int vpu_remove(struct platform_device *pdev)
 		put_device(dev->generic_dev);
 		dev->generic_dev = NULL;
 	}
-	devm_kfree(&pdev->dev, dev);
 
 	return 0;
 }
