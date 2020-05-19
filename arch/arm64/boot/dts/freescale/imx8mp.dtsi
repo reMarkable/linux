@@ -1635,6 +1635,7 @@
 				interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-parent = <&irqsteer_hdmi>;
 				resets = <&hdmimix_reset IMX_HDMIMIX_LCDIF_RESET>;
+				power-domains = <&hdmimix_pd>;
 				status = "disabled";
 
 				lcdif3_disp: port@0 {
