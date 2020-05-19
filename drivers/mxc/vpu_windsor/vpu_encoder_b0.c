@@ -5707,22 +5707,15 @@ static int vpu_enc_probe(struct platform_device *pdev)
 		goto error_iounmap;
 	}
 
-	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
-	if (ret) {
-		vpu_err("%s unable to register v4l2 dev\n", __func__);
-		goto error_reserved_mem;
-	}
-
 	platform_set_drvdata(pdev, dev);
 
-	ret = create_vpu_video_device(dev);
-	if (ret) {
-		vpu_err("create vpu video device fail\n");
-		goto error_unreg_v4l2;
-	}
-
 	pm_runtime_enable(&pdev->dev);
-	pm_runtime_get_sync(&pdev->dev);
+	ret = pm_runtime_get_sync(&pdev->dev);
+	if (ret < 0) {
+		vpu_err("fail to request mailbox, ret = %d\n", ret);
+		pm_runtime_set_suspended(&pdev->dev);
+		goto error_pm_runtime_get_sync;
+	}
 
 	vpu_enc_enable_hw(dev);
 
@@ -5747,6 +5740,19 @@ static int vpu_enc_probe(struct platform_device *pdev)
 
 	pm_runtime_put_sync(&pdev->dev);
 
+	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
+	if (ret) {
+		vpu_err("%s unable to register v4l2 dev\n", __func__);
+		goto error_init_core;
+	}
+
+	ret = create_vpu_video_device(dev);
+	if (ret) {
+		vpu_err("create vpu video device fail\n");
+		goto error_unreg_v4l2;
+	}
+
+
 	device_create_file(&pdev->dev, &dev_attr_meminfo);
 	device_create_file(&pdev->dev, &dev_attr_buffer);
 	device_create_file(&pdev->dev, &dev_attr_fpsinfo);
@@ -5757,21 +5763,21 @@ static int vpu_enc_probe(struct platform_device *pdev)
 
 	return 0;
 
+error_unreg_v4l2:
+	v4l2_device_unregister(&dev->v4l2_dev);
 error_init_core:
 	for (i = 0; i < dev->core_num; i++)
 		uninit_vpu_core_dev(&dev->core_dev[i]);
 
 	vpu_enc_disable_hw(dev);
 	pm_runtime_put_sync(&pdev->dev);
+error_pm_runtime_get_sync:
 	pm_runtime_disable(&pdev->dev);
 
 	if (dev->pvpu_encoder_dev) {
 		video_unregister_device(dev->pvpu_encoder_dev);
 		dev->pvpu_encoder_dev = NULL;
 	}
-error_unreg_v4l2:
-	v4l2_device_unregister(&dev->v4l2_dev);
-error_reserved_mem:
 	vpu_enc_release_reserved_memory(&dev->reserved_mem);
 error_iounmap:
 	if (dev->regs_base) {
@@ -5785,7 +5791,6 @@ error_put_dev:
 		put_device(dev->generic_dev);
 		dev->generic_dev = NULL;
 	}
-	devm_kfree(&pdev->dev, dev);
 
 	return ret;
 }
@@ -5824,8 +5829,6 @@ static int vpu_enc_remove(struct platform_device *pdev)
 		put_device(dev->generic_dev);
 		dev->generic_dev = NULL;
 	}
-
-	devm_kfree(&pdev->dev, dev);
 
 	return 0;
 }
