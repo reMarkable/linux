@@ -48,6 +48,7 @@ static int sy7636a_get_temp(void *arg, int *res)
 				mode_ctr | SY7636A_OPERATION_MODE_CRL_ONOFF);
 		if (ret)
 			goto done;
+		usleep_range(100, 150);
 	}
 
 	ret = regmap_read(data->sy7636a->regmap,
