@@ -34,6 +34,7 @@
 		serial1 = &lpuart1;
 		serial2 = &lpuart2;
 		serial3 = &lpuart3;
+		serial4 = &cm40_lpuart;
 		can0 = &flexcan1;
 		can1 = &flexcan2;
 		can2 = &flexcan3;
