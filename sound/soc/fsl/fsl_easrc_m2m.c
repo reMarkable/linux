@@ -626,8 +626,8 @@ static long fsl_easrc_ioctl_convert(struct fsl_easrc_m2m *m2m,
 		return ret;
 	}
 
-	init_completion(&m2m->complete[IN]);
-	init_completion(&m2m->complete[OUT]);
+	reinit_completion(&m2m->complete[IN]);
+	reinit_completion(&m2m->complete[OUT]);
 
 	fsl_easrc_submit_dma(m2m);
 
@@ -800,6 +800,8 @@ static int fsl_easrc_open(struct inode *inode, struct file *file)
 	ctx->private_data = m2m;
 
 	spin_lock_init(&m2m->lock);
+	init_completion(&m2m->complete[IN]);
+	init_completion(&m2m->complete[OUT]);
 
 	/* context structs are already allocated in fsl_easrc->ctx[i] */
 	file->private_data = m2m;
