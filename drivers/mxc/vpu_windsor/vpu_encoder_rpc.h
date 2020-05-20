@@ -103,6 +103,9 @@ void rpc_init_shared_memory_encoder(struct shared_addr *This,
 		void *base_virt_addr,
 		u_int32 total_size,
 		u32 *actual_size);
+void rpc_restore_shared_memory_encoder(struct shared_addr *This,
+		unsigned long long base_phy_addr,
+		void *base_virt_addr);
 void rpc_set_system_cfg_value_encoder(void *Interface, u_int32 regs_base, u_int32 core_id);
 void rpc_send_cmd_buf_encoder(struct shared_addr *This,
 		u_int32 idx,
