@@ -505,6 +505,10 @@
 	};
 };
 
+&cm40_intmux {
+	status = "okay";
+};
+
 &lpuart0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpuart0>;
@@ -515,6 +519,12 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpuart1>;
 	resets = <&modem_reset>;
+	status = "okay";
+};
+
+&cm40_lpuart {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_cm40_lpuart>;
 	status = "okay";
 };
 
@@ -851,6 +861,13 @@
 				IMX8DXL_UART1_CTS_B_ADMA_UART1_CTS_B    0x06000020
                        >;
                };
+
+		pinctrl_cm40_lpuart: cm40_lpuartgrp {
+			fsl,pins = <
+				IMX8DXL_ADC_IN2_M40_UART0_RX		0x06000020
+				IMX8DXL_ADC_IN3_M40_UART0_TX		0x06000020
+			>;
+		};
 
 		pinctrl_flexcan2: flexcan2grp {
 			fsl,pins = <
