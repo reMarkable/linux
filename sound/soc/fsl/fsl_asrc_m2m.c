@@ -709,8 +709,8 @@ static long fsl_asrc_ioctl_convert(struct fsl_asrc_pair *pair,
 		return ret;
 	}
 
-	init_completion(&m2m->complete[IN]);
-	init_completion(&m2m->complete[OUT]);
+	reinit_completion(&m2m->complete[IN]);
+	reinit_completion(&m2m->complete[OUT]);
 
 #ifdef ASRC_POLLING_WITHOUT_DMA
 	fsl_asrc_polling_debug(pair);
@@ -897,6 +897,8 @@ static int fsl_asrc_open(struct inode *inode, struct file *file)
 	pair->asrc_priv = asrc_priv;
 
 	spin_lock_init(&m2m->lock);
+	init_completion(&m2m->complete[IN]);
+	init_completion(&m2m->complete[OUT]);
 
 	file->private_data = pair;
 
