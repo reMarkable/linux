@@ -1,5 +1,5 @@
 /*
- * copyright (c) 2019 nxp semiconductor, inc.
+ * Copyright (C) 2019 NXP Semiconductor, Inc.
  *
  * this program is free software; you can redistribute it and/or modify
  * it under the terms of the gnu general public license version 2 as
