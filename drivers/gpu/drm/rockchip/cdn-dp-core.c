@@ -424,7 +424,11 @@ static int cdn_dp_enable_phy(struct cdn_dp_device *dp, struct cdn_dp_port *port)
 
 	port->lanes = cdn_dp_get_port_lanes(port);
 	dp->mhdp.dp.link.num_lanes = port->lanes;
-	ret = cdns_mhdp_set_host_cap(&dp->mhdp, property.intval);
+	if (property.intval)
+		dp->mhdp.lane_mapping = LANE_MAPPING_FLIPPED;
+	else
+		dp->mhdp.lane_mapping = LANE_MAPPING_NORMAL;
+	ret = cdns_mhdp_set_host_cap(&dp->mhdp);
 	if (ret) {
 		DRM_DEV_ERROR(dev, "set host capabilities failed: %d\n",
 			      ret);
