@@ -106,6 +106,9 @@ void rpc_init_shared_memory(struct shared_addr *This,
 		unsigned long long base_phy_addr,
 		void *base_virt_addr,
 		u_int32 total_size);
+void rpc_restore_shared_memory(struct shared_addr *This,
+		unsigned long long base_phy_addr,
+		void *base_virt_addr);
 void rpc_set_system_cfg_value(void *Interface, u_int32 regs_base);
 void rpc_set_stream_cfg_value(void *Interface, u_int32 str_idx, u_int32 vpu_dbe_num);
 void rpc_send_cmd_buf(struct shared_addr *This,
