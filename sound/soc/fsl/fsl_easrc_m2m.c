@@ -957,6 +957,7 @@ static void fsl_easrc_m2m_suspend(struct fsl_easrc *easrc)
 		}
 
 		m2m->first_convert = 1;
+		m2m->in_filled_len = 0;
 		fsl_easrc_stop_context(ctx);
 		spin_unlock_irqrestore(&easrc->lock, lock_flags);
 	}
