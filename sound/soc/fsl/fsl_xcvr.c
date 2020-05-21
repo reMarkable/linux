@@ -66,6 +66,18 @@ static const struct snd_pcm_hw_constraint_list fsl_xcvr_earc_rates_constr = {
 };
 
 static const u32 fsl_xcvr_spdif_channels[] = { 2, };
+static const struct snd_pcm_hw_constraint_list fsl_xcvr_spdif_channels_constr = {
+	.count = ARRAY_SIZE(fsl_xcvr_spdif_channels),
+	.list = fsl_xcvr_spdif_channels,
+};
+
+static const u32 fsl_xcvr_spdif_rates[] = {
+	32000, 44100, 48000, 88200, 96000, 176400, 192000,
+};
+static const struct snd_pcm_hw_constraint_list fsl_xcvr_spdif_rates_constr = {
+	.count = ARRAY_SIZE(fsl_xcvr_spdif_rates),
+	.list = fsl_xcvr_spdif_rates,
+};
 
 static int fsl_xcvr_arc_mode_put(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
@@ -457,7 +469,8 @@ static int fsl_xcvr_startup(struct snd_pcm_substream *substream,
 	switch (xcvr->mode) {
 	case FSL_XCVR_MODE_SPDIF:
 	case FSL_XCVR_MODE_ARC:
-		ret = 0; /* @todo */
+		ret = fsl_xcvr_constr(substream, &fsl_xcvr_spdif_channels_constr,
+				      &fsl_xcvr_spdif_rates_constr);
 		break;
 	case FSL_XCVR_MODE_EARC:
 		ret = fsl_xcvr_constr(substream, &fsl_xcvr_earc_channels_constr,
