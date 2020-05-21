@@ -1,6 +1,6 @@
 /*
  * Copyright 2005-2015 Freescale Semiconductor, Inc. All Rights Reserved.
- * Copyright 2019 NXP
+ * Copyright 2019,2020 NXP
  */
 
 /*
@@ -1275,7 +1275,6 @@ static int _get_vdoa_ipu_res(struct ipu_task_entry *t)
 	uint32_t	found_vdoa = 0;
 	struct ipu_channel_tabel	*tbl = &ipu_ch_tbl;
 
-	mutex_lock(&tbl->lock);
 	if (t->set.mode & VDOA_MODE) {
 		if (NULL != t->vdoa_handle)
 			found_vdoa = 1;
@@ -1358,7 +1357,7 @@ out:
 	dev_dbg(t->dev,
 		"%s:no:0x%x,found_vdoa:%d, found_ipu:%d\n",
 		 __func__, t->task_no, found_vdoa, found_ipu);
-	mutex_unlock(&tbl->lock);
+
 	if (t->set.task & VDOA_ONLY)
 		return found_vdoa;
 	else if (t->set.mode & VDOA_MODE)
@@ -1373,7 +1372,6 @@ static void put_vdoa_ipu_res(struct ipu_task_entry *tsk, int vdoa_only)
 	int rel_vdoa = 0, rel_ipu = 0;
 	struct ipu_channel_tabel	*tbl = &ipu_ch_tbl;
 
-	mutex_lock(&tbl->lock);
 	if (tsk->set.mode & VDOA_MODE) {
 		if (!tbl->vdoa_used && tsk->vdoa_handle)
 			dev_err(tsk->dev,
@@ -1408,7 +1406,6 @@ out:
 	dev_dbg(tsk->dev,
 		"%s:no:0x%x,rel_vdoa:%d, rel_ipu:%d\n",
 		 __func__, tsk->task_no, rel_vdoa, rel_ipu);
-	mutex_unlock(&tbl->lock);
 }
 
 static int get_vdoa_ipu_res(struct ipu_task_entry *t)
@@ -3047,11 +3044,22 @@ static void get_res_do_task(struct ipu_task_entry *t)
 	uint32_t	found;
 	uint32_t	split_child;
 	struct mutex	*lock;
+	struct ipu_channel_tabel *tbl = &ipu_ch_tbl;
+
+	mutex_lock(&tbl->lock);
 
 	found = get_vdoa_ipu_res(t);
 	if (!found) {
 		dev_err(t->dev, "ERR:[0x%p] no-0x%x can not get res\n",
 			t, t->task_no);
+
+		if ((t->set.mode & VDOA_MODE) &&
+		    tbl->vdoa_used && t->vdoa_handle) {
+			tbl->vdoa_used = 0;
+			vdoa_put_handle(&t->vdoa_handle);
+		}
+
+		mutex_unlock(&tbl->lock);
 		return;
 	} else {
 		if (t->set.task & VDOA_ONLY)
@@ -3069,6 +3077,8 @@ static void get_res_do_task(struct ipu_task_entry *t)
 		dev_err(t->dev, "ERR:[0x%p] no-0x%x state: %s\n",
 			t, t->task_no, state_msg[t->state].msg);
 	}
+
+	mutex_unlock(&tbl->lock);
 
 	split_child = need_split(t) && t->parent;
 	if (split_child) {
