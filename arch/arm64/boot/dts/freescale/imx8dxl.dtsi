@@ -297,6 +297,7 @@
 	#include "imx8-ss-ddr.dtsi"
 	#include "imx8-ss-lsio.dtsi"
 	#include "imx8-ss-hsio.dtsi"
+	#include "imx8-ss-lcdif.dtsi"
 };
 
 #include "imx8dxl-ss-adma.dtsi"
@@ -305,7 +306,6 @@
 #include "imx8dxl-ss-hsio.dtsi"
 #include "imx8dxl-ss-ddr.dtsi"
 #include "imx8dxl-ss-security.dtsi"
-#include "imx8qxp-ss-lcdif.dtsi"
 
 &edma2 {
 	status = "okay";
