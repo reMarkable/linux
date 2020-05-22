@@ -35,6 +35,7 @@
 #define MII_CFG1_LED_MODE_LINKUP	0
 #define MII_CFG1_LED_ENABLE		BIT(3)
 #define MII_CFG1_MODE_REFCLK_IN		0x100
+#define MII_CFG1_MODE_REFCLK_OUT	0x200
 
 #define MII_CFG2			19
 #define MII_CFG2_SLEEP_REQUEST_TO	GENMASK(1, 0)
@@ -183,7 +184,7 @@ static int tja11xx_soft_reset(struct phy_device *phydev)
 static int tja11xx_config_init(struct phy_device *phydev)
 {
 	struct tja11xx_priv *priv = phydev->priv;
-	int reg_mask, reg_val;
+	int reg_mask, reg_val = 0;
 	int ret;
 
 	ret = tja11xx_enable_reg_write(phydev);
@@ -200,9 +201,13 @@ static int tja11xx_config_init(struct phy_device *phydev)
 			   MII_CFG1_LED_ENABLE;
 		reg_val = MII_CFG1_AUTO_OP | MII_CFG1_LED_MODE_LINKUP |
 			  MII_CFG1_LED_ENABLE;
-		if (priv->quirks & TJA110X_REFCLK_IN) {
-			reg_mask |= MII_CFG1_MII_MODE;
-			reg_val |= MII_CFG1_MODE_REFCLK_IN;
+
+		reg_mask |= MII_CFG1_MII_MODE;
+		if (phydev->interface == PHY_INTERFACE_MODE_RMII) {
+			if (priv->quirks & TJA110X_REFCLK_IN)
+				reg_val |= MII_CFG1_MODE_REFCLK_IN;
+			else
+				reg_val |= MII_CFG1_MODE_REFCLK_OUT;
 		}
 
 		ret = phy_modify(phydev, MII_CFG1, reg_mask, reg_val);
@@ -210,6 +215,17 @@ static int tja11xx_config_init(struct phy_device *phydev)
 			return ret;
 		break;
 	case PHY_ID_TJA1101:
+		reg_mask = MII_CFG1_MII_MODE;
+		if (phydev->interface == PHY_INTERFACE_MODE_RMII) {
+			if (priv->quirks & TJA110X_REFCLK_IN)
+				reg_val = MII_CFG1_MODE_REFCLK_IN;
+			else
+				reg_val = MII_CFG1_MODE_REFCLK_OUT;
+		}
+		ret = phy_modify(phydev, MII_CFG1, reg_mask, reg_val);
+		if (ret)
+			return ret;
+
 		ret = phy_set_bits(phydev, MII_COMMCFG, MII_COMMCFG_AUTO_OP);
 		if (ret)
 			return ret;
