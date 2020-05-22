@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 NXP
+ * Copyright 2018-2020 NXP
  */
 
 /*
@@ -23,14 +23,17 @@
 #define SCODE_NEW_SEQUENCE 0x31
 #define SCODE_NEW_PICTURE 0x32
 #define SCODE_NEW_SLICE 0x33
-#define RCV_V2_FRAMESIZE_FLAGS (0xFF000000)
-#define RCV_HEADER_LEN          24
-#define RCV_CODEC_VERSION       (0x5 << 24) //FOURCC_WMV3_WMV
-#define RCV_NUM_FRAMES          0xFF
-#define RCV_SET_HDR_EXT     0x80000000
-#define VC1_IS_NOT_NAL(id)      ((id & 0x00FFFFFF) != 0x00010000)
-#define VC1_MAX_FRM_HEADER_SIZE 32
-#define VC1_MAX_SEQ_HEADER_SIZE 256
+
+#define IMX_CODEC_VERSION_ID		0x1
+
+#define IMX_VC1_RCV_CODEC_V1_VERSION	0x85  /* used */
+#define IMX_VC1_RCV_CODEC_V2_VERSION	0xC5
+#define IMX_VC1_RCV_NUM_FRAMES          0xFF
+#define IMX_VC1_RCV_SEQ_EXT_DATA_SIZE	4
+#define IMX_VC1_RCV_SEQ_HEADER_LEN	20
+#define IMX_VC1_RCV_PIC_HEADER_LEN	4
+#define IMX_VC1_NAL_HEADER_LEN		4
+#define IMX_VC1_IS_NOT_NAL(id)      ((id & 0x00FFFFFF) != 0x00010000)
 
 u_int32 insert_scode_4_pic(struct vpu_ctx *ctx, u_int8 *dst, u_int8 *src, u_int32 vdec_std, u_int32 uPayloadSize);
 u_int32 insert_scode_4_seq(struct vpu_ctx *ctx, u_int8 *src, u_int32 uPayloadSize);
