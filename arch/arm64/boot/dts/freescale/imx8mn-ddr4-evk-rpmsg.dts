@@ -83,7 +83,7 @@
 
 /*
  * ATTENTION: M core may use IPs like below
- * ECSPI2, GPIO1/GPIO5, GPT1, I2C3, I2S3, WDOG1, UART4, PWM3, SDMA1/3 and PDM
+ * ECSPI2, GPIO1/GPIO5, GPT1, I2C3, I2S3, UART4, PWM3, SDMA1/3 and PDM
  */
 
 &ecspi2 {
@@ -118,10 +118,6 @@
 };
 
 &uart4 {
-	status = "disabled";
-};
-
-&wdog1 {
 	status = "disabled";
 };
 

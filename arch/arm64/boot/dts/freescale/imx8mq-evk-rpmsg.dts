@@ -58,7 +58,7 @@
 /*
  * Regarding to the HW conflications, the following module should be disabled
  * when M4 is running on evk board.
- * gpt1, i2c2, pwm4, tmu, uart2, wdog3
+ * gpt1, i2c2, pwm4, tmu, uart2
  */
 
 &i2c2 {
@@ -85,9 +85,5 @@
 };
 
 &uart2 {
-	status = "disabled";
-};
-
-&wdog3{
 	status = "disabled";
 };
