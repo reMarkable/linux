@@ -2066,14 +2066,6 @@ static int disable_hwvad(struct device *dev, bool sync)
 	int ret = 0;
 	u32 state;
 
-	/* This is required because if an arecord was done,
-	 * suspend function will mark regmap as cache only
-	 * and reads/writes in volatile regs will fail
-	 */
-	regcache_cache_only(micfil->regmap, false);
-	regcache_mark_dirty(micfil->regmap);
-	regcache_sync(micfil->regmap);
-
 	/* disable is called with sync = false only from
 	 * system suspend and in this case, you should not
 	 * change the hwvad_state so we know at system_resume
@@ -2087,6 +2079,14 @@ static int disable_hwvad(struct device *dev, bool sync)
 		state = atomic_read(&micfil->hwvad_state);
 
 	if (state == MICFIL_HWVAD_ON) {
+		/* This is required because if an arecord was done,
+		 * suspend function will mark regmap as cache only
+		 * and reads/writes in volatile regs will fail
+		 */
+		regcache_cache_only(micfil->regmap, false);
+		regcache_mark_dirty(micfil->regmap);
+		regcache_sync(micfil->regmap);
+
 		/* Voice Activity Detector Reset */
 		ret |= regmap_update_bits(micfil->regmap,
 					  REG_MICFIL_VAD0_CTRL1,
@@ -2135,13 +2135,12 @@ static int disable_hwvad(struct device *dev, bool sync)
 						  0);
 		}
 
+		if (sync)
+			pm_runtime_put_sync(dev);
 	} else {
 		ret = -EPERM;
 		dev_err(dev, "HWVAD is not enabled %d\n", ret);
 	}
-
-	if (sync)
-		pm_runtime_put_sync(dev);
 
 	return ret;
 }
