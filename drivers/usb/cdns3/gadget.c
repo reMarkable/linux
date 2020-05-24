@@ -799,6 +799,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 		trace_cdns3_ring(priv_ep);
 		/*clearing TRBERR and EP_STS_DESCMIS before seting DRDY*/
 		writel(EP_STS_TRBERR | EP_STS_DESCMIS, &priv_dev->regs->ep_sts);
+		__cdns3_gadget_wakeup(priv_dev);
 		writel(EP_CMD_DRDY, &priv_dev->regs->ep_cmd);
 		trace_cdns3_doorbell_epx(priv_ep->name,
 					 readl(&priv_dev->regs->ep_traddr));
@@ -827,7 +828,7 @@ void cdns3_set_hw_configuration(struct cdns3_device *priv_dev)
 				 USB_STS_CFGSTS_MASK, 1, 100);
 
 	priv_dev->hw_configured_flag = 1;
-//	cdns3_allow_enable_l1(priv_dev, 1);
+	cdns3_allow_enable_l1(priv_dev, 1);
 
 	list_for_each_entry(ep, &priv_dev->gadget.ep_list, ep_list) {
 		if (ep->enabled) {
@@ -992,6 +993,7 @@ void cdns3_rearm_transfer(struct cdns3_endpoint *priv_ep, u8 rearm)
 	if (rearm) {
 		trace_cdns3_ring(priv_ep);
 
+		__cdns3_gadget_wakeup(priv_dev);
 		/* Cycle Bit must be updated before arming DMA. */
 		wmb();
 		writel(EP_CMD_DRDY, &priv_dev->regs->ep_cmd);
@@ -1130,6 +1132,15 @@ static void cdns3_check_usb_interrupt_proceed(struct cdns3_device *priv_dev,
 	int speed = 0;
 
 	trace_cdns3_usb_irq(priv_dev, usb_ists);
+	if (usb_ists & USB_ISTS_L1ENTI) {
+		/*
+		 * WORKAROUND: CDNS3 controller has issue with hardware resuming
+		 * from L1. To fix it, if any DMA transfer is pending driver
+		 * must starts driving resume signal immediately.
+		 */
+		if (readl(&priv_dev->regs->drbl))
+			__cdns3_gadget_wakeup(priv_dev);
+	}
 	/* Connection detected */
 	if (usb_ists & (USB_ISTS_CON2I | USB_ISTS_CONI)) {
 		speed = cdns3_get_speed(priv_dev);
@@ -2012,9 +2023,31 @@ static int cdns3_gadget_get_frame(struct usb_gadget *gadget)
 	return readl(&priv_dev->regs->usb_itpn);
 }
 
+int __cdns3_gadget_wakeup(struct cdns3_device *priv_dev)
+{
+	enum usb_device_speed speed;
+
+	speed = cdns3_get_speed(priv_dev);
+
+	if (speed >= USB_SPEED_SUPER)
+		return 0;
+
+	/* Start driving resume signaling to indicate remote wakeup. */
+	writel(USB_CONF_LGO_L0, &priv_dev->regs->usb_conf);
+
+	return 0;
+}
+
 static int cdns3_gadget_wakeup(struct usb_gadget *gadget)
 {
-	return 0;
+	struct cdns3_device *priv_dev = gadget_to_cdns3_device(gadget);
+	unsigned long flags;
+	int ret = 0;
+
+	spin_lock_irqsave(&priv_dev->lock, flags);
+	ret = __cdns3_gadget_wakeup(priv_dev);
+	spin_unlock_irqrestore(&priv_dev->lock, flags);
+	return ret;
 }
 
 static int cdns3_gadget_set_selfpowered(struct usb_gadget *gadget,
