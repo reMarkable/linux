@@ -35,6 +35,9 @@
 #define IMX_VC1_NAL_HEADER_LEN		4
 #define IMX_VC1_IS_NOT_NAL(id)      ((id & 0x00FFFFFF) != 0x00010000)
 
+#define IMX_VP8_IVF_SEQ_HEADER_LEN	32
+#define IMX_VP8_IVF_FRAME_HEADER_LEN	8
+
 u_int32 insert_scode_4_pic(struct vpu_ctx *ctx, u_int8 *dst, u_int8 *src, u_int32 vdec_std, u_int32 uPayloadSize);
 u_int32 insert_scode_4_seq(struct vpu_ctx *ctx, u_int8 *src, u_int32 uPayloadSize);
 u_int32 insert_scode_4_arv_slice(struct vpu_ctx *ctx, u_int8 *dst, struct VPU_FMT_INFO_ARV *arv_frame, u_int32 uPayloadSize);

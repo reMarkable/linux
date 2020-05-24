@@ -153,48 +153,55 @@ void vp6_scd_frame_header(unsigned char *buffer, int pic_width, int pic_height, 
 	buffer[15] = 0x50;
 }
 
-void vp8_ivf_sequence_header(unsigned char *buffer, int pic_width, int pic_height)
+static void set_vp8_ivf_seqhdr(unsigned char *dst, int width, int height)
 {
-	int Length = 32;
-
-	buffer[0] = 0x44;
-	buffer[1] = 0x4b;
-	buffer[2] = 0x49;
-	buffer[3] = 0x46; //0-3byte signature "DKIF"
-	buffer[4] = 0x00;
-	buffer[5] = 0x00; //4-5byte version 0
-	buffer[6] = Length;
-	buffer[7] = Length >> 8; //length of Header
-	buffer[8] = 0x56;
-	buffer[9] = 0x50;
-	buffer[10] = 0x38;
-	buffer[11] = 0x30; //VP8 fourcc
-	buffer[12] = pic_width;
-	buffer[13] = pic_width >> 8;
-	buffer[14] = pic_height;
-	buffer[15] = pic_height >> 8;
-	buffer[16] = 0xe8;
-	buffer[17] = 0x03;
-	buffer[18] = 0x00;
-	buffer[19] = 0x00; //16-19 frame rate
-	buffer[20] = 0x01;
-	buffer[21] = 0x00;
-	buffer[22] = 0x00;
-	buffer[23] = 0x00; //20-23 time scale
-	buffer[24] = 0xdf;
-	buffer[25] = 0xf9;
-	buffer[26] = 0x09;
-	buffer[27] = 0x00; //24-27 number frames
-	//28-31 unused
+	/* 0-3byte signature "DKIF" */
+	dst[0] = 0x44;
+	dst[1] = 0x4b;
+	dst[2] = 0x49;
+	dst[3] = 0x46;
+	/* 4-5byte version: should be 0*/
+	dst[4] = 0x00;
+	dst[5] = 0x00;
+	/* 6-7 length of Header */
+	dst[6] = IMX_VP8_IVF_SEQ_HEADER_LEN;
+	dst[7] = IMX_VP8_IVF_SEQ_HEADER_LEN >> 8;
+	/* 8-11 VP8 fourcc */
+	dst[8] = 0x56;
+	dst[9] = 0x50;
+	dst[10] = 0x38;
+	dst[11] = 0x30;
+	/* 12-13 width in pixels */
+	dst[12] = width;
+	dst[13] = width >> 8;
+	/* 14-15 height in pixels */
+	dst[14] = height;
+	dst[15] = height >> 8;
+	/* 16-19 frame rate */
+	dst[16] = 0xe8;
+	dst[17] = 0x03;
+	dst[18] = 0x00;
+	dst[19] = 0x00;
+	/* 20-23 time scale */
+	dst[20] = 0x01;
+	dst[21] = 0x00;
+	dst[22] = 0x00;
+	dst[23] = 0x00;
+	/* 24-27 number frames */
+	dst[24] = 0xdf;
+	dst[25] = 0xf9;
+	dst[26] = 0x09;
+	dst[27] = 0x00;
+	/* 28-31 reserved */
 }
 
-void vp8_ivf_frame_header(unsigned char *buffer, u_int32 FrameSize)
+static void set_vp8_ivf_pichdr(unsigned char *dst, unsigned int frame_size)
 {
-	buffer[0] = FrameSize;
-	buffer[1] = FrameSize >> 8;
-	buffer[2] = FrameSize >> 16;
-	buffer[3] = FrameSize >> 24;
-	//4-11 timestamp
+	/*
+	 * firmware just parse 64-bit timestamp(8 bytes).
+	 * As not transfer timestamp to firmware, use default value(ZERO).
+	 * No need to do anything here
+	 */
 }
 
 void vp8_scd_sequence_header(unsigned char *buffer, int pic_width, int pic_height)
@@ -479,13 +486,13 @@ u_int32 insert_scode_4_seq(struct vpu_ctx *ctx, u_int8 *src, u_int32 uPayloadSiz
 		vp8_scd_sequence_header(scd_seq_header, q_data->width, q_data->height);
 		copy_buffer_to_stream(ctx, scd_seq_header, 16);
 		length = 16;
-		vp8_ivf_sequence_header(ivf_seq_header, q_data->width, q_data->height);
+		set_vp8_ivf_seqhdr(ivf_seq_header, q_data->width, q_data->height);
 		copy_buffer_to_stream(ctx, ivf_seq_header, 32);
 		length += 32;
 		vp8_scd_frame_header(scd_frame_header, q_data->width, q_data->height, uPayloadSize + 8);
 		copy_buffer_to_stream(ctx, scd_frame_header, 16);
 		length += 16;
-		vp8_ivf_frame_header(ivf_frame_header, uPayloadSize);
+		set_vp8_ivf_pichdr(ivf_frame_header, uPayloadSize);
 		copy_buffer_to_stream(ctx, ivf_frame_header, 8);
 		length += 8;
 		copy_buffer_to_stream(ctx, src, uPayloadSize);
@@ -588,7 +595,7 @@ u_int32 insert_scode_4_pic(struct vpu_ctx *ctx, u_int8 *dst, u_int8 *src, u_int3
 
 		vp8_scd_frame_header(dst, q_data->width, q_data->height, uPayloadSize + 8);
 		length = 16;
-		vp8_ivf_frame_header(frame_header, uPayloadSize);
+		set_vp8_ivf_pichdr(frame_header, uPayloadSize);
 		memcpy(dst+length, frame_header, 8);
 		length += 8;
 	}
