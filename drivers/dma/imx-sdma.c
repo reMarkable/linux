@@ -455,6 +455,7 @@ struct sdma_driver_data {
 	 * https://www.nxp.com/docs/en/errata/IMX6DQCE.pdf
 	 */
 	bool ecspi_fixed;
+	bool has_done0;
 	bool pm_runtime;
 };
 
@@ -464,6 +465,7 @@ struct sdma_engine {
 	struct sdma_channel		channel[MAX_DMA_CHANNELS];
 	struct sdma_channel_control	*channel_control;
 	u32				save_regs[MXC_SDMA_SAVED_REG_NUM];
+	u32				save_done0_regs[2];
 	const char			*fw_name;
 	void __iomem			*regs;
 	struct sdma_context_data	*context;
@@ -646,6 +648,7 @@ static struct sdma_driver_data sdma_imx8mp = {
 	.script_addrs = &sdma_script_imx7d,
 	.check_ratio = 1,
 	.ecspi_fixed = true,
+	.has_done0 = true,
 	.pm_runtime = true,
 };
 
@@ -2535,6 +2538,12 @@ static int sdma_suspend(struct device *dev)
 			sdma->save_regs[i] = readl_relaxed(sdma->regs + 4 * i);
 	}
 
+	if (sdma->drvdata->has_done0) {
+		for (i = 0; i < 2; i++)
+			sdma->save_done0_regs[i] =
+			readl_relaxed(sdma->regs + SDMA_DONE0_CONFIG + 4 * i);
+	}
+
 	return 0;
 }
 
@@ -2575,6 +2584,13 @@ static int sdma_resume(struct device *dev)
 					sdma->regs + SDMA_H_CONFIG);
 		else
 			writel_relaxed(sdma->save_regs[i], sdma->regs + 4 * i);
+	}
+
+	/* restore SDMA_DONEx_CONFIG */
+	if (sdma->drvdata->has_done0) {
+		for (i = 0; i < 2; i++)
+			writel_relaxed(sdma->save_done0_regs[i],
+				sdma->regs + SDMA_DONE0_CONFIG + 4 * i);
 	}
 
 	/* prepare priority for channel0 to start */
