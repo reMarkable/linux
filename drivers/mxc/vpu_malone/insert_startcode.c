@@ -115,6 +115,85 @@ static int create_vc1_nal_pichdr(unsigned char *dst, void *data)
 	return len;
 }
 
+static unsigned int insert_scd_pic_vc1(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+
+	if (q_data->fourcc == V4L2_PIX_FMT_VC1_ANNEX_G) {
+		unsigned int rcv_pichdr_size = IMX_VC1_RCV_PIC_HEADER_LEN;
+		unsigned char rcv_pichdr[IMX_VC1_RCV_PIC_HEADER_LEN] = { 0 };
+		unsigned char scd_pichdr[16] = { 0 };
+
+		set_payload_hdr(scd_pichdr, SCODE_NEW_PICTURE, IMX_CODEC_ID_VC1_SIMPLE,
+				rcv_pichdr_size + buffer_size, q_data->width, q_data->height);
+		length += copy_buffer_to_stream(ctx, scd_pichdr, 16);
+		set_vc1_rcv_pichdr(rcv_pichdr, buffer_size);
+		length += copy_buffer_to_stream(ctx, rcv_pichdr, rcv_pichdr_size);
+	} else {
+		unsigned char nal_hdr[IMX_VC1_NAL_HEADER_LEN] = { 0 };
+		unsigned int len;
+
+		len = create_vc1_nal_pichdr(nal_hdr, data);
+		length += copy_buffer_to_stream(ctx, nal_hdr, len);
+	}
+
+	return length;
+}
+
+static unsigned int insert_scd_seq_vc1(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned int rvc_seqhdr_size = IMX_VC1_RCV_SEQ_HEADER_LEN;
+	unsigned char rcv_seqhdr[IMX_VC1_RCV_SEQ_HEADER_LEN] = { 0 };
+	unsigned char scd_seqhdr[16] = { 0 };
+
+	if (q_data->fourcc == V4L2_PIX_FMT_VC1_ANNEX_G) {
+		set_payload_hdr(scd_seqhdr, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_VC1_SIMPLE,
+					rvc_seqhdr_size, q_data->width, q_data->height);
+		length += copy_buffer_to_stream(ctx, scd_seqhdr, 16);
+
+		set_vc1_rcv_seqhdr(rcv_seqhdr, data, q_data->width, q_data->height);
+		length += copy_buffer_to_stream(ctx, rcv_seqhdr, rvc_seqhdr_size);
+	} else {
+		length += copy_buffer_to_stream(ctx, data, buffer_size);
+	}
+
+	return length;
+}
+
+static unsigned int insert_scd_pic_vp6(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char pic_header[16] = { 0 };
+
+	set_payload_hdr(pic_header, SCODE_NEW_PICTURE, IMX_CODEC_ID_VC1_SIMPLE,
+			buffer_size, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, pic_header, 16);
+
+	return length;
+}
+
+static unsigned int insert_scd_seq_vp6(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char seq_header[16] = {0};
+	unsigned char *src = (unsigned char *)data;
+
+	set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_VP6,
+			0, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, seq_header, 16);
+
+	/* first data include frame data, need to handle them too */
+	length += insert_scd_pic_vp6(ctx, buffer_size, data);
+	length += copy_buffer_to_stream(ctx, src, buffer_size);
+
+	return length;
+}
+
 static void set_vp8_ivf_seqhdr(unsigned char *dst, int width, int height)
 {
 	/* 0-3byte signature "DKIF" */
@@ -164,6 +243,183 @@ static void set_vp8_ivf_pichdr(unsigned char *dst, unsigned int frame_size)
 	 * As not transfer timestamp to firmware, use default value(ZERO).
 	 * No need to do anything here
 	 */
+}
+
+static unsigned int insert_scd_pic_vp8(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned int ivf_pichdr_size = IMX_VP8_IVF_FRAME_HEADER_LEN;
+	unsigned char pic_header[16] = { 0 };
+	unsigned char ivf_frame_header[IMX_VP8_IVF_FRAME_HEADER_LEN] = { 0 };
+
+	set_payload_hdr(pic_header, SCODE_NEW_PICTURE, IMX_CODEC_ID_VP8,
+			ivf_pichdr_size + buffer_size, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, pic_header, 16);
+	set_vp8_ivf_pichdr(ivf_frame_header, buffer_size);
+	length += copy_buffer_to_stream(ctx, ivf_frame_header, ivf_pichdr_size);
+
+	return length;
+}
+
+static unsigned int insert_scd_seq_vp8(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned int ivf_seqhdr_size = IMX_VP8_IVF_SEQ_HEADER_LEN;
+	unsigned char scd_seqhdr[16] = { 0 };
+	unsigned char ivf_seqhdr[IMX_VP8_IVF_SEQ_HEADER_LEN] = { 0 };
+	unsigned char *src = (unsigned char *)data;
+
+	set_payload_hdr(scd_seqhdr, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_VP8,
+				ivf_seqhdr_size, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, scd_seqhdr, 16);
+	set_vp8_ivf_seqhdr(ivf_seqhdr, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, ivf_seqhdr, ivf_seqhdr_size);
+
+	/* first data include frame data, need to handle them too */
+	length += insert_scd_pic_vp8(ctx, buffer_size, data);
+	length += copy_buffer_to_stream(ctx, src, buffer_size);
+
+	return length;
+}
+
+static unsigned int insert_scd_pic_asp(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char pic_header[16] = { 0 };
+
+	if (q_data->fourcc == VPU_PIX_FMT_DIV3) {
+		set_payload_hdr(pic_header, SCODE_NEW_PICTURE, IMX_CODEC_ID_DIVX3,
+					buffer_size, q_data->width, q_data->height);
+		length += copy_buffer_to_stream(ctx, pic_header, 16);
+	}
+
+	return length;
+}
+
+static unsigned int insert_scd_seq_asp(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char seq_header[16] = {0};
+	unsigned char *src = (unsigned char *)data;
+
+	if (q_data->fourcc == VPU_PIX_FMT_DIV3) {
+		set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_DIVX3,
+				0, q_data->width, q_data->height);
+		length += copy_buffer_to_stream(ctx, seq_header, 16);
+
+		/* first data include frame data, need to handle them too */
+		length += insert_scd_pic_asp(ctx, buffer_size, data);
+		length += copy_buffer_to_stream(ctx, src, buffer_size);
+	} else {
+		/*
+		 * other format no sequence or picture header
+		 * directly copy frame data to ring buffer
+		 */
+		length += copy_buffer_to_stream(ctx, src, buffer_size);
+	}
+
+	return length;
+}
+
+static unsigned int insert_scd_pic_spk(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char pic_header[16] = { 0 };
+
+	set_payload_hdr(pic_header, SCODE_NEW_PICTURE, IMX_CODEC_ID_SPK,
+				buffer_size, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, pic_header, 16);
+
+	return length;
+}
+
+static unsigned int insert_scd_seq_spk(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char seq_header[16] = {0};
+	unsigned char *src = (unsigned char *)data;
+
+	set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_SPK,
+			0, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, seq_header, 16);
+
+	/* first data include frame data, need to handle them too */
+	length += insert_scd_pic_spk(ctx, buffer_size, data);
+	length += copy_buffer_to_stream(ctx, src, buffer_size);
+
+	return length;
+}
+
+static unsigned int insert_slice_arv(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char slice_header[16] = { 0 };
+	unsigned int codec_id;
+
+	if (ctx->arv_type == ARV_8)
+		codec_id = IMX_CODEC_ID_ARV8;
+	else
+		codec_id = IMX_CODEC_ID_ARV9;
+
+	set_payload_hdr(slice_header, SCODE_NEW_SLICE, codec_id, buffer_size,
+			q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, slice_header, 16);
+
+	return length;
+}
+
+static unsigned int insert_scd_pic_arv(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned int slice_num = 0;
+	unsigned int packlen = 0;
+	unsigned char pic_header[16] = { 0 };
+	unsigned char *src = (unsigned char *)data;
+	unsigned int codec_id;
+
+	slice_num = ((src[16] << 24) | (src[17] << 16) | (src[18] << 8) | (src[19]));
+	packlen = 20 + 8 * slice_num;
+	if (ctx->arv_type == ARV_8)
+		codec_id = IMX_CODEC_ID_ARV8;
+	else
+		codec_id = IMX_CODEC_ID_ARV9;
+
+	set_payload_hdr(pic_header, SCODE_NEW_PICTURE, codec_id, packlen,
+			q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, pic_header, 16);
+
+	return length;
+}
+
+static unsigned int insert_scd_seq_arv(struct vpu_ctx *ctx, unsigned int buffer_size, void *data)
+{
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+	unsigned char seq_header[16] = {0};
+	unsigned int codec_id;
+
+	if (strncmp((const char *)(data + 8), "RV30", 4) == 0) {
+		ctx->arv_type = ARV_8;
+		codec_id = IMX_CODEC_ID_ARV8;
+	} else {
+		ctx->arv_type = ARV_9;
+		codec_id = IMX_CODEC_ID_ARV9;
+	}
+
+	set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, codec_id,
+			buffer_size, q_data->width, q_data->height);
+	length += copy_buffer_to_stream(ctx, seq_header, 16);
+	length += copy_buffer_to_stream(ctx, data, buffer_size);
+
+	return length;
 }
 
 u_int32 single_seq_info_format(struct queue_data *q_data)
@@ -236,235 +492,52 @@ bool check_free_size_4_seq(struct vpu_ctx *ctx, u_int32 uPayloadSize)
 	return true;
 }
 
-u_int32 insert_scode_4_seq(struct vpu_ctx *ctx, u_int8 *src, u_int32 uPayloadSize)
+bool check_free_size_pic(struct vpu_ctx *ctx, unsigned int buffer_size)
 {
 	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
-	u_int32 length = 0;
-
-	if (!check_free_size_4_seq(ctx, uPayloadSize))
-		return 0;
+	pSTREAM_BUFFER_DESCRIPTOR_TYPE pStrBufDesc;
+	unsigned int nfreespace = 0;
+	unsigned int length = 0;
 
 	switch (q_data->vdec_std) {
-	case VPU_VIDEO_VC1: {
-		if (q_data->fourcc == V4L2_PIX_FMT_VC1_ANNEX_G) {
-			u_int8 payload_header[32] = {0};
-			u_int8 rcv_seqhdr[IMX_VC1_RCV_SEQ_HEADER_LEN] = {0};
-			unsigned int rvc_seqhdr_size = IMX_VC1_RCV_SEQ_HEADER_LEN;
-
-			set_payload_hdr(payload_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_VC1_SIMPLE,
-					rvc_seqhdr_size, q_data->width, q_data->height);
-			copy_buffer_to_stream(ctx, payload_header, 16);
-			length = 16;
-			set_vc1_rcv_seqhdr(rcv_seqhdr, src, q_data->width, q_data->height);
-			copy_buffer_to_stream(ctx, rcv_seqhdr, rvc_seqhdr_size);
-			length += rvc_seqhdr_size;
-		} else {
-			length += copy_buffer_to_stream(ctx, src, uPayloadSize);
-		}
-	}
-	break;
-	case VPU_VIDEO_VP6: {
-		u_int8 seq_header[16] = {0};
-		u_int8 frame_header[16] = {0};
-
-		set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_VP6,
-				0, q_data->width, q_data->height);
-		copy_buffer_to_stream(ctx, seq_header, 16);
-		length = 16;
-		set_payload_hdr(frame_header, SCODE_NEW_PICTURE, IMX_CODEC_ID_VP6,
-				uPayloadSize, q_data->width, q_data->height);
-		copy_buffer_to_stream(ctx, frame_header, 16);
-		length += 16;
-		copy_buffer_to_stream(ctx, src, uPayloadSize);
-		length += uPayloadSize;
-	}
-	break;
-	case VPU_VIDEO_VP8: {
-		u_int8 scd_seq_header[16] = {0};
-		u_int8 ivf_seq_header[IMX_VP8_IVF_SEQ_HEADER_LEN] = {0};
-		u_int8 scd_frame_header[16] = {0};
-		u_int8 ivf_frame_header[IMX_VP8_IVF_FRAME_HEADER_LEN] = {0};
-		unsigned int ivf_seqhdr_size = IMX_VP8_IVF_SEQ_HEADER_LEN;
-		unsigned int ivf_pichdr_size = IMX_VP8_IVF_FRAME_HEADER_LEN;
-
-		set_payload_hdr(scd_seq_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_VP8,
-				ivf_seqhdr_size, q_data->width, q_data->height);
-		length += copy_buffer_to_stream(ctx, scd_seq_header, 16);
-		set_vp8_ivf_seqhdr(ivf_seq_header, q_data->width, q_data->height);
-		length += copy_buffer_to_stream(ctx, ivf_seq_header, ivf_seqhdr_size);
-
-		set_payload_hdr(scd_frame_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_VP8,
-				ivf_seqhdr_size + ivf_pichdr_size, q_data->width, q_data->height);
-		length += copy_buffer_to_stream(ctx, scd_frame_header, 16);
-		set_vp8_ivf_pichdr(ivf_frame_header, uPayloadSize);
-		length += copy_buffer_to_stream(ctx, ivf_frame_header, ivf_pichdr_size);
-		length += copy_buffer_to_stream(ctx, src, uPayloadSize);
-	}
-	break;
-	case VPU_VIDEO_ASP: {
-		if (q_data->fourcc == VPU_PIX_FMT_DIV3) {
-			u_int8 seq_header[16] = {0};
-			u_int8 frame_header[16] = {0};
-
-			set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_DIVX3,
-					0, q_data->width, q_data->height);
-			length += copy_buffer_to_stream(ctx, seq_header, 16);
-
-			set_payload_hdr(frame_header, SCODE_NEW_PICTURE, IMX_CODEC_ID_DIVX3,
-					uPayloadSize, q_data->width, q_data->height);
-			length += copy_buffer_to_stream(ctx, frame_header, 16);
-			length += copy_buffer_to_stream(ctx, src, uPayloadSize);
-		} else {
-			copy_buffer_to_stream(ctx, src, uPayloadSize);
-			length = uPayloadSize;
-		}
-	}
-	break;
-	case VPU_VIDEO_SPK: {
-		u_int8 seq_header[16] = {0};
-		u_int8 frame_header[16] = {0};
-
-		set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, IMX_CODEC_ID_SPK,
-				0, q_data->width, q_data->height);
-		length += copy_buffer_to_stream(ctx, seq_header, 16);
-
-		set_payload_hdr(frame_header, SCODE_NEW_PICTURE, IMX_CODEC_ID_SPK,
-				uPayloadSize, q_data->width, q_data->height);
-		length += copy_buffer_to_stream(ctx, frame_header, 16);
-		length += copy_buffer_to_stream(ctx, src, uPayloadSize);
-	}
-	break;
-	case VPU_VIDEO_RV: {
-		u_int8 seq_header[16] = {0};
-		unsigned int codec_id;
-
-		if (strncmp((const char *)(src+8), "RV30", 4) == 0) {
-			ctx->arv_type = ARV_8;
-			codec_id = IMX_CODEC_ID_ARV8;
-		} else {
-			ctx->arv_type = ARV_9;
-			codec_id = IMX_CODEC_ID_ARV9;
-		}
-
-		set_payload_hdr(seq_header, SCODE_NEW_SEQUENCE, codec_id,
-				uPayloadSize, q_data->width, q_data->height);
-		length += copy_buffer_to_stream(ctx, seq_header, 16);
-		length += copy_buffer_to_stream(ctx, src, uPayloadSize);
-	}
-	break;
+	case VPU_VIDEO_VC1:
+		length = buffer_size + IMX_VC1_RCV_PIC_HEADER_LEN
+			+ IMX_PAYLOAD_HEADER_SIZE;
+		break;
+	case VPU_VIDEO_VP8:
+		length = buffer_size + IMX_VP8_IVF_FRAME_HEADER_LEN + IMX_PAYLOAD_HEADER_SIZE;
+		break;
+	case  VPU_VIDEO_VP6:
+	case VPU_VIDEO_ASP:
+	case VPU_VIDEO_SPK:
+		length = buffer_size + IMX_PAYLOAD_HEADER_SIZE;
+		break;
+	case VPU_VIDEO_RV:
+		/* speciall: buffer_size need to include all slice header size*/
+		length = buffer_size + IMX_PAYLOAD_HEADER_SIZE;
+		break;
 	case VPU_VIDEO_AVC:
 	case VPU_VIDEO_MPEG2:
 	case VPU_VIDEO_AVS:
 	case VPU_VIDEO_JPEG:
 	case VPU_VIDEO_AVC_MVC:
 	case VPU_VIDEO_HEVC:
-	case VPU_VIDEO_UNDEFINED: {
-		copy_buffer_to_stream(ctx, src, uPayloadSize);
-		length = uPayloadSize;
-	}
-	break;
+	case VPU_VIDEO_UNDEFINED:
+		length = buffer_size;
+		break;
 	default:
 		break;
 	}
-	return length;
-}
 
-u_int32 insert_scode_4_pic(struct vpu_ctx *ctx, u_int8 *dst, u_int8 *src, u_int32 vdec_std, u_int32 uPayloadSize)
-{
-	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
-	u_int32 length = 0;
-
-	switch (vdec_std) {
-	case VPU_VIDEO_VC1: {
-		if (q_data->fourcc == V4L2_PIX_FMT_VC1_ANNEX_G) {
-			u_int8 rcv_pichdr[IMX_VC1_RCV_PIC_HEADER_LEN];
-			unsigned int rcv_pichdr_size = IMX_VC1_RCV_PIC_HEADER_LEN;
-
-			set_payload_hdr(dst, SCODE_NEW_PICTURE, IMX_CODEC_ID_VC1_SIMPLE,
-					uPayloadSize + rcv_pichdr_size, q_data->width, q_data->height);
-			set_vc1_rcv_pichdr(rcv_pichdr, uPayloadSize);
-			memcpy(dst+16, rcv_pichdr, rcv_pichdr_size);
-			length = 16 + rcv_pichdr_size;
-		} else {
-			unsigned char nal_hdr[IMX_VC1_NAL_HEADER_LEN] = { 0 };
-			unsigned int len;
-
-			len = create_vc1_nal_pichdr(nal_hdr, src);
-			memcpy(dst, nal_hdr, len);
-			length = len;
-		}
+	pStrBufDesc = get_str_buffer_desc(ctx);
+	nfreespace = got_free_space(pStrBufDesc->wptr, pStrBufDesc->rptr,
+				    pStrBufDesc->start, pStrBufDesc->end);
+	if (nfreespace < (length + MIN_SPACE)) {
+		vpu_dbg(LVL_INFO, "buffer_full: the circular buffer freespace < buffer_size\n");
+		return false;
 	}
-	break;
-	case VPU_VIDEO_VP6: {
-		set_payload_hdr(dst, SCODE_NEW_PICTURE, IMX_CODEC_ID_VC1_SIMPLE,
-					uPayloadSize, q_data->width, q_data->height);
-		length = 16;
-	}
-	break;
-	case VPU_VIDEO_VP8: {
-		u_int8 frame_header[IMX_VP8_IVF_FRAME_HEADER_LEN] = { 0 };
-		unsigned int ivf_pichdr_size = IMX_VP8_IVF_FRAME_HEADER_LEN;
 
-		set_payload_hdr(dst, SCODE_NEW_PICTURE, IMX_CODEC_ID_VP8, uPayloadSize + ivf_pichdr_size,
-			q_data->width, q_data->height);
-		length = 16;
-		set_vp8_ivf_pichdr(frame_header, uPayloadSize);
-		memcpy(dst+length, frame_header, ivf_pichdr_size);
-		length += ivf_pichdr_size;
-	}
-	break;
-	case VPU_VIDEO_ASP: {
-		if (q_data->fourcc == VPU_PIX_FMT_DIV3) {
-			set_payload_hdr(dst, SCODE_NEW_PICTURE, IMX_CODEC_ID_DIVX3,
-					uPayloadSize, q_data->width, q_data->height);
-			length = 16;
-		}
-	}
-	break;
-	case VPU_VIDEO_SPK: {
-		set_payload_hdr(dst, SCODE_NEW_PICTURE, IMX_CODEC_ID_SPK,
-				uPayloadSize, q_data->width, q_data->height);
-		length = 16;
-	}
-	break;
-	case VPU_VIDEO_RV: {
-		u_int32 slice_num;
-		u_int32 packlen;
-		unsigned int codec_id;
-
-		slice_num = ((src[16] << 24) | (src[17] << 16) | (src[18] << 8) | (src[19]));
-		packlen = 20 + 8 * slice_num;
-		if (ctx->arv_type == ARV_8)
-			codec_id = IMX_CODEC_ID_ARV8;
-		else
-			codec_id = IMX_CODEC_ID_ARV9;
-		set_payload_hdr(dst, SCODE_NEW_PICTURE, codec_id, packlen,
-				q_data->width, q_data->height);
-		length = 16;
-	}
-	break;
-	default:
-	break;
-	}
-	return length;
-}
-
-u_int32 insert_scode_4_arv_slice(struct vpu_ctx *ctx, u_int8 *dst, struct VPU_FMT_INFO_ARV *arv_frame, u_int32 uPayloadSize)
-{
-	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
-	u_int32 length = 0;
-	unsigned int codec_id;
-
-	if (ctx->arv_type == ARV_8)
-		codec_id = IMX_CODEC_ID_ARV8;
-	else
-		codec_id = IMX_CODEC_ID_ARV9;
-
-	set_payload_hdr(dst, codec_id, SCODE_NEW_SLICE, uPayloadSize,
-			q_data->width, q_data->height);
-	length = 16;
-
-	return length;
+	return true;
 }
 
 struct VPU_FMT_INFO_ARV *get_arv_info(struct vpu_ctx *ctx, u_int8 *src, u_int32 size)
@@ -517,3 +590,70 @@ void put_arv_info(struct VPU_FMT_INFO_ARV *arv_frame)
 	kfree(arv_frame);
 }
 
+static const struct imx_scd_handler handlers[] = {
+	{.vdec_std = VPU_VIDEO_VC1,
+	 .insert_scd_seq = insert_scd_seq_vc1,
+	 .insert_scd_pic = insert_scd_pic_vc1,
+	},
+	{.vdec_std = VPU_VIDEO_VP6,
+	 .insert_scd_seq = insert_scd_seq_vp6,
+	 .insert_scd_pic = insert_scd_pic_vp6,
+	},
+	{.vdec_std = VPU_VIDEO_VP8,
+	 .insert_scd_seq = insert_scd_seq_vp8,
+	 .insert_scd_pic = insert_scd_pic_vp8,
+	},
+	{.vdec_std = VPU_VIDEO_ASP,
+	 .insert_scd_seq = insert_scd_seq_asp,
+	 .insert_scd_pic = insert_scd_pic_asp,
+	},
+	{.vdec_std = VPU_VIDEO_SPK,
+	 .insert_scd_seq = insert_scd_seq_spk,
+	 .insert_scd_pic = insert_scd_pic_spk,
+	},
+	{.vdec_std = VPU_VIDEO_RV,
+	 .insert_scd_seq = insert_scd_seq_arv,
+	 .insert_scd_pic = insert_scd_pic_arv,
+	 .insert_scd_slice = insert_slice_arv,
+	},
+};
+
+unsigned int insert_scode(struct vpu_ctx *ctx, unsigned int scd_type, unsigned int buffer_size, void *data)
+{
+	const struct imx_scd_handler *handler;
+	int i = 0;
+	bool found = false;
+	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
+	unsigned int length = 0;
+
+	for (i = 0; i < ARRAY_SIZE(handlers); i++) {
+		handler = &handlers[i];
+		if (handler->vdec_std != q_data->vdec_std)
+			continue;
+		found = true;
+		break;
+	}
+
+	if (scd_type ==  SCODE_NEW_SEQUENCE) {
+		if (!check_free_size_4_seq(ctx, buffer_size))
+			return length;
+
+		/* some format first data is frame data, and no need to add
+		 * any header, directly copy it to ring buffer.
+		 */
+		if (found && handler->insert_scd_seq)
+			length = handler->insert_scd_seq(ctx, buffer_size, data);
+		else
+			length = copy_buffer_to_stream(ctx, data, buffer_size);
+	} else if (scd_type ==  SCODE_NEW_PICTURE) {
+		if (found && handler->insert_scd_pic)
+			length = handler->insert_scd_pic(ctx, buffer_size, data);
+	} else if (scd_type ==  SCODE_NEW_SLICE) {
+		if (found && handler->insert_scd_slice)
+			length = handler->insert_scd_slice(ctx, buffer_size, data);
+	} else {
+		vpu_dbg(LVL_WARN, "ctx[%d] scd_type invalid\n", ctx->str_index);
+	}
+
+	return length;
+}

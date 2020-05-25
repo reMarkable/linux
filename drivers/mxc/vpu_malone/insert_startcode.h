@@ -24,6 +24,8 @@
 #define SCODE_NEW_PICTURE 0x32
 #define SCODE_NEW_SLICE 0x33
 
+#define IMX_PAYLOAD_HEADER_SIZE		16
+
 #define IMX_CODEC_VERSION_ID		0x1
 
 #define IMX_CODEC_ID_VC1_SIMPLE		0x10
@@ -47,13 +49,21 @@
 #define IMX_VP8_IVF_SEQ_HEADER_LEN	32
 #define IMX_VP8_IVF_FRAME_HEADER_LEN	8
 
-u_int32 insert_scode_4_pic(struct vpu_ctx *ctx, u_int8 *dst, u_int8 *src, u_int32 vdec_std, u_int32 uPayloadSize);
-u_int32 insert_scode_4_seq(struct vpu_ctx *ctx, u_int8 *src, u_int32 uPayloadSize);
-u_int32 insert_scode_4_arv_slice(struct vpu_ctx *ctx, u_int8 *dst, struct VPU_FMT_INFO_ARV *arv_frame, u_int32 uPayloadSize);
+
+struct imx_scd_handler {
+	unsigned int vdec_std;
+
+	unsigned int (*insert_scd_seq)(struct vpu_ctx *ctx, unsigned int buffer_size, void *data);
+	unsigned int (*insert_scd_pic)(struct vpu_ctx *ctx, unsigned int buffer_size, void *data);
+	unsigned int (*insert_scd_slice)(struct vpu_ctx *ctx, unsigned int buffer_size, void *data);
+};
+
+
 struct VPU_FMT_INFO_ARV *get_arv_info(struct vpu_ctx *ctx, u_int8 *src, u_int32 size);
 void put_arv_info(struct VPU_FMT_INFO_ARV *arv_frame);
-void insert_payload_header_arv(u_int8 *dst, u_int32 uScodeType,
-	enum ARV_FRAME_TYPE type, u_int32 uPayloadSize, u_int32 uWidth, u_int32 uHeight);
 u_int32 single_seq_info_format(struct queue_data *q_data);
+unsigned int insert_scode(struct vpu_ctx *ctx, unsigned int scd_type,
+			  unsigned int buffer_size, void *data);
+bool check_free_size_pic(struct vpu_ctx *ctx, unsigned int buffer_size);
 
 #endif

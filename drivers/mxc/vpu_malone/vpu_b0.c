@@ -3165,46 +3165,17 @@ static void vpu_dec_event_decode_error(struct vpu_ctx *ctx)
 
 static int update_stream_addr(struct vpu_ctx *ctx, void *input_buffer, uint32_t buffer_size, uint32_t uStrBufIdx)
 {
-	pSTREAM_BUFFER_DESCRIPTOR_TYPE pStrBufDesc;
 	struct queue_data *q_data = &ctx->q_data[V4L2_SRC];
-	u_int8 payload_header[256] = {0};
-	uint32_t nfreespace = 0;
-	uint32_t wptr;
-	uint32_t rptr;
-	uint32_t start;
-	uint32_t end;
-	uint32_t header_length = 0;
 	uint32_t copy_length = 0;
 	uint32_t input_offset = 0;
 	struct VPU_FMT_INFO_ARV *arv_frame;
 	uint32_t i;
 
-	vpu_dbg(LVL_BIT_FUNC, "enter %s\n", __func__);
-
-	// changed to virtual address and back
-	pStrBufDesc = get_str_buffer_desc(ctx);
-	vpu_dbg(LVL_BIT_BUFFER_DESC,
-		"%s wptr(%x) rptr(%x) start(%x) end(%x) uStrBufIdx(%d)\n",
-		__func__,
-		pStrBufDesc->wptr,
-		pStrBufDesc->rptr,
-		pStrBufDesc->start,
-		pStrBufDesc->end,
-		uStrBufIdx);
-	wptr = pStrBufDesc->wptr;
-	rptr = pStrBufDesc->rptr;
-	start = pStrBufDesc->start;
-	end = pStrBufDesc->end;
-
-	nfreespace = got_free_space(wptr, rptr, start, end);
-	header_length = insert_scode_4_pic(ctx, payload_header, input_buffer, q_data->vdec_std, buffer_size);
 	if (q_data->vdec_std != VPU_VIDEO_RV) {
-		if (nfreespace < (buffer_size + header_length + MIN_SPACE)) {
-			vpu_dbg(LVL_INFO, "buffer_full: the circular buffer freespace < buffer_size\n");
+		if (!check_free_size_pic(ctx, buffer_size))
 			return 0;
-		}
 
-		copy_length += copy_buffer_to_stream(ctx, payload_header, header_length);
+		copy_length += insert_scode(ctx, SCODE_NEW_PICTURE, buffer_size, input_buffer);
 		copy_length += copy_buffer_to_stream(ctx, input_buffer, buffer_size);
 	} else {
 		arv_frame = get_arv_info(ctx, input_buffer, buffer_size);
@@ -3212,8 +3183,7 @@ static int update_stream_addr(struct vpu_ctx *ctx, void *input_buffer, uint32_t 
 			vpu_dbg(LVL_WARN, "warning: %s() get arv frame info failed\n", __func__);
 			return -1;
 		}
-		if (nfreespace < (buffer_size + header_length + arv_frame->slice_num * 16 + MIN_SPACE)) {
-			vpu_dbg(LVL_INFO, "buffer_full: the circular buffer freespace < buffer_size\n");
+		if (!check_free_size_pic(ctx, buffer_size + arv_frame->slice_num * 16)) {
 			put_arv_info(arv_frame);
 			arv_frame = NULL;
 			return 0;
@@ -3227,7 +3197,7 @@ static int update_stream_addr(struct vpu_ctx *ctx, void *input_buffer, uint32_t 
 			return -1;
 		}
 
-		copy_length += copy_buffer_to_stream(ctx, payload_header, header_length);
+		copy_length += insert_scode(ctx, SCODE_NEW_PICTURE, buffer_size, input_buffer);
 		copy_length += copy_buffer_to_stream(ctx, input_buffer + input_offset, arv_frame->packlen);
 		input_offset += arv_frame->packlen;
 		for (i = 0; i < arv_frame->slice_num; i++) {
@@ -3235,8 +3205,7 @@ static int update_stream_addr(struct vpu_ctx *ctx, void *input_buffer, uint32_t 
 				arv_frame->packlen = arv_frame->data_len - arv_frame->slice_offset[i];
 			else
 				arv_frame->packlen = arv_frame->slice_offset[i+1] - arv_frame->slice_offset[i];
-			header_length = insert_scode_4_arv_slice(ctx, payload_header, arv_frame, arv_frame->packlen + 12);
-			copy_length += copy_buffer_to_stream(ctx, payload_header, header_length);
+			copy_length += insert_scode(ctx, SCODE_NEW_SLICE, arv_frame->packlen, input_buffer + input_offset);
 			copy_length += copy_buffer_to_stream(ctx, input_buffer + input_offset, arv_frame->packlen);
 			input_offset += arv_frame->packlen;
 		}
@@ -3455,7 +3424,7 @@ static void enqueue_stream_data(struct vpu_ctx *ctx, uint32_t uStrBufIdx)
 		if (ctx->start_code_bypass)
 			frame_bytes = update_stream_addr_bypass(ctx, input_buffer, buffer_size);
 		else if (ctx->first_data_flag || is_codec_config_data(vb))
-			frame_bytes = insert_scode_4_seq(ctx, input_buffer, buffer_size);
+			frame_bytes = insert_scode(ctx, SCODE_NEW_SEQUENCE, buffer_size, input_buffer);
 		else
 			frame_bytes = update_stream_addr_vpu(ctx, input_buffer, buffer_size, uStrBufIdx);
 
