@@ -1680,16 +1680,6 @@ ov5640_find_mode(struct ov5640_dev *sensor, enum ov5640_frame_rate fr,
 	    (!nearest && (mode->hact != width || mode->vact != height)))
 		return NULL;
 
-	/* Only 640x480 can operate at 60fps (for now) */
-	if (fr == OV5640_60_FPS &&
-	    !(mode->hact == 640 && mode->vact == 480))
-		return NULL;
-
-	/* 2592x1944 only works at 15fps max */
-	if ((mode->hact == 2592 && mode->vact == 1944) &&
-	    fr > OV5640_15_FPS)
-		return NULL;
-
 	return mode;
 }
 
