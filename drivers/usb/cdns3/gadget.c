@@ -613,7 +613,7 @@ int cdns3_ep_run_transfer(struct cdns3_endpoint *priv_ep,
 	u32 control;
 	int pcs;
 	struct scatterlist *s = NULL;
-	u8 td_size;
+	u16 td_size;
 
 	if (priv_ep->type == USB_ENDPOINT_XFER_ISOC)
 		num_trb = priv_ep->interval;
