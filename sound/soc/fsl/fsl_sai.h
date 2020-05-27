@@ -288,6 +288,7 @@ struct fsl_sai {
 
 	struct fsl_sai_verid verid;
 	struct fsl_sai_param param;
+	struct snd_soc_dai_driver cpu_dai_drv;
 };
 
 const struct attribute_group *fsl_sai_get_dev_attribute_group(bool monitor_spdif);
