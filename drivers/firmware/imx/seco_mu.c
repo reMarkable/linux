@@ -89,7 +89,7 @@
 #define SECO_DEFAULT_TZ		(0u)
 #define DEFAULT_DID		(0u)
 
-#define MAX_DATA_SIZE_PER_USER  (16 * 1024)
+#define MAX_DATA_SIZE_PER_USER  (65 * 1024)
 
 /* Header of the messages exchange with the SECO */
 struct she_mu_hdr {
