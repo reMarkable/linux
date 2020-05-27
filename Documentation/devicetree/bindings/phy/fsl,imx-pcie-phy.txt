@@ -6,6 +6,8 @@ Required properties:
 - reg:		The base address and length of the registers
 - clocks:	Phandles to the clocks for each clock listed in clock-names
 - clock-names:	Must contain "phy"
+- ext_osc:	Specify the reference clock source. 1: external oscilltor is
+  used as PCIe reference clock. 0: internal PLL is used.
 - power-domains: Phandle to the power domain that the device is part of
 
 Example:
