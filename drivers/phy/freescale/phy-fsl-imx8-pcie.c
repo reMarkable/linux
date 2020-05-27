@@ -11,11 +11,46 @@
 #include <linux/platform_device.h>
 
 #define PHY_PLL_LOCK_WAIT_MAX_RETRIES	2000
+#define IMX8MP_PCIE_PHY_FLAG_EXT_OSC	BIT(0)
+
+#define IMX8MP_PCIE_PHY_CMN_REG020	0x80
+#define  PLL_ANA_LPF_R_SEL_FINE_0_4	0x04
+#define IMX8MP_PCIE_PHY_CMN_REG036	0xD8
+#define  PLL_PMS_SDIV_8_4		0x32
+#define IMX8MP_PCIE_PHY_CMN_REG061	0x184
+#define  ANA_PLL_CLK_OUT_TO_EXT_IO_EN	BIT(0)
+#define IMX8MP_PCIE_PHY_CMN_REG062	0x188
+#define  ANA_PLL_CLK_OUT_TO_EXT_IO_SEL	BIT(3)
+#define IMX8MP_PCIE_PHY_CMN_REG063	0x18C
+#define  AUX_PLL_REFCLK_SEL_SYS_PLL	GENMASK(7, 6)
+#define IMX8MP_PCIE_PHY_CMN_REG064	0x190
+#define  ANA_AUX_RX_TX_SEL_TX		BIT(7)
+#define  ANA_AUX_RX_TERM_GND_EN		BIT(3)
+#define  ANA_AUX_TX_TERM		BIT(2)
+#define IMX8MP_PCIE_PHY_CMN_REG065	0x194
+#define  ANA_AUX_RX_TERM		(BIT(7) | BIT(4))
+#define  ANA_AUX_TX_LVL			GENMASK(3, 0)
+#define IMX8MP_PCIE_PHY_CMN_REG076	0x200
+#define  LANE_RESET_MUX_SEL		0x00
+#define IMX8MP_PCIE_PHY_CMN_REG078	0x208
+#define  LANE_TX_DATA_CLK_MUX_SEL	0x00
+
+#define IMX8MP_PCIE_PHY_TRSV_REG001	0x404
+#define  LN0_OVRD_TX_DRV_LVL		0x2D
+#define IMX8MP_PCIE_PHY_TRSV_REG020	0x480
+#define  LN0_RX_CDR_REFDIV_1_2		1
+#define IMX8MP_PCIE_PHY_TRSV_REG022	0x488
+#define  LN0_RX_CDR_REFDIV_1_1		0
+#define IMX8MP_PCIE_PHY_TRSV_REG0BB	0x6EC
+#define  LN0_TXD_DESKEW_BYPASS		BIT(2)
+#define IMX8MP_PCIE_PHY_TRSV_REG0CF	0x73C
+#define  LN0_MISC_TX_CLK_SRC		BIT(2)
 
 struct imx8_pcie_phy {
 	struct phy *phy;
 	struct clk *clk;
 	void __iomem *base;
+	u32 flags;
 };
 
 static int imx8_pcie_phy_init(struct phy *phy)
@@ -42,6 +77,7 @@ static int imx8_pcie_phy_init(struct phy *phy)
 	 * operation for GEN3 cannot be achieved with the SW workaround
 	 * since the buffer structure cannot be bypassed in GEN3 mode.
 	 */
+
 	/* wait for pipe0_clk locked by checking status from PCS. */
 	for (retries = 0; retries < PHY_PLL_LOCK_WAIT_MAX_RETRIES;
 	     retries++) {
@@ -51,15 +87,58 @@ static int imx8_pcie_phy_init(struct phy *phy)
 		udelay(10);
 	}
 
-	/* setup_deskew_fifo_bypass to workaround ERR050442 */
-	writel(0x32, imx8_phy->base + 0xd8);
-	writel(0x1, imx8_phy->base + 0x480);
-	writel(0x0, imx8_phy->base + 0x488);
-	writel(0x4, imx8_phy->base + 0x73c);
-	writel(0x4, imx8_phy->base + 0x6ec);
+	if (retries >= PHY_PLL_LOCK_WAIT_MAX_RETRIES) {
+		pr_info("pcie phy pipe clk is not ready\n");
+		return -ETIMEDOUT;
+	}
 
-	/* Configure TX drive level  */
-	writel(0x2d, imx8_phy->base + 0x404);
+	return 0;
+}
+
+static int imx8_pcie_phy_cal(struct phy *phy)
+{
+	u32 value;
+	struct imx8_pcie_phy *imx8_phy = phy_get_drvdata(phy);
+
+	/* export clock to ep when internal clock is used as PHY REF clock */
+	if ((imx8_phy->flags & IMX8MP_PCIE_PHY_FLAG_EXT_OSC) == 0) {
+		writel(ANA_PLL_CLK_OUT_TO_EXT_IO_EN,
+		       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG061);
+		writel(ANA_PLL_CLK_OUT_TO_EXT_IO_SEL,
+		       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG062);
+		writel(AUX_PLL_REFCLK_SEL_SYS_PLL,
+		       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG063);
+		value = ANA_AUX_RX_TX_SEL_TX | ANA_AUX_TX_TERM;
+		writel(value | ANA_AUX_RX_TERM_GND_EN,
+		       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG064);
+		writel(ANA_AUX_RX_TERM | ANA_AUX_TX_LVL,
+		       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG065);
+	}
+
+	/* Configure TX drive level */
+	writel(LN0_OVRD_TX_DRV_LVL,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_TRSV_REG001);
+
+	writel(PLL_ANA_LPF_R_SEL_FINE_0_4,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG020);
+	writel(LANE_RESET_MUX_SEL,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG076);
+	writel(LANE_TX_DATA_CLK_MUX_SEL,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG078);
+
+	/* setup_deskew_fifo_bypass to workaround ERR050442 */
+	udelay(1);
+	writel(PLL_PMS_SDIV_8_4,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_CMN_REG036);
+	writel(LN0_RX_CDR_REFDIV_1_2,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_TRSV_REG020);
+	writel(LN0_RX_CDR_REFDIV_1_1,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_TRSV_REG022);
+	writel(LN0_MISC_TX_CLK_SRC,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_TRSV_REG0CF);
+	writel(LN0_TXD_DESKEW_BYPASS,
+	       imx8_phy->base + IMX8MP_PCIE_PHY_TRSV_REG0BB);
+	udelay(1);
 
 	return 0;
 }
@@ -82,6 +161,7 @@ static int imx8_pcie_phy_power_off(struct phy *phy)
 
 static struct phy_ops imx8_pcie_phy_ops = {
 	.init		= imx8_pcie_phy_init,
+	.calibrate	= imx8_pcie_phy_cal,
 	.power_on	= imx8_pcie_phy_power_on,
 	.power_off	= imx8_pcie_phy_power_off,
 	.owner		= THIS_MODULE,
@@ -89,14 +169,28 @@ static struct phy_ops imx8_pcie_phy_ops = {
 
 static int imx8_pcie_phy_probe(struct platform_device *pdev)
 {
+	u32 val = 0;
 	struct phy_provider *phy_provider;
 	struct device *dev = &pdev->dev;
+	struct device_node *np = dev->of_node;
 	struct imx8_pcie_phy *imx8_phy;
 	struct resource *res;
 
 	imx8_phy = devm_kzalloc(dev, sizeof(*imx8_phy), GFP_KERNEL);
 	if (!imx8_phy)
 		return -ENOMEM;
+
+	imx8_phy->flags &= ~IMX8MP_PCIE_PHY_FLAG_EXT_OSC;
+	if (of_property_read_u32(np, "clk_mode", &val) < 0)
+		/*
+		 * Not specify clk_mod, use the external OSC as default
+		 * CLK mode.
+		 */
+		imx8_phy->flags |= IMX8MP_PCIE_PHY_FLAG_EXT_OSC;
+	if (val == 0)
+		imx8_phy->flags &= ~IMX8MP_PCIE_PHY_FLAG_EXT_OSC;
+	else
+		dev_info(dev, "invalid clk mode %d.\n", val);
 
 	imx8_phy->clk = devm_clk_get(dev, "phy");
 	if (IS_ERR(imx8_phy->clk)) {
