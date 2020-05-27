@@ -475,11 +475,25 @@ static int dw_hdmi_imx_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int __maybe_unused dw_hdmi_imx_resume(struct device *dev)
+{
+	struct imx_hdmi *hdmi = dev_get_drvdata(dev);
+
+	dw_hdmi_resume(hdmi->hdmi);
+
+	return 0;
+}
+
+static const struct dev_pm_ops dw_hdmi_imx_pm = {
+	SET_SYSTEM_SLEEP_PM_OPS(NULL, dw_hdmi_imx_resume)
+};
+
 static struct platform_driver dw_hdmi_imx_platform_driver = {
 	.probe  = dw_hdmi_imx_probe,
 	.remove = dw_hdmi_imx_remove,
 	.driver = {
 		.name = "dwhdmi-imx",
+		.pm = &dw_hdmi_imx_pm,
 		.of_match_table = dw_hdmi_imx_dt_ids,
 	},
 };
