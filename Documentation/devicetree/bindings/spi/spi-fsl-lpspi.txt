@@ -14,6 +14,10 @@ Required properties:
 		to fill the "ipg" blank.
 - spi-slave : spi slave mode support. In slave mode, add this attribute without
 	      value. In master mode, remove it.
+- fsl,spi-only-use-cs1-sel : spi common code does not support use of CS signals
+			     discontinuously. i.MX8DXL-EVK board only uses CS1
+			     without using CS0. Therefore, add this property to
+			     re-config the chipselect value in the LPSPI driver.
 
 Examples:
 
