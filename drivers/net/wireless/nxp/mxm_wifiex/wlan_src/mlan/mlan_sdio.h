@@ -1,8 +1,8 @@
 /** @file mlan_sdio.h
-  *
-  * @brief This file contains definitions for SDIO interface.
-  * driver.
-  *
+ *
+ * @brief This file contains definitions for SDIO interface.
+ * driver.
+ *
  *
  *  Copyright 2014-2020 NXP
  *
@@ -24,198 +24,204 @@
 Change log:
 ****************************************************/
 
-#ifndef	_MLAN_SDIO_H
-#define	_MLAN_SDIO_H
+#ifndef _MLAN_SDIO_H
+#define _MLAN_SDIO_H
 
 /** Block mode */
 #ifndef BLOCK_MODE
-#define BLOCK_MODE	1
+#define BLOCK_MODE 1
 #endif
 
 /** Fixed address mode */
 #ifndef FIXED_ADDRESS
-#define FIXED_ADDRESS	0
+#define FIXED_ADDRESS 0
 #endif
 
 /* Host Control Registers */
 /** Host Control Registers : Host to Card Event */
-#define HOST_TO_CARD_EVENT_REG		0x00
+#define HOST_TO_CARD_EVENT_REG 0x00
 /** Host Control Registers : Host terminates Command 53 */
-#define HOST_TERM_CMD53			(0x1U << 2)
+#define HOST_TERM_CMD53 (0x1U << 2)
 /** Host Control Registers : Host without Command 53 finish host */
-#define HOST_WO_CMD53_FINISH_HOST	(0x1U << 2)
+#define HOST_WO_CMD53_FINISH_HOST (0x1U << 2)
 /** Host Control Registers : Host power up */
-#define HOST_POWER_UP			(0x1U << 1)
+#define HOST_POWER_UP (0x1U << 1)
 /** Host Control Registers : Host power down */
-#define HOST_POWER_DOWN			(0x1U << 0)
+#define HOST_POWER_DOWN (0x1U << 0)
 
 /** Host Control Registers : Upload host interrupt RSR */
-#define UP_LD_HOST_INT_RSR		(0x1U)
-#define HOST_INT_RSR_MASK		0xFF
+#define UP_LD_HOST_INT_RSR (0x1U)
+#define HOST_INT_RSR_MASK 0xFF
 
 /** Host Control Registers : Upload command port host interrupt status */
-#define UP_LD_CMD_PORT_HOST_INT_STATUS		(0x40U)
+#define UP_LD_CMD_PORT_HOST_INT_STATUS (0x40U)
 /** Host Control Registers : Download command port host interrupt status */
-#define DN_LD_CMD_PORT_HOST_INT_STATUS		(0x80U)
+#define DN_LD_CMD_PORT_HOST_INT_STATUS (0x80U)
 
 /** Host Control Registers : Upload host interrupt mask */
-#define UP_LD_HOST_INT_MASK		(0x1U)
+#define UP_LD_HOST_INT_MASK (0x1U)
 /** Host Control Registers : Download host interrupt mask */
-#define DN_LD_HOST_INT_MASK		(0x2U)
+#define DN_LD_HOST_INT_MASK (0x2U)
 /** Host Control Registers : Cmd port upload interrupt mask */
-#define CMD_PORT_UPLD_INT_MASK		(0x1U << 6)
+#define CMD_PORT_UPLD_INT_MASK (0x1U << 6)
 /** Host Control Registers : Cmd port download interrupt mask */
-#define CMD_PORT_DNLD_INT_MASK		(0x1U << 7)
+#define CMD_PORT_DNLD_INT_MASK (0x1U << 7)
 /** Enable Host interrupt mask */
-#define HIM_ENABLE			(UP_LD_HOST_INT_MASK   | \
-					DN_LD_HOST_INT_MASK    | \
-					CMD_PORT_UPLD_INT_MASK | \
-					CMD_PORT_DNLD_INT_MASK)
+#define HIM_ENABLE                                                             \
+	(UP_LD_HOST_INT_MASK | DN_LD_HOST_INT_MASK | CMD_PORT_UPLD_INT_MASK |  \
+	 CMD_PORT_DNLD_INT_MASK)
 /** Disable Host interrupt mask */
-#define	HIM_DISABLE			0xff
+#define HIM_DISABLE 0xff
 
 /** Host Control Registers : Upload host interrupt status */
-#define UP_LD_HOST_INT_STATUS		(0x1U)
+#define UP_LD_HOST_INT_STATUS (0x1U)
 /** Host Control Registers : Download host interrupt status */
-#define DN_LD_HOST_INT_STATUS		(0x2U)
+#define DN_LD_HOST_INT_STATUS (0x2U)
 
 /** Host Control Registers : Download CRC error */
-#define DN_LD_CRC_ERR			(0x1U << 2)
+#define DN_LD_CRC_ERR (0x1U << 2)
 /** Host Control Registers : Upload restart */
-#define UP_LD_RESTART			(0x1U << 1)
+#define UP_LD_RESTART (0x1U << 1)
 /** Host Control Registers : Download restart */
-#define DN_LD_RESTART			(0x1U << 0)
+#define DN_LD_RESTART (0x1U << 0)
 
 /** Card Control Registers : Command port upload ready */
-#define UP_LD_CP_RDY			(0x1U << 6)
+#define UP_LD_CP_RDY (0x1U << 6)
 /** Card Control Registers : Command port download ready */
-#define DN_LD_CP_RDY			(0x1U << 7)
+#define DN_LD_CP_RDY (0x1U << 7)
 /** Card Control Registers : Card I/O ready */
-#define CARD_IO_READY			(0x1U << 3)
+#define CARD_IO_READY (0x1U << 3)
 /** Card Control Registers : CIS card ready */
-#define CIS_CARD_RDY			(0x1U << 2)
+#define CIS_CARD_RDY (0x1U << 2)
 /** Card Control Registers : Upload card ready */
-#define UP_LD_CARD_RDY			(0x1U << 1)
+#define UP_LD_CARD_RDY (0x1U << 1)
 /** Card Control Registers : Download card ready */
-#define DN_LD_CARD_RDY			(0x1U << 0)
+#define DN_LD_CARD_RDY (0x1U << 0)
 
 /** Card Control Registers : Host power interrupt mask */
-#define HOST_POWER_INT_MASK		(0x1U << 3)
+#define HOST_POWER_INT_MASK (0x1U << 3)
 /** Card Control Registers : Abort card interrupt mask */
-#define ABORT_CARD_INT_MASK		(0x1U << 2)
+#define ABORT_CARD_INT_MASK (0x1U << 2)
 /** Card Control Registers : Upload card interrupt mask */
-#define UP_LD_CARD_INT_MASK		(0x1U << 1)
+#define UP_LD_CARD_INT_MASK (0x1U << 1)
 /** Card Control Registers : Download card interrupt mask */
-#define DN_LD_CARD_INT_MASK		(0x1U << 0)
+#define DN_LD_CARD_INT_MASK (0x1U << 0)
 
 /** Card Control Registers : Power up interrupt */
-#define POWER_UP_INT			(0x1U << 4)
+#define POWER_UP_INT (0x1U << 4)
 /** Card Control Registers : Power down interrupt */
-#define POWER_DOWN_INT			(0x1U << 3)
+#define POWER_DOWN_INT (0x1U << 3)
 
 /** Card Control Registers : Power up RSR */
-#define POWER_UP_RSR			(0x1U << 4)
+#define POWER_UP_RSR (0x1U << 4)
 /** Card Control Registers : Power down RSR */
-#define POWER_DOWN_RSR			(0x1U << 3)
+#define POWER_DOWN_RSR (0x1U << 3)
 
 /** Card Control Registers : SD test BUS 0 */
-#define SD_TESTBUS0			(0x1U)
+#define SD_TESTBUS0 (0x1U)
 /** Card Control Registers : SD test BUS 1 */
-#define SD_TESTBUS1			(0x1U)
+#define SD_TESTBUS1 (0x1U)
 /** Card Control Registers : SD test BUS 2 */
-#define SD_TESTBUS2			(0x1U)
+#define SD_TESTBUS2 (0x1U)
 /** Card Control Registers : SD test BUS 3 */
-#define SD_TESTBUS3			(0x1U)
+#define SD_TESTBUS3 (0x1U)
 
 /** Port for registers */
-#define REG_PORT			0
+#define REG_PORT 0
 /** Port for memory */
-#define MEM_PORT	                        0x10000
+#define MEM_PORT 0x10000
 
 /** Card Control Registers : cmd53 new mode */
-#define CMD53_NEW_MODE      (0x1U << 0)
+#define CMD53_NEW_MODE (0x1U << 0)
 /** Card Control Registers : cmd53 tx len format 1 (0x10) */
-#define CMD53_TX_LEN_FORMAT_1           (0x1U << 4)
+#define CMD53_TX_LEN_FORMAT_1 (0x1U << 4)
 /** Card Control Registers : cmd53 tx len format 2 (0x20)*/
-#define CMD53_TX_LEN_FORMAT_2           (0x1U << 5)
+#define CMD53_TX_LEN_FORMAT_2 (0x1U << 5)
 /** Card Control Registers : cmd53 rx len format 1 (0x40) */
-#define CMD53_RX_LEN_FORMAT_1           (0x1U << 6)
+#define CMD53_RX_LEN_FORMAT_1 (0x1U << 6)
 /** Card Control Registers : cmd53 rx len format 2 (0x80)*/
-#define CMD53_RX_LEN_FORMAT_2           (0x1U << 7)
+#define CMD53_RX_LEN_FORMAT_2 (0x1U << 7)
 
-#define CMD_PORT_RD_LEN_EN            (0x1U << 2)
+#define CMD_PORT_RD_LEN_EN (0x1U << 2)
 /* Card Control Registers : cmd port auto enable */
-#define CMD_PORT_AUTO_EN              (0x1U << 0)
+#define CMD_PORT_AUTO_EN (0x1U << 0)
 
 /* Command port */
-#define CMD_PORT_SLCT                   0x8000
+#define CMD_PORT_SLCT 0x8000
 
 /** Misc. Config Register : Auto Re-enable interrupts */
-#define AUTO_RE_ENABLE_INT		MBIT(4)
+#define AUTO_RE_ENABLE_INT MBIT(4)
 
 /** Enable GPIO-1 as a duplicated signal of interrupt as appear of SDIO_DAT1*/
-#define ENABLE_GPIO_1_INT_MODE  0x88
+#define ENABLE_GPIO_1_INT_MODE 0x88
 /** Scratch reg 3 2  :     Configure GPIO-1 INT*/
-#define SCRATCH_REG_32          0xEE
+#define SCRATCH_REG_32 0xEE
 
 /** Event header Len*/
-#define MLAN_EVENT_HEADER_LEN           8
+#define MLAN_EVENT_HEADER_LEN 8
 
 /** SDIO byte mode size */
-#define MAX_BYTE_MODE_SIZE             512
+#define MAX_BYTE_MODE_SIZE 512
 
 /** The base address for packet with multiple ports aggregation */
-#define SDIO_MPA_ADDR_BASE             0x1000
+#define SDIO_MPA_ADDR_BASE 0x1000
 
 /** SDIO Tx aggregation in progress ? */
 #define MP_TX_AGGR_IN_PROGRESS(a) (a->pcard_sd->mpa_tx.pkt_cnt > 0)
 
 /** SDIO Tx aggregation buffer room for next packet ? */
-#define MP_TX_AGGR_BUF_HAS_ROOM(a, mbuf, len) \
-			(((a->pcard_sd->mpa_tx.buf_len) + len) <= (a->pcard_sd->mpa_tx.buf_size))
+#define MP_TX_AGGR_BUF_HAS_ROOM(a, mbuf, len)                                  \
+	(((a->pcard_sd->mpa_tx.buf_len) + len) <=                              \
+	 (a->pcard_sd->mpa_tx.buf_size))
 
 /** Copy current packet (SDIO Tx aggregation buffer) to SDIO buffer */
-#define MP_TX_AGGR_BUF_PUT(a, mbuf, port) do {          \
-	pmadapter->callbacks.moal_memmove(a->pmoal_handle, \
-		&a->pcard_sd->mpa_tx.buf[a->pcard_sd->mpa_tx.buf_len], \
-		mbuf->pbuf+mbuf->data_offset, mbuf->data_len);\
-	a->pcard_sd->mpa_tx.buf_len += mbuf->data_len;                \
-	a->pcard_sd->mpa_tx.mp_wr_info[a->pcard_sd->mpa_tx.pkt_cnt] = \
-		*(t_u16 *)(mbuf->pbuf+mbuf->data_offset); \
-	if (!a->pcard_sd->mpa_tx.pkt_cnt) {                           \
-		a->pcard_sd->mpa_tx.start_port = port;                    \
-	}                                                   \
-	a->pcard_sd->mpa_tx.ports |= (1 << port);                     \
-	a->pcard_sd->mpa_tx.pkt_cnt++;                                \
-} while (0)
+#define MP_TX_AGGR_BUF_PUT(a, mbuf, port)                                      \
+	do {                                                                   \
+		pmadapter->callbacks.moal_memmove(                             \
+			a->pmoal_handle,                                       \
+			&a->pcard_sd->mpa_tx.buf[a->pcard_sd->mpa_tx.buf_len], \
+			mbuf->pbuf + mbuf->data_offset, mbuf->data_len);       \
+		a->pcard_sd->mpa_tx.buf_len += mbuf->data_len;                 \
+		a->pcard_sd->mpa_tx.mp_wr_info[a->pcard_sd->mpa_tx.pkt_cnt] =  \
+			*(t_u16 *)(mbuf->pbuf + mbuf->data_offset);            \
+		if (!a->pcard_sd->mpa_tx.pkt_cnt) {                            \
+			a->pcard_sd->mpa_tx.start_port = port;                 \
+		}                                                              \
+		a->pcard_sd->mpa_tx.ports |= (1 << port);                      \
+		a->pcard_sd->mpa_tx.pkt_cnt++;                                 \
+	} while (0)
 
-#define MP_TX_AGGR_BUF_PUT_SG(a, mbuf, port) do {       \
-	a->pcard_sd->mpa_tx.buf_len += mbuf->data_len;                \
-	a->pcard_sd->mpa_tx.mp_wr_info[a->pcard_sd->mpa_tx.pkt_cnt] = \
-		*(t_u16 *)(mbuf->pbuf+mbuf->data_offset); \
-	a->pcard_sd->mpa_tx.mbuf_arr[a->pcard_sd->mpa_tx.pkt_cnt] = mbuf;       \
-	if (!a->pcard_sd->mpa_tx.pkt_cnt) {                           \
-		a->pcard_sd->mpa_tx.start_port = port;                    \
-	}                                                   \
-	a->pcard_sd->mpa_tx.ports |= (1 << port);                     \
-	a->pcard_sd->mpa_tx.pkt_cnt++;                                \
-} while (0)
+#define MP_TX_AGGR_BUF_PUT_SG(a, mbuf, port)                                   \
+	do {                                                                   \
+		a->pcard_sd->mpa_tx.buf_len += mbuf->data_len;                 \
+		a->pcard_sd->mpa_tx.mp_wr_info[a->pcard_sd->mpa_tx.pkt_cnt] =  \
+			*(t_u16 *)(mbuf->pbuf + mbuf->data_offset);            \
+		a->pcard_sd->mpa_tx.mbuf_arr[a->pcard_sd->mpa_tx.pkt_cnt] =    \
+			mbuf;                                                  \
+		if (!a->pcard_sd->mpa_tx.pkt_cnt) {                            \
+			a->pcard_sd->mpa_tx.start_port = port;                 \
+		}                                                              \
+		a->pcard_sd->mpa_tx.ports |= (1 << port);                      \
+		a->pcard_sd->mpa_tx.pkt_cnt++;                                 \
+	} while (0)
 /** SDIO Tx aggregation limit ? */
-#define MP_TX_AGGR_PKT_LIMIT_REACHED(a) ((a->pcard_sd->mpa_tx.pkt_cnt) \
-			== (a->pcard_sd->mpa_tx.pkt_aggr_limit))
+#define MP_TX_AGGR_PKT_LIMIT_REACHED(a)                                        \
+	((a->pcard_sd->mpa_tx.pkt_cnt) == (a->pcard_sd->mpa_tx.pkt_aggr_limit))
 
 /** Reset SDIO Tx aggregation buffer parameters */
-#define MP_TX_AGGR_BUF_RESET(a) do {         \
-	memset(a, a->pcard_sd->mpa_tx.mp_wr_info, 0, sizeof(a->pcard_sd->mpa_tx.mp_wr_info)); \
-	a->pcard_sd->mpa_tx.pkt_cnt = 0;                   \
-	a->pcard_sd->mpa_tx.buf_len = 0;                   \
-	a->pcard_sd->mpa_tx.ports = 0;                     \
-	a->pcard_sd->mpa_tx.start_port = 0;                \
-} while (0)
+#define MP_TX_AGGR_BUF_RESET(a)                                                \
+	do {                                                                   \
+		memset(a, a->pcard_sd->mpa_tx.mp_wr_info, 0,                   \
+		       sizeof(a->pcard_sd->mpa_tx.mp_wr_info));                \
+		a->pcard_sd->mpa_tx.pkt_cnt = 0;                               \
+		a->pcard_sd->mpa_tx.buf_len = 0;                               \
+		a->pcard_sd->mpa_tx.ports = 0;                                 \
+		a->pcard_sd->mpa_tx.start_port = 0;                            \
+	} while (0)
 
 /** SDIO Rx aggregation limit ? */
-#define MP_RX_AGGR_PKT_LIMIT_REACHED(a) (a->pcard_sd->mpa_rx.pkt_cnt \
-		== a->pcard_sd->mpa_rx.pkt_aggr_limit)
+#define MP_RX_AGGR_PKT_LIMIT_REACHED(a)                                        \
+	(a->pcard_sd->mpa_rx.pkt_cnt == a->pcard_sd->mpa_rx.pkt_aggr_limit)
 
 /** SDIO Rx aggregation port limit ? */
 /** this is for test only, because port 0 is reserved for control port */
@@ -223,44 +229,48 @@ Change log:
 
 /* receive packets aggregated up to a half of mp_end_port */
 /* note: hw rx wraps round only after port (MAX_PORT-1) */
-#define MP_RX_AGGR_PORT_LIMIT_REACHED(a) \
-		(((a->pcard_sd->curr_rd_port < a->pcard_sd->mpa_rx.start_port) && \
-		(((MAX_PORT - a->pcard_sd->mpa_rx.start_port) + a->pcard_sd->curr_rd_port) \
-		>= (a->pcard_sd->mp_end_port >> 1))) || \
-		((a->pcard_sd->curr_rd_port - a->pcard_sd->mpa_rx.start_port) >= \
-		(a->pcard_sd->mp_end_port >> 1)))
+#define MP_RX_AGGR_PORT_LIMIT_REACHED(a)                                       \
+	(((a->pcard_sd->curr_rd_port < a->pcard_sd->mpa_rx.start_port) &&      \
+	  (((MAX_PORT - a->pcard_sd->mpa_rx.start_port) +                      \
+	    a->pcard_sd->curr_rd_port) >= (a->pcard_sd->mp_end_port >> 1))) || \
+	 ((a->pcard_sd->curr_rd_port - a->pcard_sd->mpa_rx.start_port) >=      \
+	  (a->pcard_sd->mp_end_port >> 1)))
 
 /** SDIO Rx aggregation in progress ? */
 #define MP_RX_AGGR_IN_PROGRESS(a) (a->pcard_sd->mpa_rx.pkt_cnt > 0)
 
 /** SDIO Rx aggregation buffer room for next packet ? */
-#define MP_RX_AGGR_BUF_HAS_ROOM(a, rx_len)   \
+#define MP_RX_AGGR_BUF_HAS_ROOM(a, rx_len)                                     \
 	((a->pcard_sd->mpa_rx.buf_len + rx_len) <= a->pcard_sd->mpa_rx.buf_size)
 
 /** Prepare to copy current packet from card to SDIO Rx aggregation buffer */
-#define MP_RX_AGGR_SETUP(a, mbuf, port, rx_len) do {   \
-	a->pcard_sd->mpa_rx.buf_len += rx_len;                       \
-	if (!a->pcard_sd->mpa_rx.pkt_cnt) {                          \
-		a->pcard_sd->mpa_rx.start_port = port;                   \
-	}                                                  \
-	a->pcard_sd->mpa_rx.ports |= (1 << port);                    \
-	a->pcard_sd->mpa_rx.mbuf_arr[a->pcard_sd->mpa_rx.pkt_cnt] = mbuf;      \
-	a->pcard_sd->mpa_rx.len_arr[a->pcard_sd->mpa_rx.pkt_cnt] = rx_len;     \
-	a->pcard_sd->mpa_rx.pkt_cnt++;                              \
-} while (0)
+#define MP_RX_AGGR_SETUP(a, mbuf, port, rx_len)                                \
+	do {                                                                   \
+		a->pcard_sd->mpa_rx.buf_len += rx_len;                         \
+		if (!a->pcard_sd->mpa_rx.pkt_cnt) {                            \
+			a->pcard_sd->mpa_rx.start_port = port;                 \
+		}                                                              \
+		a->pcard_sd->mpa_rx.ports |= (1 << port);                      \
+		a->pcard_sd->mpa_rx.mbuf_arr[a->pcard_sd->mpa_rx.pkt_cnt] =    \
+			mbuf;                                                  \
+		a->pcard_sd->mpa_rx.len_arr[a->pcard_sd->mpa_rx.pkt_cnt] =     \
+			rx_len;                                                \
+		a->pcard_sd->mpa_rx.pkt_cnt++;                                 \
+	} while (0)
 
 /** Reset SDIO Rx aggregation buffer parameters */
-#define MP_RX_AGGR_BUF_RESET(a) do {         \
-	a->pcard_sd->mpa_rx.pkt_cnt = 0;                   \
-	a->pcard_sd->mpa_rx.buf_len = 0;                   \
-	a->pcard_sd->mpa_rx.ports = 0;                     \
-	a->pcard_sd->mpa_rx.start_port = 0;                \
-} while (0)
+#define MP_RX_AGGR_BUF_RESET(a)                                                \
+	do {                                                                   \
+		a->pcard_sd->mpa_rx.pkt_cnt = 0;                               \
+		a->pcard_sd->mpa_rx.buf_len = 0;                               \
+		a->pcard_sd->mpa_rx.ports = 0;                                 \
+		a->pcard_sd->mpa_rx.start_port = 0;                            \
+	} while (0)
 
 /** aggr buf size 32k  */
-#define SDIO_MP_AGGR_BUF_SIZE_32K   (32768)
+#define SDIO_MP_AGGR_BUF_SIZE_32K (32768)
 /** max aggr buf size 64k-256 */
-#define SDIO_MP_AGGR_BUF_SIZE_MAX   (65280)
+#define SDIO_MP_AGGR_BUF_SIZE_MAX (65280)
 
 #ifdef SD8887
 static const struct _mlan_sdio_card_reg mlan_reg_sd8887 = {
@@ -270,9 +280,10 @@ static const struct _mlan_sdio_card_reg mlan_reg_sd8887 = {
 	.base_1_reg = 0x6D,
 	.poll_reg = 0x5C,
 	.host_int_enable = UP_LD_HOST_INT_MASK | DN_LD_HOST_INT_MASK |
-		CMD_PORT_UPLD_INT_MASK | CMD_PORT_DNLD_INT_MASK,
+			   CMD_PORT_UPLD_INT_MASK | CMD_PORT_DNLD_INT_MASK,
 	.host_int_status = DN_LD_HOST_INT_STATUS | UP_LD_HOST_INT_STATUS |
-		DN_LD_CMD_PORT_HOST_INT_STATUS | UP_LD_CMD_PORT_HOST_INT_STATUS,
+			   DN_LD_CMD_PORT_HOST_INT_STATUS |
+			   UP_LD_CMD_PORT_HOST_INT_STATUS,
 	.status_reg_0 = 0x90,
 	.status_reg_1 = 0x91,
 	.sdio_int_mask = 0xff,
@@ -339,9 +350,10 @@ static const struct _mlan_sdio_card_reg mlan_reg_sd8897 = {
 	.base_1_reg = 0x61,
 	.poll_reg = 0x50,
 	.host_int_enable = UP_LD_HOST_INT_MASK | DN_LD_HOST_INT_MASK |
-		CMD_PORT_UPLD_INT_MASK | CMD_PORT_DNLD_INT_MASK,
+			   CMD_PORT_UPLD_INT_MASK | CMD_PORT_DNLD_INT_MASK,
 	.host_int_status = DN_LD_HOST_INT_STATUS | UP_LD_HOST_INT_STATUS |
-		DN_LD_CMD_PORT_HOST_INT_STATUS | UP_LD_CMD_PORT_HOST_INT_STATUS,
+			   DN_LD_CMD_PORT_HOST_INT_STATUS |
+			   UP_LD_CMD_PORT_HOST_INT_STATUS,
 	.status_reg_0 = 0xC0,
 	.status_reg_1 = 0xC1,
 	.sdio_int_mask = 0xff,
@@ -400,7 +412,8 @@ static const struct _mlan_card_info mlan_card_info_sd8897 = {
 };
 #endif
 
-#if defined(SD8977) || defined(SD8997) || defined(SD8987) || defined(SD9098) || defined(SD9097) || defined(SD8978)
+#if defined(SD8977) || defined(SD8997) || defined(SD8987) ||                   \
+	defined(SD9098) || defined(SD9097) || defined(SD8978)
 static const struct _mlan_sdio_card_reg mlan_reg_sd8977_sd8997 = {
 	.start_rd_port = 0,
 	.start_wr_port = 0,
@@ -408,9 +421,10 @@ static const struct _mlan_sdio_card_reg mlan_reg_sd8977_sd8997 = {
 	.base_1_reg = 0xf9,
 	.poll_reg = 0x5C,
 	.host_int_enable = UP_LD_HOST_INT_MASK | DN_LD_HOST_INT_MASK |
-		CMD_PORT_UPLD_INT_MASK | CMD_PORT_DNLD_INT_MASK,
+			   CMD_PORT_UPLD_INT_MASK | CMD_PORT_DNLD_INT_MASK,
 	.host_int_status = DN_LD_HOST_INT_STATUS | UP_LD_HOST_INT_STATUS |
-		DN_LD_CMD_PORT_HOST_INT_STATUS | UP_LD_CMD_PORT_HOST_INT_STATUS,
+			   DN_LD_CMD_PORT_HOST_INT_STATUS |
+			   UP_LD_CMD_PORT_HOST_INT_STATUS,
 	.status_reg_0 = 0xe8,
 	.status_reg_1 = 0xe9,
 	.sdio_int_mask = 0xff,

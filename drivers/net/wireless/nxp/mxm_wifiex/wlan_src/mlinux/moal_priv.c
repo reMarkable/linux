@@ -1,38 +1,38 @@
 /** @file  moal_priv.c
-  *
-  * @brief This file contains standard ioctl functions
-  *
-  *
-  * Copyright 2014-2020 NXP
-  *
-  * This software file (the File) is distributed by NXP
-  * under the terms of the GNU General Public License Version 2, June 1991
-  * (the License).  You may use, redistribute and/or modify the File in
-  * accordance with the terms and conditions of the License, a copy of which
-  * is available by writing to the Free Software Foundation, Inc.,
-  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
-  * worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
-  *
-  * THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
-  * ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
-  * this warranty disclaimer.
-  *
-  */
+ *
+ * @brief This file contains standard ioctl functions
+ *
+ *
+ * Copyright 2014-2020 NXP
+ *
+ * This software file (the File) is distributed by NXP
+ * under the terms of the GNU General Public License Version 2, June 1991
+ * (the License).  You may use, redistribute and/or modify the File in
+ * accordance with the terms and conditions of the License, a copy of which
+ * is available by writing to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
+ * worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
+ *
+ * THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
+ * ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
+ * this warranty disclaimer.
+ *
+ */
 
 /************************************************************************
 Change log:
     10/30/2008: initial version
 ************************************************************************/
 
-#include	"moal_main.h"
+#include "moal_main.h"
 #ifdef SDIO
-#include	"moal_sdio.h"
+#include "moal_sdio.h"
 #endif /* SDIO */
 
-#include    "moal_eth_ioctl.h"
+#include "moal_eth_ioctl.h"
 #ifdef USB
-#include    "moal_usb.h"
+#include "moal_usb.h"
 #endif
 
 /********************************************************
@@ -41,21 +41,31 @@ Change log:
 /** Bands supported in Infra mode */
 static t_u8 SupportedInfraBand[] = {
 	BAND_B,
-	BAND_B | BAND_G, BAND_G,
-	BAND_GN, BAND_B | BAND_G | BAND_GN, BAND_G | BAND_GN,
-	BAND_A, BAND_B | BAND_A, BAND_B | BAND_G | BAND_A, BAND_G | BAND_A,
+	BAND_B | BAND_G,
+	BAND_G,
+	BAND_GN,
+	BAND_B | BAND_G | BAND_GN,
+	BAND_G | BAND_GN,
+	BAND_A,
+	BAND_B | BAND_A,
+	BAND_B | BAND_G | BAND_A,
+	BAND_G | BAND_A,
 	BAND_A | BAND_B | BAND_G | BAND_AN | BAND_GN,
-		BAND_A | BAND_G | BAND_AN | BAND_GN, BAND_A | BAND_AN,
-	BAND_GN | BAND_GAC, BAND_B | BAND_G | BAND_GN | BAND_GAC,
-		BAND_G | BAND_GN | BAND_GAC,
+	BAND_A | BAND_G | BAND_AN | BAND_GN,
+	BAND_A | BAND_AN,
+	BAND_GN | BAND_GAC,
+	BAND_B | BAND_G | BAND_GN | BAND_GAC,
+	BAND_G | BAND_GN | BAND_GAC,
 	BAND_A | BAND_B | BAND_G | BAND_AN | BAND_GN | BAND_AAC,
-		BAND_A | BAND_G | BAND_AN | BAND_GN | BAND_AAC,
+	BAND_A | BAND_G | BAND_AN | BAND_GN | BAND_AAC,
 	BAND_A | BAND_AN | BAND_AAC,
 };
 
 /** Bands supported in Ad-Hoc mode */
 static t_u8 SupportedAdhocBand[] = {
-	BAND_B, BAND_B | BAND_G, BAND_G,
+	BAND_B,
+	BAND_B | BAND_G,
+	BAND_G,
 	BAND_A,
 };
 
@@ -71,8 +81,7 @@ static t_u8 SupportedAdhocBand[] = {
  *
  * @return             0 --success, otherwise fail
  */
-static int
-woal_associate_ssid_bssid(moal_private *priv, struct iwreq *wrq)
+static int woal_associate_ssid_bssid(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ssid_bssid ssid_bssid;
 #ifdef REASSOCIATION
@@ -95,8 +104,8 @@ woal_associate_ssid_bssid(moal_private *priv, struct iwreq *wrq)
 		       "Associate: Insufficient length in IOCTL input\n");
 
 		/* buffer should be at least 3 characters per BSSID octet "00:"
-		 **   plus a space separater and at least 1 char in the SSID
-		 */
+		**   plus a space separater and at least 1 char in the SSID
+		*/
 		LEAVE();
 		return -EINVAL;
 	}
@@ -138,23 +147,21 @@ woal_associate_ssid_bssid(moal_private *priv, struct iwreq *wrq)
 			sizeof(ssid_bssid.ssid.ssid));
 
 	PRINTM(MCMND, "iwpriv assoc: AP=[" MACSTR "], ssid(%d)=[%s]\n",
-	       MAC2STR(ssid_bssid.bssid),
-	       (int)ssid_bssid.ssid.ssid_len, ssid_bssid.ssid.ssid);
+	       MAC2STR(ssid_bssid.bssid), (int)ssid_bssid.ssid.ssid_len,
+	       ssid_bssid.ssid.ssid);
 
-	if (MLAN_STATUS_SUCCESS != woal_bss_start(priv,
-						  MOAL_IOCTL_WAIT,
-						  &ssid_bssid)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_bss_start(priv, MOAL_IOCTL_WAIT, &ssid_bssid)) {
 		LEAVE();
 		return -EFAULT;
 	}
+
 #ifdef REASSOCIATION
 	memset(&bss_info, 0x00, sizeof(bss_info));
-	if (MLAN_STATUS_SUCCESS == woal_get_bss_info(priv,
-						     MOAL_IOCTL_WAIT,
-						     &bss_info)) {
+	if (MLAN_STATUS_SUCCESS ==
+	    woal_get_bss_info(priv, MOAL_IOCTL_WAIT, &bss_info)) {
 		moal_memcpy_ext(priv->phandle, &priv->prev_ssid_bssid.ssid,
-				&bss_info.ssid,
-				sizeof(mlan_802_11_ssid),
+				&bss_info.ssid, sizeof(mlan_802_11_ssid),
 				sizeof(mlan_802_11_ssid));
 		moal_memcpy_ext(priv->phandle, &priv->prev_ssid_bssid.bssid,
 				&bss_info.bssid, MLAN_MAC_ADDR_LENGTH,
@@ -176,8 +183,7 @@ woal_associate_ssid_bssid(moal_private *priv, struct iwreq *wrq)
  *
  *  @return        Number of rates copied
  */
-static inline int
-woal_copy_rates(t_u8 *dest, int pos, t_u8 *src, int len)
+static inline int woal_copy_rates(t_u8 *dest, int pos, t_u8 *src, int len)
 {
 	int i;
 
@@ -196,8 +202,7 @@ woal_copy_rates(t_u8 *dest, int pos, t_u8 *src, int len)
  *
  *  @return             0/MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static int
-woal_warm_reset(moal_private *priv)
+static int woal_warm_reset(moal_private *priv)
 {
 	int ret = 0;
 	moal_handle *handle = priv->phandle;
@@ -233,13 +238,12 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_get_signal(moal_private *priv, struct iwreq *wrq)
+static int woal_get_signal(moal_private *priv, struct iwreq *wrq)
 {
 /** Input data size */
-#define IN_DATA_SIZE	2
+#define IN_DATA_SIZE 2
 /** Output data size */
-#define OUT_DATA_SIZE	12
+#define OUT_DATA_SIZE 12
 	int ret = 0;
 	int in_data[IN_DATA_SIZE];
 	int out_data[OUT_DATA_SIZE];
@@ -265,8 +269,8 @@ woal_get_signal(moal_private *priv, struct iwreq *wrq)
 			ret = -EINVAL;
 			goto done;
 		}
-		if (copy_from_user
-		    (in_data, wrq->u.data.pointer, sizeof(int) * buflen)) {
+		if (copy_from_user(in_data, wrq->u.data.pointer,
+				   sizeof(int) * buflen)) {
 			PRINTM(MERROR, "Copy from user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -274,15 +278,15 @@ woal_get_signal(moal_private *priv, struct iwreq *wrq)
 	}
 
 	switch (wrq->u.data.length) {
-	case 0:		/* No checking, get everything */
+	case 0: /* No checking, get everything */
 		break;
-	case 2:		/* Check subtype range */
+	case 2: /* Check subtype range */
 		if (in_data[1] < 1 || in_data[1] > 4) {
 			ret = -EINVAL;
 			goto done;
 		}
 		/* Fall through */
-	case 1:		/* Check type range */
+	case 1: /* Check type range */
 		if (in_data[0] < 1 || in_data[0] > 3) {
 			ret = -EINVAL;
 			goto done;
@@ -314,7 +318,7 @@ woal_get_signal(moal_private *priv, struct iwreq *wrq)
 
 	/* Check type */
 	switch (in_data[0]) {
-	case 0:		/* Send everything */
+	case 0: /* Send everything */
 		out_data[data_length++] = signal.bcn_rssi_last;
 		out_data[data_length++] = signal.bcn_rssi_avg;
 		out_data[data_length++] = signal.data_rssi_last;
@@ -328,75 +332,75 @@ woal_get_signal(moal_private *priv, struct iwreq *wrq)
 		out_data[data_length++] = signal.data_nf_last;
 		out_data[data_length++] = signal.data_nf_avg;
 		break;
-	case 1:		/* RSSI */
+	case 1: /* RSSI */
 		/* Check subtype */
 		switch (in_data[1]) {
-		case 0:	/* Everything */
+		case 0: /* Everything */
 			out_data[data_length++] = signal.bcn_rssi_last;
 			out_data[data_length++] = signal.bcn_rssi_avg;
 			out_data[data_length++] = signal.data_rssi_last;
 			out_data[data_length++] = signal.data_rssi_avg;
 			break;
-		case 1:	/* bcn last */
+		case 1: /* bcn last */
 			out_data[data_length++] = signal.bcn_rssi_last;
 			break;
-		case 2:	/* bcn avg */
+		case 2: /* bcn avg */
 			out_data[data_length++] = signal.bcn_rssi_avg;
 			break;
-		case 3:	/* data last */
+		case 3: /* data last */
 			out_data[data_length++] = signal.data_rssi_last;
 			break;
-		case 4:	/* data avg */
+		case 4: /* data avg */
 			out_data[data_length++] = signal.data_rssi_avg;
 			break;
 		default:
 			break;
 		}
 		break;
-	case 2:		/* SNR */
+	case 2: /* SNR */
 		/* Check subtype */
 		switch (in_data[1]) {
-		case 0:	/* Everything */
+		case 0: /* Everything */
 			out_data[data_length++] = signal.bcn_snr_last;
 			out_data[data_length++] = signal.bcn_snr_avg;
 			out_data[data_length++] = signal.data_snr_last;
 			out_data[data_length++] = signal.data_snr_avg;
 			break;
-		case 1:	/* bcn last */
+		case 1: /* bcn last */
 			out_data[data_length++] = signal.bcn_snr_last;
 			break;
-		case 2:	/* bcn avg */
+		case 2: /* bcn avg */
 			out_data[data_length++] = signal.bcn_snr_avg;
 			break;
-		case 3:	/* data last */
+		case 3: /* data last */
 			out_data[data_length++] = signal.data_snr_last;
 			break;
-		case 4:	/* data avg */
+		case 4: /* data avg */
 			out_data[data_length++] = signal.data_snr_avg;
 			break;
 		default:
 			break;
 		}
 		break;
-	case 3:		/* NF */
+	case 3: /* NF */
 		/* Check subtype */
 		switch (in_data[1]) {
-		case 0:	/* Everything */
+		case 0: /* Everything */
 			out_data[data_length++] = signal.bcn_nf_last;
 			out_data[data_length++] = signal.bcn_nf_avg;
 			out_data[data_length++] = signal.data_nf_last;
 			out_data[data_length++] = signal.data_nf_avg;
 			break;
-		case 1:	/* bcn last */
+		case 1: /* bcn last */
 			out_data[data_length++] = signal.bcn_nf_last;
 			break;
-		case 2:	/* bcn avg */
+		case 2: /* bcn avg */
 			out_data[data_length++] = signal.bcn_nf_avg;
 			break;
-		case 3:	/* data last */
+		case 3: /* data last */
 			out_data[data_length++] = signal.data_nf_last;
 			break;
-		case 4:	/* data avg */
+		case 4: /* data avg */
 			out_data[data_length++] = signal.data_nf_avg;
 			break;
 		default:
@@ -427,8 +431,7 @@ done:
  *
  *  @return          0 --success, otherwise fail
  */
-static int
-woal_deep_sleep_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_deep_sleep_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	int user_data_len;
@@ -478,7 +481,7 @@ woal_deep_sleep_ioctl(moal_private *priv, struct iwreq *wrq)
 		       user_data_len);
 		LEAVE();
 		return -EINVAL;
-	} else {		/* Display Deep Sleep settings */
+	} else { /* Display Deep Sleep settings */
 		PRINTM(MINFO, "Get Deep Sleep Mode\n");
 		if (MLAN_STATUS_SUCCESS != woal_get_deep_sleep(priv, data)) {
 			LEAVE();
@@ -491,8 +494,8 @@ woal_deep_sleep_ioctl(moal_private *priv, struct iwreq *wrq)
 	}
 
 	/* Copy the Deep Sleep setting to user */
-	if (copy_to_user
-	    (wrq->u.data.pointer, data, wrq->u.data.length * sizeof(int))) {
+	if (copy_to_user(wrq->u.data.pointer, data,
+			 wrq->u.data.length * sizeof(int))) {
 		PRINTM(MERROR, "Copy to user failed\n");
 		LEAVE();
 		return -EINVAL;
@@ -510,8 +513,7 @@ woal_deep_sleep_ioctl(moal_private *priv, struct iwreq *wrq)
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_11n_htcap_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_11n_htcap_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int data[2], copy_len;
 	mlan_ioctl_req *req = NULL;
@@ -618,8 +620,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_11n_amsdu_aggr_ctrl(moal_private *priv, struct iwreq *wrq)
+static int woal_11n_amsdu_aggr_ctrl(moal_private *priv, struct iwreq *wrq)
 {
 	int data[2], copy_len;
 	mlan_ioctl_req *req = NULL;
@@ -688,8 +689,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_11n_tx_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_11n_tx_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int data[2], copy_len;
 	mlan_ioctl_req *req = NULL;
@@ -792,8 +792,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_11n_prio_tbl(moal_private *priv, struct iwreq *wrq)
+static int woal_11n_prio_tbl(moal_private *priv, struct iwreq *wrq)
 {
 	int data[MAX_NUM_TID * 2], i, j, copy_len;
 	mlan_ioctl_req *req = NULL;
@@ -885,8 +884,7 @@ error:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_addba_reject(moal_private *priv, struct iwreq *wrq)
+static int woal_addba_reject(moal_private *priv, struct iwreq *wrq)
 {
 	int data[MAX_NUM_TID], ret = 0, i, copy_len;
 	mlan_ioctl_req *req = NULL;
@@ -968,8 +966,7 @@ error:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_addba_para_updt(moal_private *priv, struct iwreq *wrq)
+static int woal_addba_para_updt(moal_private *priv, struct iwreq *wrq)
 {
 	int data[5], ret = 0, copy_len;
 	mlan_ioctl_req *req = NULL;
@@ -1070,8 +1067,7 @@ error:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_txbuf_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_txbuf_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int buf_size;
 	mlan_ioctl_req *req = NULL;
@@ -1126,8 +1122,8 @@ done:
  *
  *  @return                 0 --success, otherwise fail
  */
-static int
-woal_hs_cfg(moal_private *priv, struct iwreq *wrq, BOOLEAN invoke_hostcmd)
+static int woal_hs_cfg(moal_private *priv, struct iwreq *wrq,
+		       BOOLEAN invoke_hostcmd)
 {
 	int data[3], copy_len;
 	int ret = 0;
@@ -1147,7 +1143,8 @@ woal_hs_cfg(moal_private *priv, struct iwreq *wrq, BOOLEAN invoke_hostcmd)
 	} else {
 		action = MLAN_ACT_SET;
 		if (data_length >= 1 && data_length <= 3) {
-			if (copy_from_user(data, wrq->u.data.pointer, copy_len)) {
+			if (copy_from_user(data, wrq->u.data.pointer,
+					   copy_len)) {
 				PRINTM(MERROR, "Copy from user failed\n");
 				ret = -EFAULT;
 				goto done;
@@ -1206,9 +1203,8 @@ woal_hs_cfg(moal_private *priv, struct iwreq *wrq, BOOLEAN invoke_hostcmd)
 		data[1] = hscfg.gpio;
 		data[2] = hscfg.gap;
 		wrq->u.data.length = 3;
-		if (copy_to_user
-		    (wrq->u.data.pointer, data,
-		     sizeof(int) * wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, data,
+				 sizeof(int) * wrq->u.data.length)) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -1227,8 +1223,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_hs_setpara(moal_private *priv, struct iwreq *wrq)
+static int woal_hs_setpara(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	int data_length = wrq->u.data.length;
@@ -1256,8 +1251,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_inactivity_timeout_ext(moal_private *priv, struct iwreq *wrq)
+static int woal_inactivity_timeout_ext(moal_private *priv, struct iwreq *wrq)
 {
 	int data[4], copy_len;
 	int ret = 0;
@@ -1317,9 +1311,8 @@ woal_inactivity_timeout_ext(moal_private *priv, struct iwreq *wrq)
 
 	if (req->action == MLAN_ACT_GET) {
 		wrq->u.data.length = 4;
-		if (copy_to_user
-		    (wrq->u.data.pointer, data,
-		     wrq->u.data.length * sizeof(int))) {
+		if (copy_to_user(wrq->u.data.pointer, data,
+				 wrq->u.data.length * sizeof(int))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -1341,8 +1334,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_ecl_sys_clock(moal_private *priv, struct iwreq *wrq)
+static int woal_ecl_sys_clock(moal_private *priv, struct iwreq *wrq)
 {
 	int data[64], copy_len;
 	int ret = 0;
@@ -1424,9 +1416,8 @@ woal_ecl_sys_clock(moal_private *priv, struct iwreq *wrq)
 
 		wrq->u.data.length += data_length;
 
-		if (copy_to_user
-		    (wrq->u.data.pointer, data,
-		     sizeof(int) * wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, data,
+				 sizeof(int) * wrq->u.data.length)) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -1460,8 +1451,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_band_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_band_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	unsigned int i;
@@ -1500,7 +1490,8 @@ woal_band_cfg(moal_private *priv, struct iwreq *wrq)
 	req->req_id = MLAN_IOCTL_RADIO_CFG;
 
 	if (wrq->u.data.length == 0) {
-		/* Get config_bands, adhoc_start_band and adhoc_channel values from MLAN */
+		/* Get config_bands, adhoc_start_band and adhoc_channel values
+		 * from MLAN */
 		req->action = MLAN_ACT_GET;
 		status = woal_request_ioctl(priv, req, MOAL_IOCTL_WAIT);
 		if (status != MLAN_STATUS_SUCCESS) {
@@ -1515,9 +1506,8 @@ woal_band_cfg(moal_private *priv, struct iwreq *wrq)
 		data[2] = radio_cfg->param.band_cfg.adhoc_channel;
 		wrq->u.data.length = 3;
 
-		if (copy_to_user
-		    (wrq->u.data.pointer, data,
-		     sizeof(int) * wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, data,
+				 sizeof(int) * wrq->u.data.length)) {
 			ret = -EFAULT;
 			goto error;
 		}
@@ -1554,7 +1544,8 @@ woal_band_cfg(moal_private *priv, struct iwreq *wrq)
 		if (user_data_len >= 3) {
 			adhoc_channel = data[2];
 			if (adhoc_channel == 0) {
-				/* Check if specified adhoc channel is non-zero */
+				/* Check if specified adhoc channel is non-zero
+				 */
 				ret = -EINVAL;
 				goto error;
 			}
@@ -1586,8 +1577,7 @@ error:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_reg_read_write(moal_private *priv, struct iwreq *wrq)
+static int woal_reg_read_write(moal_private *priv, struct iwreq *wrq)
 {
 	int data[3], copy_len;
 	int ret = 0;
@@ -1636,9 +1626,8 @@ woal_reg_read_write(moal_private *priv, struct iwreq *wrq)
 	}
 
 	if (req->action == MLAN_ACT_GET) {
-		if (copy_to_user
-		    (wrq->u.data.pointer, &reg->param.reg_rw.value,
-		     sizeof(int))) {
+		if (copy_to_user(wrq->u.data.pointer, &reg->param.reg_rw.value,
+				 sizeof(int))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -1661,8 +1650,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_read_eeprom(moal_private *priv, struct iwreq *wrq)
+static int woal_read_eeprom(moal_private *priv, struct iwreq *wrq)
 {
 	int data[2], copy_len;
 	int ret = 0;
@@ -1709,9 +1697,9 @@ woal_read_eeprom(moal_private *priv, struct iwreq *wrq)
 
 	if (req->action == MLAN_ACT_GET) {
 		wrq->u.data.length = reg->param.rd_eeprom.byte_count;
-		if (copy_to_user
-		    (wrq->u.data.pointer, reg->param.rd_eeprom.value,
-		     MIN(wrq->u.data.length, MAX_EEPROM_DATA))) {
+		if (copy_to_user(wrq->u.data.pointer,
+				 reg->param.rd_eeprom.value,
+				 MIN(wrq->u.data.length, MAX_EEPROM_DATA))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -1733,8 +1721,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_mem_read_write(moal_private *priv, struct iwreq *wrq)
+static int woal_mem_read_write(moal_private *priv, struct iwreq *wrq)
 {
 	t_u32 data[2];
 	int ret = 0;
@@ -1789,9 +1776,8 @@ woal_mem_read_write(moal_private *priv, struct iwreq *wrq)
 	}
 
 	if (req->action == MLAN_ACT_GET) {
-		if (copy_to_user
-		    (wrq->u.data.pointer, &reg_mem->param.mem_rw.value,
-		     sizeof(int))) {
+		if (copy_to_user(wrq->u.data.pointer,
+				 &reg_mem->param.mem_rw.value, sizeof(int))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -1814,8 +1800,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_get_log(moal_private *priv, struct iwreq *wrq)
+static int woal_get_log(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_get_stats stats;
@@ -1840,7 +1825,8 @@ woal_get_log(moal_private *priv, struct iwreq *wrq)
 	}
 
 	if (wrq->u.data.pointer) {
-		sprintf(buf, "\n"
+		sprintf(buf,
+			"\n"
 			"mcasttxframe     %u\n"
 			"failed           %u\n"
 			"retry            %u\n"
@@ -1859,22 +1845,12 @@ woal_get_log(moal_private *priv, struct iwreq *wrq)
 			"wepicverrcnt-4   %u\n"
 			"beacon_rcnt      %u\n"
 			"beacon_mcnt      %u\n",
-			stats.mcast_tx_frame,
-			stats.failed,
-			stats.retry,
-			stats.multi_retry,
-			stats.frame_dup,
-			stats.rts_success,
-			stats.rts_failure,
-			stats.ack_failure,
-			stats.rx_frag,
-			stats.mcast_rx_frame,
-			stats.fcs_error,
-			stats.tx_frame,
-			stats.wep_icv_error[0],
-			stats.wep_icv_error[1],
-			stats.wep_icv_error[2],
-			stats.wep_icv_error[3],
+			stats.mcast_tx_frame, stats.failed, stats.retry,
+			stats.multi_retry, stats.frame_dup, stats.rts_success,
+			stats.rts_failure, stats.ack_failure, stats.rx_frag,
+			stats.mcast_rx_frame, stats.fcs_error, stats.tx_frame,
+			stats.wep_icv_error[0], stats.wep_icv_error[1],
+			stats.wep_icv_error[2], stats.wep_icv_error[3],
 			stats.bcn_rcv_cnt, stats.bcn_miss_cnt);
 		if (priv->phandle->fw_getlog_enable) {
 			sprintf(buf + strlen(buf), "tx_frag_cnt       %u\n",
@@ -1973,10 +1949,10 @@ woal_get_log(moal_private *priv, struct iwreq *wrq)
 				stats.ampdu_rx_cnt, stats.mpdu_in_rx_ampdu_cnt,
 				stats.rx_octets_in_ampdu_cnt,
 				stats.ampdu_delimiter_crc_error_cnt);
-
 		}
 		wrq->u.data.length = MIN(GETLOG_BUFSIZE - 1, strlen(buf) + 1);
-		if (copy_to_user(wrq->u.data.pointer, buf, wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, buf,
+				 wrq->u.data.length)) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 		}
@@ -1995,8 +1971,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_deauth(moal_private *priv, struct iwreq *wrq)
+static int woal_deauth(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	struct sockaddr saddr;
@@ -2004,7 +1979,8 @@ woal_deauth(moal_private *priv, struct iwreq *wrq)
 	ENTER();
 	if (wrq->u.data.length) {
 		/* Deauth mentioned BSSID */
-		if (copy_from_user(&saddr, wrq->u.data.pointer, sizeof(saddr))) {
+		if (copy_from_user(&saddr, wrq->u.data.pointer,
+				   sizeof(saddr))) {
 			PRINTM(MERROR, "Copy from user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -2035,8 +2011,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_tx_power_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_tx_power_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int data[5], user_data_len, copy_len;
 	int ret = 0;
@@ -2147,28 +2122,28 @@ woal_tx_power_cfg(moal_private *priv, struct iwreq *wrq)
 			pcfg->param.power_ext.power_group[0].last_rate_ind =
 				data[0];
 			if (data[0] <= 11) {
-				pcfg->param.power_ext.power_group[0].
-					rate_format = MLAN_RATE_FORMAT_LG;
+				pcfg->param.power_ext.power_group[0]
+					.rate_format = MLAN_RATE_FORMAT_LG;
 				pcfg->param.power_ext.power_group[0].bandwidth =
 					MLAN_HT_BW20;
 			} else if (data[0] <= 27) {
-				pcfg->param.power_ext.power_group[0].
-					rate_format = MLAN_RATE_FORMAT_HT;
+				pcfg->param.power_ext.power_group[0]
+					.rate_format = MLAN_RATE_FORMAT_HT;
 				pcfg->param.power_ext.power_group[0].bandwidth =
 					MLAN_HT_BW20;
-				pcfg->param.power_ext.power_group[0].
-					first_rate_ind -= 12;
-				pcfg->param.power_ext.power_group[0].
-					last_rate_ind -= 12;
+				pcfg->param.power_ext.power_group[0]
+					.first_rate_ind -= 12;
+				pcfg->param.power_ext.power_group[0]
+					.last_rate_ind -= 12;
 			} else if ((140 <= data[0]) && (data[0] <= 155)) {
-				pcfg->param.power_ext.power_group[0].
-					rate_format = MLAN_RATE_FORMAT_HT;
+				pcfg->param.power_ext.power_group[0]
+					.rate_format = MLAN_RATE_FORMAT_HT;
 				pcfg->param.power_ext.power_group[0].bandwidth =
 					MLAN_HT_BW40;
-				pcfg->param.power_ext.power_group[0].
-					first_rate_ind -= 140;
-				pcfg->param.power_ext.power_group[0].
-					last_rate_ind -= 140;
+				pcfg->param.power_ext.power_group[0]
+					.first_rate_ind -= 140;
+				pcfg->param.power_ext.power_group[0]
+					.last_rate_ind -= 140;
 			}
 			if (user_data_len == 2) {
 				pcfg->param.power_ext.power_group[0].power_min =
@@ -2180,8 +2155,8 @@ woal_tx_power_cfg(moal_private *priv, struct iwreq *wrq)
 					data[1];
 				pcfg->param.power_ext.power_group[0].power_max =
 					data[2];
-				pcfg->param.power_ext.power_group[0].
-					power_step = data[3];
+				pcfg->param.power_ext.power_group[0].power_step =
+					data[3];
 			}
 			pcfg->param.power_ext.num_pwr_grp = 1;
 		}
@@ -2247,8 +2222,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_get_txrx_rate(moal_private *priv, struct iwreq *wrq)
+static int woal_get_txrx_rate(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_rate *rate = NULL;
@@ -2273,9 +2247,8 @@ woal_get_txrx_rate(moal_private *priv, struct iwreq *wrq)
 		goto done;
 	}
 
-	if (copy_to_user
-	    (wrq->u.data.pointer, (t_u8 *)&rate->param.data_rate,
-	     sizeof(int) * 2)) {
+	if (copy_to_user(wrq->u.data.pointer, (t_u8 *)&rate->param.data_rate,
+			 sizeof(int) * 2)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -2296,8 +2269,7 @@ done:
  *
  *  @return         0/MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static int
-woal_sdio_clock_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_sdio_clock_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	int data = 2;
@@ -2314,8 +2286,8 @@ woal_sdio_clock_ioctl(moal_private *priv, struct iwreq *wrq)
 		}
 	} else {
 		wrq->u.data.length = sizeof(clock_state) / sizeof(int);
-		if (copy_to_user
-		    (wrq->u.data.pointer, &clock_state, sizeof(int))) {
+		if (copy_to_user(wrq->u.data.pointer, &clock_state,
+				 sizeof(int))) {
 			PRINTM(MERROR, "Copy from user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -2353,8 +2325,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_beacon_interval(moal_private *priv, struct iwreq *wrq)
+static int woal_beacon_interval(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_bss *bss = NULL;
@@ -2398,9 +2369,8 @@ woal_beacon_interval(moal_private *priv, struct iwreq *wrq)
 		goto done;
 	}
 
-	if (copy_to_user
-	    (wrq->u.data.pointer, (t_u8 *)&bss->param.bcn_interval,
-	     sizeof(int))) {
+	if (copy_to_user(wrq->u.data.pointer, (t_u8 *)&bss->param.bcn_interval,
+			 sizeof(int))) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -2420,8 +2390,7 @@ done:
  *
  * @return          0 --success, otherwise fail
  */
-static int
-woal_set_get_txrate(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_txrate(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_rate *rate = NULL;
@@ -2431,8 +2400,8 @@ woal_set_get_txrate(moal_private *priv, struct iwreq *wrq)
 
 	ENTER();
 	if (wrq->u.data.length) {
-		if (copy_from_user
-		    (&rateindex, wrq->u.data.pointer, sizeof(int))) {
+		if (copy_from_user(&rateindex, wrq->u.data.pointer,
+				   sizeof(int))) {
 			PRINTM(MERROR, "Copy from user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -2497,8 +2466,7 @@ done:
  *
  * @return          0 --success, otherwise fail
  */
-static int
-woal_set_get_regioncode(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_regioncode(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_misc_cfg *cfg = NULL;
@@ -2540,8 +2508,8 @@ woal_set_get_regioncode(moal_private *priv, struct iwreq *wrq)
 
 	if (!wrq->u.data.length) {
 		wrq->u.data.length = 1;
-		if (copy_to_user
-		    (wrq->u.data.pointer, &cfg->param.region_code, sizeof(int)))
+		if (copy_to_user(wrq->u.data.pointer, &cfg->param.region_code,
+				 sizeof(int)))
 			ret = -EFAULT;
 	}
 done:
@@ -2559,8 +2527,7 @@ done:
  *
  * @return          0 --success, otherwise fail
  */
-static int
-woal_set_get_radio(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_radio(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_bss_info bss_info;
@@ -2583,9 +2550,8 @@ woal_set_get_radio(moal_private *priv, struct iwreq *wrq)
 		/* Get radio status */
 		woal_get_bss_info(priv, MOAL_IOCTL_WAIT, &bss_info);
 		wrq->u.data.length = 1;
-		if (copy_to_user
-		    (wrq->u.data.pointer, &bss_info.radio_on,
-		     sizeof(bss_info.radio_on))) {
+		if (copy_to_user(wrq->u.data.pointer, &bss_info.radio_on,
+				 sizeof(bss_info.radio_on))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 		}
@@ -2604,8 +2570,7 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_drv_dbg(moal_private *priv, struct iwreq *wrq)
+static int woal_drv_dbg(moal_private *priv, struct iwreq *wrq)
 {
 	int data[4], copy_len;
 	int ret = 0;
@@ -2691,8 +2656,7 @@ drvdbgexit:
  *
  * @return         0 --success, otherwise fail
  */
-static int
-woal_set_get_qos_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_qos_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_wmm_cfg *cfg = NULL;
@@ -2719,11 +2683,13 @@ woal_set_get_qos_cfg(moal_private *priv, struct iwreq *wrq)
 		cfg->param.qos_cfg = (t_u8)data;
 	} else
 		req->action = MLAN_ACT_GET;
+
 	status = woal_request_ioctl(priv, req, MOAL_IOCTL_WAIT);
 	if (status != MLAN_STATUS_SUCCESS) {
 		ret = -EFAULT;
 		goto done;
 	}
+
 	if (!wrq->u.data.length) {
 		data = (int)cfg->param.qos_cfg;
 		if (copy_to_user(wrq->u.data.pointer, &data, sizeof(int))) {
@@ -2748,8 +2714,7 @@ done:
  *
  * @return          0 --success, otherwise fail
  */
-static int
-woal_wws_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_wws_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_misc_cfg *wws = NULL;
@@ -2809,8 +2774,7 @@ done:
  *
  * @return         0 --success, otherwise fail
  */
-static int
-woal_sleep_pd(moal_private *priv, struct iwreq *wrq)
+static int woal_sleep_pd(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_pm_cfg *pm_cfg = NULL;
@@ -2835,9 +2799,7 @@ woal_sleep_pd(moal_private *priv, struct iwreq *wrq)
 			goto done;
 		}
 		if ((data <= MAX_SLEEP_PERIOD && data >= MIN_SLEEP_PERIOD) ||
-		    (data == 0)
-		    || (data == SLEEP_PERIOD_RESERVED_FF)
-			) {
+		    (data == 0) || (data == SLEEP_PERIOD_RESERVED_FF)) {
 			req->action = MLAN_ACT_SET;
 			pm_cfg->param.sleep_period = data;
 		} else {
@@ -2876,23 +2838,21 @@ done:
  *
  * @return             0 --success, otherwise fail
  */
-static int
-woal_sleep_params_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_sleep_params_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_pm_cfg *pm = NULL;
 	mlan_ds_sleep_params *psleep_params = NULL;
-	int data[6] = { 0 }, i, copy_len;
+	int data[6] = {0}, i, copy_len;
 	int data_length = wrq->u.data.length;
 #ifdef DEBUG_LEVEL1
-	char err_str[][36] = { {"sleep clock error in ppm"},
-	{"wakeup offset in usec"},
-	{"clock stabilization time in usec"},
-	{"control periodic calibration(0-2)"},
-	{"control of external sleepClock(0-2)"},
-	{"value of reserved for debug"}
-	};
+	char err_str[][36] = {{"sleep clock error in ppm"},
+			      {"wakeup offset in usec"},
+			      {"clock stabilization time in usec"},
+			      {"control periodic calibration(0-2)"},
+			      {"control of external sleepClock(0-2)"},
+			      {"value of reserved for debug"}};
 #endif
 	mlan_status status = MLAN_STATUS_SUCCESS;
 
@@ -2918,8 +2878,8 @@ woal_sleep_params_ioctl(moal_private *priv, struct iwreq *wrq)
 			PRINTM(MERROR, "S_PARAMS: copy from user failed\n");
 			ret = -EINVAL;
 			goto done;
-
 		}
+
 #define MIN_VAL 0x0000
 #define MAX_VAL 0xFFFF
 		for (i = 0; i < 6; i++) {
@@ -2972,8 +2932,8 @@ woal_sleep_params_ioctl(moal_private *priv, struct iwreq *wrq)
 	data[5] = psleep_params->reserved;
 	wrq->u.data.length = 6;
 
-	if (copy_to_user(wrq->u.data.pointer, data, sizeof(int) *
-			 wrq->u.data.length)) {
+	if (copy_to_user(wrq->u.data.pointer, data,
+			 sizeof(int) * wrq->u.data.length)) {
 		PRINTM(MERROR, "QCONFIG: copy to user failed\n");
 		ret = -EFAULT;
 		goto done;
@@ -2993,8 +2953,8 @@ done:
  *  @param wrq      A pointer to iwreq structure
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_set_get_11h_local_pwr_constraint(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_11h_local_pwr_constraint(moal_private *priv,
+						 struct iwreq *wrq)
 {
 	int ret = 0, data = 0;
 	mlan_ioctl_req *req = NULL;
@@ -3054,8 +3014,7 @@ done:
  *  @param wrq      A pointer to iwreq structure
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_ht_stream_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_ht_stream_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0, data = 0;
 	mlan_ioctl_req *req = NULL;
@@ -3118,8 +3077,7 @@ done:
  *  @param wrq      A pointer to iwreq structure
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_mac_control_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_mac_control_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0, data = 0;
 	mlan_ioctl_req *req = NULL;
@@ -3178,8 +3136,7 @@ done:
  *  @param wrq      A pointer to iwreq structure
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_thermal_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_thermal_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0, data = 0;
 	mlan_ioctl_req *req = NULL;
@@ -3234,8 +3191,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_cfg_hotspot(moal_private *priv, struct iwreq *wrq)
+static int woal_cfg_hotspot(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ioctl_req *req = NULL;
@@ -3301,8 +3257,7 @@ done:
  *
  * @return         0 --success, otherwise fail
  */
-static int
-woal_set_get_reassoc(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_reassoc(moal_private *priv, struct iwreq *wrq)
 {
 	moal_handle *handle = priv->phandle;
 	int ret = 0;
@@ -3352,8 +3307,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_wmm_enable_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wmm_enable_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_wmm_cfg *wmm = NULL;
@@ -3400,9 +3354,8 @@ woal_wmm_enable_ioctl(moal_private *priv, struct iwreq *wrq)
 	}
 
 	if (wrq->u.data.pointer) {
-		if (copy_to_user
-		    (wrq->u.data.pointer, &wmm->param.wmm_enable,
-		     sizeof(wmm->param.wmm_enable))) {
+		if (copy_to_user(wrq->u.data.pointer, &wmm->param.wmm_enable,
+				 sizeof(wmm->param.wmm_enable))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -3424,8 +3377,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_11d_enable_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_11d_enable_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_11d_cfg *pcfg_11d = NULL;
@@ -3471,9 +3423,9 @@ woal_11d_enable_ioctl(moal_private *priv, struct iwreq *wrq)
 	}
 
 	if (wrq->u.data.pointer) {
-		if (copy_to_user
-		    (wrq->u.data.pointer, &pcfg_11d->param.enable_11d,
-		     sizeof(pcfg_11d->param.enable_11d))) {
+		if (copy_to_user(wrq->u.data.pointer,
+				 &pcfg_11d->param.enable_11d,
+				 sizeof(pcfg_11d->param.enable_11d))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -3495,8 +3447,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_11d_clr_chan_table(moal_private *priv, struct iwreq *wrq)
+static int woal_11d_clr_chan_table(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_11d_cfg *pcfg_11d = NULL;
@@ -3537,8 +3488,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_wps_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wps_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_wps_cfg *pwps = NULL;
@@ -3595,8 +3545,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_passphrase(moal_private *priv, struct iwreq *wrq)
+static int woal_passphrase(moal_private *priv, struct iwreq *wrq)
 {
 	t_u16 len = 0;
 	char buf[256];
@@ -3604,7 +3553,7 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 	int ret = 0, action = -1, i;
 	mlan_ds_sec_cfg *sec = NULL;
 	mlan_ioctl_req *req = NULL;
-	t_u8 zero_mac[] = { 0, 0, 0, 0, 0, 0 };
+	t_u8 zero_mac[] = {0, 0, 0, 0, 0, 0};
 	t_u8 *mac = NULL;
 	int data_length = wrq->u.data.length, copy_len;
 	mlan_status status = MLAN_STATUS_SUCCESS;
@@ -3616,7 +3565,7 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 		ret = -EOPNOTSUPP;
 		goto done;
 	}
-	if (!data_length || data_length >= sizeof(buf)) {
+	if (!data_length || data_length >= sizeof(buf) - 1) {
 		PRINTM(MERROR,
 		       "Argument missing or too long for setpassphrase\n");
 		ret = -EINVAL;
@@ -3630,6 +3579,7 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 		ret = -EFAULT;
 		goto done;
 	}
+	buf[copy_len] = '\0';
 
 	/* Parse the buf to get the cmd_action */
 	begin = buf;
@@ -3672,8 +3622,9 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 				break;
 			}
 			sec->param.passphrase.ssid.ssid_len = strlen(end);
-			strncpy((char *)sec->param.passphrase.ssid.ssid, end,
-				MIN(strlen(end), MLAN_MAX_SSID_LENGTH));
+			moal_memcpy_ext(priv->phandle,
+					sec->param.passphrase.ssid.ssid, end,
+					strlen(end), MLAN_MAX_SSID_LENGTH);
 			PRINTM(MINFO, "ssid=%s, len=%d\n",
 			       sec->param.passphrase.ssid.ssid,
 			       (int)sec->param.passphrase.ssid.ssid_len);
@@ -3686,9 +3637,9 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 				ret = -EINVAL;
 				break;
 			}
-			woal_ascii2hex((t_u8 *)(sec->param.passphrase.psk.pmk.
-						pmk), end,
-				       MLAN_PMK_HEXSTR_LENGTH / 2);
+			woal_ascii2hex(
+				(t_u8 *)(sec->param.passphrase.psk.pmk.pmk),
+				end, MLAN_PMK_HEXSTR_LENGTH / 2);
 			sec->param.passphrase.psk_type = MLAN_PSK_PMK;
 		} else if (!strnicmp(opt, "passphrase", strlen(opt)) &&
 			   req->action == MLAN_ACT_SET) {
@@ -3700,19 +3651,20 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 				break;
 			}
 			sec->param.passphrase.psk_type = MLAN_PSK_PASSPHRASE;
-			moal_memcpy_ext(priv->phandle,
-					sec->param.passphrase.psk.passphrase.
-					passphrase, end,
-					sizeof(sec->param.passphrase.psk.
-					       passphrase.passphrase),
-					sizeof(sec->param.passphrase.psk.
-					       passphrase.passphrase));
+			moal_memcpy_ext(
+				priv->phandle,
+				sec->param.passphrase.psk.passphrase.passphrase,
+				end,
+				sizeof(sec->param.passphrase.psk.passphrase
+					       .passphrase),
+				sizeof(sec->param.passphrase.psk.passphrase
+					       .passphrase));
 			sec->param.passphrase.psk.passphrase.passphrase_len =
 				strlen(end);
 			PRINTM(MINFO, "passphrase=%s, len=%d\n",
 			       sec->param.passphrase.psk.passphrase.passphrase,
-			       (int)sec->param.passphrase.psk.passphrase.
-			       passphrase_len);
+			       (int)sec->param.passphrase.psk.passphrase
+				       .passphrase_len);
 		} else {
 			PRINTM(MERROR, "Invalid option %s\n", opt);
 			ret = -EINVAL;
@@ -3743,9 +3695,8 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 			len += sec->param.passphrase.ssid.ssid_len;
 			len += sprintf(buf + len, " ");
 		}
-		if (memcmp
-		    (&sec->param.passphrase.bssid, zero_mac,
-		     sizeof(zero_mac))) {
+		if (memcmp(&sec->param.passphrase.bssid, zero_mac,
+			   sizeof(zero_mac))) {
 			mac = (t_u8 *)&sec->param.passphrase.bssid;
 			len += sprintf(buf + len, "bssid:");
 			for (i = 0; i < ETH_ALEN - 1; ++i)
@@ -3755,19 +3706,19 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 		if (sec->param.passphrase.psk_type == MLAN_PSK_PMK) {
 			len += sprintf(buf + len, "psk:");
 			for (i = 0; i < MLAN_MAX_KEY_LENGTH; ++i)
-				len += sprintf(buf + len, "%02x",
-					       sec->param.passphrase.psk.pmk.
-					       pmk[i]);
+				len += sprintf(
+					buf + len, "%02x",
+					sec->param.passphrase.psk.pmk.pmk[i]);
 			len += sprintf(buf + len, "\n");
 		}
 		if (sec->param.passphrase.psk_type == MLAN_PSK_PASSPHRASE) {
-			len += sprintf(buf + len, "passphrase:%s\n",
-				       sec->param.passphrase.psk.passphrase.
-				       passphrase);
+			len += sprintf(
+				buf + len, "passphrase:%s\n",
+				sec->param.passphrase.psk.passphrase.passphrase);
 		}
 		if (wrq->u.data.pointer) {
-			if (copy_to_user
-			    (wrq->u.data.pointer, buf, MIN(len, sizeof(buf)))) {
+			if (copy_to_user(wrq->u.data.pointer, buf,
+					 MIN(len, sizeof(buf)))) {
 				PRINTM(MERROR, "Copy to user failed, len %d\n",
 				       len);
 				ret = -EFAULT;
@@ -3775,7 +3726,6 @@ woal_passphrase(moal_private *priv, struct iwreq *wrq)
 			}
 			wrq->u.data.length = len;
 		}
-
 	}
 done:
 	if (status != MLAN_STATUS_PENDING)
@@ -3792,8 +3742,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_get_esupp_mode(moal_private *priv, struct iwreq *wrq)
+static int woal_get_esupp_mode(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_sec_cfg *sec = NULL;
@@ -3823,9 +3772,8 @@ woal_get_esupp_mode(moal_private *priv, struct iwreq *wrq)
 		goto done;
 	}
 
-	if (copy_to_user
-	    (wrq->u.data.pointer, (t_u8 *)&sec->param.esupp_mode,
-	     sizeof(int) * 3)) {
+	if (copy_to_user(wrq->u.data.pointer, (t_u8 *)&sec->param.esupp_mode,
+			 sizeof(int) * 3)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -3845,8 +3793,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_get_key_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_get_key_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	unsigned int i;
@@ -3937,8 +3884,8 @@ woal_get_key_ioctl(moal_private *priv, struct iwreq *wrq)
 
 	wrq->u.data.length = sizeof(key_ascii) + 1;
 	if (wrq->u.data.pointer) {
-		if (copy_to_user
-		    (wrq->u.data.pointer, &key_ascii, tmp - key_ascii)) {
+		if (copy_to_user(wrq->u.data.pointer, &key_ascii,
+				 tmp - key_ascii)) {
 			PRINTM(MERROR, "copy_to_user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -3958,8 +3905,7 @@ done:
  *  @param wrq          A pointer to iwreq structure
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_set_get_ip_addr(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_ip_addr(moal_private *priv, struct iwreq *wrq)
 {
 	char buf[IPADDR_MAX_BUF];
 	mlan_ioctl_req *ioctl_req = NULL;
@@ -3977,7 +3923,7 @@ woal_set_get_ip_addr(moal_private *priv, struct iwreq *wrq)
 	}
 	misc = (mlan_ds_misc_cfg *)ioctl_req->pbuf;
 
-	if (data_length <= 1) {	/* GET */
+	if (data_length <= 1) { /* GET */
 		ioctl_req->action = MLAN_ACT_GET;
 	} else {
 		if (copy_from_user(buf, wrq->u.data.pointer,
@@ -4048,8 +3994,7 @@ done:
  *
  *  @return         0 -- success, otherwise fail
  */
-static int
-woal_tx_bf_cap_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_tx_bf_cap_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0, data_length = wrq->u.data.length;
 	mlan_ioctl_req *req = NULL;
@@ -4076,7 +4021,7 @@ woal_tx_bf_cap_ioctl(moal_private *priv, struct iwreq *wrq)
 	req->req_id = MLAN_IOCTL_11N_CFG;
 	bf_cfg->sub_command = MLAN_OID_11N_CFG_TX_BF_CAP;
 	req->action = MLAN_ACT_GET;
-	if (data_length) {	/* SET */
+	if (data_length) { /* SET */
 		if (copy_from_user(&bf_cap, wrq->u.data.pointer, sizeof(int))) {
 			PRINTM(MERROR, "copy from user failed\n");
 			ret = -EFAULT;
@@ -4108,17 +4053,17 @@ done:
 }
 
 /* Maximum input output characters in group WOAL_SET_GET_256_CHAR */
-#define MAX_IN_OUT_CHAR     256
+#define MAX_IN_OUT_CHAR 256
 /** Tx BF Global conf argument index */
-#define BF_ENABLE_PARAM     1
-#define SOUND_ENABLE_PARAM  2
-#define FB_TYPE_PARAM       3
+#define BF_ENABLE_PARAM 1
+#define SOUND_ENABLE_PARAM 2
+#define FB_TYPE_PARAM 3
 #define SNR_THRESHOLD_PARAM 4
-#define SOUND_INTVL_PARAM   5
-#define BF_MODE_PARAM       6
-#define MAX_TX_BF_GLOBAL_ARGS   6
-#define BF_CFG_ACT_GET      0
-#define BF_CFG_ACT_SET      1
+#define SOUND_INTVL_PARAM 5
+#define BF_MODE_PARAM 6
+#define MAX_TX_BF_GLOBAL_ARGS 6
+#define BF_CFG_ACT_GET 0
+#define BF_CFG_ACT_SET 1
 
 /**
  *  @brief Set/Get Transmit beamforming configuration
@@ -4128,8 +4073,7 @@ done:
  *
  *  @return         0 -- success, otherwise fail
  */
-static int
-woal_tx_bf_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_tx_bf_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0, data_length = wrq->u.data.length;
 	int bf_action = 0, interval = 0;
@@ -4257,7 +4201,8 @@ woal_tx_bf_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
 			 * First arg  = 2   BfAction
 			 * Second arg = 18  MAC "00:50:43:20:BF:64;"
 			 * Third arg =  1  (min char)  TX BF interval
-			 *              10 (max char)  u32 maximum value 4294967295
+			 *              10 (max char)  u32 maximum value
+			 * 4294967295
 			 */
 			if (char_count < 19 || char_count > 30) {
 				PRINTM(MERROR, "Invalid argument\n");
@@ -4358,24 +4303,19 @@ woal_tx_bf_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
 		memset(buf, 0, sizeof(buf));
 		switch (bf_action) {
 		case BF_GLOBAL_CONFIGURATION:
-			data_length +=
-				sprintf(buf + data_length, "%d ",
-					(int)bf_global->bf_enbl);
-			data_length +=
-				sprintf(buf + data_length, "%d ",
-					(int)bf_global->sounding_enbl);
-			data_length +=
-				sprintf(buf + data_length, "%d ",
-					(int)bf_global->fb_type);
-			data_length +=
-				sprintf(buf + data_length, "%d ",
-					(int)bf_global->snr_threshold);
+			data_length += sprintf(buf + data_length, "%d ",
+					       (int)bf_global->bf_enbl);
+			data_length += sprintf(buf + data_length, "%d ",
+					       (int)bf_global->sounding_enbl);
+			data_length += sprintf(buf + data_length, "%d ",
+					       (int)bf_global->fb_type);
+			data_length += sprintf(buf + data_length, "%d ",
+					       (int)bf_global->snr_threshold);
 			data_length +=
 				sprintf(buf + data_length, "%d ",
 					(int)bf_global->sounding_interval);
-			data_length +=
-				sprintf(buf + data_length, "%d ",
-					(int)bf_global->bf_mode);
+			data_length += sprintf(buf + data_length, "%d ",
+					       (int)bf_global->bf_mode);
 			break;
 		case SET_GET_BF_PERIODICITY:
 			data_length += sprintf(buf + data_length,
@@ -4387,49 +4327,47 @@ woal_tx_bf_cfg_ioctl(moal_private *priv, struct iwreq *wrq)
 					       bf_periodicity->peer_mac[4],
 					       bf_periodicity->peer_mac[5]);
 			data_length += sprintf(buf + data_length, "%c", ' ');
-			data_length +=
-				sprintf(buf + data_length, "%d",
-					bf_periodicity->interval);
+			data_length += sprintf(buf + data_length, "%d",
+					       bf_periodicity->interval);
 			break;
 		case TX_BF_FOR_PEER_ENBL:
 			for (i = 0; i < bf_cfg.no_of_peers; i++) {
-				data_length += sprintf(buf + data_length,
-						       "%02x:%02x:%02x:%02x:%02x:%02x",
-						       tx_bf_peer->peer_mac[0],
-						       tx_bf_peer->peer_mac[1],
-						       tx_bf_peer->peer_mac[2],
-						       tx_bf_peer->peer_mac[3],
-						       tx_bf_peer->peer_mac[4],
-						       tx_bf_peer->peer_mac[5]);
+				data_length +=
+					sprintf(buf + data_length,
+						"%02x:%02x:%02x:%02x:%02x:%02x",
+						tx_bf_peer->peer_mac[0],
+						tx_bf_peer->peer_mac[1],
+						tx_bf_peer->peer_mac[2],
+						tx_bf_peer->peer_mac[3],
+						tx_bf_peer->peer_mac[4],
+						tx_bf_peer->peer_mac[5]);
 				data_length +=
 					sprintf(buf + data_length, "%c", ' ');
-				data_length +=
-					sprintf(buf + data_length, "%d;",
-						tx_bf_peer->bf_enbl);
+				data_length += sprintf(buf + data_length, "%d;",
+						       tx_bf_peer->bf_enbl);
 				data_length +=
 					sprintf(buf + data_length, "%d;",
 						tx_bf_peer->sounding_enbl);
-				data_length +=
-					sprintf(buf + data_length, "%d ",
-						tx_bf_peer->fb_type);
+				data_length += sprintf(buf + data_length, "%d ",
+						       tx_bf_peer->fb_type);
 				tx_bf_peer++;
 			}
 			break;
 		case SET_SNR_THR_PEER:
 			for (i = 0; i < bf_cfg.no_of_peers; i++) {
-				data_length += sprintf(buf + data_length,
-						       "%02x:%02x:%02x:%02x:%02x:%02x",
-						       bf_snr->peer_mac[0],
-						       bf_snr->peer_mac[1],
-						       bf_snr->peer_mac[2],
-						       bf_snr->peer_mac[3],
-						       bf_snr->peer_mac[4],
-						       bf_snr->peer_mac[5]);
+				data_length +=
+					sprintf(buf + data_length,
+						"%02x:%02x:%02x:%02x:%02x:%02x",
+						bf_snr->peer_mac[0],
+						bf_snr->peer_mac[1],
+						bf_snr->peer_mac[2],
+						bf_snr->peer_mac[3],
+						bf_snr->peer_mac[4],
+						bf_snr->peer_mac[5]);
 				data_length +=
 					sprintf(buf + data_length, "%c", ';');
-				data_length +=
-					sprintf(buf + data_length, "%d",
-						bf_snr->snr);
+				data_length += sprintf(buf + data_length, "%d",
+						       bf_snr->snr);
 				data_length +=
 					sprintf(buf + data_length, "%c", ' ');
 				bf_snr++;
@@ -4459,9 +4397,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static int
-moal_ret_get_scan_table_ioctl(struct iwreq *wrq,
-			      mlan_scan_resp *scan_resp, t_u32 scan_start)
+static int moal_ret_get_scan_table_ioctl(struct iwreq *wrq,
+					 mlan_scan_resp *scan_resp,
+					 t_u32 scan_start)
 {
 	pBSSDescriptor_t pbss_desc, scan_table;
 	wlan_ioctl_get_scan_table_info *prsp_info;
@@ -4493,8 +4431,7 @@ moal_ret_get_scan_table_ioctl(struct iwreq *wrq,
 		/* Use to get current association saved descriptor */
 		pbss_desc = scan_table;
 
-		ret_code = wlan_get_scan_table_ret_entry(pbss_desc,
-							 &pcurrent,
+		ret_code = wlan_get_scan_table_ret_entry(pbss_desc, &pcurrent,
 							 &space_left);
 
 		if (ret_code == MLAN_STATUS_SUCCESS)
@@ -4502,11 +4439,10 @@ moal_ret_get_scan_table_ioctl(struct iwreq *wrq,
 	} else {
 		scan_start--;
 
-		while (space_left
-		       && (scan_start + num_scans_done <
-			   scan_resp->num_in_scan_table)
-		       && (ret_code == MLAN_STATUS_SUCCESS)) {
-
+		while (space_left &&
+		       (scan_start + num_scans_done <
+			scan_resp->num_in_scan_table) &&
+		       (ret_code == MLAN_STATUS_SUCCESS)) {
 			pbss_desc =
 				(scan_table + (scan_start + num_scans_done));
 
@@ -4514,9 +4450,8 @@ moal_ret_get_scan_table_ioctl(struct iwreq *wrq,
 			       "GetScanTable: get current BSS Descriptor [%d]\n",
 			       scan_start + num_scans_done);
 
-			ret_code = wlan_get_scan_table_ret_entry(pbss_desc,
-								 &pcurrent,
-								 &space_left);
+			ret_code = wlan_get_scan_table_ret_entry(
+				pbss_desc, &pcurrent, &space_left);
 
 			if (ret_code == MLAN_STATUS_SUCCESS)
 				num_scans_done++;
@@ -4528,8 +4463,8 @@ moal_ret_get_scan_table_ioctl(struct iwreq *wrq,
 
 	wrq->u.data.length = ret_len;
 
-	/* Return ret_code (EFAULT or E2BIG) in the case where no scan results were
-	 *   successfully encoded.
+	/* Return ret_code (EFAULT or E2BIG) in the case where no scan results
+	 * were successfully encoded.
 	 */
 	LEAVE();
 	return num_scans_done ? MLAN_STATUS_SUCCESS : ret_code;
@@ -4541,10 +4476,11 @@ moal_ret_get_scan_table_ioctl(struct iwreq *wrq,
  *  @param priv     A pointer to moal_private structure
  *  @param wrq      A pointer to iwreq structure
  *
- *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success, otherwise fail
+ *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success,
+ * otherwise fail
  */
-static mlan_status
-woal_get_scan_table_ioctl(moal_private *priv, struct iwreq *wrq)
+static mlan_status woal_get_scan_table_ioctl(moal_private *priv,
+					     struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ioctl_req *req = NULL;
@@ -4567,8 +4503,8 @@ woal_get_scan_table_ioctl(moal_private *priv, struct iwreq *wrq)
 	req->action = MLAN_ACT_GET;
 
 	/* get the whole command from user */
-	if (copy_from_user
-	    (&scan_start, wrq->u.data.pointer, sizeof(scan_start))) {
+	if (copy_from_user(&scan_start, wrq->u.data.pointer,
+			   sizeof(scan_start))) {
 		PRINTM(MERROR, "copy from user failed\n");
 		ret = -EFAULT;
 		goto done;
@@ -4580,9 +4516,8 @@ woal_get_scan_table_ioctl(moal_private *priv, struct iwreq *wrq)
 	/* Send IOCTL request to MLAN */
 	status = woal_request_ioctl(priv, req, MOAL_IOCTL_WAIT);
 	if (status == MLAN_STATUS_SUCCESS) {
-		status = moal_ret_get_scan_table_ioctl(wrq,
-						       &scan->param.scan_resp,
-						       scan_start);
+		status = moal_ret_get_scan_table_ioctl(
+			wrq, &scan->param.scan_resp, scan_start);
 	}
 done:
 	if (status != MLAN_STATUS_PENDING)
@@ -4599,16 +4534,14 @@ done:
  *
  *  @return         0 -- success, otherwise fail
  */
-static int
-woal_set_user_scan_ext_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_set_user_scan_ext_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	wlan_user_scan_cfg scan_req;
 	ENTER();
 	memset(&scan_req, 0x00, sizeof(scan_req));
-	if (copy_from_user
-	    (&scan_req, wrq->u.data.pointer,
-	     MIN(wrq->u.data.length, sizeof(scan_req)))) {
+	if (copy_from_user(&scan_req, wrq->u.data.pointer,
+			   MIN(wrq->u.data.length, sizeof(scan_req)))) {
 		PRINTM(MINFO, "Copy from user failed\n");
 		LEAVE();
 		return -EFAULT;
@@ -4625,10 +4558,11 @@ woal_set_user_scan_ext_ioctl(moal_private *priv, struct iwreq *wrq)
  *  @param priv     A pointer to moal_private structure
  *  @param wrq      A pointer to iwreq structure
  *
- *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success, otherwise fail
+ *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success,
+ * otherwise fail
  */
-static mlan_status
-woal_set_user_scan_ioctl(moal_private *priv, struct iwreq *wrq)
+static mlan_status woal_set_user_scan_ioctl(moal_private *priv,
+					    struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ioctl_req *req = NULL;
@@ -4698,8 +4632,7 @@ done:
  *  @param wrq          A pointer to iwreq structure
  *  @return             MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static int
-woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	t_u8 rw = 0, func, data = 0;
 	int buf[3], reg, ret = MLAN_STATUS_SUCCESS;
@@ -4713,7 +4646,8 @@ woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 		goto done;
 	}
 
-	if (copy_from_user(buf, wrq->u.data.pointer, sizeof(int) * data_length)) {
+	if (copy_from_user(buf, wrq->u.data.pointer,
+			   sizeof(int) * data_length)) {
 		PRINTM(MERROR, "Copy from user failed\n");
 		ret = -EFAULT;
 		goto done;
@@ -4727,11 +4661,11 @@ woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 	}
 	reg = (t_u32)buf[1];
 	if (data_length == 2) {
-		rw = 0;		/* CMD52 read */
+		rw = 0; /* CMD52 read */
 		PRINTM(MINFO, "Cmd52 read, func=%d, reg=0x%08X\n", func, reg);
 	}
 	if (data_length == 3) {
-		rw = 1;		/* CMD52 write */
+		rw = 1; /* CMD52 write */
 		data = (t_u8)buf[2];
 		PRINTM(MINFO, "Cmd52 write, func=%d, reg=0x%08X, data=0x%02X\n",
 		       func, reg, data);
@@ -4739,16 +4673,20 @@ woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 
 	if (!rw) {
 #ifdef SDIO_MMC
-		sdio_claim_host(((struct sdio_mmc_card *)priv->phandle->card)->
-				func);
+		sdio_claim_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
 		if (func)
-			data = sdio_readb(((struct sdio_mmc_card *)priv->
-					   phandle->card)->func, reg, &ret);
+			data = sdio_readb(
+				((struct sdio_mmc_card *)priv->phandle->card)
+					->func,
+				reg, &ret);
 		else
-			data = sdio_f0_readb(((struct sdio_mmc_card *)priv->
-					      phandle->card)->func, reg, &ret);
-		sdio_release_host(((struct sdio_mmc_card *)priv->phandle->
-				   card)->func);
+			data = sdio_f0_readb(
+				((struct sdio_mmc_card *)priv->phandle->card)
+					->func,
+				reg, &ret);
+		sdio_release_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
 		if (ret) {
 			PRINTM(MERROR,
 			       "sdio_readb: reading register 0x%X failed\n",
@@ -4756,7 +4694,8 @@ woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 			goto done;
 		}
 #else
-		if (sdio_read_ioreg(priv->phandle->card, func, reg, &data) < 0) {
+		if (sdio_read_ioreg(priv->phandle->card, func, reg, &data) <
+		    0) {
 			PRINTM(MERROR,
 			       "sdio_read_ioreg: reading register 0x%X failed\n",
 			       reg);
@@ -4766,16 +4705,20 @@ woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 #endif
 	} else {
 #ifdef SDIO_MMC
-		sdio_claim_host(((struct sdio_mmc_card *)priv->phandle->card)->
-				func);
+		sdio_claim_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
 		if (func)
-			sdio_writeb(((struct sdio_mmc_card *)priv->phandle->
-				     card)->func, data, reg, &ret);
+			sdio_writeb(
+				((struct sdio_mmc_card *)priv->phandle->card)
+					->func,
+				data, reg, &ret);
 		else
-			sdio_f0_writeb(((struct sdio_mmc_card *)priv->phandle->
-					card)->func, data, reg, &ret);
-		sdio_release_host(((struct sdio_mmc_card *)priv->phandle->
-				   card)->func);
+			sdio_f0_writeb(
+				((struct sdio_mmc_card *)priv->phandle->card)
+					->func,
+				data, reg, &ret);
+		sdio_release_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
 		if (ret) {
 			PRINTM(MERROR,
 			       "sdio_writeb: writing register 0x%X failed\n",
@@ -4783,7 +4726,8 @@ woal_cmd52rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 			goto done;
 		}
 #else
-		if (sdio_write_ioreg(priv->phandle->card, func, reg, data) < 0) {
+		if (sdio_write_ioreg(priv->phandle->card, func, reg, data) <
+		    0) {
 			PRINTM(MERROR,
 			       "sdio_write_ioreg: writing register 0x%X failed\n",
 			       reg);
@@ -4813,8 +4757,7 @@ done:
  *  @param wrq          A pointer to iwreq structure
  *  @return             MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static int
-woal_cmd53rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_cmd53rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	t_u8 *buf = NULL;
 	t_u8 rw, func, mode;
@@ -4848,16 +4791,16 @@ woal_cmd53rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 		goto done;
 	}
 
-	rw = buf[0];		/* read/write (0/1) */
-	func = buf[1];		/* func (0/1/2) */
-	reg = buf[5];		/* address */
+	rw = buf[0]; /* read/write (0/1) */
+	func = buf[1]; /* func (0/1/2) */
+	reg = buf[5]; /* address */
 	reg = (reg << 8) + buf[4];
 	reg = (reg << 8) + buf[3];
 	reg = (reg << 8) + buf[2];
-	mode = buf[6];		/* byte mode/block mode (0/1) */
-	blklen = buf[8];	/* block size */
+	mode = buf[6]; /* byte mode/block mode (0/1) */
+	blklen = buf[8]; /* block size */
 	blklen = (blklen << 8) + buf[7];
-	blknum = buf[10];	/* block number or byte number */
+	blknum = buf[10]; /* block number or byte number */
 	blknum = (blknum << 8) + buf[9];
 
 	if (mode != BYTE_MODE)
@@ -4873,16 +4816,16 @@ woal_cmd53rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 	       func, reg, mode, blklen, blknum);
 
 	if (!rw) {
-		sdio_claim_host(((struct sdio_mmc_card *)priv->phandle->card)->
-				func);
-		if (sdio_readsb
-		    (((struct sdio_mmc_card *)priv->phandle->card)->func, data,
-		     reg, total_len))
+		sdio_claim_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
+		if (sdio_readsb(
+			    ((struct sdio_mmc_card *)priv->phandle->card)->func,
+			    data, reg, total_len))
 			PRINTM(MERROR,
 			       "sdio_readsb: reading memory 0x%x failed\n",
 			       reg);
-		sdio_release_host(((struct sdio_mmc_card *)priv->phandle->
-				   card)->func);
+		sdio_release_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
 
 		if (copy_to_user(wrq->u.data.pointer, data, total_len)) {
 			PRINTM(MINFO, "Copy to user failed\n");
@@ -4900,16 +4843,16 @@ woal_cmd53rdwr_ioctl(moal_private *priv, struct iwreq *wrq)
 		for (pos = 0; pos < total_len; pos++)
 			data[pos] = buf[11 + (pos % pattern_len)];
 
-		sdio_claim_host(((struct sdio_mmc_card *)priv->phandle->card)->
-				func);
-		if (sdio_writesb
-		    (((struct sdio_mmc_card *)priv->phandle->card)->func, reg,
-		     data, total_len))
+		sdio_claim_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
+		if (sdio_writesb(
+			    ((struct sdio_mmc_card *)priv->phandle->card)->func,
+			    reg, data, total_len))
 			PRINTM(MERROR,
 			       "sdio_writesb: writing memory 0x%x failed\n",
 			       reg);
-		sdio_release_host(((struct sdio_mmc_card *)priv->phandle->
-				   card)->func);
+		sdio_release_host(
+			((struct sdio_mmc_card *)priv->phandle->card)->func);
 	}
 
 done:
@@ -4929,8 +4872,7 @@ done:
  *
  * @return         0/MLAN_STATUS_PENDING --success, otherwise fail
  */
-static int
-woal_do_sdio_mpa_ctrl(moal_private *priv, struct iwreq *wrq)
+static int woal_do_sdio_mpa_ctrl(moal_private *priv, struct iwreq *wrq)
 {
 	int data[6], data_length = wrq->u.data.length, copy_len;
 	int ret = 0;
@@ -5048,8 +4990,7 @@ done:
  *
  * @return         0 --success, otherwise fail
  */
-static int
-woal_set_get_scan_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_scan_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	int data[7], copy_len;
@@ -5147,8 +5088,7 @@ done:
  *
  * @return         0 --success, otherwise fail
  */
-static int
-woal_set_get_ps_cfg(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_ps_cfg(moal_private *priv, struct iwreq *wrq)
 {
 	int data[7], copy_len, ret = 0;
 	mlan_ds_pm_cfg *pm_cfg = NULL;
@@ -5160,8 +5100,8 @@ woal_set_get_ps_cfg(moal_private *priv, struct iwreq *wrq)
 
 	ENTER();
 
-	allowed++;		/* For beacon missing timeout parameter */
-	allowed += 2;		/* For delay to PS and PS mode parameters */
+	allowed++; /* For beacon missing timeout parameter */
+	allowed += 2; /* For delay to PS and PS mode parameters */
 	copy_len = MIN(sizeof(data), sizeof(int) * data_length);
 
 	req = woal_alloc_mlan_ioctl_req(sizeof(mlan_ds_pm_cfg));
@@ -5190,17 +5130,17 @@ woal_set_get_ps_cfg(moal_private *priv, struct iwreq *wrq)
 			ret = -EINVAL;
 			goto done;
 		}
-		if ((data[1] != MRVDRV_IGNORE_MULTIPLE_DTIM)
-		    && (data[1] != MRVDRV_MATCH_CLOSEST_DTIM)
-		    && ((data[1] < MRVDRV_MIN_MULTIPLE_DTIM)
-			|| (data[1] > MRVDRV_MAX_MULTIPLE_DTIM))) {
+		if ((data[1] != MRVDRV_IGNORE_MULTIPLE_DTIM) &&
+		    (data[1] != MRVDRV_MATCH_CLOSEST_DTIM) &&
+		    ((data[1] < MRVDRV_MIN_MULTIPLE_DTIM) ||
+		     (data[1] > MRVDRV_MAX_MULTIPLE_DTIM))) {
 			PRINTM(MERROR, "Invalid argument for multiple DTIM\n");
 			ret = -EINVAL;
 			goto done;
 		}
 
-		if ((data[2] < MRVDRV_MIN_LISTEN_INTERVAL)
-		    && (data[2] != MRVDRV_LISTEN_INTERVAL_DISABLE)) {
+		if ((data[2] < MRVDRV_MIN_LISTEN_INTERVAL) &&
+		    (data[2] != MRVDRV_LISTEN_INTERVAL_DISABLE)) {
 			PRINTM(MERROR,
 			       "Invalid argument for listen interval\n");
 			ret = -EINVAL;
@@ -5225,8 +5165,9 @@ woal_set_get_ps_cfg(moal_private *priv, struct iwreq *wrq)
 			goto done;
 		}
 		i++;
-		if ((data[i] != PS_MODE_UNCHANGED) && (data[i] != PS_MODE_AUTO)
-		    && (data[i] != PS_MODE_POLL) && (data[i] != PS_MODE_NULL)) {
+		if ((data[i] != PS_MODE_UNCHANGED) &&
+		    (data[i] != PS_MODE_AUTO) && (data[i] != PS_MODE_POLL) &&
+		    (data[i] != PS_MODE_NULL)) {
 			PRINTM(MERROR, "Invalid argument for PS mode\n");
 			ret = -EINVAL;
 			goto done;
@@ -5245,7 +5186,8 @@ woal_set_get_ps_cfg(moal_private *priv, struct iwreq *wrq)
 	}
 	moal_memcpy_ext(priv->phandle, data, &pm_cfg->param.ps_cfg,
 			MIN((sizeof(int) * allowed),
-			    sizeof(pm_cfg->param.ps_cfg)), sizeof(data));
+			    sizeof(pm_cfg->param.ps_cfg)),
+			sizeof(data));
 	if (copy_to_user(wrq->u.data.pointer, data, sizeof(int) * allowed)) {
 		ret = -EFAULT;
 		goto done;
@@ -5303,8 +5245,7 @@ done:
  *
  *  @return        0 if successful; IOCTL error code otherwise
  */
-static int
-woal_wmm_addts_req_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wmm_addts_req_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_wmm_cfg *cfg = NULL;
@@ -5365,12 +5306,12 @@ woal_wmm_addts_req_ioctl(moal_private *priv, struct iwreq *wrq)
 				cfg->param.addts.ie_data_len,
 				sizeof(addts_ioctl.ie_data));
 
-		wrq->u.data.length = (sizeof(addts_ioctl)
-				      - sizeof(addts_ioctl.ie_data)
-				      + cfg->param.addts.ie_data_len);
+		wrq->u.data.length =
+			(sizeof(addts_ioctl) - sizeof(addts_ioctl.ie_data) +
+			 cfg->param.addts.ie_data_len);
 
-		if (copy_to_user(wrq->u.data.pointer,
-				 &addts_ioctl, wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, &addts_ioctl,
+				 wrq->u.data.length)) {
 			PRINTM(MERROR, "TSPEC: ADDTS copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -5405,8 +5346,7 @@ done:
  *
  *  @return        0 if successful; IOCTL error code otherwise
  */
-static int
-woal_wmm_delts_req_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wmm_delts_req_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_wmm_cfg *cfg = NULL;
@@ -5459,12 +5399,13 @@ woal_wmm_delts_req_ioctl(moal_private *priv, struct iwreq *wrq)
 			goto done;
 		}
 
-		/* Return the firmware command result back to the application layer */
+		/* Return the firmware command result back to the application
+		 * layer */
 		delts_ioctl.cmd_result = cfg->param.delts.result;
 		wrq->u.data.length = sizeof(delts_ioctl);
 
-		if (copy_to_user(wrq->u.data.pointer,
-				 &delts_ioctl, wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, &delts_ioctl,
+				 wrq->u.data.length)) {
 			PRINTM(MERROR, "TSPEC: DELTS copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -5490,8 +5431,7 @@ done:
  *
  *  @return        0 if successful; IOCTL error code otherwise
  */
-static int
-woal_wmm_queue_config_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wmm_queue_config_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_wmm_cfg *pwmm = NULL;
@@ -5539,8 +5479,8 @@ woal_wmm_queue_config_ioctl(moal_private *priv, struct iwreq *wrq)
 		qcfg_ioctl.msdu_lifetime_expiry = pqcfg->msdu_lifetime_expiry;
 		wrq->u.data.length = sizeof(qcfg_ioctl);
 
-		if (copy_to_user
-		    (wrq->u.data.pointer, &qcfg_ioctl, wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, &qcfg_ioctl,
+				 wrq->u.data.length)) {
 			PRINTM(MERROR, "QCONFIG: copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -5569,8 +5509,7 @@ done:
  *
  *  @return        0 if successful; IOCTL error code otherwise
  */
-static int
-woal_wmm_queue_stats_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wmm_queue_stats_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_wmm_cfg *pwmm = NULL;
@@ -5621,8 +5560,8 @@ woal_wmm_queue_stats_ioctl(moal_private *priv, struct iwreq *wrq)
 				sizeof(qstats_ioctl));
 		wrq->u.data.length = sizeof(qstats_ioctl);
 
-		if (copy_to_user
-		    (wrq->u.data.pointer, &qstats_ioctl, wrq->u.data.length)) {
+		if (copy_to_user(wrq->u.data.pointer, &qstats_ioctl,
+				 wrq->u.data.length)) {
 			PRINTM(MERROR, "QSTATS: copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -5653,8 +5592,7 @@ done:
  *
  *  @return        0 if successful; IOCTL error code otherwise
  */
-static int
-woal_wmm_queue_status_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wmm_queue_status_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_wmm_cfg *pwmm = NULL;
@@ -5690,8 +5628,8 @@ woal_wmm_queue_status_ioctl(moal_private *priv, struct iwreq *wrq)
 		wrq->u.data.length = 0;
 	}
 
-	if (copy_to_user
-	    (wrq->u.data.pointer, &qstatus_ioctl, wrq->u.data.length)) {
+	if (copy_to_user(wrq->u.data.pointer, &qstatus_ioctl,
+			 wrq->u.data.length)) {
 		PRINTM(MERROR, "QSTATUS: copy to user failed\n");
 		ret = -EFAULT;
 		goto done;
@@ -5713,8 +5651,7 @@ done:
  *
  *  @return        0 if successful; IOCTL error code otherwise
  */
-static int
-woal_wmm_ts_status_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_wmm_ts_status_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_wmm_cfg *pwmm = NULL;
@@ -5764,8 +5701,8 @@ woal_wmm_ts_status_ioctl(moal_private *priv, struct iwreq *wrq)
 		wrq->u.data.length = 0;
 	}
 
-	if (copy_to_user
-	    (wrq->u.data.pointer, &ts_status_ioctl, wrq->u.data.length)) {
+	if (copy_to_user(wrq->u.data.pointer, &ts_status_ioctl,
+			 wrq->u.data.length)) {
 		PRINTM(MERROR, "TS_STATUS: copy to user failed\n");
 		ret = -EFAULT;
 		goto done;
@@ -5786,8 +5723,7 @@ done:
  *
  *  @return        0 if successful; IOCTL error code otherwise
  */
-static int
-woal_bypassed_packet_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_bypassed_packet_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	struct sk_buff *skb = NULL;
@@ -5795,11 +5731,11 @@ woal_bypassed_packet_ioctl(moal_private *priv, struct iwreq *wrq)
 	t_u16 moreLen = 0, copyLen = 0;
 	ENTER();
 
-#define MLAN_BYPASS_PKT_EXTRA_OFFSET        (4)
+#define MLAN_BYPASS_PKT_EXTRA_OFFSET (4)
 
 	copyLen = wrq->u.data.length;
-	moreLen = MLAN_MIN_DATA_HEADER_LEN + MLAN_BYPASS_PKT_EXTRA_OFFSET
-		+ sizeof(mlan_buffer);
+	moreLen = MLAN_MIN_DATA_HEADER_LEN + MLAN_BYPASS_PKT_EXTRA_OFFSET +
+		  sizeof(mlan_buffer);
 
 	skb = alloc_skb(copyLen + moreLen, GFP_KERNEL);
 	if (skb == NULL) {
@@ -5810,7 +5746,8 @@ woal_bypassed_packet_ioctl(moal_private *priv, struct iwreq *wrq)
 
 	skb_reserve(skb, moreLen);
 
-	if (copy_from_user(skb_put(skb, copyLen), wrq->u.data.pointer, copyLen)) {
+	if (copy_from_user(skb_put(skb, copyLen), wrq->u.data.pointer,
+			   copyLen)) {
 		PRINTM(MERROR, "PortBlock: copy from user failed\n");
 		dev_kfree_skb_any(skb);
 		ret = -EFAULT;
@@ -5837,8 +5774,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_auth_type(moal_private *priv, struct iwreq *wrq)
+static int woal_auth_type(moal_private *priv, struct iwreq *wrq)
 {
 	int auth_type;
 	t_u32 auth_mode;
@@ -5852,24 +5788,24 @@ woal_auth_type(moal_private *priv, struct iwreq *wrq)
 			goto done;
 		}
 		auth_type = auth_mode;
-		if (copy_to_user
-		    (wrq->u.data.pointer, &auth_type, sizeof(auth_type))) {
+		if (copy_to_user(wrq->u.data.pointer, &auth_type,
+				 sizeof(auth_type))) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
 		}
 		wrq->u.data.length = 1;
 	} else {
-		if (copy_from_user
-		    (&auth_type, wrq->u.data.pointer, sizeof(auth_type))) {
+		if (copy_from_user(&auth_type, wrq->u.data.pointer,
+				   sizeof(auth_type))) {
 			PRINTM(MERROR, "Copy from user failed\n");
 			ret = -EFAULT;
 			goto done;
 		}
 		PRINTM(MINFO, "SET: auth_type %d\n", auth_type);
 		if (((auth_type < MLAN_AUTH_MODE_OPEN) ||
-		     (auth_type > MLAN_AUTH_MODE_SHARED))
-		    && (auth_type != MLAN_AUTH_MODE_AUTO)) {
+		     (auth_type > MLAN_AUTH_MODE_SHARED)) &&
+		    (auth_type != MLAN_AUTH_MODE_AUTO)) {
 			ret = -EINVAL;
 			goto done;
 		}
@@ -5893,8 +5829,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_port_ctrl(moal_private *priv, struct iwreq *wrq)
+static int woal_port_ctrl(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_sec_cfg *sec = NULL;
@@ -5934,9 +5869,8 @@ woal_port_ctrl(moal_private *priv, struct iwreq *wrq)
 	}
 
 	if (!wrq->u.data.length) {
-		if (copy_to_user
-		    (wrq->u.data.pointer, &sec->param.port_ctrl_enabled,
-		     sizeof(int))) {
+		if (copy_to_user(wrq->u.data.pointer,
+				 &sec->param.port_ctrl_enabled, sizeof(int))) {
 			PRINTM(MERROR, "port_ctrl:Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -5959,8 +5893,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_dfs_testing(moal_private *priv, struct iwreq *wrq)
+static int woal_dfs_testing(moal_private *priv, struct iwreq *wrq)
 {
 	mlan_ioctl_req *req = NULL;
 	mlan_ds_11h_cfg *ds_11hcfg = NULL;
@@ -6057,8 +5990,7 @@ done:
  *
  *  @return         0 -- success, otherwise fail
  */
-static int
-woal_mgmt_frame_passthru_ctrl(moal_private *priv, struct iwreq *wrq)
+static int woal_mgmt_frame_passthru_ctrl(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0, data_length = wrq->u.data.length;
 	mlan_ioctl_req *req = NULL;
@@ -6085,7 +6017,7 @@ woal_mgmt_frame_passthru_ctrl(moal_private *priv, struct iwreq *wrq)
 	req->req_id = MLAN_IOCTL_MISC_CFG;
 	mgmt_cfg->sub_command = MLAN_OID_MISC_RX_MGMT_IND;
 
-	if (data_length) {	/* SET */
+	if (data_length) { /* SET */
 		if (copy_from_user(&mask, wrq->u.data.pointer, sizeof(int))) {
 			PRINTM(MERROR, "copy from user failed\n");
 			ret = -EFAULT;
@@ -6126,8 +6058,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-static int
-woal_cfp_code(moal_private *priv, struct iwreq *wrq)
+static int woal_cfp_code(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	int data[2], copy_len;
@@ -6184,8 +6115,8 @@ woal_cfp_code(moal_private *priv, struct iwreq *wrq)
 		data[0] = cfp_code->cfp_code_bg;
 		data[1] = cfp_code->cfp_code_a;
 		data_length = 2;
-		if (copy_to_user
-		    (wrq->u.data.pointer, &data, sizeof(int) * data_length)) {
+		if (copy_to_user(wrq->u.data.pointer, &data,
+				 sizeof(int) * data_length)) {
 			PRINTM(MERROR, "Copy to user failed\n");
 			ret = -EFAULT;
 			goto done;
@@ -6208,13 +6139,12 @@ done:
  *
  * @return         0 --success, otherwise fail
  */
-static int
-woal_set_get_tx_rx_ant(moal_private *priv, struct iwreq *wrq)
+static int woal_set_get_tx_rx_ant(moal_private *priv, struct iwreq *wrq)
 {
 	int ret = 0;
 	mlan_ds_radio_cfg *radio = NULL;
 	mlan_ioctl_req *req = NULL;
-	int data[3] = { 0 };
+	int data[3] = {0};
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	int copy_len;
 
@@ -6282,10 +6212,8 @@ woal_set_get_tx_rx_ant(moal_private *priv, struct iwreq *wrq)
 			else if (data[0] == 0xffff)
 				wrq->u.data.length = 2;
 		}
-		if (copy_to_user
-		    (wrq->u.data.pointer, data,
-		     wrq->u.data.length * sizeof(int)))
-		{
+		if (copy_to_user(wrq->u.data.pointer, data,
+				 wrq->u.data.length * sizeof(int))) {
 			ret = -EFAULT;
 			goto done;
 		}
@@ -6305,8 +6233,7 @@ done:
  *
  * @return             0 --success, otherwise fail
  */
-static int
-woal_ind_rst_ioctl(moal_private *priv, struct iwreq *wrq)
+static int woal_ind_rst_ioctl(moal_private *priv, struct iwreq *wrq)
 {
 	int data[2], data_length = wrq->u.data.length, copy_len;
 	int ret = 0;
@@ -6379,8 +6306,8 @@ woal_ind_rst_ioctl(moal_private *priv, struct iwreq *wrq)
 	data[1] = misc->param.ind_rst_cfg.gpio_pin;
 	wrq->u.data.length = 2;
 
-	if (copy_to_user(wrq->u.data.pointer, data, sizeof(int) *
-			 wrq->u.data.length)) {
+	if (copy_to_user(wrq->u.data.pointer, data,
+			 sizeof(int) * wrq->u.data.length)) {
 		PRINTM(MERROR, "QCONFIG: copy to user failed\n");
 		ret = -EFAULT;
 		goto done;
@@ -6405,8 +6332,7 @@ done:
  *
  *  @return         0 --success, otherwise fail
  */
-int
-woal_wext_do_ioctl(struct net_device *dev, struct ifreq *req, int cmd)
+int woal_wext_do_ioctl(struct net_device *dev, struct ifreq *req, int cmd)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	struct iwreq *wrq = (struct iwreq *)req;
@@ -6421,10 +6347,10 @@ woal_wext_do_ioctl(struct net_device *dev, struct ifreq *req, int cmd)
 	switch (cmd) {
 	case WOAL_SETONEINT_GETWORDCHAR:
 		switch (wrq->u.data.flags) {
-		case WOAL_VERSION:	/* Get driver version */
+		case WOAL_VERSION: /* Get driver version */
 			ret = woal_get_driver_version(priv, req);
 			break;
-		case WOAL_VEREXT:	/* Get extended driver version */
+		case WOAL_VEREXT: /* Get extended driver version */
 			ret = woal_get_driver_verext(priv, req);
 			break;
 		default:
@@ -6761,11 +6687,9 @@ woal_wext_do_ioctl(struct net_device *dev, struct ifreq *req, int cmd)
 		break;
 	case WOAL_FROYO_STOP:
 		if (IS_UAP_WEXT(priv->phandle->params.cfg80211_wext) &&
-		    MLAN_STATUS_SUCCESS != woal_disconnect(priv,
-							   MOAL_IOCTL_WAIT,
-							   NULL,
-							   DEF_DEAUTH_REASON_CODE))
-		{
+		    MLAN_STATUS_SUCCESS !=
+			    woal_disconnect(priv, MOAL_IOCTL_WAIT, NULL,
+					    DEF_DEAUTH_REASON_CODE)) {
 			ret = -EFAULT;
 		}
 		break;
@@ -6786,11 +6710,11 @@ woal_wext_do_ioctl(struct net_device *dev, struct ifreq *req, int cmd)
  *  @param wait_option   Wait option
  *  @param m_rates       A pointer to moal_802_11_rates structure
  *
- *  @return              MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success, otherwise fail
+ *  @return              MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success,
+ * otherwise fail
  */
-mlan_status
-woal_get_data_rates(moal_private *priv, t_u8 wait_option,
-		    moal_802_11_rates *m_rates)
+mlan_status woal_get_data_rates(moal_private *priv, t_u8 wait_option,
+				moal_802_11_rates *m_rates)
 {
 	int ret = 0;
 	mlan_ds_rate *rate = NULL;
@@ -6815,11 +6739,9 @@ woal_get_data_rates(moal_private *priv, t_u8 wait_option,
 	status = woal_request_ioctl(priv, req, wait_option);
 	if (status == MLAN_STATUS_SUCCESS) {
 		if (m_rates)
-			m_rates->num_of_rates =
-				woal_copy_rates(m_rates->rates,
-						m_rates->num_of_rates,
-						rate->param.rates,
-						MLAN_SUPPORTED_RATES);
+			m_rates->num_of_rates = woal_copy_rates(
+				m_rates->rates, m_rates->num_of_rates,
+				rate->param.rates, MLAN_SUPPORTED_RATES);
 	}
 done:
 	if (status != MLAN_STATUS_PENDING)
@@ -6835,11 +6757,11 @@ done:
  *  @param wait_option     Wait option
  *  @param chan_list       A pointer to mlan_chan_list structure
  *
- *  @return                MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success, otherwise fail
+ *  @return                MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING -- success,
+ * otherwise fail
  */
-mlan_status
-woal_get_channel_list(moal_private *priv, t_u8 wait_option,
-		      mlan_chan_list *chan_list)
+mlan_status woal_get_channel_list(moal_private *priv, t_u8 wait_option,
+				  mlan_chan_list *chan_list)
 {
 	int ret = 0;
 	mlan_ds_bss *bss = NULL;
@@ -6885,8 +6807,7 @@ done:
  *
  *  @return         N/A
  */
-void
-woal_ioctl_get_info_resp(moal_private *priv, mlan_ds_get_info *info)
+void woal_ioctl_get_info_resp(moal_private *priv, mlan_ds_get_info *info)
 {
 	ENTER();
 	switch (info->sub_command) {
@@ -6917,8 +6838,7 @@ woal_ioctl_get_info_resp(moal_private *priv, mlan_ds_get_info *info)
  *
  *  @return         N/A
  */
-void
-woal_ioctl_get_bss_resp(moal_private *priv, mlan_ds_bss *bss)
+void woal_ioctl_get_bss_resp(moal_private *priv, mlan_ds_bss *bss)
 {
 	t_u32 mode = 0;
 

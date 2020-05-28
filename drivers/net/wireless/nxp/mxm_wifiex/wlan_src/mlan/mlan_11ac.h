@@ -44,8 +44,8 @@ t_u8 wlan_11ac_bandconfig_allowed(mlan_private *pmpriv, t_u8 bss_band);
 t_u8 wlan_is_80_80_support(mlan_private *pmpriv, BSSDescriptor_t *pbss_desc);
 
 mlan_status wlan_cmd_11ac_cfg(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *cmd,
-			      IN t_u16 cmd_action, IN t_void *pdata_buf);
+			      IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
+			      IN t_void *pdata_buf);
 
 mlan_status wlan_ret_11ac_cfg(IN pmlan_private pmpriv,
 			      IN HostCmd_DS_COMMAND *resp,

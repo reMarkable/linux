@@ -43,7 +43,7 @@ Change Log:
 #include "mlan_meas.h"
 
 /** Default measurement duration when not provided by the application */
-#define WLAN_MEAS_DEFAULT_MEAS_DURATION    1000U	/* TUs */
+#define WLAN_MEAS_DEFAULT_MEAS_DURATION 1000U /* TUs */
 
 #ifdef DEBUG_LEVEL2
 /** String descriptions of the different measurement enums.  Debug display */
@@ -63,8 +63,7 @@ static const char *meas_type_str[WLAN_MEAS_NUM_TYPES] = {
  *
  *  @return         Constant string representing measurement type
  */
-static const char *
-wlan_meas_get_meas_type_str(MeasType_t meas_type)
+static const char *wlan_meas_get_meas_type_str(MeasType_t meas_type)
 {
 	if (meas_type <= WLAN_MEAS_11H_MAX_TYPE)
 		return meas_type_str[meas_type];
@@ -80,8 +79,7 @@ wlan_meas_get_meas_type_str(MeasType_t meas_type)
  *
  *  @return          N/A
  */
-static
-	void
+static void
 wlan_meas_dump_meas_req(const HostCmd_DS_MEASUREMENT_REQUEST *pmeas_req)
 {
 	ENTER();
@@ -106,7 +104,8 @@ wlan_meas_dump_meas_req(const HostCmd_DS_MEASUREMENT_REQUEST *pmeas_req)
 
 	switch (pmeas_req->meas_type) {
 	case WLAN_MEAS_BASIC:
-		/* Lazy cheat, fields of bas, cca, rpi union match on the request */
+		/* Lazy cheat, fields of bas, cca, rpi union match on the
+		 * request */
 		PRINTM(MINFO, "Meas: Req: chan: %u\n",
 		       pmeas_req->req.basic.channel);
 		PRINTM(MINFO, "Meas: Req: strt: %llu\n",
@@ -130,8 +129,7 @@ wlan_meas_dump_meas_req(const HostCmd_DS_MEASUREMENT_REQUEST *pmeas_req)
  *
  *  @return          N/A
  */
-static
-	void
+static void
 wlan_meas_dump_meas_rpt(const HostCmd_DS_MEASUREMENT_REPORT *pmeas_rpt)
 {
 	MeasType_t type;
@@ -197,17 +195,16 @@ wlan_meas_dump_meas_rpt(const HostCmd_DS_MEASUREMENT_REPORT *pmeas_rpt)
  *
  *  @return     MLAN_STATUS_SUCCESS
  */
-static int
-wlan_meas_cmdresp_get_report(mlan_private *pmpriv,
-			     const HostCmd_DS_COMMAND *resp)
+static int wlan_meas_cmdresp_get_report(mlan_private *pmpriv,
+					const HostCmd_DS_COMMAND *resp)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	const HostCmd_DS_MEASUREMENT_REPORT *pmeas_rpt = &resp->params.meas_rpt;
 
 	ENTER();
 
-	PRINTM(MINFO, "Meas: Rpt: %#x-%u, Seq=%u, Ret=%u\n",
-	       resp->command, resp->size, resp->seq_num, resp->result);
+	PRINTM(MINFO, "Meas: Rpt: %#x-%u, Seq=%u, Ret=%u\n", resp->command,
+	       resp->size, resp->seq_num, resp->result);
 
 	/* Debug displays the measurement report */
 	wlan_meas_dump_meas_rpt(pmeas_rpt);
@@ -216,16 +213,16 @@ wlan_meas_cmdresp_get_report(mlan_private *pmpriv,
 	 * Check if we are pending on a measurement report and it matches
 	 *  the dialog token of the received report:
 	 */
-	if (pmadapter->state_meas.meas_rpt_pend_on
-	    && pmadapter->state_meas.meas_rpt_pend_on ==
-	    pmeas_rpt->dialog_token) {
+	if (pmadapter->state_meas.meas_rpt_pend_on &&
+	    pmadapter->state_meas.meas_rpt_pend_on == pmeas_rpt->dialog_token) {
 		PRINTM(MINFO, "Meas: Rpt: RCV'd Pend on meas #%d\n",
 		       pmadapter->state_meas.meas_rpt_pend_on);
 
 		/* Clear the pending report indicator */
 		pmadapter->state_meas.meas_rpt_pend_on = 0;
 
-		/* Copy the received report into the measurement state for retrieval */
+		/* Copy the received report into the measurement state for
+		 * retrieval */
 		memcpy_ext(pmadapter, &pmadapter->state_meas.meas_rpt_returned,
 			   pmeas_rpt,
 			   sizeof(pmadapter->state_meas.meas_rpt_returned),
@@ -252,9 +249,9 @@ wlan_meas_cmdresp_get_report(mlan_private *pmpriv,
  *
  *  @return          MLAN_STATUS_SUCCESS
  */
-static int
-wlan_meas_cmd_request(mlan_private *pmpriv,
-		      HostCmd_DS_COMMAND *pcmd_ptr, const void *pinfo_buf)
+static int wlan_meas_cmd_request(mlan_private *pmpriv,
+				 HostCmd_DS_COMMAND *pcmd_ptr,
+				 const void *pinfo_buf)
 {
 	const HostCmd_DS_MEASUREMENT_REQUEST *pmeas_req =
 		(HostCmd_DS_MEASUREMENT_REQUEST *)pinfo_buf;
@@ -268,9 +265,8 @@ wlan_meas_cmd_request(mlan_private *pmpriv,
 		   sizeof(pcmd_ptr->params.meas_req),
 		   sizeof(pcmd_ptr->params.meas_req));
 
-	PRINTM(MINFO, "Meas: Req: %#x-%u, Seq=%u, Ret=%u\n",
-	       pcmd_ptr->command, pcmd_ptr->size, pcmd_ptr->seq_num,
-	       pcmd_ptr->result);
+	PRINTM(MINFO, "Meas: Req: %#x-%u, Seq=%u, Ret=%u\n", pcmd_ptr->command,
+	       pcmd_ptr->size, pcmd_ptr->seq_num, pcmd_ptr->result);
 
 	wlan_meas_dump_meas_req(pmeas_req);
 
@@ -293,8 +289,8 @@ wlan_meas_cmd_request(mlan_private *pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-static int
-wlan_meas_cmd_get_report(mlan_private *pmpriv, HostCmd_DS_COMMAND *pcmd_ptr)
+static int wlan_meas_cmd_get_report(mlan_private *pmpriv,
+				    HostCmd_DS_COMMAND *pcmd_ptr)
 {
 	ENTER();
 
@@ -348,11 +344,11 @@ wlan_meas_cmd_get_report(mlan_private *pmpriv, HostCmd_DS_COMMAND *pcmd_ptr)
  *      the timeout expires
  *    - Error return from wlan_prepare_cmd routine otherwise
  */
-int
-wlan_meas_util_send_req(mlan_private *pmpriv,
-			HostCmd_DS_MEASUREMENT_REQUEST *pmeas_req,
-			t_u32 wait_for_resp_timeout, pmlan_ioctl_req pioctl_req,
-			HostCmd_DS_MEASUREMENT_REPORT *pmeas_rpt)
+int wlan_meas_util_send_req(mlan_private *pmpriv,
+			    HostCmd_DS_MEASUREMENT_REQUEST *pmeas_req,
+			    t_u32 wait_for_resp_timeout,
+			    pmlan_ioctl_req pioctl_req,
+			    HostCmd_DS_MEASUREMENT_REPORT *pmeas_rpt)
 {
 	static t_u8 auto_dialog_tok;
 	wlan_meas_state_t *pmeas_state = &pmpriv->adapter->state_meas;
@@ -361,18 +357,19 @@ wlan_meas_util_send_req(mlan_private *pmpriv,
 	ENTER();
 
 	/* If dialogTok was set to 0 or not provided, autoset */
-	pmeas_req->dialog_token = (pmeas_req->dialog_token ?
-				   pmeas_req->dialog_token : ++auto_dialog_tok);
+	pmeas_req->dialog_token =
+		(pmeas_req->dialog_token ? pmeas_req->dialog_token :
+					   ++auto_dialog_tok);
 
 	/* Check for rollover of the dialog token.  Avoid using 0 as a token */
-	pmeas_req->dialog_token = (pmeas_req->dialog_token ?
-				   pmeas_req->dialog_token : 1);
+	pmeas_req->dialog_token =
+		(pmeas_req->dialog_token ? pmeas_req->dialog_token : 1);
 
 	/*
-	 * If the request is to pend waiting for the result, set the dialog token
-	 * of this measurement request in the state structure.  The measurement
-	 * report handling routines can then check the incoming measurement
-	 * reports for a match with this dialog token.
+	 * If the request is to pend waiting for the result, set the dialog
+	 * token of this measurement request in the state structure.  The
+	 * measurement report handling routines can then check the incoming
+	 * measurement reports for a match with this dialog token.
 	 */
 	if (wait_for_resp_timeout) {
 		pmeas_state->meas_rpt_pend_on = pmeas_req->dialog_token;
@@ -382,8 +379,8 @@ wlan_meas_util_send_req(mlan_private *pmpriv,
 
 	/* Send the measurement request to the firmware */
 	ret = wlan_prepare_cmd(pmpriv, HostCmd_CMD_MEASUREMENT_REQUEST,
-			       HostCmd_ACT_GEN_SET,
-			       0, (t_void *)pioctl_req, (void *)pmeas_req);
+			       HostCmd_ACT_GEN_SET, 0, (t_void *)pioctl_req,
+			       (void *)pmeas_req);
 
 	LEAVE();
 	return ret;
@@ -407,9 +404,8 @@ wlan_meas_util_send_req(mlan_private *pmpriv,
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  *
  */
-int
-wlan_meas_cmd_process(mlan_private *pmpriv,
-		      HostCmd_DS_COMMAND *pcmd_ptr, const void *pinfo_buf)
+int wlan_meas_cmd_process(mlan_private *pmpriv, HostCmd_DS_COMMAND *pcmd_ptr,
+			  const void *pinfo_buf)
 {
 	int ret = MLAN_STATUS_SUCCESS;
 
@@ -446,8 +442,8 @@ wlan_meas_cmd_process(mlan_private *pmpriv,
  *
  *  @return     MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-int
-wlan_meas_cmdresp_process(mlan_private *pmpriv, const HostCmd_DS_COMMAND *resp)
+int wlan_meas_cmdresp_process(mlan_private *pmpriv,
+			      const HostCmd_DS_COMMAND *resp)
 {
 	int ret = MLAN_STATUS_SUCCESS;
 

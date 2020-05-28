@@ -1,33 +1,33 @@
 /** @file moal_debug.c
-  *
-  * @brief This file contains functions for debug proc file.
-  *
-  *
-  * Copyright 2014-2020 NXP
-  *
-  * This software file (the File) is distributed by NXP
-  * under the terms of the GNU General Public License Version 2, June 1991
-  * (the License).  You may use, redistribute and/or modify the File in
-  * accordance with the terms and conditions of the License, a copy of which
-  * is available by writing to the Free Software Foundation, Inc.,
-  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
-  * worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
-  *
-  * THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
-  * ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
-  * this warranty disclaimer.
-  *
-  */
+ *
+ * @brief This file contains functions for debug proc file.
+ *
+ *
+ * Copyright 2014-2020 NXP
+ *
+ * This software file (the File) is distributed by NXP
+ * under the terms of the GNU General Public License Version 2, June 1991
+ * (the License).  You may use, redistribute and/or modify the File in
+ * accordance with the terms and conditions of the License, a copy of which
+ * is available by writing to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
+ * worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
+ *
+ * THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
+ * ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
+ * this warranty disclaimer.
+ *
+ */
 
 /********************************************************
 Change log:
     11/03/2008: initial version
 ********************************************************/
 
-#include	"moal_main.h"
+#include "moal_main.h"
 #ifdef USB
-#include    "moal_usb.h"
+#include "moal_usb.h"
 #endif
 
 /********************************************************
@@ -42,23 +42,23 @@ Change log:
 /** Get info item size */
 #define item_size(n) (sizeof(((mlan_debug_info *)0)->n))
 /** Get info item address */
-#define item_addr(n) ((t_ptr) &(((mlan_debug_info *)0)->n))
+#define item_addr(n) ((t_ptr) & (((mlan_debug_info *)0)->n))
 
 /** Get moal_private member size */
 #define item_priv_size(n) (sizeof(((moal_private *)0)->n))
 /** Get moal_private member address */
-#define item_priv_addr(n) ((t_ptr) &(((moal_private *)0)->n))
+#define item_priv_addr(n) ((t_ptr) & (((moal_private *)0)->n))
 
 /** Get moal_handle member size */
 #define item_handle_size(n) (sizeof(((moal_handle *)0)->n))
 /** Get moal_handle member address */
-#define item_handle_addr(n) ((t_ptr) &(((moal_handle *)0)->n))
+#define item_handle_addr(n) ((t_ptr) & (((moal_handle *)0)->n))
 
 #ifdef USB
 /** Get moal card member size */
 #define item_card_size(n) (sizeof(((struct usb_card_rec *)0)->n))
 /** Get moal card member address */
-#define item_card_addr(n) ((t_ptr) &(((struct usb_card_rec *)0)->n))
+#define item_card_addr(n) ((t_ptr) & (((struct usb_card_rec *)0)->n))
 #endif
 
 #ifdef STA_SUPPORT
@@ -446,8 +446,7 @@ static struct debug_data uap_items[] = {
  *
  *  @return   N/A
  */
-void
-woal_hist_do_reset(moal_private *priv, void *data)
+void woal_hist_do_reset(moal_private *priv, void *data)
 {
 	hgm_data *phist_data = (hgm_data *)data;
 	int ix;
@@ -473,14 +472,12 @@ woal_hist_do_reset(moal_private *priv, void *data)
  *
  *  @return   N/A
  */
-void
-woal_hist_data_reset(moal_private *priv)
+void woal_hist_data_reset(moal_private *priv)
 {
 	int i = 0;
 	for (i = 0; i < priv->phandle->card_info->histogram_table_num; i++)
 		woal_hist_do_reset(priv, priv->hist_data[i]);
 }
-
 /**
  *  @brief This function reset histogram data according to antenna
  *
@@ -488,8 +485,7 @@ woal_hist_data_reset(moal_private *priv)
  *
  *  @return   N/A
  */
-void
-woal_hist_reset_table(moal_private *priv, t_u8 antenna)
+void woal_hist_reset_table(moal_private *priv, t_u8 antenna)
 {
 	hgm_data *phist_data = priv->hist_data[antenna];
 
@@ -497,9 +493,9 @@ woal_hist_reset_table(moal_private *priv, t_u8 antenna)
 }
 
 /** NF calculation */
-#define CAL_NF(NF)			((t_s8)(-(t_s8)(NF)))
+#define CAL_NF(NF) ((t_s8)(-(t_s8)(NF)))
 /** RSSI calculation */
-#define CAL_RSSI(SNR, NF)		((t_s8)((t_s8)(SNR) + CAL_NF(NF)))
+#define CAL_RSSI(SNR, NF) ((t_s8)((t_s8)(SNR) + CAL_NF(NF)))
 
 /**
  *  @brief This function set histogram data
@@ -511,9 +507,8 @@ woal_hist_reset_table(moal_private *priv, t_u8 antenna)
  *
  *  @return   N/A
  */
-static void
-woal_hist_data_set(moal_private *priv, t_u16 rx_rate, t_s8 snr, t_s8 nflr,
-		   t_u8 antenna)
+static void woal_hist_data_set(moal_private *priv, t_u16 rx_rate, t_s8 snr,
+			       t_s8 nflr, t_u8 antenna)
 {
 	hgm_data *phist_data = priv->hist_data[antenna];
 	t_s8 nf = CAL_NF(nflr);
@@ -537,9 +532,8 @@ woal_hist_data_set(moal_private *priv, t_u16 rx_rate, t_s8 snr, t_s8 nflr,
  *
  *  @return   N/A
  */
-void
-woal_hist_data_add(moal_private *priv, t_u16 rx_rate, t_s8 snr, t_s8 nflr,
-		   t_u8 antenna)
+void woal_hist_data_add(moal_private *priv, t_u16 rx_rate, t_s8 snr, t_s8 nflr,
+			t_u8 antenna)
 {
 	hgm_data *phist_data = NULL;
 	unsigned long curr_size;
@@ -552,11 +546,10 @@ woal_hist_data_add(moal_private *priv, t_u16 rx_rate, t_s8 snr, t_s8 nflr,
 		woal_hist_reset_table(priv, antenna);
 	woal_hist_data_set(priv, rx_rate, snr, nflr, antenna);
 }
-
-#define MAX_MCS_NUM_SUPP    16
-#define MAX_MCS_NUM_AC    10
-#define MAX_MCS_NUM_AX    12
-#define RATE_INDEX_MCS0   12
+#define MAX_MCS_NUM_SUPP 16
+#define MAX_MCS_NUM_AC 10
+#define MAX_MCS_NUM_AX 12
+#define RATE_INDEX_MCS0 12
 /**
  *  @brief histogram info in proc
  *
@@ -565,8 +558,7 @@ woal_hist_data_add(moal_private *priv, t_u16 rx_rate, t_s8 snr, t_s8 nflr,
  *
  *  @return        Number of output data or MLAN_STATUS_FAILURE
  */
-static int
-woal_histogram_info(struct seq_file *sfp, void *data)
+static int woal_histogram_info(struct seq_file *sfp, void *data)
 {
 	hgm_data *phist_data = (hgm_data *)data;
 	int i = 0;
@@ -576,7 +568,7 @@ woal_histogram_info(struct seq_file *sfp, void *data)
 	t_u8 mcs_index = 0;
 	t_u8 nss = 0;
 	t_u8 gi = 0;
-	wlan_hist_proc_data *hist_data = (wlan_hist_proc_data *) sfp->private;
+	wlan_hist_proc_data *hist_data = (wlan_hist_proc_data *)sfp->private;
 	moal_private *priv = (moal_private *)hist_data->priv;
 	t_u16 rx_rate_max_size = priv->phandle->card_info->rx_rate_max;
 
@@ -591,40 +583,57 @@ woal_histogram_info(struct seq_file *sfp, void *data)
 	seq_printf(sfp, "rx rates (in Mbps):\n");
 	seq_printf(sfp, "\t0-3:     B-MCS  0-3\n");
 	seq_printf(sfp, "\t4-11:    G-MCS  0-7\n");
-	seq_printf(sfp,
-		   "\t12-27:   N-MCS  0-15(BW20)             28-43:   N-MCS  0-15(BW40)\n");
-	seq_printf(sfp,
-		   "\t44-59:   N-MCS  0-15(BW20:SGI)         60-75:   N-MCS  0-15(BW40:SGI)\n");
-	seq_printf(sfp,
-		   "\t76-85:   AC-MCS 0-9(VHT:BW20:NSS1)     86-95:   AC-MCS 0-9(VHT:BW20:NSS2)\n");
-	seq_printf(sfp,
-		   "\t96-105:  AC-MCS 0-9(VHT:BW40:NSS1)     106-115: AC-MCS 0-9(VHT:BW40:NSS2)\n");
-	seq_printf(sfp,
-		   "\t116-125: AC-MCS 0-9(VHT:BW80:NSS1)     126-135: AC-MCS 0-9(VHT:BW80:NSS2)\n");
-	seq_printf(sfp,
-		   "\t136-145: AC-MCS 0-9(VHT:BW20:NSS1:SGI) 146-155: AC-MCS 0-9(VHT:BW20:NSS2:SGI)\n");
-	seq_printf(sfp,
-		   "\t156-165: AC-MCS 0-9(VHT:BW40:NSS1:SGI) 166-175: AC-MCS 0-9(VHT:BW40:NSS2:SGI)\n");
-	seq_printf(sfp,
-		   "\t176-185: AC-MCS 0-9(VHT:BW80:NSS1:SGI) 186-195: AC-MCS 0-9(VHT:BW80:NSS2:SGI)\n\n");
-	seq_printf(sfp,
-		   "\t196-207: AX-MCS 0-11(BW20:NSS1)        208-219: AX-MCS 0-11(BW20:NSS2)\n");
-	seq_printf(sfp,
-		   "\t220-231: AX-MCS 0-11(BW40:NSS1)        232-243: AX-MCS 0-11(BW40:NSS2)\n");
-	seq_printf(sfp,
-		   "\t244-255: AX-MCS 0-11(BW80:NSS1)        256-267: AX-MCS 0-11(BW80:NSS2)\n");
-	seq_printf(sfp,
-		   "\t268-279: AX-MCS 0-11(BW20:NSS1:GI1)    280-291: AX-MCS 0-11(BW20:NSS2:GI1)\n");
-	seq_printf(sfp,
-		   "\t292-303: AX-MCS 0-11(BW40:NSS1:GI1)    304-315: AX-MCS 0-11(BW40:NSS2:GI1)\n");
-	seq_printf(sfp,
-		   "\t316-327: AX-MCS 0-11(BW80:NSS1:GI1)    328-339: AX-MCS 0-11(BW80:NSS2:GI1)\n");
-	seq_printf(sfp,
-		   "\t340-351: AX-MCS 0-11(BW20:NSS1:GI2)    352-363: AX-MCS 0-11(BW20:NSS2:GI2)\n");
-	seq_printf(sfp,
-		   "\t364-375: AX-MCS 0-11(BW40:NSS1:GI2)    376-387: AX-MCS 0-11(BW40:NSS2:GI2)\n");
-	seq_printf(sfp,
-		   "\t388-399: AX-MCS 0-11(BW80:NSS1:GI2)    400-411: AX-MCS 0-11(BW80:NSS2:GI2)\n");
+	seq_printf(
+		sfp,
+		"\t12-27:   N-MCS  0-15(BW20)             28-43:   N-MCS  0-15(BW40)\n");
+	seq_printf(
+		sfp,
+		"\t44-59:   N-MCS  0-15(BW20:SGI)         60-75:   N-MCS  0-15(BW40:SGI)\n");
+	seq_printf(
+		sfp,
+		"\t76-85:   AC-MCS 0-9(VHT:BW20:NSS1)     86-95:   AC-MCS 0-9(VHT:BW20:NSS2)\n");
+	seq_printf(
+		sfp,
+		"\t96-105:  AC-MCS 0-9(VHT:BW40:NSS1)     106-115: AC-MCS 0-9(VHT:BW40:NSS2)\n");
+	seq_printf(
+		sfp,
+		"\t116-125: AC-MCS 0-9(VHT:BW80:NSS1)     126-135: AC-MCS 0-9(VHT:BW80:NSS2)\n");
+	seq_printf(
+		sfp,
+		"\t136-145: AC-MCS 0-9(VHT:BW20:NSS1:SGI) 146-155: AC-MCS 0-9(VHT:BW20:NSS2:SGI)\n");
+	seq_printf(
+		sfp,
+		"\t156-165: AC-MCS 0-9(VHT:BW40:NSS1:SGI) 166-175: AC-MCS 0-9(VHT:BW40:NSS2:SGI)\n");
+	seq_printf(
+		sfp,
+		"\t176-185: AC-MCS 0-9(VHT:BW80:NSS1:SGI) 186-195: AC-MCS 0-9(VHT:BW80:NSS2:SGI)\n\n");
+	seq_printf(
+		sfp,
+		"\t196-207: AX-MCS 0-11(BW20:NSS1)        208-219: AX-MCS 0-11(BW20:NSS2)\n");
+	seq_printf(
+		sfp,
+		"\t220-231: AX-MCS 0-11(BW40:NSS1)        232-243: AX-MCS 0-11(BW40:NSS2)\n");
+	seq_printf(
+		sfp,
+		"\t244-255: AX-MCS 0-11(BW80:NSS1)        256-267: AX-MCS 0-11(BW80:NSS2)\n");
+	seq_printf(
+		sfp,
+		"\t268-279: AX-MCS 0-11(BW20:NSS1:GI1)    280-291: AX-MCS 0-11(BW20:NSS2:GI1)\n");
+	seq_printf(
+		sfp,
+		"\t292-303: AX-MCS 0-11(BW40:NSS1:GI1)    304-315: AX-MCS 0-11(BW40:NSS2:GI1)\n");
+	seq_printf(
+		sfp,
+		"\t316-327: AX-MCS 0-11(BW80:NSS1:GI1)    328-339: AX-MCS 0-11(BW80:NSS2:GI1)\n");
+	seq_printf(
+		sfp,
+		"\t340-351: AX-MCS 0-11(BW20:NSS1:GI2)    352-363: AX-MCS 0-11(BW20:NSS2:GI2)\n");
+	seq_printf(
+		sfp,
+		"\t364-375: AX-MCS 0-11(BW40:NSS1:GI2)    376-387: AX-MCS 0-11(BW40:NSS2:GI2)\n");
+	seq_printf(
+		sfp,
+		"\t388-399: AX-MCS 0-11(BW80:NSS1:GI2)    400-411: AX-MCS 0-11(BW80:NSS2:GI2)\n");
 
 	for (i = 0; i < rx_rate_max_size; i++) {
 		value = atomic_read(&(phist_data->rx_rate[i]));
@@ -633,33 +642,49 @@ woal_histogram_info(struct seq_file *sfp, void *data)
 				seq_printf(sfp, "rx_rate[%03d] = %d\n", i,
 					   value);
 			else if (i <= 75) {
-				sgi_enable = (i - 12) / (MAX_MCS_NUM_SUPP * 2);	//0:LGI, 1:SGI
-				bw = ((i - 12) % (MAX_MCS_NUM_SUPP * 2)) / MAX_MCS_NUM_SUPP;	//0:20MHz, 1:40MHz
+				sgi_enable = (i - 12) /
+					     (MAX_MCS_NUM_SUPP * 2); // 0:LGI,
+								     // 1:SGI
+				bw = ((i - 12) % (MAX_MCS_NUM_SUPP * 2)) /
+				     MAX_MCS_NUM_SUPP; // 0:20MHz, 1:40MHz
 				mcs_index = (i - 12) % MAX_MCS_NUM_SUPP;
-				seq_printf(sfp,
-					   "rx_rate[%03d] = %d (MCS:%d HT BW:%dMHz%s)\n",
-					   i, value, mcs_index, (1 << bw) * 20,
-					   sgi_enable ? " SGI" : "");
+				seq_printf(
+					sfp,
+					"rx_rate[%03d] = %d (MCS:%d HT BW:%dMHz%s)\n",
+					i, value, mcs_index, (1 << bw) * 20,
+					sgi_enable ? " SGI" : "");
 			} else if (i <= 195) {
-				sgi_enable = (i - 76) / (MAX_MCS_NUM_AC * 6);	//0:LGI, 1:SGI
-				bw = ((i - 76) % (MAX_MCS_NUM_AC * 6)) / (MAX_MCS_NUM_AC * 2);	//0:20MHz, 1:40MHz, 2:80MHz
-				nss = (((i - 76) % (MAX_MCS_NUM_AC * 6)) % (MAX_MCS_NUM_AC * 2)) / MAX_MCS_NUM_AC;	//0:NSS1, 1:NSS2
+				sgi_enable = (i - 76) /
+					     (MAX_MCS_NUM_AC * 6); // 0:LGI,
+								   // 1:SGI
+				bw = ((i - 76) % (MAX_MCS_NUM_AC * 6)) /
+				     (MAX_MCS_NUM_AC * 2); // 0:20MHz, 1:40MHz,
+							   // 2:80MHz
+				nss = (((i - 76) % (MAX_MCS_NUM_AC * 6)) %
+				       (MAX_MCS_NUM_AC * 2)) /
+				      MAX_MCS_NUM_AC; // 0:NSS1, 1:NSS2
 				mcs_index = (i - 76) % MAX_MCS_NUM_AC;
 
-				seq_printf(sfp,
-					   "rx_rate[%03d] = %d (MCS:%d VHT BW:%dMHz NSS:%d%s)\n",
-					   i, value, mcs_index, (1 << bw) * 20,
-					   nss + 1, sgi_enable ? " SGI" : "");
+				seq_printf(
+					sfp,
+					"rx_rate[%03d] = %d (MCS:%d VHT BW:%dMHz NSS:%d%s)\n",
+					i, value, mcs_index, (1 << bw) * 20,
+					nss + 1, sgi_enable ? " SGI" : "");
 			} else if (i <= 411) {
-				gi = (i - 196) / (MAX_MCS_NUM_AX * 6);	//0,1,2
-				bw = ((i - 196) % (MAX_MCS_NUM_AX * 6)) / (MAX_MCS_NUM_AX * 2);	//0:20MHz, 1:40MHz, 2:80MHz
-				nss = (((i - 196) % (MAX_MCS_NUM_AX * 6)) % (MAX_MCS_NUM_AX * 2)) / MAX_MCS_NUM_AX;	//0:NSS1, 1:NSS2
+				gi = (i - 196) / (MAX_MCS_NUM_AX * 6); // 0,1,2
+				bw = ((i - 196) % (MAX_MCS_NUM_AX * 6)) /
+				     (MAX_MCS_NUM_AX * 2); // 0:20MHz, 1:40MHz,
+							   // 2:80MHz
+				nss = (((i - 196) % (MAX_MCS_NUM_AX * 6)) %
+				       (MAX_MCS_NUM_AX * 2)) /
+				      MAX_MCS_NUM_AX; // 0:NSS1, 1:NSS2
 				mcs_index = (i - 196) % MAX_MCS_NUM_AX;
 
-				seq_printf(sfp,
-					   "rx_rate[%03d] = %d (MCS:%d AX BW:%dMHz NSS:%d GI:%d)\n",
-					   i, value, mcs_index, (1 << bw) * 20,
-					   nss + 1, gi);
+				seq_printf(
+					sfp,
+					"rx_rate[%03d] = %d (MCS:%d AX BW:%dMHz NSS:%d GI:%d)\n",
+					i, value, mcs_index, (1 << bw) * 20,
+					nss + 1, gi);
 			}
 		}
 	}
@@ -695,10 +720,9 @@ woal_histogram_info(struct seq_file *sfp, void *data)
  *
  *  @return        Number of output data or MLAN_STATUS_FAILURE
  */
-static int
-woal_histogram_read(struct seq_file *sfp, void *data)
+static int woal_histogram_read(struct seq_file *sfp, void *data)
 {
-	wlan_hist_proc_data *hist_data = (wlan_hist_proc_data *) sfp->private;
+	wlan_hist_proc_data *hist_data = (wlan_hist_proc_data *)sfp->private;
 	moal_private *priv = (moal_private *)hist_data->priv;
 
 	ENTER();
@@ -707,10 +731,6 @@ woal_histogram_read(struct seq_file *sfp, void *data)
 		return -EFAULT;
 	}
 
-	if (!priv->hist_data) {
-		LEAVE();
-		return -EFAULT;
-	}
 	if (hist_data->ant_idx < priv->phandle->card_info->histogram_table_num)
 		woal_histogram_info(sfp, priv->hist_data[hist_data->ant_idx]);
 
@@ -718,8 +738,7 @@ woal_histogram_read(struct seq_file *sfp, void *data)
 	return 0;
 }
 
-static int
-woal_histogram_proc_open(struct inode *inode, struct file *file)
+static int woal_histogram_proc_open(struct inode *inode, struct file *file)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 	return single_open(file, woal_histogram_read, PDE_DATA(inode));
@@ -738,12 +757,11 @@ woal_histogram_proc_open(struct inode *inode, struct file *file)
  *
  *  @return        number of data
  */
-static ssize_t
-woal_histogram_write(struct file *f, const char __user * buf, size_t count,
-		     loff_t * off)
+static ssize_t woal_histogram_write(struct file *f, const char __user *buf,
+				    size_t count, loff_t *off)
 {
 	struct seq_file *sfp = f->private_data;
-	wlan_hist_proc_data *hist_data = (wlan_hist_proc_data *) sfp->private;
+	wlan_hist_proc_data *hist_data = (wlan_hist_proc_data *)sfp->private;
 	moal_private *priv = (moal_private *)hist_data->priv;
 	woal_hist_reset_table(priv, hist_data->ant_idx);
 	return count;
@@ -757,8 +775,7 @@ woal_histogram_write(struct file *f, const char __user * buf, size_t count,
  *
  *  @return        Number of output data or MLAN_STATUS_FAILURE
  */
-static int
-woal_log_read(struct seq_file *sfp, void *data)
+static int woal_log_read(struct seq_file *sfp, void *data)
 {
 	moal_private *priv = (moal_private *)sfp->private;
 	mlan_ds_get_stats stats;
@@ -868,7 +885,8 @@ woal_log_read(struct seq_file *sfp, void *data)
 		for (i = 0; i < 8; i++) {
 			seq_printf(sfp, "%u ", stats.qos_retries_rx_cnt[i]);
 		}
-		seq_printf(sfp, "\ndot11RSNAStatsCMACICVErrors = %u\n"
+		seq_printf(sfp,
+			   "\ndot11RSNAStatsCMACICVErrors = %u\n"
 			   "dot11RSNAStatsCMACReplays = %u\n"
 			   "dot11RSNAStatsRobustMgmtCCMPReplays = %u\n"
 			   "dot11RSNAStatsTKIPICVErrors = %u\n"
@@ -890,29 +908,20 @@ woal_log_read(struct seq_file *sfp, void *data)
 			   "dot11MPDUInReceivedAMPDUCount = %u\n"
 			   "dot11ReceivedOctetsInAMPDUCount = %llu\n"
 			   "dot11AMPDUDelimiterCRCErrorCount = %u\n",
-			   stats.cmacicv_errors,
-			   stats.cmac_replays,
-			   stats.mgmt_ccmp_replays,
-			   stats.tkipicv_errors,
-			   stats.tkip_replays,
-			   stats.ccmp_decrypt_errors,
-			   stats.ccmp_replays,
-			   stats.tx_amsdu_cnt,
-			   stats.failed_amsdu_cnt,
-			   stats.retry_amsdu_cnt,
+			   stats.cmacicv_errors, stats.cmac_replays,
+			   stats.mgmt_ccmp_replays, stats.tkipicv_errors,
+			   stats.tkip_replays, stats.ccmp_decrypt_errors,
+			   stats.ccmp_replays, stats.tx_amsdu_cnt,
+			   stats.failed_amsdu_cnt, stats.retry_amsdu_cnt,
 			   stats.multi_retry_amsdu_cnt,
 			   stats.tx_octets_in_amsdu_cnt,
-			   stats.amsdu_ack_failure_cnt,
-			   stats.rx_amsdu_cnt,
-			   stats.rx_octets_in_amsdu_cnt,
-			   stats.tx_ampdu_cnt,
+			   stats.amsdu_ack_failure_cnt, stats.rx_amsdu_cnt,
+			   stats.rx_octets_in_amsdu_cnt, stats.tx_ampdu_cnt,
 			   stats.tx_mpdus_in_ampdu_cnt,
-			   stats.tx_octets_in_ampdu_cnt,
-			   stats.ampdu_rx_cnt,
+			   stats.tx_octets_in_ampdu_cnt, stats.ampdu_rx_cnt,
 			   stats.mpdu_in_rx_ampdu_cnt,
 			   stats.rx_octets_in_ampdu_cnt,
 			   stats.ampdu_delimiter_crc_error_cnt);
-
 	}
 
 	MODULE_PUT;
@@ -928,8 +937,7 @@ woal_log_read(struct seq_file *sfp, void *data)
  *
  *  @return        number of data
  */
-static int
-woal_log_proc_open(struct inode *inode, struct file *file)
+static int woal_log_proc_open(struct inode *inode, struct file *file)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 	return single_open(file, woal_log_read, PDE_DATA(inode));
@@ -949,8 +957,7 @@ woal_log_proc_open(struct inode *inode, struct file *file)
  *
  *  @return        Number of output data or MLAN_STATUS_FAILURE
  */
-static int
-woal_debug_read(struct seq_file *sfp, void *data)
+static int woal_debug_read(struct seq_file *sfp, void *data)
 {
 	int val = 0;
 	unsigned int i;
@@ -959,7 +966,7 @@ woal_debug_read(struct seq_file *sfp, void *data)
 		(struct debug_data_priv *)sfp->private;
 	struct debug_data *d = items_priv->items;
 	moal_private *priv = items_priv->priv;
-	mlan_debug_info *info = &(priv->phandle->debug_info);
+	mlan_debug_info *info = NULL;
 	t_u32 intf_mask = INTF_MASK << 8;
 #ifdef SDIO
 	unsigned int j;
@@ -973,6 +980,8 @@ woal_debug_read(struct seq_file *sfp, void *data)
 		return -EFAULT;
 	}
 
+	info = &(priv->phandle->debug_info);
+
 	if (MODULE_GET == 0) {
 		LEAVE();
 		return -EFAULT;
@@ -984,10 +993,11 @@ woal_debug_read(struct seq_file *sfp, void *data)
 		goto exit;
 
 	for (i = 0; i < (unsigned int)items_priv->num_of_items; i++) {
-		/* If this item is interface specific but card interface is NOT correspond type, we will not count it. */
+		/* If this item is interface specific but card interface is NOT
+		 * correspond type, we will not count it. */
 		if ((d[i].attr & intf_mask) &&
-		    !((d[i].attr & intf_mask) & (priv->phandle->
-						 card_type & intf_mask)))
+		    !((d[i].attr & intf_mask) &
+		      (priv->phandle->card_type & intf_mask)))
 			continue;
 
 		if (d[i].size == 1)
@@ -1006,12 +1016,11 @@ woal_debug_read(struct seq_file *sfp, void *data)
 			seq_printf(sfp, "\n");
 			continue;
 		}
-		if (strstr(d[i].name, "id")
-		    || strstr(d[i].name, "bitmap")
+		if (strstr(d[i].name, "id") || strstr(d[i].name, "bitmap")
 #ifdef PCIE
 		    || strstr(d[i].name, "ptr")
 #endif
-			)
+		)
 			seq_printf(sfp, "%s=0x%x\n", d[i].name, val);
 		else
 			seq_printf(sfp, "%s=%d\n", d[i].name, val);
@@ -1022,17 +1031,17 @@ woal_debug_read(struct seq_file *sfp, void *data)
 		seq_printf(sfp, "last_recv_wr_bitmap=0x%x last_mp_index=%d\n",
 			   info->last_recv_wr_bitmap, info->last_mp_index);
 		for (i = 0; i < SDIO_MP_DBG_NUM; i++) {
-			seq_printf(sfp,
-				   "mp_wr_bitmap: 0x%x mp_wr_ports=0x%x len=%d curr_wr_port=0x%x\n",
-				   info->last_mp_wr_bitmap[i],
-				   info->last_mp_wr_ports[i],
-				   info->last_mp_wr_len[i],
-				   info->last_curr_wr_port[i]);
+			seq_printf(
+				sfp,
+				"mp_wr_bitmap: 0x%x mp_wr_ports=0x%x len=%d curr_wr_port=0x%x\n",
+				info->last_mp_wr_bitmap[i],
+				info->last_mp_wr_ports[i],
+				info->last_mp_wr_len[i],
+				info->last_curr_wr_port[i]);
 			for (j = 0; j < mp_aggr_pkt_limit; j++) {
 				seq_printf(sfp, "0x%02x ",
-					   info->last_mp_wr_info[i *
-								 mp_aggr_pkt_limit
-								 + j]);
+					   info->last_mp_wr_info
+						   [i * mp_aggr_pkt_limit + j]);
 			}
 			seq_printf(sfp, "\n");
 		}
@@ -1072,13 +1081,14 @@ woal_debug_read(struct seq_file *sfp, void *data)
 	if (info->tx_tbl_num) {
 		seq_printf(sfp, "Tx BA stream table:\n");
 		for (i = 0; i < info->tx_tbl_num; i++) {
-			seq_printf(sfp,
-				   "tid = %d, ra = %02x:%02x:%02x:%02x:%02x:%02x amsdu=%d\n",
-				   (int)info->tx_tbl[i].tid,
-				   info->tx_tbl[i].ra[0], info->tx_tbl[i].ra[1],
-				   info->tx_tbl[i].ra[2], info->tx_tbl[i].ra[3],
-				   info->tx_tbl[i].ra[4], info->tx_tbl[i].ra[5],
-				   (int)info->tx_tbl[i].amsdu);
+			seq_printf(
+				sfp,
+				"tid = %d, ra = %02x:%02x:%02x:%02x:%02x:%02x amsdu=%d\n",
+				(int)info->tx_tbl[i].tid, info->tx_tbl[i].ra[0],
+				info->tx_tbl[i].ra[1], info->tx_tbl[i].ra[2],
+				info->tx_tbl[i].ra[3], info->tx_tbl[i].ra[4],
+				info->tx_tbl[i].ra[5],
+				(int)info->tx_tbl[i].amsdu);
 		}
 	}
 	if (info->rx_tbl_num) {
@@ -1086,16 +1096,17 @@ woal_debug_read(struct seq_file *sfp, void *data)
 		for (i = 0; i < info->rx_tbl_num; i++) {
 			unsigned int j;
 
-			seq_printf(sfp,
-				   "tid = %d, ta =  %02x:%02x:%02x:%02x:%02x:%02x, start_win = %d, "
-				   "win_size = %d, amsdu=%d\n",
-				   (int)info->rx_tbl[i].tid,
-				   info->rx_tbl[i].ta[0], info->rx_tbl[i].ta[1],
-				   info->rx_tbl[i].ta[2], info->rx_tbl[i].ta[3],
-				   info->rx_tbl[i].ta[4], info->rx_tbl[i].ta[5],
-				   (int)info->rx_tbl[i].start_win,
-				   (int)info->rx_tbl[i].win_size,
-				   (int)info->rx_tbl[i].amsdu);
+			seq_printf(
+				sfp,
+				"tid = %d, ta =  %02x:%02x:%02x:%02x:%02x:%02x, start_win = %d, "
+				"win_size = %d, amsdu=%d\n",
+				(int)info->rx_tbl[i].tid, info->rx_tbl[i].ta[0],
+				info->rx_tbl[i].ta[1], info->rx_tbl[i].ta[2],
+				info->rx_tbl[i].ta[3], info->rx_tbl[i].ta[4],
+				info->rx_tbl[i].ta[5],
+				(int)info->rx_tbl[i].start_win,
+				(int)info->rx_tbl[i].win_size,
+				(int)info->rx_tbl[i].amsdu);
 			seq_printf(sfp, "buffer: ");
 			for (j = 0; j < info->rx_tbl[i].win_size; j++) {
 				if (info->rx_tbl[i].buffer[j] == MTRUE)
@@ -1107,13 +1118,14 @@ woal_debug_read(struct seq_file *sfp, void *data)
 		}
 	}
 	for (i = 0; i < info->ralist_num; i++) {
-		seq_printf(sfp,
-			   "ralist ra: %02x:%02x:%02x:%02x:%02x:%02x tid=%d pkts=%d pause=%d\n",
-			   info->ralist[i].ra[0], info->ralist[i].ra[1],
-			   info->ralist[i].ra[2], info->ralist[i].ra[3],
-			   info->ralist[i].ra[4], info->ralist[i].ra[5],
-			   info->ralist[i].tid, info->ralist[i].total_pkts,
-			   info->ralist[i].tx_pause);
+		seq_printf(
+			sfp,
+			"ralist ra: %02x:%02x:%02x:%02x:%02x:%02x tid=%d pkts=%d pause=%d\n",
+			info->ralist[i].ra[0], info->ralist[i].ra[1],
+			info->ralist[i].ra[2], info->ralist[i].ra[3],
+			info->ralist[i].ra[4], info->ralist[i].ra[5],
+			info->ralist[i].tid, info->ralist[i].total_pkts,
+			info->ralist[i].tx_pause);
 	}
 
 exit:
@@ -1132,9 +1144,8 @@ exit:
  *
  *  @return        number of data
  */
-static ssize_t
-woal_debug_write(struct file *f, const char __user * buf, size_t count,
-		 loff_t * off)
+static ssize_t woal_debug_write(struct file *f, const char __user *buf,
+				size_t count, loff_t *off)
 {
 	int r, i;
 	char *pdata;
@@ -1159,7 +1170,7 @@ woal_debug_write(struct file *f, const char __user * buf, size_t count,
 		LEAVE();
 		return MLAN_STATUS_FAILURE;
 	}
-	flag = (in_atomic() || irqs_disabled())? GFP_ATOMIC : GFP_KERNEL;
+	flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
 	pdata = kzalloc(count + 1, flag);
 	if (pdata == NULL) {
 		MODULE_PUT;
@@ -1174,6 +1185,7 @@ woal_debug_write(struct file *f, const char __user * buf, size_t count,
 		LEAVE();
 		return 0;
 	}
+	pdata[count] = '\0';
 
 	if (woal_get_debug_info(priv, MOAL_IOCTL_WAIT, info)) {
 		kfree(pdata);
@@ -1218,8 +1230,7 @@ woal_debug_write(struct file *f, const char __user * buf, size_t count,
 	return count;
 }
 
-static int
-woal_debug_proc_open(struct inode *inode, struct file *file)
+static int woal_debug_proc_open(struct inode *inode, struct file *file)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 	return single_open(file, woal_debug_read, PDE_DATA(inode));
@@ -1264,8 +1275,7 @@ static const struct file_operations log_proc_fops = {
  *
  *  @return        N/A
  */
-void
-woal_debug_entry(moal_private *priv)
+void woal_debug_entry(moal_private *priv)
 {
 	struct proc_dir_entry *r;
 	int i;
@@ -1278,6 +1288,7 @@ woal_debug_entry(moal_private *priv)
 		LEAVE();
 		return;
 	}
+
 #ifdef STA_SUPPORT
 	if (GET_BSS_ROLE(priv) == MLAN_BSS_ROLE_STA) {
 		priv->items_priv.items = kmalloc(sizeof(items), GFP_KERNEL);
@@ -1313,7 +1324,7 @@ woal_debug_entry(moal_private *priv)
 	d = priv->items_priv.items;
 	for (i = 0; i < priv->items_priv.num_of_items; i++) {
 		if (IS_INFO_ADDR(d[i].attr))
-			d[i].addr += (t_ptr)&(priv->phandle->debug_info);
+			d[i].addr += (t_ptr) & (priv->phandle->debug_info);
 		else if (IS_HANDLE_ADDR(d[i].attr))
 			d[i].addr += (t_ptr)(priv->phandle);
 		else if (IS_PRIV_ADDR(d[i].attr))
@@ -1403,8 +1414,7 @@ woal_debug_entry(moal_private *priv)
  *
  *  @return      N/A
  */
-void
-woal_debug_remove(moal_private *priv)
+void woal_debug_remove(moal_private *priv)
 {
 	char hist_entry[50];
 	int i;

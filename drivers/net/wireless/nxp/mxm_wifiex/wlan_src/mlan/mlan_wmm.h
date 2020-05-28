@@ -37,8 +37,7 @@ Change log:
  *
  *  @return             TID
  */
-static INLINE t_u32
-wlan_get_tid(pmlan_adapter pmadapter, raListTbl *ptr)
+static INLINE t_u32 wlan_get_tid(pmlan_adapter pmadapter, raListTbl *ptr)
 {
 	pmlan_buffer mbuf;
 
@@ -48,7 +47,7 @@ wlan_get_tid(pmlan_adapter pmadapter, raListTbl *ptr)
 	LEAVE();
 
 	if (!mbuf) {
-		return 0;	// The default TID,BE
+		return 0; // The default TID,BE
 	} else
 		return mbuf->priority;
 }
@@ -60,8 +59,7 @@ wlan_get_tid(pmlan_adapter pmadapter, raListTbl *ptr)
  *
  *  @return             Length of list
  */
-static INLINE t_u32
-wlan_wmm_list_len(pmlan_list_head head)
+static INLINE t_u32 wlan_wmm_list_len(pmlan_list_head head)
 {
 	pmlan_linked_list pos;
 	t_u32 count = 0;
@@ -86,8 +84,7 @@ wlan_wmm_list_len(pmlan_list_head head)
  *
  *  @return             N/A
  */
-static INLINE t_void
-wlan_request_ralist_lock(IN mlan_private *priv)
+static INLINE t_void wlan_request_ralist_lock(IN mlan_private *priv)
 {
 	mlan_adapter *pmadapter = priv->adapter;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
@@ -109,8 +106,7 @@ wlan_request_ralist_lock(IN mlan_private *priv)
  *
  *  @return             N/A
  */
-static INLINE t_void
-wlan_release_ralist_lock(IN mlan_private *priv)
+static INLINE t_void wlan_release_ralist_lock(IN mlan_private *priv)
 {
 	mlan_adapter *pmadapter = priv->adapter;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
@@ -211,8 +207,8 @@ extern mlan_status wlan_cmd_wmm_ts_status(IN pmlan_private pmpriv,
  *  Functions used in the cmdresp handling routine
  */
 /** WMM get status command response handler */
-extern mlan_status wlan_ret_wmm_get_status(IN pmlan_private priv,
-					   IN t_u8 *ptlv, IN int resp_len);
+extern mlan_status wlan_ret_wmm_get_status(IN pmlan_private priv, IN t_u8 *ptlv,
+					   IN int resp_len);
 /** WMM ADDTS request command response handler */
 extern mlan_status wlan_ret_wmm_addts_req(IN pmlan_private pmpriv,
 					  const IN HostCmd_DS_COMMAND *resp,

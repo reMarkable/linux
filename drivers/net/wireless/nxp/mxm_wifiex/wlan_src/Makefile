@@ -266,6 +266,7 @@ endif
 	ccflags-y += -Wno-stringop-overflow
 	ccflags-y += -Wno-tautological-compare
 	ccflags-y += -Wno-packed-bitfield-compat
+	ccflags-y += -Wno-stringop-truncation
 
 #############################################################################
 # Make Targets

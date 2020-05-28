@@ -56,8 +56,7 @@ Change log:
  *
  *  @return        headptr or MNULL
  */
-t_void *
-wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
+t_void *wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
 {
 	mlan_private *pmpriv = (mlan_private *)priv;
 	pmlan_adapter pmadapter = pmpriv->adapter;
@@ -85,8 +84,8 @@ wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
 		pmbuf->data_len -= sizeof(pkt_type) + sizeof(tx_control);
 	}
 
-	if (pmbuf->data_offset < (sizeof(TxPD) + pmpriv->intf_hr_len +
-				  DMA_ALIGNMENT)) {
+	if (pmbuf->data_offset <
+	    (sizeof(TxPD) + pmpriv->intf_hr_len + DMA_ALIGNMENT)) {
 		PRINTM(MERROR,
 		       "not enough space for TxPD: headroom=%d pkt_len=%d, required=%d\n",
 		       pmbuf->data_offset, pmbuf->data_len,
@@ -96,9 +95,8 @@ wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
 	}
 
 	/* head_ptr should be aligned */
-	head_ptr =
-		pmbuf->pbuf + pmbuf->data_offset - sizeof(TxPD) -
-		pmpriv->intf_hr_len;
+	head_ptr = pmbuf->pbuf + pmbuf->data_offset - sizeof(TxPD) -
+		   pmpriv->intf_hr_len;
 	head_ptr = (t_u8 *)((t_ptr)head_ptr & ~((t_ptr)(DMA_ALIGNMENT - 1)));
 
 	plocal_tx_pd = (TxPD *)(head_ptr + pmpriv->intf_hr_len);
@@ -118,10 +116,8 @@ wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
 		 * Set the priority specific tx_control field, setting of 0 will
 		 *   cause the default value to be used later in this function
 		 */
-		plocal_tx_pd->tx_control
-			=
-			pmpriv->wmm.user_pri_pkt_tx_ctrl[plocal_tx_pd->
-							 priority];
+		plocal_tx_pd->tx_control =
+			pmpriv->wmm.user_pri_pkt_tx_ctrl[plocal_tx_pd->priority];
 	if (pmadapter->pps_uapsd_mode) {
 		if (MTRUE == wlan_check_last_packet_indication(pmpriv)) {
 			pmadapter->tx_lock_flag = MTRUE;
@@ -130,9 +126,8 @@ wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
 		}
 	}
 	/* Offset of actual data */
-	plocal_tx_pd->tx_pkt_offset =
-		(t_u16)((t_ptr)pmbuf->pbuf + pmbuf->data_offset -
-			(t_ptr)plocal_tx_pd);
+	plocal_tx_pd->tx_pkt_offset = (t_u16)(
+		(t_ptr)pmbuf->pbuf + pmbuf->data_offset - (t_ptr)plocal_tx_pd);
 
 	if (!plocal_tx_pd->tx_control) {
 		/* TxCtrl set by user or default */
@@ -151,9 +146,10 @@ wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
 	if (pmbuf->flags & MLAN_BUF_FLAG_TX_CTRL) {
 		if (pmbuf->u.tx_info.data_rate) {
 			plocal_tx_pd->tx_control |=
-				(wlan_ieee_rateid_to_mrvl_rateid
-				 (pmpriv, pmbuf->u.tx_info.data_rate,
-				  MNULL) << 16);
+				(wlan_ieee_rateid_to_mrvl_rateid(
+					 pmpriv, pmbuf->u.tx_info.data_rate,
+					 MNULL)
+				 << 16);
 			plocal_tx_pd->tx_control |= TXPD_TXRATE_ENABLE;
 		}
 		plocal_tx_pd->tx_control_1 |= pmbuf->u.tx_info.channel << 21;
@@ -165,8 +161,8 @@ wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
 			plocal_tx_pd->tx_control |=
 				(t_u32)pmbuf->u.tx_info.tx_power.val;
 		if (pmbuf->u.tx_info.retry_limit) {
-			plocal_tx_pd->tx_control |=
-				pmbuf->u.tx_info.retry_limit << 8;
+			plocal_tx_pd->tx_control |= pmbuf->u.tx_info.retry_limit
+						    << 8;
 			plocal_tx_pd->tx_control |= TXPD_RETRY_ENABLE;
 		}
 	}
@@ -188,10 +184,10 @@ done:
  *  @param priv     A pointer to mlan_private structure
  *  @param flags    Transmit Pkt Flags
  *
- *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING --success, otherwise failure
+ *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING --success, otherwise
+ * failure
  */
-mlan_status
-wlan_send_null_packet(pmlan_private priv, t_u8 flags)
+mlan_status wlan_send_null_packet(pmlan_private priv, t_u8 flags)
 {
 	pmlan_adapter pmadapter = MNULL;
 	TxPD *ptx_pd;
@@ -297,8 +293,7 @@ done:
  *
  *  @return        MTRUE or MFALSE
  */
-t_u8
-wlan_check_last_packet_indication(pmlan_private priv)
+t_u8 wlan_check_last_packet_indication(pmlan_private priv)
 {
 	pmlan_adapter pmadapter = priv->adapter;
 	t_u8 ret = MFALSE;
@@ -313,12 +308,13 @@ wlan_check_last_packet_indication(pmlan_private priv)
 	if (wlan_bypass_tx_list_empty(pmadapter) &&
 	    wlan_wmm_lists_empty(pmadapter)) {
 		if (((priv->curr_bss_params.wmm_uapsd_enabled == MTRUE) &&
-		     priv->wmm_qosinfo) || prop_ps)
+		     priv->wmm_qosinfo) ||
+		    prop_ps)
 
 			ret = MTRUE;
 	}
-	if (ret && !pmadapter->cmd_sent && !pmadapter->curr_cmd
-	    && !wlan_is_cmd_pending(pmadapter)) {
+	if (ret && !pmadapter->cmd_sent && !pmadapter->curr_cmd &&
+	    !wlan_is_cmd_pending(pmadapter)) {
 		pmadapter->delay_null_pkt = MFALSE;
 		ret = MTRUE;
 	} else {

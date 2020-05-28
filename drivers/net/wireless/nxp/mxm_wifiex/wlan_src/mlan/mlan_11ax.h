@@ -24,16 +24,21 @@
 #define _MLAN_11AX_H_
 
 /** device support 2.4G 40MHZ*/
-#define AX_2G_40MHZ_SUPPORT     MBIT(1)
+#define AX_2G_40MHZ_SUPPORT MBIT(1)
 /** device support 2.4G 242 tone RUs */
-#define AX_2G_20MHZ_SUPPORT     MBIT(5)
+#define AX_2G_20MHZ_SUPPORT MBIT(5)
 
 t_u8 wlan_check_11ax_twt_supported(mlan_private *pmpriv,
 				   BSSDescriptor_t *pbss_desc);
+mlan_status wlan_11ax_ioctl_twtcfg(pmlan_adapter pmadapter,
+				   pmlan_ioctl_req pioctl_req);
+mlan_status wlan_cmd_twt_cfg(IN pmlan_private pmpriv,
+			     IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
+			     IN t_void *pdata_buf);
 t_u16 wlan_fill_he_cap_tlv(mlan_private *pmpriv, t_u8 band,
-			   MrvlIEtypes_Extension_t * phe_cap, t_u8 flag);
+			   MrvlIEtypes_Extension_t *phe_cap, t_u8 flag);
 void wlan_update_11ax_cap(mlan_adapter *pmadapter,
-			  MrvlIEtypes_Extension_t * hw_he_cap);
+			  MrvlIEtypes_Extension_t *hw_he_cap);
 int wlan_cmd_append_11ax_tlv(mlan_private *pmpriv, BSSDescriptor_t *pbss_desc,
 			     t_u8 **ppbuffer);
 t_u16 wlan_11ax_bandconfig_allowed(mlan_private *pmpriv, t_u16 bss_band);
@@ -43,14 +48,14 @@ mlan_status wlan_11ax_ioctl_cmd(pmlan_adapter pmadapter,
 				pmlan_ioctl_req pioctl_req);
 
 mlan_status wlan_cmd_11ax_cfg(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *cmd,
-			      IN t_u16 cmd_action, IN t_void *pdata_buf);
+			      IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
+			      IN t_void *pdata_buf);
 mlan_status wlan_ret_11ax_cfg(IN pmlan_private pmpriv,
 			      IN HostCmd_DS_COMMAND *resp,
 			      IN mlan_ioctl_req *pioctl_buf);
 mlan_status wlan_cmd_11ax_cmd(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *cmd,
-			      IN t_u16 cmd_action, IN t_void *pdata_buf);
+			      IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
+			      IN t_void *pdata_buf);
 mlan_status wlan_ret_11ax_cmd(IN pmlan_private pmpriv,
 			      IN HostCmd_DS_COMMAND *resp,
 			      IN mlan_ioctl_req *pioctl_buf);

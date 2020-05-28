@@ -30,17 +30,17 @@ Change Log:
 #define _MLAN_11H_
 
 /** 11H OID bitmasks */
-#define ENABLE_11H_MASK         MBIT(0)
-#define MASTER_RADAR_DET_MASK   MBIT(1)
-#define SLAVE_RADAR_DET_MASK    MBIT(2)
+#define ENABLE_11H_MASK MBIT(0)
+#define MASTER_RADAR_DET_MASK MBIT(1)
+#define SLAVE_RADAR_DET_MASK MBIT(2)
 
 /** DFS Master Radar Detect global enable */
-#define DFS_MASTER_RADAR_DETECT_EN  (MTRUE)
+#define DFS_MASTER_RADAR_DETECT_EN (MTRUE)
 /** DFS Slave Radar Detect global enable */
-#define DFS_SLAVE_RADAR_DETECT_EN   (MFALSE)
+#define DFS_SLAVE_RADAR_DETECT_EN (MFALSE)
 
-#define CHANNEL_OFFSET_MASK      0x30
-#define CHANNEL_BANDWIDTH_MASK   0x0C
+#define CHANNEL_OFFSET_MASK 0x30
+#define CHANNEL_BANDWIDTH_MASK 0x0C
 
 /**
  *  11H APIs
@@ -104,17 +104,14 @@ extern t_s32 wlan_11h_issue_radar_detect(mlan_private *priv,
 extern mlan_status wlan_11h_check_chan_report(mlan_private *priv, t_u8 chan);
 
 /** Add any 11h TLVs necessary to complete an adhoc start command */
-extern t_s32 wlan_11h_process_start(mlan_private *priv,
-				    t_u8 **ppbuffer,
+extern t_s32 wlan_11h_process_start(mlan_private *priv, t_u8 **ppbuffer,
 				    IEEEtypes_CapInfo_t *pcap_info,
 				    t_u32 channel,
 				    wlan_11h_bss_info_t *p11h_bss_info);
 
 /** Add any 11h TLVs necessary to complete a join command (adhoc or infra) */
-extern t_s32 wlan_11h_process_join(mlan_private *priv,
-				   t_u8 **ppbuffer,
-				   IEEEtypes_CapInfo_t *pcap_info,
-				   t_u8 band,
+extern t_s32 wlan_11h_process_join(mlan_private *priv, t_u8 **ppbuffer,
+				   IEEEtypes_CapInfo_t *pcap_info, t_u8 band,
 				   t_u32 channel,
 				   wlan_11h_bss_info_t *p11h_bss_info);
 
@@ -148,17 +145,19 @@ mlan_status wlan_11h_print_event_radar_detected(mlan_private *priv,
 /** Handler for DFS_TESTING IOCTL */
 extern mlan_status wlan_11h_ioctl_dfs_testing(pmlan_adapter pmadapter,
 					      pmlan_ioctl_req pioctl_req);
-extern mlan_status wlan_11h_ioctl_get_channel_nop_info(pmlan_adapter pmadapter,
-						       pmlan_ioctl_req
-						       pioctl_req);
+extern mlan_status
+wlan_11h_ioctl_get_channel_nop_info(pmlan_adapter pmadapter,
+				    pmlan_ioctl_req pioctl_req);
 
 extern mlan_status
-
 wlan_11h_ioctl_dfs_cancel_chan_report(mlan_private *priv,
 				      pmlan_ioctl_req pioctl_req);
-extern
-mlan_status wlan_11h_ioctl_chan_switch_count(pmlan_adapter pmadapter,
-					     pmlan_ioctl_req pioctl_req);
+extern mlan_status wlan_11h_ioctl_chan_switch_count(pmlan_adapter pmadapter,
+						    pmlan_ioctl_req pioctl_req);
+
+/** get/set dfs w53 cfg */
+mlan_status wlan_11h_ioctl_dfs_w53_cfg(pmlan_adapter pmadapter,
+				       pmlan_ioctl_req pioctl_req);
 
 /** Check if channel is under a NOP duration (should not be used) */
 extern t_bool wlan_11h_is_channel_under_nop(mlan_adapter *pmadapter,
@@ -172,11 +171,13 @@ extern mlan_status wlan_11h_radar_detected_callback(t_void *priv);
 /** set dfs check channel */
 void wlan_11h_set_dfs_check_chan(mlan_private *priv, t_u8 chan);
 
+#ifdef UAP_SUPPORT
 /** BW_change event Handler for dfs_repeater */
 void wlan_dfs_rep_bw_change(mlan_adapter *pmadapter);
 
 /** disconnect event Handler for dfs_repeater */
 void wlan_dfs_rep_disconnect(mlan_adapter *pmadapter);
+#endif
 
 /** Handler for RADAR_DETECTED */
 extern mlan_status wlan_11h_radar_detected_handling(mlan_adapter *pmadapter,

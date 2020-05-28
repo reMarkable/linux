@@ -1,43 +1,38 @@
 /** @file  moal_wext.c
-  *
-  * @brief This file contains wireless extension standard ioctl functions
-  *
-  *
-  * Copyright 2014-2020 NXP
-  *
-  * This software file (the File) is distributed by NXP
-  * under the terms of the GNU General Public License Version 2, June 1991
-  * (the License).  You may use, redistribute and/or modify the File in
-  * accordance with the terms and conditions of the License, a copy of which
-  * is available by writing to the Free Software Foundation, Inc.,
-  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
-  * worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
-  *
-  * THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
-  * ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
-  * this warranty disclaimer.
-  *
-  */
+ *
+ * @brief This file contains wireless extension standard ioctl functions
+ *
+ *
+ * Copyright 2014-2020 NXP
+ *
+ * This software file (the File) is distributed by NXP
+ * under the terms of the GNU General Public License Version 2, June 1991
+ * (the License).  You may use, redistribute and/or modify the File in
+ * accordance with the terms and conditions of the License, a copy of which
+ * is available by writing to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
+ * worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
+ *
+ * THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
+ * ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
+ * this warranty disclaimer.
+ *
+ */
 
 /************************************************************************
 Change log:
     10/21/2008: initial version
 ************************************************************************/
 
-#include        "moal_main.h"
+#include "moal_main.h"
 
 #ifdef STA_SUPPORT
 /** Approximate amount of data needed to pass a scan result back to iwlist */
-#define MAX_SCAN_CELL_SIZE  \
-	(IW_EV_ADDR_LEN             \
-	+ MLAN_MAX_SSID_LENGTH      \
-	+ IW_EV_UINT_LEN            \
-	+ IW_EV_FREQ_LEN            \
-	+ IW_EV_QUAL_LEN            \
-	+ MLAN_MAX_SSID_LENGTH      \
-	+ IW_EV_PARAM_LEN           \
-	+ 40)			/* 40 for WPAIE */
+#define MAX_SCAN_CELL_SIZE                                                     \
+	(IW_EV_ADDR_LEN + MLAN_MAX_SSID_LENGTH + IW_EV_UINT_LEN +              \
+	 IW_EV_FREQ_LEN + IW_EV_QUAL_LEN + MLAN_MAX_SSID_LENGTH +              \
+	 IW_EV_PARAM_LEN + 40) /* 40 for WPAIE */
 /** Macro for minimum size of scan buffer */
 #define MIN_ACCEPTED_GET_SCAN_BUF 8000
 
@@ -53,8 +48,7 @@ Change log:
  *
  *  @return         0--ssid is same, otherwise is different
  */
-static t_s32
-woal_ssid_cmp(mlan_802_11_ssid *ssid1, mlan_802_11_ssid *ssid2)
+static t_s32 woal_ssid_cmp(mlan_802_11_ssid *ssid1, mlan_802_11_ssid *ssid2)
 {
 	ENTER();
 
@@ -79,8 +73,7 @@ woal_ssid_cmp(mlan_802_11_ssid *ssid1, mlan_802_11_ssid *ssid2)
  *
  *  @return                     N/A
  */
-static inline void
-woal_sort_channels(struct iw_freq *freq, int num)
+static inline void woal_sort_channels(struct iw_freq *freq, int num)
 {
 	int i, j;
 	struct iw_freq temp;
@@ -106,16 +99,15 @@ woal_sort_channels(struct iw_freq *freq, int num)
  *
  *  @return         Quality of the link (0-5)
  */
-static t_u8
-woal_rssi_to_quality(t_s16 rssi)
+static t_u8 woal_rssi_to_quality(t_s16 rssi)
 {
 /** Macro for RSSI range */
 #define MOAL_RSSI_NO_SIGNAL -90
-#define MOAL_RSSI_VERY_LOW  -80
-#define MOAL_RSSI_LOW       -70
-#define MOAL_RSSI_GOOD      -60
+#define MOAL_RSSI_VERY_LOW -80
+#define MOAL_RSSI_LOW -70
+#define MOAL_RSSI_GOOD -60
 #define MOAL_RSSI_VERY_GOOD -50
-#define MOAL_RSSI_INVALID   0
+#define MOAL_RSSI_INVALID 0
 	if (rssi <= MOAL_RSSI_NO_SIGNAL || rssi == MOAL_RSSI_INVALID)
 		return 0;
 	else if (rssi <= MOAL_RSSI_VERY_LOW)
@@ -140,9 +132,8 @@ woal_rssi_to_quality(t_s16 rssi)
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_nick(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_point *dwrq, char *extra)
+static int woal_set_nick(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_point *dwrq, char *extra)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	ENTER();
@@ -170,9 +161,8 @@ woal_set_nick(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 --success
  */
-static int
-woal_get_nick(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_point *dwrq, char *extra)
+static int woal_get_nick(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_point *dwrq, char *extra)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	ENTER();
@@ -203,9 +193,9 @@ woal_get_nick(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return             0 --success
  */
-static int
-woal_config_commit(struct net_device *dev,
-		   struct iw_request_info *info, char *cwrq, char *extra)
+static int woal_config_commit(struct net_device *dev,
+			      struct iw_request_info *info, char *cwrq,
+			      char *extra)
 {
 	ENTER();
 
@@ -223,9 +213,8 @@ woal_config_commit(struct net_device *dev,
  *
  *  @return             0 --success
  */
-static int
-woal_get_name(struct net_device *dev, struct iw_request_info *info,
-	      char *cwrq, char *extra)
+static int woal_get_name(struct net_device *dev, struct iw_request_info *info,
+			 char *cwrq, char *extra)
 {
 	ENTER();
 	strcpy(cwrq, "IEEE 802.11-DS");
@@ -243,9 +232,8 @@ woal_get_name(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_freq(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_freq *fwrq, char *extra)
+static int woal_set_freq(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_freq *fwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -299,9 +287,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_freq(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_freq *fwrq, char *extra)
+static int woal_get_freq(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_freq *fwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -346,9 +333,9 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_bss_mode(struct net_device *dev, struct iw_request_info *info,
-		  t_u32 *uwrq, char *extra)
+static int woal_set_bss_mode(struct net_device *dev,
+			     struct iw_request_info *info, t_u32 *uwrq,
+			     char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -406,9 +393,8 @@ done:
  *
  *  @return             0 --success
  */
-static int
-woal_get_wap(struct net_device *dev, struct iw_request_info *info,
-	     struct sockaddr *awrq, char *extra)
+static int woal_get_wap(struct net_device *dev, struct iw_request_info *info,
+			struct sockaddr *awrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -443,17 +429,12 @@ woal_get_wap(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_set_wap(struct net_device *dev, struct iw_request_info *info,
-	     struct sockaddr *awrq, char *extra)
+static int woal_set_wap(struct net_device *dev, struct iw_request_info *info,
+			struct sockaddr *awrq, char *extra)
 {
 	int ret = 0;
-	const t_u8 bcast[MLAN_MAC_ADDR_LENGTH] = {
-		255, 255, 255, 255, 255, 255
-	};
-	const t_u8 zero_mac[MLAN_MAC_ADDR_LENGTH] = {
-		0, 0, 0, 0, 0, 0
-	};
+	const t_u8 bcast[MLAN_MAC_ADDR_LENGTH] = {255, 255, 255, 255, 255, 255};
+	const t_u8 zero_mac[MLAN_MAC_ADDR_LENGTH] = {0, 0, 0, 0, 0, 0};
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	mlan_ssid_bssid ssid_bssid;
 	mlan_bss_info bss_info;
@@ -473,6 +454,7 @@ woal_set_wap(struct net_device *dev, struct iw_request_info *info,
 		ret = -EFAULT;
 		goto done;
 	}
+
 #ifdef REASSOCIATION
 	/* Cancel re-association */
 	priv->reassoc_required = MFALSE;
@@ -498,9 +480,8 @@ woal_set_wap(struct net_device *dev, struct iw_request_info *info,
 				ETH_ALEN, sizeof(ssid_bssid.bssid));
 	}
 
-	if (MLAN_STATUS_SUCCESS != woal_find_best_network(priv,
-							  MOAL_IOCTL_WAIT,
-							  &ssid_bssid)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_find_best_network(priv, MOAL_IOCTL_WAIT, &ssid_bssid)) {
 		PRINTM(MERROR,
 		       "ASSOC: WAP: MAC address not found in BSSID List\n");
 		ret = -ENETUNREACH;
@@ -508,17 +489,16 @@ woal_set_wap(struct net_device *dev, struct iw_request_info *info,
 	}
 	/* Zero SSID implies use BSSID to connect */
 	memset(&ssid_bssid.ssid, 0, sizeof(mlan_802_11_ssid));
-	if (MLAN_STATUS_SUCCESS != woal_bss_start(priv,
-						  MOAL_IOCTL_WAIT,
-						  &ssid_bssid)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_bss_start(priv, MOAL_IOCTL_WAIT, &ssid_bssid)) {
 		ret = -EFAULT;
 		goto done;
 	}
+
 #ifdef REASSOCIATION
 	memset(&bss_info, 0, sizeof(bss_info));
-	if (MLAN_STATUS_SUCCESS != woal_get_bss_info(priv,
-						     MOAL_IOCTL_WAIT,
-						     &bss_info)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_get_bss_info(priv, MOAL_IOCTL_WAIT, &bss_info)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -546,9 +526,9 @@ done:
  *
  *  @return                     0 --success
  */
-static int
-woal_get_bss_mode(struct net_device *dev, struct iw_request_info *info,
-		  t_u32 *uwrq, char *extra)
+static int woal_get_bss_mode(struct net_device *dev,
+			     struct iw_request_info *info, t_u32 *uwrq,
+			     char *extra)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	ENTER();
@@ -567,9 +547,8 @@ woal_get_bss_mode(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 --success
  */
-static int
-woal_set_sens(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_set_sens(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 
@@ -589,9 +568,8 @@ woal_set_sens(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     -1
  */
-static int
-woal_get_sens(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_get_sens(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = -1;
 
@@ -611,9 +589,8 @@ woal_get_sens(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_txpow(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_param *vwrq, char *extra)
+static int woal_set_txpow(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -654,9 +631,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_txpow(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_param *vwrq, char *extra)
+static int woal_get_txpow(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -702,9 +678,8 @@ done:
  *
  *  @return                     MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static int
-woal_set_power(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_param *vwrq, char *extra)
+static int woal_set_power(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_param *vwrq, char *extra)
 {
 	int ret = 0, disabled;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -718,11 +693,9 @@ woal_set_power(struct net_device *dev, struct iw_request_info *info,
 	}
 	disabled = vwrq->disabled;
 
-	if (MLAN_STATUS_SUCCESS != woal_set_get_power_mgmt(priv,
-							   MLAN_ACT_SET,
-							   &disabled,
-							   vwrq->flags,
-							   MOAL_IOCTL_WAIT)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_set_get_power_mgmt(priv, MLAN_ACT_SET, &disabled, vwrq->flags,
+				    MOAL_IOCTL_WAIT)) {
 		ret = -EFAULT;
 	}
 
@@ -740,17 +713,15 @@ woal_set_power(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static int
-woal_get_power(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_param *vwrq, char *extra)
+static int woal_get_power(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_param *vwrq, char *extra)
 {
 	int ret = 0, ps_mode;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 
 	ENTER();
 
-	if (MLAN_STATUS_SUCCESS != woal_set_get_power_mgmt(priv,
-							   MLAN_ACT_GET,
+	if (MLAN_STATUS_SUCCESS != woal_set_get_power_mgmt(priv, MLAN_ACT_GET,
 							   &ps_mode, 0,
 							   MOAL_IOCTL_WAIT)) {
 		ret = -EFAULT;
@@ -777,9 +748,8 @@ woal_get_power(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_retry(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_param *vwrq, char *extra)
+static int woal_set_retry(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_param *vwrq, char *extra)
 {
 	int ret = 0, retry_val = vwrq->value;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -793,8 +763,8 @@ woal_set_retry(struct net_device *dev, struct iw_request_info *info,
 		 */
 
 		if (MLAN_STATUS_SUCCESS !=
-		    woal_set_get_retry(priv, MLAN_ACT_SET,
-				       MOAL_IOCTL_WAIT, &retry_val)) {
+		    woal_set_get_retry(priv, MLAN_ACT_SET, MOAL_IOCTL_WAIT,
+				       &retry_val)) {
 			ret = -EFAULT;
 			goto done;
 		}
@@ -818,18 +788,17 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_retry(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_param *vwrq, char *extra)
+static int woal_get_retry(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_param *vwrq, char *extra)
 {
 	int retry_val, ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 
 	ENTER();
 
-	if (MLAN_STATUS_SUCCESS !=
-	    woal_set_get_retry(priv, MLAN_ACT_GET,
-			       MOAL_IOCTL_WAIT, &retry_val)) {
+	if (MLAN_STATUS_SUCCESS != woal_set_get_retry(priv, MLAN_ACT_GET,
+						      MOAL_IOCTL_WAIT,
+						      &retry_val)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -856,9 +825,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_encode(struct net_device *dev, struct iw_request_info *info,
-		struct iw_point *dwrq, char *extra)
+static int woal_set_encode(struct net_device *dev, struct iw_request_info *info,
+			   struct iw_point *dwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -981,9 +949,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_encode(struct net_device *dev, struct iw_request_info *info,
-		struct iw_point *dwrq, char *extra)
+static int woal_get_encode(struct net_device *dev, struct iw_request_info *info,
+			   struct iw_point *dwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1079,9 +1046,8 @@ done:
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_set_rate(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_set_rate(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1096,9 +1062,8 @@ woal_set_rate(struct net_device *dev, struct iw_request_info *info,
 		rate_cfg.rate_type = MLAN_RATE_VALUE;
 		rate_cfg.rate = vwrq->value / 500000;
 	}
-	if (MLAN_STATUS_SUCCESS != woal_set_get_data_rate(priv,
-							  MLAN_ACT_SET,
-							  &rate_cfg)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_set_get_data_rate(priv, MLAN_ACT_SET, &rate_cfg)) {
 		ret = -EFAULT;
 	}
 
@@ -1116,9 +1081,8 @@ woal_set_rate(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return             0 --success, otherwise fail
  */
-static int
-woal_get_rate(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_get_rate(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1126,9 +1090,8 @@ woal_get_rate(struct net_device *dev, struct iw_request_info *info,
 
 	ENTER();
 
-	if (MLAN_STATUS_SUCCESS != woal_set_get_data_rate(priv,
-							  MLAN_ACT_GET,
-							  &rate_cfg)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_set_get_data_rate(priv, MLAN_ACT_GET, &rate_cfg)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -1153,9 +1116,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_rts(struct net_device *dev, struct iw_request_info *info,
-	     struct iw_param *vwrq, char *extra)
+static int woal_set_rts(struct net_device *dev, struct iw_request_info *info,
+			struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1193,9 +1155,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_rts(struct net_device *dev, struct iw_request_info *info,
-	     struct iw_param *vwrq, char *extra)
+static int woal_get_rts(struct net_device *dev, struct iw_request_info *info,
+			struct iw_param *vwrq, char *extra)
 {
 	int rthr, ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1209,8 +1170,8 @@ woal_get_rts(struct net_device *dev, struct iw_request_info *info,
 	}
 
 	vwrq->value = rthr;
-	vwrq->disabled = ((vwrq->value < MLAN_RTS_MIN_VALUE)
-			  || (vwrq->value > MLAN_RTS_MAX_VALUE));
+	vwrq->disabled = ((vwrq->value < MLAN_RTS_MIN_VALUE) ||
+			  (vwrq->value > MLAN_RTS_MAX_VALUE));
 	vwrq->fixed = 1;
 
 done:
@@ -1228,9 +1189,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_frag(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_set_frag(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1268,9 +1228,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_frag(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_get_frag(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0, fthr;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1284,8 +1243,8 @@ woal_get_frag(struct net_device *dev, struct iw_request_info *info,
 	}
 
 	vwrq->value = fthr;
-	vwrq->disabled = ((vwrq->value < MLAN_FRAG_MIN_VALUE)
-			  || (vwrq->value > MLAN_FRAG_MAX_VALUE));
+	vwrq->disabled = ((vwrq->value < MLAN_FRAG_MIN_VALUE) ||
+			  (vwrq->value > MLAN_FRAG_MAX_VALUE));
 	vwrq->fixed = 1;
 
 done:
@@ -1304,9 +1263,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_gen_ie(struct net_device *dev, struct iw_request_info *info,
-		struct iw_point *dwrq, char *extra)
+static int woal_get_gen_ie(struct net_device *dev, struct iw_request_info *info,
+			   struct iw_point *dwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1315,9 +1273,9 @@ woal_get_gen_ie(struct net_device *dev, struct iw_request_info *info,
 
 	ENTER();
 
-	if (MLAN_STATUS_SUCCESS !=
-	    woal_set_get_gen_ie(priv, MLAN_ACT_GET, ie, &ie_len,
-				MOAL_IOCTL_WAIT)) {
+	if (MLAN_STATUS_SUCCESS != woal_set_get_gen_ie(priv, MLAN_ACT_GET, ie,
+						       &ie_len,
+						       MOAL_IOCTL_WAIT)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -1345,14 +1303,13 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_gen_ie(struct net_device *dev, struct iw_request_info *info,
-		struct iw_point *dwrq, char *extra)
+static int woal_set_gen_ie(struct net_device *dev, struct iw_request_info *info,
+			   struct iw_point *dwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	int ie_len = dwrq->length;
-	const t_u8 wps_oui[] = { 0x00, 0x50, 0xf2, 0x04 };
+	const t_u8 wps_oui[] = {0x00, 0x50, 0xf2, 0x04};
 	mlan_ds_wps_cfg *pwps = NULL;
 	mlan_ioctl_req *req = NULL;
 	mlan_status status = MLAN_STATUS_SUCCESS;
@@ -1380,9 +1337,9 @@ woal_set_gen_ie(struct net_device *dev, struct iw_request_info *info,
 		}
 	}
 
-	if (MLAN_STATUS_SUCCESS !=
-	    woal_set_get_gen_ie(priv, MLAN_ACT_SET, (t_u8 *)extra, &ie_len,
-				MOAL_IOCTL_WAIT)) {
+	if (MLAN_STATUS_SUCCESS != woal_set_get_gen_ie(priv, MLAN_ACT_SET,
+						       (t_u8 *)extra, &ie_len,
+						       MOAL_IOCTL_WAIT)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -1405,10 +1362,9 @@ done:
  *
  *  @return              0 --success, otherwise fail
  */
-static int
-woal_set_encode_ext(struct net_device *dev,
-		    struct iw_request_info *info,
-		    struct iw_point *dwrq, char *extra)
+static int woal_set_encode_ext(struct net_device *dev,
+			       struct iw_request_info *info,
+			       struct iw_point *dwrq, char *extra)
 {
 	struct iw_encode_ext *ext = (struct iw_encode_ext *)extra;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1491,16 +1447,17 @@ woal_set_encode_ext(struct net_device *dev,
 				pkey_material, ext->key_len,
 				sizeof(sec->param.encrypt_key.key_material));
 		PRINTM(MIOCTL,
-		       "set wpa key key_index=%d, key_len=%d key_flags=0x%x "
-		       MACSTR "\n", key_index, ext->key_len,
+		       "set wpa key key_index=%d, key_len=%d key_flags=0x%x " MACSTR
+		       "\n",
+		       key_index, ext->key_len,
 		       sec->param.encrypt_key.key_flags,
 		       MAC2STR(sec->param.encrypt_key.mac_addr));
 		DBG_HEXDUMP(MCMD_D, "wpa key", pkey_material, ext->key_len);
-#define IW_ENCODE_ALG_AES_CMAC  5
+#define IW_ENCODE_ALG_AES_CMAC 5
 		if (ext->alg == IW_ENCODE_ALG_AES_CMAC)
 			sec->param.encrypt_key.key_flags |=
 				KEY_FLAG_AES_MCAST_IGTK;
-#define IW_ENCODE_ALG_SMS4   0x20
+#define IW_ENCODE_ALG_SMS4 0x20
 		/* Set WAPI key */
 		if (ext->alg == IW_ENCODE_ALG_SMS4) {
 			sec->param.encrypt_key.is_wapi_key = MTRUE;
@@ -1508,11 +1465,11 @@ woal_set_encode_ext(struct net_device *dev,
 					sec->param.encrypt_key.pn,
 					(t_u8 *)ext->tx_seq, SEQ_MAX_SIZE,
 					sizeof(sec->param.encrypt_key.pn));
-			moal_memcpy_ext(priv->phandle,
-					&sec->param.encrypt_key.
-					pn[SEQ_MAX_SIZE], (t_u8 *)ext->rx_seq,
-					SEQ_MAX_SIZE,
-					sizeof(sec->param.encrypt_key.pn) -
+			moal_memcpy_ext(
+				priv->phandle,
+				&sec->param.encrypt_key.pn[SEQ_MAX_SIZE],
+				(t_u8 *)ext->rx_seq, SEQ_MAX_SIZE,
+				sizeof(sec->param.encrypt_key.pn) -
 					SEQ_MAX_SIZE);
 			DBG_HEXDUMP(MCMD_D, "WAPI PN",
 				    sec->param.encrypt_key.pn, PN_SIZE);
@@ -1538,10 +1495,9 @@ done:
  *
  *  @return             -EOPNOTSUPP
  */
-static int
-woal_get_encode_ext(struct net_device *dev,
-		    struct iw_request_info *info,
-		    struct iw_point *dwrq, char *extra)
+static int woal_get_encode_ext(struct net_device *dev,
+			       struct iw_request_info *info,
+			       struct iw_point *dwrq, char *extra)
 {
 	ENTER();
 	LEAVE();
@@ -1558,9 +1514,8 @@ woal_get_encode_ext(struct net_device *dev,
  *
  *  @return             0--success, otherwise fail
  */
-static int
-woal_set_mlme(struct net_device *dev,
-	      struct iw_request_info *info, struct iw_point *dwrq, char *extra)
+static int woal_set_mlme(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_point *dwrq, char *extra)
 {
 	struct iw_mlme *mlme = (struct iw_mlme *)extra;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1568,7 +1523,6 @@ woal_set_mlme(struct net_device *dev,
 
 	ENTER();
 	if ((mlme->cmd == IW_MLME_DEAUTH) || (mlme->cmd == IW_MLME_DISASSOC)) {
-
 		if (MLAN_STATUS_SUCCESS !=
 		    woal_disconnect(priv, MOAL_IOCTL_WAIT,
 				    (t_u8 *)mlme->addr.sa_data,
@@ -1588,9 +1542,8 @@ woal_set_mlme(struct net_device *dev,
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_auth(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_set_auth(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1644,7 +1597,7 @@ woal_set_auth(struct net_device *dev, struct iw_request_info *info,
 		    woal_set_wpa_enable(priv, MOAL_IOCTL_WAIT, vwrq->value))
 			ret = -EFAULT;
 		break;
-#define IW_AUTH_WAPI_ENABLED	0x20
+#define IW_AUTH_WAPI_ENABLED 0x20
 	case IW_AUTH_WAPI_ENABLED:
 		if (MLAN_STATUS_SUCCESS !=
 		    woal_set_wapi_enable(priv, MOAL_IOCTL_WAIT, vwrq->value))
@@ -1685,9 +1638,8 @@ woal_set_auth(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_auth(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_get_auth(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1765,9 +1717,8 @@ done:
  *
  *  @return         -EOPNOTSUPP
  */
-static int
-woal_set_pmksa(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_param *vwrq, char *extra)
+static int woal_set_pmksa(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_param *vwrq, char *extra)
 {
 	ENTER();
 	LEAVE();
@@ -1796,9 +1747,8 @@ woal_set_pmksa(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_get_range(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_point *dwrq, char *extra)
+static int woal_get_range(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_point *dwrq, char *extra)
 {
 	int i;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -1810,7 +1760,7 @@ woal_get_range(struct net_device *dev, struct iw_request_info *info,
 
 	ENTER();
 
-	flag = (in_atomic() || irqs_disabled())? GFP_ATOMIC : GFP_KERNEL;
+	flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
 	pchan_list = kzalloc(sizeof(mlan_chan_list), flag);
 	if (!pchan_list) {
 		LEAVE();
@@ -1876,13 +1826,13 @@ woal_get_range(struct net_device *dev, struct iw_request_info *info,
 	range->max_encoding_tokens = 4;
 
 /** Minimum power period */
-#define IW_POWER_PERIOD_MIN 1000000	/* 1 sec */
+#define IW_POWER_PERIOD_MIN 1000000 /* 1 sec */
 /** Maximum power period */
-#define IW_POWER_PERIOD_MAX 120000000	/* 2 min */
+#define IW_POWER_PERIOD_MAX 120000000 /* 2 min */
 /** Minimum power timeout value */
-#define IW_POWER_TIMEOUT_MIN 1000	/* 1 ms  */
+#define IW_POWER_TIMEOUT_MIN 1000 /* 1 ms  */
 /** Maximim power timeout value */
-#define IW_POWER_TIMEOUT_MAX 1000000	/* 1 sec */
+#define IW_POWER_TIMEOUT_MAX 1000000 /* 1 sec */
 
 	/* Power Management duration & timeout */
 	range->min_pmp = IW_POWER_PERIOD_MIN;
@@ -1944,9 +1894,8 @@ woal_get_range(struct net_device *dev, struct iw_request_info *info,
 	range->txpower_capa = IW_TXPOW_DBM | IW_TXPOW_RANGE;
 
 #if (WIRELESS_EXT >= 18)
-	range->enc_capa = IW_ENC_CAPA_WPA |
-		IW_ENC_CAPA_WPA2 |
-		IW_ENC_CAPA_CIPHER_CCMP | IW_ENC_CAPA_CIPHER_TKIP;
+	range->enc_capa = IW_ENC_CAPA_WPA | IW_ENC_CAPA_WPA2 |
+			  IW_ENC_CAPA_CIPHER_CCMP | IW_ENC_CAPA_CIPHER_TKIP;
 #endif
 	LEAVE();
 	return 0;
@@ -1961,8 +1910,7 @@ woal_get_range(struct net_device *dev, struct iw_request_info *info,
  *
  *  @return                     0 -- success, otherwise fail
  */
-static int
-woal_set_rxfilter(moal_private *priv, BOOLEAN enable)
+static int woal_set_rxfilter(moal_private *priv, BOOLEAN enable)
 {
 	int ret = 0;
 	mlan_ioctl_req *req = NULL;
@@ -2008,9 +1956,8 @@ done:
  *
  *  @return                     0 --success, otherwise fail
  */
-static int
-woal_set_priv(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_point *dwrq, char *extra)
+static int woal_set_priv(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_point *dwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -2031,7 +1978,7 @@ woal_set_priv(struct net_device *dev, struct iw_request_info *info,
 		ret = -EFAULT;
 		goto done;
 	}
-	flag = (in_atomic() || irqs_disabled())? GFP_ATOMIC : GFP_KERNEL;
+	flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
 	buf = kzalloc(dwrq->length + 1, flag);
 	if (!buf) {
 		ret = -ENOMEM;
@@ -2041,8 +1988,10 @@ woal_set_priv(struct net_device *dev, struct iw_request_info *info,
 		ret = -EFAULT;
 		goto done;
 	}
+	buf[dwrq->length] = '\0';
 	PRINTM(MIOCTL, "SIOCSIWPRIV request = %s\n", buf);
-	if (strncmp(buf, "RSSILOW-THRESHOLD", strlen("RSSILOW-THRESHOLD")) == 0) {
+	if (strncmp(buf, "RSSILOW-THRESHOLD", strlen("RSSILOW-THRESHOLD")) ==
+	    0) {
 		if (dwrq->length > strlen("RSSILOW-THRESHOLD") + 1) {
 			pdata = buf + strlen("RSSILOW-THRESHOLD") + 1;
 			if (MLAN_STATUS_SUCCESS !=
@@ -2057,9 +2006,8 @@ woal_set_priv(struct net_device *dev, struct iw_request_info *info,
 			goto done;
 		}
 	} else if (strncmp(buf, "RSSI", strlen("RSSI")) == 0) {
-		if (MLAN_STATUS_SUCCESS != woal_get_bss_info(priv,
-							     MOAL_IOCTL_WAIT,
-							     &bss_info)) {
+		if (MLAN_STATUS_SUCCESS !=
+		    woal_get_bss_info(priv, MOAL_IOCTL_WAIT, &bss_info)) {
 			ret = -EFAULT;
 			goto done;
 		}
@@ -2071,7 +2019,8 @@ woal_set_priv(struct net_device *dev, struct iw_request_info *info,
 				goto done;
 			}
 			len = sprintf(buf, "%s rssi %d\n", bss_info.ssid.ssid,
-				      signal.bcn_rssi_avg) + 1;
+				      signal.bcn_rssi_avg) +
+			      1;
 		} else {
 			len = sprintf(buf, "OK\n") + 1;
 		}
@@ -2083,12 +2032,14 @@ woal_set_priv(struct net_device *dev, struct iw_request_info *info,
 		}
 		PRINTM(MIOCTL, "tx rate=%d\n", (int)rate.rate);
 		len = sprintf(buf, "LinkSpeed %d\n",
-			      (int)(rate.rate * 500000 / 1000000)) + 1;
+			      (int)(rate.rate * 500000 / 1000000)) +
+		      1;
 	} else if (strncmp(buf, "MACADDR", strlen("MACADDR")) == 0) {
 		len = sprintf(buf, "Macaddr = %02X:%02X:%02X:%02X:%02X:%02X\n",
 			      priv->current_addr[0], priv->current_addr[1],
 			      priv->current_addr[2], priv->current_addr[3],
-			      priv->current_addr[4], priv->current_addr[5]) + 1;
+			      priv->current_addr[4], priv->current_addr[5]) +
+		      1;
 	} else if (strncmp(buf, "GETPOWER", strlen("GETPOWER")) == 0) {
 		if (MLAN_STATUS_SUCCESS !=
 		    woal_get_powermode(priv, &power_mode)) {
@@ -2171,20 +2122,22 @@ woal_set_priv(struct net_device *dev, struct iw_request_info *info,
 		len = sprintf(buf, "OK\n") + 1;
 	} else if (strncmp(buf, "STOP", strlen("STOP")) == 0) {
 		len = sprintf(buf, "OK\n") + 1;
-	} else if (strncmp(buf, "SETSUSPENDOPT", strlen("SETSUSPENDOPT")) == 0) {
+	} else if (strncmp(buf, "SETSUSPENDOPT", strlen("SETSUSPENDOPT")) ==
+		   0) {
 		/* it will be done by GUI */
 		len = sprintf(buf, "OK\n") + 1;
 	} else if (strncmp(buf, "BTCOEXMODE", strlen("BTCOEXMODE")) == 0) {
 		len = sprintf(buf, "OK\n") + 1;
-	} else if (strncmp(buf, "BTCOEXSCAN-START", strlen("BTCOEXSCAN-START"))
-		   == 0) {
+	} else if (strncmp(buf, "BTCOEXSCAN-START",
+			   strlen("BTCOEXSCAN-START")) == 0) {
 		len = sprintf(buf, "OK\n") + 1;
 	} else if (strncmp(buf, "BTCOEXSCAN-STOP", strlen("BTCOEXSCAN-STOP")) ==
 		   0) {
 		len = sprintf(buf, "OK\n") + 1;
 	} else if (strncmp(buf, "BGSCAN-START", strlen("BGSCAN-START")) == 0) {
 		len = sprintf(buf, "OK\n") + 1;
-	} else if (strncmp(buf, "BGSCAN-CONFIG", strlen("BGSCAN-CONFIG")) == 0) {
+	} else if (strncmp(buf, "BGSCAN-CONFIG", strlen("BGSCAN-CONFIG")) ==
+		   0) {
 		if (MLAN_STATUS_SUCCESS !=
 		    woal_set_bg_scan(priv, buf, dwrq->length)) {
 			ret = -EFAULT;
@@ -2212,7 +2165,8 @@ woal_set_priv(struct net_device *dev, struct iw_request_info *info,
 			goto done;
 #endif
 		len = sprintf(buf, "OK\n") + 1;
-	} else if (strncmp(buf, "RXFILTER-STOP", strlen("RXFILTER-STOP")) == 0) {
+	} else if (strncmp(buf, "RXFILTER-STOP", strlen("RXFILTER-STOP")) ==
+		   0) {
 #ifdef MEF_CFG_RX_FILTER
 		ret = woal_set_rxfilter(priv, MFALSE);
 		if (ret)
@@ -2296,9 +2250,8 @@ done:
  *
  *  @return                     MLAN_STATUS_SUCCESS -- success, otherwise fail
  */
-mlan_status
-woal_wext_request_scan(moal_private *priv,
-		       t_u8 wait_option, mlan_802_11_ssid *req_ssid)
+mlan_status woal_wext_request_scan(moal_private *priv, t_u8 wait_option,
+				   mlan_802_11_ssid *req_ssid)
 {
 	wlan_user_scan_cfg scan_req;
 	mlan_scan_cfg scan_cfg;
@@ -2320,7 +2273,7 @@ woal_wext_request_scan(moal_private *priv,
 		scan_req.scan_chan_gap = scan_cfg.scan_chan_gap;
 	else
 		scan_req.scan_chan_gap = priv->phandle->scan_chan_gap;
-    /** indicate FW, gap is optional */
+	/** indicate FW, gap is optional */
 	if (scan_req.scan_chan_gap && priv->phandle->pref_mac)
 		scan_req.scan_chan_gap |= GAP_FLAG_OPTIONAL;
 	LEAVE();
@@ -2337,9 +2290,8 @@ woal_wext_request_scan(moal_private *priv,
  *
  *  @return             0--success, otherwise fail
  */
-static int
-woal_set_scan(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_param *vwrq, char *extra)
+static int woal_set_scan(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_param *vwrq, char *extra)
 {
 	int ret = 0;
 	moal_private *priv = (moal_private *)netdev_priv(dev);
@@ -2373,11 +2325,10 @@ woal_set_scan(struct net_device *dev, struct iw_request_info *info,
 		req = (struct iw_scan_req *)extra;
 
 		if (req->essid_len <= MLAN_MAX_SSID_LENGTH) {
-
 			req_ssid.ssid_len = req->essid_len;
 			moal_memcpy_ext(priv->phandle, req_ssid.ssid,
-					(t_u8 *)req->essid,
-					req->essid_len, sizeof(req_ssid.ssid));
+					(t_u8 *)req->essid, req->essid_len,
+					sizeof(req_ssid.ssid));
 			if (MLAN_STATUS_SUCCESS !=
 			    woal_wext_request_scan(priv, MOAL_NO_WAIT,
 						   &req_ssid)) {
@@ -2420,9 +2371,8 @@ done:
  *
  *  @return             0--success, otherwise fail
  */
-static int
-woal_set_essid(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_point *dwrq, char *extra)
+static int woal_set_essid(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_point *dwrq, char *extra)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	mlan_802_11_ssid req_ssid;
@@ -2517,7 +2467,6 @@ woal_set_essid(struct net_device *dev, struct iw_request_info *info,
 				}
 			}
 		}
-
 	}
 
 	mode = woal_get_mode(priv, MOAL_IOCTL_WAIT);
@@ -2559,17 +2508,16 @@ woal_set_essid(struct net_device *dev, struct iw_request_info *info,
 	/* Connect to BSS by ESSID */
 	memset(&ssid_bssid.bssid, 0, MLAN_MAC_ADDR_LENGTH);
 
-	if (MLAN_STATUS_SUCCESS != woal_bss_start(priv,
-						  MOAL_IOCTL_WAIT,
-						  &ssid_bssid)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_bss_start(priv, MOAL_IOCTL_WAIT, &ssid_bssid)) {
 		ret = -EFAULT;
 		goto setessid_ret;
 	}
+
 #ifdef REASSOCIATION
 	memset(&bss_info, 0, sizeof(bss_info));
-	if (MLAN_STATUS_SUCCESS != woal_get_bss_info(priv,
-						     MOAL_IOCTL_WAIT,
-						     &bss_info)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_get_bss_info(priv, MOAL_IOCTL_WAIT, &bss_info)) {
 		ret = -EFAULT;
 		goto setessid_ret;
 	}
@@ -2601,9 +2549,8 @@ setessid_ret:
  *
  *  @return         0--success, otherwise fail
  */
-static int
-woal_get_essid(struct net_device *dev, struct iw_request_info *info,
-	       struct iw_point *dwrq, char *extra)
+static int woal_get_essid(struct net_device *dev, struct iw_request_info *info,
+			  struct iw_point *dwrq, char *extra)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	mlan_bss_info bss_info;
@@ -2646,16 +2593,15 @@ done:
  *
  *  @return             0--success, otherwise fail
  */
-static int
-woal_get_scan(struct net_device *dev, struct iw_request_info *info,
-	      struct iw_point *dwrq, char *extra)
+static int woal_get_scan(struct net_device *dev, struct iw_request_info *info,
+			 struct iw_point *dwrq, char *extra)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	int ret = 0;
 	char *current_ev = extra;
 	char *end_buf = extra + IW_SCAN_MAX_DATA;
-	char *current_val;	/* For rates */
-	struct iw_event iwe;	/* Temporary buffer */
+	char *current_val; /* For rates */
+	struct iw_event iwe; /* Temporary buffer */
 	unsigned int i;
 	unsigned int j;
 	mlan_scan_resp scan_resp;
@@ -2680,7 +2626,7 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		LEAVE();
 		return -EAGAIN;
 	}
-	flag = (in_atomic() || irqs_disabled())? GFP_ATOMIC : GFP_KERNEL;
+	flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
 	buf = kzalloc((buf_size), flag);
 	if (!buf) {
 		PRINTM(MERROR, "Cannot allocate buffer!\n");
@@ -2695,9 +2641,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		goto done;
 	}
 	memset(&scan_resp, 0, sizeof(scan_resp));
-	if (MLAN_STATUS_SUCCESS != woal_get_scan_table(priv,
-						       MOAL_IOCTL_WAIT,
-						       &scan_resp)) {
+	if (MLAN_STATUS_SUCCESS !=
+	    woal_get_scan_table(priv, MOAL_IOCTL_WAIT, &scan_resp)) {
 		ret = -EFAULT;
 		goto done;
 	}
@@ -2719,8 +2664,9 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		if ((current_ev + MAX_SCAN_CELL_SIZE) >= end_buf) {
 			PRINTM(MINFO,
 			       "i=%d break out: current_ev=%p end_buf=%p "
-			       "MAX_SCAN_CELL_SIZE=%d\n", i, current_ev,
-			       end_buf, (t_u32)MAX_SCAN_CELL_SIZE);
+			       "MAX_SCAN_CELL_SIZE=%d\n",
+			       i, current_ev, end_buf,
+			       (t_u32)MAX_SCAN_CELL_SIZE);
 			ret = -E2BIG;
 			break;
 		}
@@ -2732,7 +2678,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		PRINTM(MINFO, "i=%d  Ssid: %-32s\n", i,
 		       scan_table[i].ssid.ssid);
 
-		/* check ssid is valid or not, ex. hidden ssid will be filter out */
+		/* check ssid is valid or not, ex. hidden ssid will be filter
+		 * out */
 		if (woal_ssid_valid(&scan_table[i].ssid) == MFALSE)
 			continue;
 
@@ -2744,9 +2691,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 				sizeof(iwe.u.ap_addr.sa_data));
 
 		iwe.len = IW_EV_ADDR_LEN;
-		current_ev =
-			IWE_STREAM_ADD_EVENT(info, current_ev, end_buf, &iwe,
-					     iwe.len);
+		current_ev = IWE_STREAM_ADD_EVENT(info, current_ev, end_buf,
+						  &iwe, iwe.len);
 
 		/* Add the ESSID */
 		iwe.u.data.length = scan_table[i].ssid.ssid_len;
@@ -2771,9 +2717,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 			iwe.u.mode = IW_MODE_AUTO;
 
 		iwe.len = IW_EV_UINT_LEN;
-		current_ev =
-			IWE_STREAM_ADD_EVENT(info, current_ev, end_buf, &iwe,
-					     iwe.len);
+		current_ev = IWE_STREAM_ADD_EVENT(info, current_ev, end_buf,
+						  &iwe, iwe.len);
 
 		/* Frequency */
 		iwe.cmd = SIOCGIWFREQ;
@@ -2781,9 +2726,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		iwe.u.freq.e = 6;
 		iwe.u.freq.flags = IW_FREQ_FIXED;
 		iwe.len = IW_EV_FREQ_LEN;
-		current_ev =
-			IWE_STREAM_ADD_EVENT(info, current_ev, end_buf, &iwe,
-					     iwe.len);
+		current_ev = IWE_STREAM_ADD_EVENT(info, current_ev, end_buf,
+						  &iwe, iwe.len);
 
 		memset(&iwe, 0, sizeof(iwe));
 		/* Add quality statistics */
@@ -2795,8 +2739,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 			iwe.u.qual.noise = bss_info.bcn_nf_last;
 
 		if ((bss_info.bss_mode == MLAN_BSS_MODE_IBSS) &&
-		    !woal_ssid_cmp(&bss_info.ssid, &scan_table[i].ssid)
-		    && bss_info.adhoc_state == ADHOC_STARTED) {
+		    !woal_ssid_cmp(&bss_info.ssid, &scan_table[i].ssid) &&
+		    bss_info.adhoc_state == ADHOC_STARTED) {
 			memset(&rssi, 0, sizeof(mlan_ds_get_signal));
 			if (MLAN_STATUS_SUCCESS !=
 			    woal_get_signal_info(priv, MOAL_IOCTL_WAIT,
@@ -2809,9 +2753,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		iwe.u.qual.qual =
 			woal_rssi_to_quality((t_s16)(iwe.u.qual.level - 0x100));
 		iwe.len = IW_EV_QUAL_LEN;
-		current_ev =
-			IWE_STREAM_ADD_EVENT(info, current_ev, end_buf, &iwe,
-					     iwe.len);
+		current_ev = IWE_STREAM_ADD_EVENT(info, current_ev, end_buf,
+						  &iwe, iwe.len);
 
 		/* Add encryption capability */
 		iwe.cmd = SIOCGIWENCODE;
@@ -2822,9 +2765,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 
 		iwe.u.data.length = 0;
 		iwe.len = IW_EV_POINT_LEN + iwe.u.data.length;
-		current_ev =
-			IWE_STREAM_ADD_POINT(info, current_ev, end_buf, &iwe,
-					     NULL);
+		current_ev = IWE_STREAM_ADD_POINT(info, current_ev, end_buf,
+						  &iwe, NULL);
 
 		current_val = current_ev + IW_EV_LCP_LEN;
 
@@ -2843,21 +2785,18 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 				(scan_table[i].supported_rates[j] & 0x7f) *
 				500000;
 			iwe.len = IW_EV_PARAM_LEN;
-			current_val =
-				IWE_STREAM_ADD_VALUE(info, current_ev,
-						     current_val, end_buf, &iwe,
-						     iwe.len);
-
+			current_val = IWE_STREAM_ADD_VALUE(info, current_ev,
+							   current_val, end_buf,
+							   &iwe, iwe.len);
 		}
 		if ((bss_info.bss_mode == MLAN_BSS_MODE_IBSS) &&
-		    !woal_ssid_cmp(&bss_info.ssid, &scan_table[i].ssid)
-		    && bss_info.adhoc_state == ADHOC_STARTED) {
+		    !woal_ssid_cmp(&bss_info.ssid, &scan_table[i].ssid) &&
+		    bss_info.adhoc_state == ADHOC_STARTED) {
 			iwe.u.bitrate.value = 22 * 500000;
 			iwe.len = IW_EV_PARAM_LEN;
-			current_val =
-				IWE_STREAM_ADD_VALUE(info, current_ev,
-						     current_val, end_buf, &iwe,
-						     iwe.len);
+			current_val = IWE_STREAM_ADD_VALUE(info, current_ev,
+							   current_val, end_buf,
+							   &iwe, iwe.len);
 		}
 
 		/* Check if an event is added */
@@ -2873,9 +2812,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		iwe.u.data.length = strlen(buf);
 		iwe.cmd = IWEVCUSTOM;
 		iwe.len = IW_EV_POINT_LEN + iwe.u.data.length;
-		current_ev =
-			IWE_STREAM_ADD_POINT(info, current_ev, end_buf, &iwe,
-					     buf);
+		current_ev = IWE_STREAM_ADD_POINT(info, current_ev, end_buf,
+						  &iwe, buf);
 		current_val = current_ev + IW_EV_LCP_LEN + strlen(buf);
 
 		/* Parse and send the IEs */
@@ -2885,21 +2823,20 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		/* Skip time stamp, beacon interval and capability */
 		if (pbeacon) {
 			pbeacon += sizeof(scan_table[i].beacon_period) +
-				sizeof(scan_table[i].time_stamp) +
-				sizeof(scan_table[i].cap_info);
+				   sizeof(scan_table[i].time_stamp) +
+				   sizeof(scan_table[i].cap_info);
 			beacon_size -= sizeof(scan_table[i].beacon_period) +
-				sizeof(scan_table[i].time_stamp) +
-				sizeof(scan_table[i].cap_info);
+				       sizeof(scan_table[i].time_stamp) +
+				       sizeof(scan_table[i].cap_info);
 
 			while ((unsigned int)beacon_size >=
 			       sizeof(IEEEtypes_Header_t)) {
-				element_id =
-					(IEEEtypes_ElementId_e)(*(t_u8 *)
-								pbeacon);
+				element_id = (IEEEtypes_ElementId_e)(
+					*(t_u8 *)pbeacon);
 				element_len = *((t_u8 *)pbeacon + 1);
 				if ((unsigned int)beacon_size <
 				    (unsigned int)element_len +
-				    sizeof(IEEEtypes_Header_t)) {
+					    sizeof(IEEEtypes_Header_t)) {
 					PRINTM(MERROR,
 					       "Get scan: Error in processing IE, "
 					       "bytes left < IE length\n");
@@ -2915,40 +2852,35 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 					memset(&iwe, 0, sizeof(iwe));
 					memset(buf, 0, buf_size);
 					ptr = buf;
-					moal_memcpy_ext(priv->phandle, buf,
-							praw_data,
-							element_len +
-							sizeof
-							(IEEEtypes_Header_t),
-							buf_size);
+					moal_memcpy_ext(
+						priv->phandle, buf, praw_data,
+						element_len +
+							sizeof(IEEEtypes_Header_t),
+						buf_size);
 					iwe.cmd = IWEVGENIE;
 					iwe.u.data.length =
 						element_len +
 						sizeof(IEEEtypes_Header_t);
-					iwe.len =
-						IW_EV_POINT_LEN +
-						iwe.u.data.length;
-					current_ev =
-						IWE_STREAM_ADD_POINT(info,
-								     current_ev,
-								     end_buf,
-								     &iwe, buf);
-					current_val =
-						current_ev + IW_EV_LCP_LEN +
-						strlen(buf);
+					iwe.len = IW_EV_POINT_LEN +
+						  iwe.u.data.length;
+					current_ev = IWE_STREAM_ADD_POINT(
+						info, current_ev, end_buf, &iwe,
+						buf);
+					current_val = current_ev +
+						      IW_EV_LCP_LEN +
+						      strlen(buf);
 					break;
 #endif
 				default:
 					break;
 				}
-				pbeacon +=
-					element_len +
-					sizeof(IEEEtypes_Header_t);
-				beacon_size -=
-					element_len +
-					sizeof(IEEEtypes_Header_t);
+				pbeacon += element_len +
+					   sizeof(IEEEtypes_Header_t);
+				beacon_size -= element_len +
+					       sizeof(IEEEtypes_Header_t);
 			}
 		}
+
 #if WIRELESS_EXT > 14
 		memset(&iwe, 0, sizeof(iwe));
 		memset(buf, 0, buf_size);
@@ -2964,9 +2896,8 @@ woal_get_scan(struct net_device *dev, struct iw_request_info *info,
 		PRINTM(MINFO, "BUF: %s\n", buf);
 		iwe.cmd = IWEVCUSTOM;
 		iwe.len = IW_EV_POINT_LEN + iwe.u.data.length;
-		current_ev =
-			IWE_STREAM_ADD_POINT(info, current_ev, end_buf, &iwe,
-					     buf);
+		current_ev = IWE_STREAM_ADD_POINT(info, current_ev, end_buf,
+						  &iwe, buf);
 		current_val = current_ev + IW_EV_LCP_LEN + strlen(buf);
 #endif
 		current_val = current_ev + IW_EV_LCP_LEN;
@@ -2992,86 +2923,86 @@ done:
  * iwconfig settable callbacks
  */
 static const iw_handler woal_handler[] = {
-	(iw_handler) woal_config_commit,	/* SIOCSIWCOMMIT */
-	(iw_handler) woal_get_name,	/* SIOCGIWNAME */
-	(iw_handler) NULL,	/* SIOCSIWNWID */
-	(iw_handler) NULL,	/* SIOCGIWNWID */
-	(iw_handler) woal_set_freq,	/* SIOCSIWFREQ */
-	(iw_handler) woal_get_freq,	/* SIOCGIWFREQ */
-	(iw_handler) woal_set_bss_mode,	/* SIOCSIWMODE */
-	(iw_handler) woal_get_bss_mode,	/* SIOCGIWMODE */
-	(iw_handler) woal_set_sens,	/* SIOCSIWSENS */
-	(iw_handler) woal_get_sens,	/* SIOCGIWSENS */
-	(iw_handler) NULL,	/* SIOCSIWRANGE */
-	(iw_handler) woal_get_range,	/* SIOCGIWRANGE */
-	(iw_handler) woal_set_priv,	/* SIOCSIWPRIV */
-	(iw_handler) NULL,	/* SIOCGIWPRIV */
-	(iw_handler) NULL,	/* SIOCSIWSTATS */
-	(iw_handler) NULL,	/* SIOCGIWSTATS */
+	(iw_handler)woal_config_commit, /* SIOCSIWCOMMIT */
+	(iw_handler)woal_get_name, /* SIOCGIWNAME */
+	(iw_handler)NULL, /* SIOCSIWNWID */
+	(iw_handler)NULL, /* SIOCGIWNWID */
+	(iw_handler)woal_set_freq, /* SIOCSIWFREQ */
+	(iw_handler)woal_get_freq, /* SIOCGIWFREQ */
+	(iw_handler)woal_set_bss_mode, /* SIOCSIWMODE */
+	(iw_handler)woal_get_bss_mode, /* SIOCGIWMODE */
+	(iw_handler)woal_set_sens, /* SIOCSIWSENS */
+	(iw_handler)woal_get_sens, /* SIOCGIWSENS */
+	(iw_handler)NULL, /* SIOCSIWRANGE */
+	(iw_handler)woal_get_range, /* SIOCGIWRANGE */
+	(iw_handler)woal_set_priv, /* SIOCSIWPRIV */
+	(iw_handler)NULL, /* SIOCGIWPRIV */
+	(iw_handler)NULL, /* SIOCSIWSTATS */
+	(iw_handler)NULL, /* SIOCGIWSTATS */
 #if WIRELESS_EXT > 15
 #ifdef CONFIG_WEXT_SPY
-	iw_handler_set_spy,	/* SIOCSIWSPY */
-	iw_handler_get_spy,	/* SIOCGIWSPY */
-	iw_handler_set_thrspy,	/* SIOCSIWTHRSPY */
-	iw_handler_get_thrspy,	/* SIOCGIWTHRSPY */
+	iw_handler_set_spy, /* SIOCSIWSPY */
+	iw_handler_get_spy, /* SIOCGIWSPY */
+	iw_handler_set_thrspy, /* SIOCSIWTHRSPY */
+	iw_handler_get_thrspy, /* SIOCGIWTHRSPY */
 #else
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
 #endif
 #else /* WIRELESS_EXT > 15 */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
 #endif /* WIRELESS_EXT > 15 */
-	(iw_handler) woal_set_wap,	/* SIOCSIWAP */
-	(iw_handler) woal_get_wap,	/* SIOCGIWAP */
+	(iw_handler)woal_set_wap, /* SIOCSIWAP */
+	(iw_handler)woal_get_wap, /* SIOCGIWAP */
 #if WIRELESS_EXT >= 18
-	(iw_handler) woal_set_mlme,	/* SIOCSIWMLME  */
+	(iw_handler)woal_set_mlme, /* SIOCSIWMLME  */
 #else
-	(iw_handler) NULL,	/* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
 #endif
-	/* (iw_handler) wlan_get_aplist, *//* SIOCGIWAPLIST */
-	NULL,			/* SIOCGIWAPLIST */
+	/* (iw_handler) wlan_get_aplist, */ /* SIOCGIWAPLIST */
+	NULL, /* SIOCGIWAPLIST */
 #if WIRELESS_EXT > 13
-	(iw_handler) woal_set_scan,	/* SIOCSIWSCAN */
-	(iw_handler) woal_get_scan,	/* SIOCGIWSCAN */
+	(iw_handler)woal_set_scan, /* SIOCSIWSCAN */
+	(iw_handler)woal_get_scan, /* SIOCGIWSCAN */
 #else /* WIRELESS_EXT > 13 */
-	(iw_handler) NULL,	/* SIOCSIWSCAN */
-	(iw_handler) NULL,	/* SIOCGIWSCAN */
+	(iw_handler)NULL, /* SIOCSIWSCAN */
+	(iw_handler)NULL, /* SIOCGIWSCAN */
 #endif /* WIRELESS_EXT > 13 */
-	(iw_handler) woal_set_essid,	/* SIOCSIWESSID */
-	(iw_handler) woal_get_essid,	/* SIOCGIWESSID */
-	(iw_handler) woal_set_nick,	/* SIOCSIWNICKN */
-	(iw_handler) woal_get_nick,	/* SIOCGIWNICKN */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) woal_set_rate,	/* SIOCSIWRATE */
-	(iw_handler) woal_get_rate,	/* SIOCGIWRATE */
-	(iw_handler) woal_set_rts,	/* SIOCSIWRTS */
-	(iw_handler) woal_get_rts,	/* SIOCGIWRTS */
-	(iw_handler) woal_set_frag,	/* SIOCSIWFRAG */
-	(iw_handler) woal_get_frag,	/* SIOCGIWFRAG */
-	(iw_handler) woal_set_txpow,	/* SIOCSIWTXPOW */
-	(iw_handler) woal_get_txpow,	/* SIOCGIWTXPOW */
-	(iw_handler) woal_set_retry,	/* SIOCSIWRETRY */
-	(iw_handler) woal_get_retry,	/* SIOCGIWRETRY */
-	(iw_handler) woal_set_encode,	/* SIOCSIWENCODE */
-	(iw_handler) woal_get_encode,	/* SIOCGIWENCODE */
-	(iw_handler) woal_set_power,	/* SIOCSIWPOWER */
-	(iw_handler) woal_get_power,	/* SIOCGIWPOWER */
+	(iw_handler)woal_set_essid, /* SIOCSIWESSID */
+	(iw_handler)woal_get_essid, /* SIOCGIWESSID */
+	(iw_handler)woal_set_nick, /* SIOCSIWNICKN */
+	(iw_handler)woal_get_nick, /* SIOCGIWNICKN */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)woal_set_rate, /* SIOCSIWRATE */
+	(iw_handler)woal_get_rate, /* SIOCGIWRATE */
+	(iw_handler)woal_set_rts, /* SIOCSIWRTS */
+	(iw_handler)woal_get_rts, /* SIOCGIWRTS */
+	(iw_handler)woal_set_frag, /* SIOCSIWFRAG */
+	(iw_handler)woal_get_frag, /* SIOCGIWFRAG */
+	(iw_handler)woal_set_txpow, /* SIOCSIWTXPOW */
+	(iw_handler)woal_get_txpow, /* SIOCGIWTXPOW */
+	(iw_handler)woal_set_retry, /* SIOCSIWRETRY */
+	(iw_handler)woal_get_retry, /* SIOCGIWRETRY */
+	(iw_handler)woal_set_encode, /* SIOCSIWENCODE */
+	(iw_handler)woal_get_encode, /* SIOCGIWENCODE */
+	(iw_handler)woal_set_power, /* SIOCSIWPOWER */
+	(iw_handler)woal_get_power, /* SIOCGIWPOWER */
 #if (WIRELESS_EXT >= 18)
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) NULL,	/* -- hole -- */
-	(iw_handler) woal_set_gen_ie,	/* SIOCSIWGENIE */
-	(iw_handler) woal_get_gen_ie,	/* SIOCGIWGENIE */
-	(iw_handler) woal_set_auth,	/* SIOCSIWAUTH  */
-	(iw_handler) woal_get_auth,	/* SIOCGIWAUTH  */
-	(iw_handler) woal_set_encode_ext,	/* SIOCSIWENCODEEXT */
-	(iw_handler) woal_get_encode_ext,	/* SIOCGIWENCODEEXT */
-	(iw_handler) woal_set_pmksa,	/* SIOCSIWPMKSA */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)NULL, /* -- hole -- */
+	(iw_handler)woal_set_gen_ie, /* SIOCSIWGENIE */
+	(iw_handler)woal_get_gen_ie, /* SIOCGIWGENIE */
+	(iw_handler)woal_set_auth, /* SIOCSIWAUTH  */
+	(iw_handler)woal_get_auth, /* SIOCGIWAUTH  */
+	(iw_handler)woal_set_encode_ext, /* SIOCSIWENCODEEXT */
+	(iw_handler)woal_get_encode_ext, /* SIOCGIWENCODEEXT */
+	(iw_handler)woal_set_pmksa, /* SIOCSIWPMKSA */
 #endif /* WIRELESSS_EXT >= 18 */
 };
 
@@ -3079,7 +3010,7 @@ static const iw_handler woal_handler[] = {
  * iwpriv settable callbacks
  */
 static const iw_handler woal_private_handler[] = {
-	NULL,			/* SIOCIWFIRSTPRIV */
+	NULL, /* SIOCIWFIRSTPRIV */
 };
 #endif /* STA_SUPPORT */
 
@@ -3097,8 +3028,7 @@ static const iw_handler woal_private_handler[] = {
  *
  *  @return        N/A
  */
-void
-woal_send_iwevcustom_event(moal_private *priv, char *str)
+void woal_send_iwevcustom_event(moal_private *priv, char *str)
 {
 	union iwreq_data iwrq;
 	char buf[IW_CUSTOM_MAX];
@@ -3131,8 +3061,7 @@ woal_send_iwevcustom_event(moal_private *priv, char *str)
  *
  *  @return        N/A
  */
-void
-woal_send_mic_error_event(moal_private *priv, t_u32 event)
+void woal_send_mic_error_event(moal_private *priv, t_u32 event)
 {
 	union iwreq_data iwrq;
 	struct iw_michaelmicfailure mic;
@@ -3156,19 +3085,21 @@ woal_send_mic_error_event(moal_private *priv, t_u32 event)
 }
 #endif
 
+// clang-format off
 #ifdef STA_SUPPORT
 /** wlan_handler_def */
 struct iw_handler_def woal_handler_def = {
-num_standard:ARRAY_SIZE(woal_handler),
-num_private:ARRAY_SIZE(woal_private_handler),
-num_private_args:ARRAY_SIZE(woal_private_args),
-standard:(iw_handler *) woal_handler,
-private:(iw_handler *) woal_private_handler,
-private_args:(struct iw_priv_args *)woal_private_args,
+	num_standard: ARRAY_SIZE(woal_handler),
+	num_private : ARRAY_SIZE(woal_private_handler),
+	num_private_args : ARRAY_SIZE(woal_private_args),
+	standard : (iw_handler *)woal_handler,
+	private : (iw_handler *)woal_private_handler,
+	private_args : (struct iw_priv_args *)woal_private_args,
 #if WIRELESS_EXT > 20
-get_wireless_stats:woal_get_wireless_stats,
+	get_wireless_stats : woal_get_wireless_stats,
 #endif
 };
+// clang-format on
 
 /**
  *  @brief Get wireless statistics
@@ -3177,8 +3108,7 @@ get_wireless_stats:woal_get_wireless_stats,
  *
  *  @return             A pointer to iw_statistics buf
  */
-struct iw_statistics *
-woal_get_wireless_stats(struct net_device *dev)
+struct iw_statistics *woal_get_wireless_stats(struct net_device *dev)
 {
 	moal_private *priv = (moal_private *)netdev_priv(dev);
 	t_u16 wait_option = MOAL_IOCTL_WAIT;
@@ -3205,10 +3135,8 @@ woal_get_wireless_stats(struct net_device *dev)
 	if (priv->media_connected == MTRUE) {
 		if (MLAN_STATUS_SUCCESS ==
 		    woal_get_signal_info(priv, wait_option, NULL))
-			priv->w_stats.qual.qual =
-				woal_rssi_to_quality((t_s16)
-						     (priv->w_stats.qual.level -
-						      0x100));
+			priv->w_stats.qual.qual = woal_rssi_to_quality(
+				(t_s16)(priv->w_stats.qual.level - 0x100));
 	}
 #if WIRELESS_EXT > 18
 	priv->w_stats.qual.updated |= (IW_QUAL_ALL_UPDATED | IW_QUAL_DBM);
@@ -3222,7 +3150,8 @@ woal_get_wireless_stats(struct net_device *dev)
 	PRINTM(MINFO, "Signal Level = %#x\n", priv->w_stats.qual.level);
 	PRINTM(MINFO, "Noise = %#x\n", priv->w_stats.qual.noise);
 	priv->w_stats.discard.code = 0;
-	woal_get_stats_info(priv, wait_option, NULL);
+	if (MLAN_STATUS_SUCCESS != woal_get_stats_info(priv, wait_option, NULL))
+		PRINTM(MERROR, "Error getting stats information\n");
 
 	LEAVE();
 	return &priv->w_stats;
