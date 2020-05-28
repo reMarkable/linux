@@ -293,6 +293,7 @@
 				<&lsio_gpio1 28 GPIO_ACTIVE_LOW>,
 				<&lsio_gpio1 30 GPIO_ACTIVE_LOW>,
 				<&lsio_gpio4 1 GPIO_ACTIVE_LOW>,
+				<&lsio_gpio4 3 GPIO_ACTIVE_LOW>,
 				<&lsio_gpio4 6 GPIO_ACTIVE_LOW>,
 				<&lsio_gpio4 9 GPIO_ACTIVE_LOW>,
 				<&lsio_gpio4 11 GPIO_ACTIVE_HIGH>,
@@ -314,6 +315,12 @@
 	gpio4_dummy: gpio4_dummy@0{
 		/* Passthrough gpio4 interrupt to DomU */
 		interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>;
+		xen,passthrough;
+	};
+
+	gpio1_dummy: gpio1_dummy@0{
+		/* Passthrough gpio1 interrupt to DomU */
+		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>;
 		xen,passthrough;
 	};
 
@@ -532,6 +539,12 @@
 };
 
 &lsio_gpio1 {
+	/*
+	 * Use GPT1 interrupt for hack
+	 * This could be removed when interrupt sharing be supported.
+	 */
+	interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
+	xen,domu-irq;
 	xen,shared;
 };
 
@@ -553,7 +566,11 @@
 };
 
 &gpio0_mipi_csi0 {
-	xen,shared;
+	xen,passthrough;
+};
+
+&gpio0_mipi_csi1 {
+	xen,passthrough;
 };
 
 /* vpu_subsys */
