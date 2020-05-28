@@ -1118,9 +1118,7 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 	struct device_node *np = dev->of_node;
 	const struct of_device_id *of_id;
 	struct fsl_xcvr *xcvr;
-	struct resource *res,
-		ram_res = { .flags = IORESOURCE_MEM, },
-		regs_res = { .flags = IORESOURCE_MEM, };
+	struct resource *ram_res, *regs_res, *rx_res, *tx_res;
 	void __iomem *regs;
 	int ret, irq;
 
@@ -1157,17 +1155,13 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 		return PTR_ERR(xcvr->pll_ipg_clk);
 	}
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-
-	ram_res.start = res->start;
-	ram_res.end = res->start + FSL_XCVR_REG_OFFSET - 1;
-	xcvr->ram_addr = devm_ioremap_resource(dev, &ram_res);
+	ram_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ram");
+	xcvr->ram_addr = devm_ioremap_resource(dev, ram_res);
 	if (IS_ERR(xcvr->ram_addr))
 		return PTR_ERR(xcvr->ram_addr);
 
-	regs_res.start = res->start + FSL_XCVR_REG_OFFSET;
-	regs_res.end = res->end;
-	regs = devm_ioremap_resource(dev, &regs_res);
+	regs_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "regs");
+	regs = devm_ioremap_resource(dev, regs_res);
 	if (IS_ERR(regs))
 		return PTR_ERR(regs);
 
@@ -1224,10 +1218,12 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	rx_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "rxfifo");
+	tx_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "txfifo");
 	xcvr->dma_prms_rx.chan_name = "rx";
 	xcvr->dma_prms_tx.chan_name = "tx";
-	xcvr->dma_prms_rx.addr = res->start + FSL_XCVR_RX_FIFO_ADDR;
-	xcvr->dma_prms_tx.addr = res->start + FSL_XCVR_TX_FIFO_ADDR;
+	xcvr->dma_prms_rx.addr = rx_res->start;
+	xcvr->dma_prms_tx.addr = tx_res->start;
 	xcvr->dma_prms_rx.maxburst = FSL_XCVR_MAXBURST_RX;
 	xcvr->dma_prms_tx.maxburst = FSL_XCVR_MAXBURST_TX;
 
