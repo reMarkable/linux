@@ -37,6 +37,14 @@
 		};
 	};
 
+	bt_sco_codec: bt_sco_codec {
+		status = "disabled";
+	};
+
+	sound-bt-sco {
+		status = "disabled";
+	};
+
 	sound-wm8524 {
 		status = "disabled";
 	};
@@ -123,6 +131,10 @@
 };
 
 &sai1 {
+	status = "disabled";
+};
+
+&sai2 {
 	status = "disabled";
 };
 
