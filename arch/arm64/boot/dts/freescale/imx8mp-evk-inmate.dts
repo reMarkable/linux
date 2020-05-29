@@ -48,6 +48,11 @@
 		};
 	};
 
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
 	gic: interrupt-controller@38800000 {
 		compatible = "arm,gic-v3";
 		reg = <0x0 0x38800000 0 0x10000>, /* GIC Dist */

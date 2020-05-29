@@ -48,6 +48,11 @@
 		};
 	};
 
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
 	osc_25m: clock-osc-25m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
