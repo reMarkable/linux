@@ -82,11 +82,6 @@
 				IMX_SC_R_VPU_PID5
 				IMX_SC_R_VPU_PID6
 				IMX_SC_R_VPU_PID7
-				IMX_SC_R_VPU_UART
-				IMX_SC_R_VPUCORE_0
-				IMX_SC_R_VPUCORE_1
-				IMX_SC_R_VPUCORE_2
-				IMX_SC_R_VPUCORE_3
 				IMX_SC_R_VPU
 				IMX_SC_R_VPU_DEC_0
 				IMX_SC_R_VPU_ENC_0
@@ -186,9 +181,6 @@
 				IMX_SC_R_CSI_0_I2C_0
 				IMX_SC_R_CSI_1
 				IMX_SC_R_CSI_1_I2C_0
-				IMX_SC_R_PI_0
-				IMX_SC_R_PI_0_PLL
-				IMX_SC_R_PI_0_I2C_0
 				IMX_SC_R_ISI_CH0
 				IMX_SC_R_ISI_CH1
 				IMX_SC_R_ISI_CH2
@@ -589,8 +581,6 @@
 	#stream-id-cells = <1>;
 	iommus = <&smmu>;
 	fsl,sc_rsrc_id = <IMX_SC_R_VPU_DEC_0>,
-			 <IMX_SC_R_VPU_ENC_0>,
-			 <IMX_SC_R_VPU_ENC_1>,
 			 <IMX_SC_R_VPU_TS_0>,
 			 <IMX_SC_R_VPU_PID0>,
 			 <IMX_SC_R_VPU_PID1>,
