@@ -17,7 +17,7 @@
 		mute-gpios = <&gpio5 8 GPIO_ACTIVE_LOW>;
 		model = "imx-swpdm-audio";
 		audio-cpu = <&sai5>;
-		decimation = <128>;
+		decimation = <64>;
 		status = "okay";
 	};
 };
