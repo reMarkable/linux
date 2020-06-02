@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 NXP.
+ * Copyright 2017-2020 NXP.
  *
  * The code contained herein is licensed under the GNU General Public
  * License. You may obtain a copy of the GNU General Public License
@@ -27,10 +27,18 @@ struct imx_pdm_data {
 	unsigned int decimation;
 };
 
+static const struct imx_pdm_mic_fs_mul {
+	unsigned int min;
+	unsigned int max;
+	unsigned int mul;
+} fs_mul[] = {
+	{ .min =  8000, .max = 11025, .mul =  8 }, /* low power */
+	{ .min = 16000, .max = 64000, .mul = 16 }, /* performance */
+};
+
 static const unsigned int imx_pdm_mic_rates[] = {
-	8000,  11025, 12000, 16000,
-	22050, 24000, 32000, 44100,
-	48000, 64000,
+	8000,  11025, 16000, 22050,
+	32000, 44100, 48000, 64000,
 };
 static struct snd_pcm_hw_constraint_list imx_pdm_mic_rate_constrains = {
 	.count = ARRAY_SIZE(imx_pdm_mic_rates),
@@ -41,6 +49,20 @@ static struct snd_pcm_hw_constraint_list imx_pdm_mic_channels_constrains = {
 	.count = ARRAY_SIZE(imx_pdm_mic_channels),
 	.list = imx_pdm_mic_channels,
 };
+
+static unsigned long imx_pdm_mic_mclk_freq(unsigned int decimation,
+		unsigned int rate)
+{
+	int i;
+
+	/* Find appropriate mclk freq */
+	for (i = 0; i < ARRAY_SIZE(fs_mul); i++) {
+		if (rate >= fs_mul[i].min && rate <= fs_mul[i].max)
+			return (rate * decimation * fs_mul[i].mul);
+	}
+
+	return 0;
+}
 
 static int imx_pdm_mic_startup(struct snd_pcm_substream *substream)
 {
@@ -83,6 +105,8 @@ static int imx_pdm_mic_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct snd_soc_card *card = rtd->card;
 	struct imx_pdm_data *data = snd_soc_card_get_drvdata(card);
+	unsigned int sample_rate = params_rate(params);
+	unsigned long mclk_freq;
 	int ret;
 
 	/* set cpu dai format configuration */
@@ -92,10 +116,20 @@ static int imx_pdm_mic_hw_params(struct snd_pcm_substream *substream,
 		dev_err(card->dev, "fail to set cpu dai fmt: %d\n", ret);
 		return ret;
 	}
-	/* Set clock out */
+
+	/* Set bitclk ratio */
 	ret = snd_soc_dai_set_bclk_ratio(cpu_dai, data->decimation);
 	if (ret) {
 		dev_err(card->dev, "fail to set cpu sysclk: %d\n", ret);
+		return ret;
+	}
+	/* set mclk freq */
+	mclk_freq = imx_pdm_mic_mclk_freq(data->decimation, sample_rate);
+	ret = snd_soc_dai_set_sysclk(cpu_dai, FSL_SAI_CLK_MAST1,
+			mclk_freq, SND_SOC_CLOCK_OUT);
+	if (ret) {
+		dev_err(card->dev, "fail to set cpu mclk1 rate: %lu\n",
+			mclk_freq);
 		return ret;
 	}
 
