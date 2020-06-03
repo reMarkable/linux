@@ -17,6 +17,10 @@
 
 #include "fsl_sai.h"
 
+#define IMX_PDM_FORMATS (SNDRV_PCM_FMTBIT_DSD_U8 | \
+			 SNDRV_PCM_FMTBIT_DSD_U16_LE | \
+			 SNDRV_PCM_FMTBIT_DSD_U32_LE)
+
 struct imx_pdm_data {
 	struct snd_soc_dai_link dai;
 	struct snd_soc_card card;
@@ -57,7 +61,15 @@ static int imx_pdm_mic_startup(struct snd_pcm_substream *substream)
 		SNDRV_PCM_HW_PARAM_CHANNELS, &imx_pdm_mic_channels_constrains);
 	if (ret) {
 		dev_err(card->dev,
-			"fail to set pcm hw channels constrains: %d", ret);
+			"fail to set pcm hw channels constrains: %d\n", ret);
+		return ret;
+	}
+
+	ret = snd_pcm_hw_constraint_mask64(runtime,
+			SNDRV_PCM_HW_PARAM_FORMAT, IMX_PDM_FORMATS);
+	if (ret) {
+		dev_err(card->dev,
+			"fail to set pcm hw format constrains: %d\n", ret);
 		return ret;
 	}
 
