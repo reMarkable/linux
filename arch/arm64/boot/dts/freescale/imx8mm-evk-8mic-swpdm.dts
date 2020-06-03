@@ -27,5 +27,6 @@
 };
 
 &sai5 {
+	fsl,dataline,dsd = <0 0xf 0xf>;
 	status = "okay";
 };
