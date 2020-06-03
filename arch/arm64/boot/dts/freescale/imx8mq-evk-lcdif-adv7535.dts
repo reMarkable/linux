@@ -25,7 +25,7 @@
 
 &lcdif {
 	status = "okay";
-	max-memory-bandwidth = <314676293>; /* 1280x1024-32@60 */
+	max-memory-bandwidth = <221184000>; /* 1280x720-32@60 */
 
 	assigned-clocks = <&clk IMX8MQ_CLK_LCDIF_PIXEL>,
 			  <&clk IMX8MQ_VIDEO_PLL1_BYPASS>,
