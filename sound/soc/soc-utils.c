@@ -99,6 +99,9 @@ static const struct snd_soc_component_driver dummy_codec = {
 			SNDRV_PCM_FMTBIT_U24_LE | \
 			SNDRV_PCM_FMTBIT_S32_LE | \
 			SNDRV_PCM_FMTBIT_U32_LE | \
+			SNDRV_PCM_FMTBIT_DSD_U8 | \
+			SNDRV_PCM_FMTBIT_DSD_U16_LE | \
+			SNDRV_PCM_FMTBIT_DSD_U32_LE | \
 			SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE)
 /*
  * The dummy CODEC is only meant to be used in situations where there is no
