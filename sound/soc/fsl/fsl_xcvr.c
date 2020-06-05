@@ -367,9 +367,53 @@ static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 	u32 m_ctl = 0, v_ctl = 0, m_isr = 0, v_isr = 0;
-	int ret = 0;
+	u32 r = substream->runtime->rate, ch = substream->runtime->channels;
+	snd_pcm_format_t f = substream->runtime->format;
+	u32 reg, val, fout = 32 * r * ch * 10 * 2;
+	int i, ret = 0;
 
 	if (tx && xcvr->mode == FSL_XCVR_MODE_SPDIF) {
+		for (i = 0; i < 6; i++) {
+			val = (xcvr->tx_iec958.status[4 * i + 0] << 24) |
+			      (xcvr->tx_iec958.status[4 * i + 1] << 16) |
+			      (xcvr->tx_iec958.status[4 * i + 2] <<  8) |
+			      (xcvr->tx_iec958.status[4 * i + 3] <<  0);
+			/* Update TX CS data bits */
+			ret = regmap_write(xcvr->regmap,
+					   FSL_XCVR_TX_CS_DATA_0 + 4 * i, val);
+			if (ret < 0) {
+				dev_err(dai->dev, "Failed to set TXCS%d: %d\n",
+					i, ret);
+				return ret;
+			}
+		}
+
+		ret = fsl_xcvr_en_aud_pll(xcvr, false, fout);
+		if (ret < 0) {
+			dev_err(dai->dev, "Failed to set TX freq %u: %d\n",
+				fout, ret);
+			return ret;
+		}
+
+		/* enable/disable IEC958 encoding as function of input format */
+		val  = FSL_XCVR_TX_DPTH_CTRL_CS_MOD;
+		val |= FSL_XCVR_TX_DPTH_CTRL_EN_PREAMBLE;
+		val |= FSL_XCVR_TX_DPTH_CTRL_EN_PARITY;
+
+		if (f == SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE) {
+			/* disable IEC958 encoding */
+			reg = FSL_XCVR_TX_DPTH_CTRL_CLR;
+		} else {
+			/* enable IEC958 encoding */
+			reg = FSL_XCVR_TX_DPTH_CTRL_SET;
+		}
+		ret = regmap_write(xcvr->regmap, reg, val);
+		if (ret < 0) {
+			dev_err(dai->dev, "Failed to en/dis IEC958 encode: %d\n",
+				ret);
+			return ret;
+		}
+
 		ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_DPTH_CTRL_SET,
 				   FSL_XCVR_TX_DPTH_CTRL_FRM_FMT);
 		if (ret < 0) {
@@ -549,10 +593,7 @@ static int fsl_xcvr_hw_params(struct snd_pcm_substream *substream,
 {
 	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-	u32 r = params_rate(params), ch = params_channels(params);
-	snd_pcm_format_t f = params_format(params);
-	u32 reg, val, fout = 32 * r * ch * 10 * 2;
-	int i, ret;
+	int ret;
 
 	if (!tx)
 		return 0;
@@ -561,42 +602,6 @@ static int fsl_xcvr_hw_params(struct snd_pcm_substream *substream,
 		xcvr->tx_iec958.status, ARRAY_SIZE(xcvr->tx_iec958.status));
 	if (ret < 0) {
 		dev_err(dai->dev, "Creating IEC958 CS failed %d\n", ret);
-		return ret;
-	}
-
-	for (i = 0; i < 6; i++) {
-		val = (xcvr->tx_iec958.status[4 * i + 0] << 24) |
-		      (xcvr->tx_iec958.status[4 * i + 1] << 16) |
-		      (xcvr->tx_iec958.status[4 * i + 2] <<  8) |
-		      (xcvr->tx_iec958.status[4 * i + 3] <<  0);
-		/* Update TX CS data bits */
-		ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_CS_DATA_0 + 4 * i,
-				   val);
-		if (ret < 0) {
-			dev_err(dai->dev, "Failed to set TXCS%d: %d\n", i, ret);
-			return ret;
-		}
-	}
-
-	ret = fsl_xcvr_en_aud_pll(xcvr, false, fout);
-	if (ret < 0) {
-		dev_err(dai->dev, "Failed to set TX freq %u: %d\n", fout, ret);
-		return ret;
-	}
-
-	/* enable/disable IEC958 encoding as function of input format */
-	val  = FSL_XCVR_TX_DPTH_CTRL_CS_MOD;
-	val |= FSL_XCVR_TX_DPTH_CTRL_EN_PREAMBLE;
-	val |= FSL_XCVR_TX_DPTH_CTRL_EN_PARITY;
-
-	if (f == SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE)
-		reg = FSL_XCVR_TX_DPTH_CTRL_CLR; /* disable IEC958 encoding */
-	else
-		reg = FSL_XCVR_TX_DPTH_CTRL_SET; /* enable IEC958 encoding */
-
-	ret = regmap_write(xcvr->regmap, reg, val);
-	if (ret < 0) {
-		dev_err(dai->dev, "Failed to en/dis IEC958 encode: %d\n", ret);
 		return ret;
 	}
 
