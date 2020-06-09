@@ -50,6 +50,7 @@ static const char *imx8m_dsp_clks[IMX8M_DSP_CLK_NUM] = {
 struct imx8m_priv {
 	struct device *dev;
 	struct snd_sof_dev *sdev;
+	bool suspended;
 
 	struct imx_audiomix_dsp_data *audiomix;
 
@@ -371,6 +372,68 @@ static struct snd_soc_dai_driver imx8m_dai[] = {
 },
 };
 
+int imx8m_resume(struct snd_sof_dev *sdev)
+{
+	struct imx8m_priv *priv = (struct imx8m_priv *)sdev->private;
+	int i;
+
+	for (i = 0; i < IMX8M_DSP_CLK_NUM; i++)
+		clk_prepare_enable(priv->clks[i]);
+
+	for (i = 0; i < DSP_MU_CHAN_NUM; i++)
+		imx_dsp_request_channel(priv->dsp_ipc, i);
+
+	return 0;
+}
+
+int imx8m_suspend(struct snd_sof_dev *sdev)
+{
+	struct imx8m_priv *priv = (struct imx8m_priv *)sdev->private;
+	int i;
+
+	for (i = 0; i < DSP_MU_CHAN_NUM; i++)
+		imx_dsp_free_channel(priv->dsp_ipc, i);
+
+	for (i = 0; i < IMX8M_DSP_CLK_NUM; i++)
+		clk_disable_unprepare(priv->clks[i]);
+
+	return 0;
+}
+
+static int imx8m_dsp_runtime_resume(struct snd_sof_dev *sdev)
+{
+	return imx8m_resume(sdev);
+}
+
+static int imx8m_dsp_runtime_suspend(struct snd_sof_dev *sdev)
+{
+	return imx8m_suspend(sdev);
+}
+
+static int imx8m_dsp_resume(struct snd_sof_dev *sdev)
+{
+	struct imx8m_priv *priv = (struct imx8m_priv *)sdev->private;
+
+	if (priv->suspended) {
+		imx8m_resume(sdev);
+		priv->suspended = false;
+	}
+
+	return 0;
+}
+
+static int imx8m_dsp_suspend(struct snd_sof_dev *sdev)
+{
+	struct imx8m_priv *priv = (struct imx8m_priv *)sdev->private;
+
+	if (!priv->suspended) {
+		imx8m_suspend(sdev);
+		priv->suspended = true;
+	}
+
+	return 0;
+}
+
 /* i.MX8 ops */
 struct snd_sof_dsp_ops sof_imx8m_ops = {
 	/* probe and remove */
@@ -401,6 +464,12 @@ struct snd_sof_dsp_ops sof_imx8m_ops = {
 	/* DAI drivers */
 	.drv = imx8m_dai,
 	.num_drv = 1, /* we have only 1 ESAI interface on i.MX8 */
+
+	.suspend	= imx8m_dsp_suspend,
+	.resume		= imx8m_dsp_resume,
+
+	.runtime_suspend = imx8m_dsp_runtime_suspend,
+	.runtime_resume = imx8m_dsp_runtime_resume,
 
 	.hw_info = SNDRV_PCM_INFO_MMAP |
 		SNDRV_PCM_INFO_MMAP_VALID |
