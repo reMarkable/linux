@@ -1353,6 +1353,9 @@ static inline bool clk_in_list(struct clk *p, struct clk *clk_src[])
 	return false;
 }
 
+#define CLK_8K_FREQ    24576000
+#define CLK_11K_FREQ   22579200
+
 static int fsl_micfil_set_mclk_rate(struct fsl_micfil *micfil, int clk_id,
 				    unsigned int freq)
 {
@@ -1426,10 +1429,10 @@ static int fsl_micfil_set_mclk_rate(struct fsl_micfil *micfil, int clk_id,
 				 "failed to set parrent %d\n", ret);
 	}
 
-	ret = clk_set_rate(micfil->mclk, freq * 1024);
+	clk_rate = freq % 8000 == 0 ? CLK_8K_FREQ : CLK_11K_FREQ;
+	ret = clk_set_rate(micfil->mclk, clk_rate);
 	if (ret)
-		dev_warn(dev, "failed to set rate (%u): %d\n",
-			 freq * 1024, ret);
+		dev_warn(dev, "failed to set rate (%llu): %d\n", clk_rate, ret);
 	clk_prepare_enable(micfil->mclk);
 
 	return ret;
