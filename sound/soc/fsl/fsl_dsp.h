@@ -116,6 +116,8 @@ struct fsl_dsp {
 	struct clk *asrck_clk[4];
 	struct clk *dsp_ocrama_clk;
 	struct clk *dsp_root_clk;
+	struct clk *audio_root_clk;
+	struct clk *audio_axi_clk;
 	struct clk *debug_clk;
 	struct clk *mu2_clk;
 	struct clk *sdma_root_clk;

@@ -1159,6 +1159,14 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	if (IS_ERR(dsp_priv->dsp_ocrama_clk))
 		dsp_priv->dsp_ocrama_clk = NULL;
 
+	dsp_priv->audio_root_clk = devm_clk_get(&pdev->dev, "audio_root");
+	if (IS_ERR(dsp_priv->audio_root_clk))
+		dsp_priv->audio_root_clk = NULL;
+
+	dsp_priv->audio_axi_clk = devm_clk_get(&pdev->dev, "audio_axi");
+	if (IS_ERR(dsp_priv->audio_axi_clk))
+		dsp_priv->audio_axi_clk = NULL;
+
 	dsp_priv->dsp_root_clk = devm_clk_get(&pdev->dev, "core");
 	if (IS_ERR(dsp_priv->dsp_root_clk))
 		dsp_priv->dsp_root_clk = NULL;
@@ -1282,6 +1290,18 @@ static int fsl_dsp_runtime_resume(struct device *dev)
 		goto dsp_root_clk;
 	}
 
+	ret = clk_prepare_enable(dsp_priv->audio_root_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable audio_root_clk ret = %d\n", ret);
+		goto audio_root_clk;
+	}
+
+	ret = clk_prepare_enable(dsp_priv->audio_axi_clk);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable audio_axi_clk ret = %d\n", ret);
+		goto audio_axi_clk;
+	}
+
 	ret = clk_prepare_enable(dsp_priv->debug_clk);
 	if (ret < 0) {
 		dev_err(dev, "Failed to enable debug_clk ret = %d\n", ret);
@@ -1373,6 +1393,10 @@ static int fsl_dsp_runtime_resume(struct device *dev)
 mu2_clk:
 	clk_disable_unprepare(dsp_priv->debug_clk);
 debug_clk:
+	clk_disable_unprepare(dsp_priv->audio_axi_clk);
+audio_axi_clk:
+	clk_disable_unprepare(dsp_priv->audio_root_clk);
+audio_root_clk:
 	clk_disable_unprepare(dsp_priv->dsp_root_clk);
 dsp_root_clk:
 	clk_disable_unprepare(dsp_priv->dsp_ocrama_clk);
@@ -1411,6 +1435,8 @@ static int fsl_dsp_runtime_suspend(struct device *dev)
 
 	clk_disable_unprepare(dsp_priv->dsp_ocrama_clk);
 	clk_disable_unprepare(dsp_priv->dsp_root_clk);
+	clk_disable_unprepare(dsp_priv->audio_root_clk);
+	clk_disable_unprepare(dsp_priv->audio_axi_clk);
 	clk_disable_unprepare(dsp_priv->debug_clk);
 	clk_disable_unprepare(dsp_priv->mu2_clk);
 	clk_disable_unprepare(dsp_priv->sdma_root_clk);
