@@ -167,7 +167,7 @@ static int imx_wm8524_probe(struct platform_device *pdev)
 
 	codec_pdev = of_find_device_by_node(codec_np);
 	if (!codec_pdev || !codec_pdev->dev.driver) {
-		dev_err(&pdev->dev, "failed to find codec platform device\n");
+		dev_dbg(&pdev->dev, "failed to find codec platform device\n");
 		ret = -EPROBE_DEFER;
 		goto fail;
 	}
