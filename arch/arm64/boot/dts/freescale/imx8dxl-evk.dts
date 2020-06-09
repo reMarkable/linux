@@ -559,6 +559,14 @@
 	status = "disabled";
 };
 
+&pcieb_ep{
+	compatible = "fsl,imx8qxp-pcie-ep";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pcieb>;
+	ext_osc = <0>;
+	status = "disabled";
+};
+
 &asrc0 {
 	fsl,asrc-rate  = <48000>;
 	status = "okay";
