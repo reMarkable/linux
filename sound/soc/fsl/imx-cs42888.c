@@ -383,7 +383,7 @@ static int imx_cs42888_probe(struct platform_device *pdev)
 
 		codec_dev = of_find_i2c_device_by_node(codec_np);
 		if (!codec_dev || !codec_dev->dev.driver) {
-			dev_err(&pdev->dev, "failed to find codec platform device\n");
+			dev_dbg(&pdev->dev, "failed to find codec platform device\n");
 			ret = -EPROBE_DEFER;
 			goto fail;
 		}
