@@ -154,6 +154,7 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_AUDIOMIX_SAI6_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai6_mclk2_sel", base + 0x310, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
 	clks[IMX8MP_CLK_AUDIOMIX_SAI7_MCLK1_SEL] = imx_dev_clk_mux(dev, "sai7_mclk1_sel", base + 0x314, 0, 1, imx_sai7_mclk1_sels, ARRAY_SIZE(imx_sai7_mclk1_sels));
 	clks[IMX8MP_CLK_AUDIOMIX_SAI7_MCLK2_SEL] = imx_dev_clk_mux(dev, "sai7_mclk2_sel", base + 0x314, 1, 4, imx_sai_mclk2_sels, ARRAY_SIZE(imx_sai_mclk2_sels));
+	clks[IMX8MP_CLK_AUDIOMIX_PDM_SEL]        = imx_dev_clk_mux(dev, "pdm_sel", base + 0x318, 0, 2, imx_pdm_sels, ARRAY_SIZE(imx_pdm_sels));
 
 	clks[IMX8MP_CLK_AUDIOMIX_SAI1_IPG]    = imx_dev_clk_gate(dev, "sai1_ipg_clk",   "ipg_audio_root", base, 0);
 	clks[IMX8MP_CLK_AUDIOMIX_SAI1_MCLK1]  = imx_dev_clk_gate(dev, "sai1_mclk1_clk", "sai1_mclk1_sel", base, 1);
@@ -181,7 +182,7 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_AUDIOMIX_SAI7_MCLK3]  = imx_dev_clk_gate(dev, "sai7_mclk3_clk", "sai_pll_out", base, 23);
 	clks[IMX8MP_CLK_AUDIOMIX_ASRC_IPG]    = imx_dev_clk_gate(dev, "asrc_ipg_clk",   "ipg_audio_root", base, 24);
 	clks[IMX8MP_CLK_AUDIOMIX_PDM_IPG]     = imx_dev_clk_gate_shared(dev, "pdm_ipg_clk", "ipg_audio_root", base, 25, &shared_count_pdm);
-	clks[IMX8MP_CLK_AUDIOMIX_PDM_ROOT]    = imx_dev_clk_gate_shared(dev, "pdm_root_clk", "pdm", base, 25, &shared_count_pdm);
+	clks[IMX8MP_CLK_AUDIOMIX_PDM_ROOT]    = imx_dev_clk_gate_shared(dev, "pdm_root_clk", "pdm_sel", base, 25, &shared_count_pdm);
 
 	clks[IMX8MP_CLK_AUDIOMIX_SDMA3_ROOT]  = imx_dev_clk_gate(dev, "sdma3_root_clk", "ipg_audio_root", base, 27);
 	clks[IMX8MP_CLK_AUDIOMIX_SPBA2_ROOT]  = imx_dev_clk_gate(dev, "spba2_root_clk", "ipg_audio_root", base, 28);
@@ -196,8 +197,6 @@ static int imx_audiomix_clk_probe(struct platform_device *pdev)
 	clks[IMX8MP_CLK_AUDIOMIX_MU2_ROOT]    = imx_dev_clk_gate(dev, "mu2_root_clk", "ipg_audio_root", base + 4, 4);
 	clks[IMX8MP_CLK_AUDIOMIX_MU3_ROOT]    = imx_dev_clk_gate(dev, "mu3_root_clk", "ipg_audio_root", base + 4, 5);
 	clks[IMX8MP_CLK_AUDIOMIX_EARC_PHY]    = imx_dev_clk_gate(dev, "earc_phy_clk", "sai_pll_out", base + 4, 6);
-
-	clks[IMX8MP_CLK_AUDIOMIX_PDM_SEL] = imx_dev_clk_mux(dev, "pdm_sel", base + 0x318, 1, 4, imx_pdm_sels, ARRAY_SIZE(imx_pdm_sels));
 
 	/* unbypass the pll */
 	clk_set_parent(clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL_BYPASS], clks[IMX8MP_CLK_AUDIOMIX_SAI_PLL]);
