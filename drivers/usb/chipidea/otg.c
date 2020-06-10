@@ -139,21 +139,48 @@ enum ci_role ci_otg_role(struct ci_hdrc *ci)
  * If the vbus can't be kept above B session valid for timeout value,
  * we think it is a vbus glitch, otherwise it's a valid vbus.
  */
-#define CI_VBUS_CONNECT_TIMEOUT_MS 300
+#define CI_VBUS_CONNECT_GLITCH_TIMEOUT_MS 300
+#define CI_VBUS_CONNECT_TOTAL_TIMEOUT_MS 1000
+#define CI_VBUS_GLITCH_COUNTER_RESET_VAL (CI_VBUS_CONNECT_GLITCH_TIMEOUT_MS/20)
 static int ci_is_vbus_glitch(struct ci_hdrc *ci)
 {
-	int i;
+	int glitch_counter = CI_VBUS_GLITCH_COUNTER_RESET_VAL;
+	int total_counter = CI_VBUS_CONNECT_TOTAL_TIMEOUT_MS/20;
 
-	for (i = 0; i < CI_VBUS_CONNECT_TIMEOUT_MS/20; i++) {
+	dev_dbg(ci->dev,
+		"Running for max %d ms while checking for VBUS glitc\n",
+		CI_VBUS_CONNECT_TOTAL_TIMEOUT_MS);
+	dev_dbg(ci->dev,
+		"(expecting min %d ms with stable VBUS)\n",
+		CI_VBUS_CONNECT_GLITCH_TIMEOUT_MS);
+	do {
+
 		if (hw_read_otgsc(ci, OTGSC_AVV)) {
+			dev_dbg(ci->dev, "VBUS is valid, returning\n");
 			return 0;
 		} else if (!hw_read_otgsc(ci, OTGSC_BSV)) {
+			dev_dbg(ci->dev,
+				"B session glitch, resetting glitch counter\n");
+			glitch_counter = CI_VBUS_GLITCH_COUNTER_RESET_VAL;
+
 			dev_warn(ci->dev, "there is a vbus glitch\n");
-			return 1;
+		} else {
+			glitch_counter--;
 		}
 		msleep(20);
+		total_counter--;
+	} while ((total_counter > 0) && (glitch_counter > 0));
+
+	if (glitch_counter > 0) {
+		dev_dbg(ci->dev,
+			"Unable to measure stable VBUS for %d ms\n",
+			CI_VBUS_CONNECT_GLITCH_TIMEOUT_MS);
+		return 1;
 	}
 
+	dev_dbg(ci->dev,
+		"%d ms with stable VBUS !\n",
+		CI_VBUS_CONNECT_GLITCH_TIMEOUT_MS);
 	return 0;
 }
 

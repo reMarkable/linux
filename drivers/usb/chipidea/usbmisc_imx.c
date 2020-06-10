@@ -735,7 +735,7 @@ static int imx7d_charger_secondary_detection(struct imx_usbmisc_data *data)
 
 	val = readl(usbmisc->base + MX7D_USB_OTG_PHY_STATUS);
 	if (val & MX7D_USB_OTG_PHY_STATUS_LINE_STATE1) {
-		dev_dbg(data->dev, "It is a dedicate charging port\n");
+		dev_dbg(data->dev, "It is a dedicated charging port\n");
 		usb_phy->chg_type = DCP_TYPE;
 	} else {
 		dev_dbg(data->dev, "It is a charging downstream port\n");
@@ -851,19 +851,27 @@ static int imx7d_charger_primary_detection(struct imx_usbmisc_data *data)
 	 * - Do not Check whether the USB plug has been in contact with
 	 * each other
 	 */
+	dev_dbg(data->dev, "Setting up USB PHY to check whether a charger is "
+			   "connected to the USB port\n");
+	dev_dbg(data->dev, "(NOT checking whether the USB plug has been in "
+			   "contact with each other)\n");
 	val = readl(usbmisc->base + MX7D_USB_OTG_PHY_CFG2);
 	writel(val | MX7D_USB_OTG_PHY_CFG2_CHRG_VDATSRCENB0 |
 			MX7D_USB_OTG_PHY_CFG2_CHRG_VDATDETENB0,
 				usbmisc->base + MX7D_USB_OTG_PHY_CFG2);
 	spin_unlock_irqrestore(&usbmisc->lock, flags);
 
-	usleep_range(1000, 2000);
+	dev_dbg(data->dev, "Waiting 500 ms before reading status\n");
+	usleep_range(500000, 501000);
 
 	/* Check if it is a charger */
 	val = readl(usbmisc->base + MX7D_USB_OTG_PHY_STATUS);
 	if (!(val & MX7D_USB_OTG_PHY_STATUS_CHRGDET)) {
-		dev_dbg(data->dev, "It is a stardard downstream port\n");
+		dev_dbg(data->dev, "It is a standard downstream port\n");
 		usb_phy->chg_type = SDP_TYPE;
+	}
+	else {
+		dev_dbg(data->dev, "It is NOT a standard downstream port\n");
 	}
 
 	imx7_disable_charger_detector(data);
