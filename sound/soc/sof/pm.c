@@ -290,6 +290,9 @@ static int sof_resume(struct device *dev, bool runtime_resume)
 		return ret;
 	}
 
+	if (!runtime_resume && pm_runtime_suspended(sdev->dev))
+		return 0;
+
 	sdev->fw_state = SOF_FW_BOOT_PREPARE;
 
 	/* load the firmware */
