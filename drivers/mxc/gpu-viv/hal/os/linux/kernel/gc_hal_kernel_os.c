@@ -3715,7 +3715,6 @@ gckOS_UnlockPages(
     /* Verify the arguments. */
     gcmkVERIFY_OBJECT(Os, gcvOBJ_OS);
     gcmkVERIFY_ARGUMENT(Physical != gcvNULL);
-    gcmkVERIFY_ARGUMENT(Logical != gcvNULL);
 
     mutex_lock(&mdl->mapsMutex);
 
