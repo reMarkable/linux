@@ -21,7 +21,7 @@ extern "C" {
 #define gcdFLOP_RESET           1
 #define gcdFLOP_RESET_PPU       1
 #define gcdFLOP_RESET_NN        1
-#define gcdFLOP_RESET_TP        0
+#define gcdFLOP_RESET_TP        1
 
 /*
  * The following macros are for old FLOP
