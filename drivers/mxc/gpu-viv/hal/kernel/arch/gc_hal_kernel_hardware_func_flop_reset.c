@@ -101,6 +101,28 @@ typedef enum _gceFLOP_RESET_NN_DATA {
 }
 gceFLOP_RESET_NN_DATA;
 
+#define TP_KERNEL_XSIZE 1
+#define TP_KERNEL_YSIZE 1
+#define TP_KERNEL_ZSIZE 2
+#define TP_KENREL_UNITS 64
+
+#define TP_INPUT_XSIZE 1
+#define TP_INPUT_YSIZE 1
+#define TP_INPUT_ZSIZE 2
+
+#define TP_OUTPUT_XSIZE 1
+#define TP_OUTPUT_YSIZE 64
+#define TP_OUTPUT_ZSIZE 1
+
+typedef enum _gceFLOP_RESET_TP_DATA {
+    gcvFLOP_RESET_TP_INSTRUCTION = 0,
+    gcvFLOP_RESET_TP_INPUT       = 1,
+    gcvFLOP_RESET_TP_OUTPUT      = 2,
+    gcvFLOP_RESET_TP_KERNEL      = 3,
+    gcvFLOP_RESET_TP_DATA_NUM
+}
+gceFLOP_RESET_TP_DATA;
+
 static gceSTATUS
 _AllocateVideoMemory(
     IN gckKERNEL Kernel,
@@ -6309,6 +6331,494 @@ OnError:
     return status;
 }
 
+static gceSTATUS
+_ProgramTPKernel(
+    IN gckHARDWARE Hardware,
+    IN gceVIP_ARCH_TYPE ArchType,
+    IN gctUINT32 CoreCount,
+    IN gctUINT32 Zdp,
+    IN gctUINT8 DataType,
+    IN gctUINT32 KernelXSize,
+    IN gctUINT32 KernelYSize,
+    IN gctUINT32 KernelZSize,
+    IN gctUINT32 AllocFlag,
+    IN OUT gcePOOL *Pool,
+    OUT gcsFUNCTION_EXECUTION_DATA *Data
+    )
+{
+    gceSTATUS status = gcvSTATUS_OK;
+    gckVIDMEM_NODE bufferNode = gcvNULL;
+    gctPOINTER bufferLogical = gcvNULL;
+    gctUINT32 bufferAddress =0;
+    gctSIZE_T bufferBytes = 0x3C0;
+    gctUINT32 *buffer = gcvNULL;
+    gctUINT32 i;
+
+
+    /* hardcode */
+    gcmkONERROR(_AllocateVideoMemory(
+        Hardware->kernel,
+        gcvVIDMEM_TYPE_BITMAP,
+        AllocFlag,
+        Pool,
+        &bufferBytes,
+        &bufferNode,
+        &bufferLogical,
+        &bufferAddress
+        ));
+
+    buffer = (gctUINT32_PTR)bufferLogical;
+
+    /* Fill the data. */
+    for (i = 0; i < bufferBytes / 4; i++)
+    {
+        buffer[i] = 0;
+    }
+
+    buffer[0] = 0x01150410;
+    buffer[1] = buffer[81] = buffer[161] = 0x00000100;
+    buffer[5] = buffer[85] = buffer[165] = 0x26543780;
+    buffer[6] = buffer[86] = buffer[166] = 0x000000ff;
+    buffer[7] = buffer[87] = buffer[167] = 0x0006801a;
+    buffer[48] = buffer[128] = buffer[208] = 0x00024938;
+    buffer[64] = buffer[144] = buffer[224] = 0x00024938;
+    buffer[80] = buffer[160] = 0x01140410;
+
+
+    gcmkONERROR(gckVIDMEM_NODE_CleanCache(
+        Hardware->kernel,
+        bufferNode,
+        0,
+        bufferLogical,
+        bufferBytes
+        ));
+
+#if gcdDUMP_IN_KERNEL
+    gcmkDUMP(Hardware->os, "#[flop reset: TP kernel]");
+    gcmkDUMP_BUFFER(
+        Hardware->os,
+        gcvDUMP_BUFFER_KERNEL_COMMAND,
+        bufferLogical,
+        bufferAddress,
+        bytes
+        );
+#endif
+
+    Data->bufVidMem = bufferNode;
+    Data->bufVidMemBytes = bufferBytes;
+    Data->address = bufferAddress;
+    Data->logical = bufferLogical;
+    Data->bytes = bufferBytes;
+
+    return gcvSTATUS_OK;
+
+OnError:
+    if (bufferNode)
+    {
+        gcmkVERIFY_OK(_FreeVideoMemory(
+            Hardware->kernel,
+            bufferNode
+            ));
+    }
+
+    return status;
+}
+
+static gceSTATUS
+_ProgramTPInput(
+    IN gckHARDWARE Hardware,
+    IN gceVIP_ARCH_TYPE ArchType,
+    IN gctUINT8 DataType,
+    IN gctUINT32 InImageXSize,
+    IN gctUINT32 InImageYSize,
+    IN gctUINT32 InImageZSize,
+    IN gctUINT32 AllocFlag,
+    IN OUT gcePOOL *Pool,
+    OUT gcsFUNCTION_EXECUTION_DATA_PTR Data
+    )
+{
+    gceSTATUS status = gcvSTATUS_OK;
+
+    gctUINT32 inputSize = InImageXSize * InImageYSize * InImageZSize;
+    gctUINT32 itemBytes = 0;
+    gckVIDMEM_NODE bufferNode = gcvNULL;
+    gctPOINTER bufferLogical = gcvNULL;
+    gctUINT32 bufferAddress = 0;
+    gctSIZE_T bufferBytes, bytes;
+    gctUINT8_PTR buffer = gcvNULL;
+
+    gctUINT32 i = 0;
+    gctUINT32 offset = 0;
+    gctUINT32 value[] = {
+        0xff, /* uint8, the case set scale = 0.003921569*/
+        0x3c00, /* fp16 */
+        1, /* int8 */
+        1, /* uint16 */
+        1, /* int16 */
+        1, /* uint4 */
+        1, /* int4 */
+        0x3f80  /* bf16 */
+    };
+    gcmkONERROR(_GetNNDataSize(DataType, &itemBytes));
+
+    bufferBytes = inputSize * itemBytes;
+
+    gcmkONERROR(_AllocateVideoMemory(
+        Hardware->kernel,
+        gcvVIDMEM_TYPE_BITMAP,
+        AllocFlag,
+        Pool,
+        &bufferBytes,
+        &bufferNode,
+        &bufferLogical,
+        &bufferAddress
+        ));
+
+    if (gcvVIP_ARCH_TYPE_V8 == ArchType)
+    {
+        value[0x4] = 0x81;
+    }
+
+    buffer = (gctUINT8_PTR)bufferLogical;
+
+    for (i = 0; i < inputSize; i++)
+    {
+        _BitValue(&buffer, value[DataType], &offset, itemBytes * 8);
+    }
+
+    bytes = buffer + (offset + 7) / 8 - (gctUINT8_PTR)bufferLogical;
+
+    gcmkONERROR(gckVIDMEM_NODE_CleanCache(
+        Hardware->kernel,
+        bufferNode,
+        0,
+        bufferLogical,
+        bytes
+        ));
+
+#if gcdDUMP_IN_KERNEL
+    gcmkDUMP(Hardware->os, "#[flop reset: TP input]");
+    gcmkDUMP_BUFFER(
+        Hardware->os,
+        gcvDUMP_BUFFER_KERNEL_COMMAND,
+        bufferLogical,
+        bufferAddress,
+        bytes
+        );
+#endif
+
+    Data->bufVidMem = bufferNode;
+    Data->bufVidMemBytes = bufferBytes;
+    Data->address = bufferAddress;
+    Data->logical = bufferLogical;
+    Data->bytes = bytes;
+
+    return gcvSTATUS_OK;
+
+OnError:
+    gcmkVERIFY_OK(_FreeVideoMemory(
+        Hardware->kernel,
+        bufferNode
+        ));
+
+    return status;
+}
+
+static gceSTATUS
+_ProgramTPOutput(
+    IN gckHARDWARE Hardware,
+    IN gctUINT8 DataType,
+    IN gctUINT32 OutputXSize,
+    IN gctUINT32 OutputYSize,
+    IN gctUINT32 OutputZSize,
+    IN gctUINT32 AllocFlag,
+    IN OUT gcePOOL *Pool,
+    OUT gcsFUNCTION_EXECUTION_DATA *Data
+    )
+{
+    gceSTATUS status = gcvSTATUS_OK;
+
+    gctUINT32 itemBytes = 0;
+    gckVIDMEM_NODE bufferNode = gcvNULL;
+    gctPOINTER bufferLogical = gcvNULL;
+    gctUINT32 bufferAddress = 0;
+    gctSIZE_T bufferBytes, bytes;
+
+    if (!Data)
+    {
+        gcmkONERROR(gcvSTATUS_INVALID_ARGUMENT);
+    }
+
+    gcmkONERROR(_GetNNDataSize(DataType, &itemBytes));
+
+    bufferBytes = bytes = OutputXSize * OutputYSize * OutputZSize * itemBytes;
+
+    gcmkONERROR(_AllocateVideoMemory(
+        Hardware->kernel,
+        gcvVIDMEM_TYPE_BITMAP,
+        AllocFlag,
+        Pool,
+        &bufferBytes,
+        &bufferNode,
+        &bufferLogical,
+        &bufferAddress
+        ));
+
+    gcmkONERROR(gckVIDMEM_NODE_CleanCache(
+        Hardware->kernel,
+        bufferNode,
+        0,
+        bufferLogical,
+        bytes
+        ));
+
+    Data->bufVidMem = bufferNode;
+    Data->bufVidMemBytes = bufferBytes;
+    Data->address = bufferAddress;
+    Data->logical = bufferLogical;
+    Data->bytes = bytes;
+
+    return gcvSTATUS_OK;
+
+OnError:
+    gcmkVERIFY_OK(_FreeVideoMemory(
+        Hardware->kernel,
+        bufferNode
+        ));
+
+    return status;
+}
+
+static gceSTATUS
+_ProgramTPInstruction(
+    IN gckHARDWARE Hardware,
+    IN gceVIP_ARCH_TYPE ArchType,
+    IN gctUINT8 DataType,
+    IN gctUINT32 InImageXSize,
+    IN gctUINT32 InImageYSize,
+    IN gctUINT32 OutImageXSize,
+    IN gctUINT32 OutImageYSize,
+    IN gctUINT32 OutImageZSize,
+    IN gctUINT32 KernelXSize,
+    IN gctUINT32 KernelYSize,
+    IN gctUINT32 KernelZSize,
+    IN gctUINT32 InImageAddress,
+    IN gctUINT32 OutImageAddress,
+    IN gctUINT32 KernelAddress,
+    IN gctUINT32 AllocFlag,
+    IN gcePOOL *Pool,
+    OUT gcsFUNCTION_EXECUTION_DATA_PTR Data
+    )
+{
+    gceSTATUS status = gcvSTATUS_OK;
+
+    gckVIDMEM_NODE bufferNode = gcvNULL;
+    gctPOINTER bufferLogical = gcvNULL;
+    gctUINT32 bufferAddress = 0;
+    gctSIZE_T bufferBytes, bytes;
+    gctUINT32 *command = gcvNULL;
+    gctUINT32 i;
+
+    bufferBytes = bytes = 0x180;
+
+    /* Allocate buffer. */
+    gcmkONERROR(_AllocateVideoMemory(
+        Hardware->kernel,
+        gcvVIDMEM_TYPE_COMMAND,
+        AllocFlag,
+        Pool,
+        &bufferBytes,
+        &bufferNode,
+        &bufferLogical,
+        &bufferAddress
+        ));
+
+    command = (gctUINT32_PTR)bufferLogical;
+
+    /* Fill the data. */
+    for (i = 0; i < bufferBytes / 4; i++)
+    {
+        command[i] = 0;
+    }
+
+    for (i = 0; i < 3; i++)
+    {
+        command[0] = command[2] = command[3] = command[20] = 0x00000001;
+        command[1] = 0x00020001;
+        command[8] = command[9] = command[16] = command[19] = 0x00010001;
+        command[10] = InImageAddress;
+        command[24] = 0x0000240a;
+        command[26] = command[28] = 0x03ffffff;
+        command[30] = 0x00008100;
+        command = command + 32;
+    }
+
+    command = (gctUINT32_PTR)bufferLogical;
+
+    command[6] = 0xa0002a1b;
+    command[38] = command[70] = 0xa000281b;
+    command[12] = command[44] = 0xc0000002;
+    command[76] = 0x80000002;
+    command[22] = 0x00010016;
+    command[54] = command[86] = 0x00010015;
+    command[11] = KernelAddress;
+    command[43] = KernelAddress + 0x140;
+    command[75] = KernelAddress + 0x280;
+    command[13] = OutImageAddress;
+    command[45] = OutImageAddress + 0x16;
+    command[77] = OutImageAddress + 0x2b;
+
+    gcmkONERROR(gckVIDMEM_NODE_CleanCache(
+        Hardware->kernel,
+        bufferNode,
+        0,
+        bufferLogical,
+        bytes
+        ));
+
+#if gcdDUMP_IN_KERNEL
+    gcmkDUMP(Hardware->os, "#[flop reset: TP instruction]");
+    gcmkDUMP_BUFFER(
+        Hardware->os,
+        gcvDUMP_BUFFER_KERNEL_COMMAND,
+        bufferLogical,
+        bufferAddress,
+        bytes
+        );
+#endif
+
+    Data->bufVidMem = bufferNode;
+    Data->bufVidMemBytes = bufferBytes;
+    Data->address = bufferAddress;
+    Data->logical = bufferLogical;
+    Data->bytes = bytes;
+
+    return gcvSTATUS_OK;
+
+OnError:
+    if (bufferNode)
+    {
+        gcmkVERIFY_OK(_FreeVideoMemory(
+            Hardware->kernel,
+            bufferNode
+            ));
+    }
+
+    return status;
+}
+
+static gceSTATUS
+_ProgramTPCommand(
+    IN gckHARDWARE Hardware,
+    IN gceVIP_ARCH_TYPE ArchType,
+    IN gctUINT32 InstAddress,
+    IN gctUINT32 AllocFlag,
+    IN gcePOOL *Pool,
+    OUT gcsFUNCTION_COMMAND_PTR Command
+    )
+{
+    gceSTATUS status = gcvSTATUS_OK;
+
+    gckVIDMEM_NODE bufferNode = gcvNULL;
+    gctPOINTER bufferLogical = gcvNULL;
+    gctUINT32 bufferAddress = 0;
+    gctSIZE_T bufferBytes;
+    gctUINT32 bytes;
+    gctUINT32 *commands;
+
+    gctUINT8_PTR endLogical;
+    gctUINT32 endAddress;
+    gctUINT32 endBytes = 0;
+    gctUINT32 i = 0;
+    gctUINT32 k;
+
+    bufferBytes = gcmSIZEOF(gctUINT32) * 64;
+
+    gcmkONERROR(_AllocateVideoMemory(
+        Hardware->kernel,
+        gcvVIDMEM_TYPE_COMMAND,
+        AllocFlag,
+        Pool,
+        &bufferBytes,
+        &bufferNode,
+        &bufferLogical,
+        &bufferAddress
+        ));
+
+    commands = (gctUINT32_PTR)bufferLogical;
+    for (i = 0; i < 3; i++)
+    {
+        k = 14 * i;
+        commands[0 + k] = 0x08010e4e;
+        commands[1 + k] = 0x00400000;
+        commands[2 + k] = 0x08010e4f;
+        commands[3 + k] = 0x00000000;
+        commands[4 + k] = 0x08010e50;
+        commands[5 + k] = 0x00000000;
+        commands[6 + k] = 0x08010e53;
+        commands[7 + k] = 0x00000000;
+        commands[8 + k] = 0x08010e54;
+        commands[9 + k] = 0x00000008;
+        commands[10 + k] = 0x08010e27;
+        commands[11 + k] = 0x00000000;
+        commands[12 + k] = 0x0801042e;
+    }
+
+    commands[13] = (InstAddress & 0xffffffC0) | (0x1);
+    commands[27] = ((InstAddress + 0x80) & 0xffffffC0) | (0x1);
+    commands[37] = 0x00000000;
+    commands[41] = ((InstAddress + 0x100) & 0xffffffC0);
+    commands[42] = 0x08010429;
+    commands[43] = 0;
+    commands[44] = 0x08010E03;
+    commands[45] = 0x20;
+
+    bytes = 46 * 4;
+
+    endLogical = (gctUINT8_PTR)bufferLogical + bytes;
+    endAddress = bufferAddress + bytes;
+
+    if (Hardware->wlFE)
+    {
+        gcmkONERROR(gckWLFE_End(Hardware, gcvNULL, ~0U, &endBytes));
+        gcmkONERROR(gckWLFE_End(Hardware, endLogical, endAddress, &endBytes));
+    }
+
+    bytes += endBytes;
+
+    gcmkASSERT(bytes <= bufferBytes);
+
+
+    gcmkONERROR(gckVIDMEM_NODE_CleanCache(
+        Hardware->kernel,
+        bufferNode,
+        0,
+        bufferLogical,
+        bytes
+        ));
+
+    Command->funcVidMem = bufferNode;
+    Command->funcVidMemBytes = bufferBytes;
+    Command->logical = bufferLogical;
+    Command->address = bufferAddress;
+    Command->bytes = bytes;
+    Command->endAddress = endAddress;
+    Command->endLogical = endLogical;
+
+    return gcvSTATUS_OK;
+
+OnError:
+    if (bufferNode)
+    {
+        gcmkONERROR(_FreeVideoMemory(
+            Hardware->kernel,
+            bufferNode
+            ));
+    }
+
+    return status;
+}
+
 /*
  * TP.
  */
@@ -6322,11 +6832,152 @@ gckHARDWARE_ResetFlopWithTP(
 {
     gceSTATUS status = gcvSTATUS_OK;
 
-    gcmkONERROR(gcvSTATUS_OK);
+    gctUINT32 kernelXSize = TP_KERNEL_XSIZE;
+    gctUINT32 kernelYSize = TP_KERNEL_YSIZE;
+    gctUINT32 kernelZSize = TP_KERNEL_ZSIZE;
+
+    gctUINT32 inImageXSize = TP_INPUT_XSIZE;
+    gctUINT32 inImageYSize = TP_INPUT_YSIZE;
+    gctUINT32 inImageZSize = TP_INPUT_ZSIZE;
+
+    gctUINT32 outImageXSize = TP_OUTPUT_XSIZE;
+    gctUINT32 outImageYSize = TP_OUTPUT_YSIZE;
+    gctUINT32 outImageZSize = TP_OUTPUT_ZSIZE;
+
+    gctUINT32 i;
+    gctPOINTER pointer = gcvNULL;
+
+    gceVIP_ARCH_TYPE archType = gcvVIP_ARCH_TYPE_V8;
+    gctUINT8 dataType;
+    gctUINT32 coreCount = 0;
+    gctUINT32 zdp = 1;
+    gctUINT32 itemBytes = 0;
+    gcsFUNCTION_EXECUTION_DATA_PTR data = gcvNULL;
+    gctUINT32 dataCount = 0;
+
+    if (!Command)
+    {
+        gcmkONERROR(gcvSTATUS_INVALID_ARGUMENT);
+    }
+
+
+    dataType = 0x0;
+
+    gcmkONERROR(_GetNNDataSize(dataType, &itemBytes));
+
+    /* Exectution data. */
+    dataCount = gcvFLOP_RESET_TP_DATA_NUM;
+    gcmkASSERT(dataCount > 0);
+
+    gcmkONERROR(gckOS_Allocate(
+        Hardware->os,
+        gcmSIZEOF(gcsFUNCTION_EXECUTION_DATA) * dataCount,
+        &pointer
+        ));
+    gckOS_ZeroMemory(pointer, gcmSIZEOF(gcsFUNCTION_EXECUTION_DATA) * dataCount);
+    data = (gcsFUNCTION_EXECUTION_DATA *)pointer;
+
+    /* Kernel. */
+    gcmkONERROR(_ProgramTPKernel(
+        Hardware,
+        archType,
+        coreCount,
+        zdp,
+        dataType,
+        kernelXSize,
+        kernelYSize,
+        kernelZSize,
+        AllocFlag,
+        Pool,
+        &data[gcvFLOP_RESET_TP_KERNEL]
+        ));
+
+    /* Input. */
+    gcmkONERROR(_ProgramTPInput(
+        Hardware,
+        archType,
+        dataType,
+        inImageXSize,
+        inImageYSize,
+        inImageZSize,
+        AllocFlag,
+        Pool,
+        &data[gcvFLOP_RESET_TP_INPUT]
+        ));
+
+    /* Output. */
+    gcmkONERROR(_ProgramTPOutput(
+        Hardware,
+        dataType,
+        outImageXSize,
+        outImageYSize,
+        outImageZSize,
+        AllocFlag,
+        Pool,
+        &data[gcvFLOP_RESET_TP_OUTPUT]
+        ));
+
+    /* Commands. */
+    gcmkONERROR(_ProgramTPInstruction(
+        Hardware,
+        archType,
+        dataType,
+        inImageXSize,
+        inImageYSize,
+        outImageXSize,
+        outImageYSize,
+        outImageZSize,
+        kernelXSize,
+        kernelYSize,
+        kernelZSize,
+        data[gcvFLOP_RESET_TP_INPUT].address,
+        data[gcvFLOP_RESET_TP_OUTPUT].address,
+        data[gcvFLOP_RESET_TP_KERNEL].address,
+        AllocFlag,
+        Pool,
+        &data[gcvFLOP_RESET_TP_INSTRUCTION]
+        ));
+
+    gcmkONERROR(_ProgramTPCommand(
+        Hardware,
+        archType,
+        data[gcvFLOP_RESET_TP_INSTRUCTION].address,
+        AllocFlag,
+        Pool,
+        Command
+        ));
+
+    Command->data = data;
+    Command->dataCount = dataCount;
 
     return gcvSTATUS_OK;
 
 OnError:
+    if (Command->funcVidMem)
+    {
+        gcmkVERIFY_OK(_FreeVideoMemory(
+            Hardware->kernel,
+            Command->funcVidMem
+            ));
+        Command->funcVidMem = gcvNULL;
+    }
+
+    if (data)
+    {
+        for (i = 0; i < dataCount; i++)
+        {
+            if (data[i].bufVidMem)
+            {
+                gcmkVERIFY_OK(_FreeVideoMemory(
+                    Hardware->kernel,
+                    data[i].bufVidMem
+                    ));
+            }
+        }
+
+        gcmkVERIFY_OK(gckOS_Free(Hardware->os, data));
+    }
+
     return status;
 }
 
