@@ -42,6 +42,7 @@
 struct imx8_priv {
 	struct device *dev;
 	struct snd_sof_dev *sdev;
+	bool suspended;
 
 	/* DSP IPC handler */
 	struct imx_dsp_ipc *dsp_ipc;
@@ -378,17 +379,63 @@ static int imx8_ipc_pcm_params(struct snd_sof_dev *sdev,
 	return 0;
 }
 
+int imx8_resume(struct snd_sof_dev *sdev)
+{
+	struct imx8_priv *priv = (struct imx8_priv *)sdev->private;
+	int i;
+
+	for (i = 0; i < DSP_MU_CHAN_NUM; i++)
+		imx_dsp_request_channel(priv->dsp_ipc, i);
+
+	return 0;
+}
+
+int imx8_suspend(struct snd_sof_dev *sdev)
+{
+	struct imx8_priv *priv = (struct imx8_priv *)sdev->private;
+	int i;
+
+	for (i = 0; i < DSP_MU_CHAN_NUM; i++)
+		imx_dsp_free_channel(priv->dsp_ipc, i);
+
+	return 0;
+}
+
+int imx8_dsp_runtime_resume(struct snd_sof_dev *sdev)
+{
+	return imx8_resume(sdev);
+}
+
+int imx8_dsp_runtime_suspend(struct snd_sof_dev *sdev)
+{
+
+	return imx8_suspend(sdev);
+}
+
 int imx8_dsp_resume(struct snd_sof_dev *sdev)
 {
-	/* nothing to do for now */
+	struct imx8_priv *priv = (struct imx8_priv *)sdev->private;
+
+	if (priv->suspended) {
+		imx8_resume(sdev);
+		priv->suspended = false;
+	}
+
 	return 0;
 }
 
 int imx8_dsp_suspend(struct snd_sof_dev *sdev)
 {
-	/* nothing to do for now */
+	struct imx8_priv *priv = (struct imx8_priv *)sdev->private;
+
+	if (!priv->suspended) {
+		imx8_suspend(sdev);
+		priv->suspended = true;
+	}
+
 	return 0;
 }
+
 
 static struct snd_soc_dai_driver imx8_dai[] = {
 {
@@ -430,8 +477,8 @@ struct snd_sof_dsp_ops sof_imx8_ops = {
 	/* PM */
 	.suspend		= imx8_dsp_suspend,
 	.resume			= imx8_dsp_resume,
-	.runtime_suspend	= imx8_dsp_suspend,
-	.runtime_resume		= imx8_dsp_resume,
+	.runtime_suspend	= imx8_dsp_runtime_suspend,
+	.runtime_resume		= imx8_dsp_runtime_resume,
 
 	/* ALSA HW info flags */
 	.hw_info =	SNDRV_PCM_INFO_MMAP |
