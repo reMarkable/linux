@@ -920,6 +920,9 @@ static int imx_rproc_configure_mode(struct imx_rproc *priv)
 	} else if (of_get_property(dev->of_node, "early-booted", NULL)) {
 		priv->early_boot = true;
 	} else {
+		if (!priv->regmap)
+			return -ENODEV;
+
 		ret = regmap_read(priv->regmap, dcfg->src_reg, &val);
 		if (ret) {
 			dev_err(dev, "Failed to read src\n");
