@@ -4279,12 +4279,12 @@ _FuncInit_FlopReset(
         (gctPOINTER *)&pointer
         ));
 
+    Execution->funcCmd = (gcsFUNCTION_COMMAND_PTR)pointer;
+
     gcmkONERROR(gckOS_ZeroMemory(
         (gctPOINTER)pointer,
         gcmSIZEOF(gcsFUNCTION_COMMAND) * Execution->funcCmdCount
         ));
-
-    Execution->funcCmd = (gcsFUNCTION_COMMAND_PTR)pointer;
 
     pool = gcvPOOL_DEFAULT;
 
