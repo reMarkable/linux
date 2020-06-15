@@ -113,6 +113,10 @@
 			no-map;
 			reg = <0 0x84000000 0 0x2000000>;
 		};
+		dsp_reserved: dsp@0x92400000 {
+			no-map;
+			reg = <0 0x92400000 0 0x2000000>;
+		};
 		encoder_boot: encoder_boot@0x86000000 {
 			no-map;
 			reg = <0 0x86000000 0 0x400000>;
@@ -381,6 +385,32 @@
 			};
 		};
 	};
+
+	vpu_subsys_dsp: bus@55000000 {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0x55000000 0x0 0x55000000 0x1000000>;
+		xen,passthrough;
+
+		dsp: dsp@556e8000 {
+			compatible = "fsl,imx8qm-dsp";
+			reg = <0x556e8000 0x88000>;
+			clocks = <&clk_dummy>,
+				 <&clk_dummy>,
+				 <&clk_dummy>;
+			clock-names = "ipg", "ocram", "core";
+			fsl,dsp-firmware = "imx/dsp/hifi4.bin";
+			power-domains = <&pd IMX_SC_R_MU_13A>,
+					<&pd IMX_SC_R_MU_13B>,
+					<&pd IMX_SC_R_DSP>,
+					<&pd IMX_SC_R_DSP_RAM>;
+			memory-region = <&dsp_reserved>;
+			fixup-offset = <0x4000000>;
+			status = "disabled";
+		};
+	};
+
 };
 
 #include "imx8qm-ss-conn.dtsi"
@@ -403,6 +433,10 @@
 		compatible = "fsl,imx-display-subsystem";
 		ports = <&dpu1_disp0>, <&dpu1_disp1>;
 	};
+};
+
+&lsio_mu13 {
+	xen,passthrough;
 };
 
 &dc0_subsys {
@@ -977,11 +1011,10 @@
 };
 
 /* Audio */
-/*&dsp {
+&dsp {
 	compatible = "fsl,imx8qm-dsp-v1";
 	status = "okay";
 };
-*/
 
 &asrc0 {
 	fsl,asrc-rate  = <48000>;

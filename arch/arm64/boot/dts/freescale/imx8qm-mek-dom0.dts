@@ -91,6 +91,10 @@
 				IMX_SC_R_VPU_MU_1
 				IMX_SC_R_VPU_MU_2
 				IMX_SC_R_VPU_MU_3
+				IMX_SC_R_MU_13A
+				IMX_SC_R_MU_13B
+				IMX_SC_R_DSP
+				IMX_SC_R_DSP_RAM
 				/* usbotg1 */
 				IMX_SC_R_USB_0
 				IMX_SC_R_USB_0_PHY
@@ -597,6 +601,14 @@
 };
 
 &vpu_ts {
+	xen,passthrough;
+};
+
+&dsp {
+	xen,passthrough;
+};
+
+&lsio_mu13 {
 	xen,passthrough;
 };
 
