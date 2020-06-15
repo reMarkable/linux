@@ -1,0 +1,24 @@
+NXP LPA(Low Power Audio) DSP
+
+The DTS is for i.MX8MP DSP offload audio playback. DSP only use OCRAM
+and OCRAM_A when audio playback, so DRAM can enter retention mode to
+save Power. As the size limitation of OCRAM and OCRAM_A and the size
+audio decoder library, the LPA playback only can support MP3.
+OCRAM address is 0x900000-0x990000. ATF will use 0x960000-0x980000.
+DSP LPA will use ocram(0x900000-0x960000) and ocram_e(0x980000-
+0x990000)
+
+Required properties:
+
+  - compatible			: Contains "fsl,imx8mp-dsp-lpa".
+  - fsl,dsp-firmware		: LPA DSP FW name.
+
+Example:
+
+&dsp {
+	compatible = "fsl,imx8mp-dsp-lpa";
+	ocram = <&ocram>;
+	ocram-e = <&ocram_e>;
+	fsl,dsp-firmware = "imx/dsp/hifi4_imx8mp_lpa.bin";
+	status = "okay";
+};

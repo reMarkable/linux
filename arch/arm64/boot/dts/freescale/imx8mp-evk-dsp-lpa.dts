@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2020 NXP
+ */
+
+/dts-v1/;
+
+#include "imx8mp-evk-dsp.dts"
+
+&dsp {
+	compatible = "fsl,imx8mp-dsp-lpa";
+	ocram = <&ocram>;
+	ocram-e = <&ocram_e>;
+	fsl,dsp-firmware = "imx/dsp/hifi4_imx8mp_lpa.bin";
+	status = "okay";
+};
