@@ -780,6 +780,15 @@ int dsp_mu_init(struct fsl_dsp *dsp_priv)
 		return -EINVAL;
 	}
 
+	if (dsp_priv->dsp_is_lpa) {
+		ret = irq_set_irq_wake(irq, 1);
+		if (ret) {
+			dev_err(dev, "Failed to set IRQ %d as wake source: %d\n",
+					irq, ret);
+			return ret;
+		}
+	}
+
 	return ret;
 }
 
