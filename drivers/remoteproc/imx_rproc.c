@@ -582,8 +582,11 @@ static int imx_rproc_elf_load_segments(struct rproc *rproc,
 {
 	struct imx_rproc *priv = rproc->priv;
 
-	if (!priv->early_boot)
+	if (!priv->early_boot) {
+		if (!fw)
+			return -EINVAL;
 		return rproc_elf_load_segments(rproc, fw);
+	}
 
 	return 0;
 }
