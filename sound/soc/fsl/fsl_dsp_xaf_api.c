@@ -178,7 +178,7 @@ int xaf_comp_create(struct xf_client *client, struct xf_proxy *proxy,
 	char   lib_wrap_path[200];
 	struct xf_handle *p_handle;
 	struct xf_buffer *buf;
-	int    ret = 0;
+	int    ret = 0, size;
 	bool   loadlib = true;
 
 	memset((void *)p_comp, 0, sizeof(struct xaf_comp));
@@ -247,7 +247,11 @@ int xaf_comp_create(struct xf_client *client, struct xf_proxy *proxy,
 		}
 
 		/* ...allocate input buffer */
-		ret = xf_pool_alloc(client, proxy, 1, INBUF_SIZE,
+		if (dsp_priv->dsp_is_lpa)
+			size = INBUF_SIZE_LPA;
+		else
+			size = INBUF_SIZE;
+		ret = xf_pool_alloc(client, proxy, 1, size,
 				    XF_POOL_INPUT, &p_comp->inpool);
 		if (ret) {
 			dev_err(dsp_priv->dev, "alloc input buf error\n");
