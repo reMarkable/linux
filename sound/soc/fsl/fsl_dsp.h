@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: (GPL-2.0+ OR MIT)*/
 /*
  * Copyright (C) 2017 Cadence Design Systems, Inc.
- * Copyright 2018 NXP
+ * Copyright 2018-2020 NXP
  *
  */
 
@@ -57,6 +57,7 @@ struct xf_client {
 
 	int input_bytes;
 	int consume_bytes;
+	int offset;
 };
 
 union xf_client_link {
@@ -77,6 +78,7 @@ struct fsl_dsp {
 	struct imx_audiomix_dsp_data 	*audiomix;
 	unsigned int			dsp_mu_id;
 	int				dsp_mu_init;
+	int				dsp_is_lpa;
 	atomic_long_t			refcnt;
 	unsigned long			paddr;
 	unsigned long			dram0;

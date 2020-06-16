@@ -3,7 +3,7 @@
 // DSP driver compress implementation
 //
 // Copyright (c) 2012-2013 by Tensilica Inc. ALL RIGHTS RESERVED.
-// Copyright 2018 NXP
+// Copyright 2018-2020 NXP
 
 #include <linux/pm_runtime.h>
 #include <sound/soc.h>
@@ -80,11 +80,24 @@ static int dsp_platform_compr_free(struct snd_compr_stream *cstream)
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct fsl_dsp  *dsp_priv = snd_soc_component_get_drvdata(component);
 	struct dsp_data *drv = &dsp_priv->dsp_data;
+	struct xf_proxy *p_proxy = &dsp_priv->proxy;
 	int ret;
 
 	if (cstream->runtime->state != SNDRV_PCM_STATE_PAUSED &&
-		cstream->runtime->state != SNDRV_PCM_STATE_RUNNING &&
 		cstream->runtime->state != SNDRV_PCM_STATE_DRAINING) {
+		if (dsp_priv->dsp_is_lpa) {
+			ret = xaf_comp_flush(drv->client, &drv->component[0]);
+			if (ret) {
+				dev_err(component->dev, "Fail to flush component, err = %d\n", ret);
+				return ret;
+			}
+
+			ret = xaf_comp_flush(drv->client, &drv->component[1]);
+			if (ret) {
+				dev_err(component->dev, "Fail to flush component, err = %d\n", ret);
+				return ret;
+			}
+		}
 
 		ret = xaf_comp_delete(drv->client, &drv->component[1]);
 		if (ret) {
@@ -97,6 +110,7 @@ static int dsp_platform_compr_free(struct snd_compr_stream *cstream)
 			dev_err(component->dev, "Fail to delete component, err = %d\n", ret);
 			return ret;
 		}
+		xf_pool_free(drv->client, p_proxy->aux);
 	}
 
 	cpu_dai->driver->ops->shutdown(NULL, cpu_dai);
@@ -194,6 +208,7 @@ static int dsp_platform_compr_set_params(struct snd_compr_stream *cstream,
 
 	drv->client->input_bytes = 0;
 	drv->client->consume_bytes = 0;
+	drv->client->offset = 0;
 
 	s_param.id = XA_RENDERER_CONFIG_PARAM_SAMPLE_RATE;
 	s_param.mixData.value = params->codec.sample_rate;
@@ -245,23 +260,25 @@ static int dsp_platform_compr_trigger_start(struct snd_compr_stream *cstream)
 	struct xaf_comp *p_comp = &drv->component[0];
 	int ret;
 
-	ret = xaf_comp_process(drv->client,
+	if (!dsp_priv->dsp_is_lpa) {
+		ret = xaf_comp_process(drv->client,
 				p_comp,
 				p_comp->inptr,
 				drv->client->input_bytes,
 				XF_EMPTY_THIS_BUFFER);
 
-	ret = xaf_connect(drv->client,
+		ret = xaf_connect(drv->client,
 				&drv->component[0],
 				&drv->component[1],
 				1,
 				OUTBUF_SIZE);
-	if (ret) {
-		dev_err(component->dev, "Failed to connect component, err = %d\n", ret);
-		return ret;
-	}
+		if (ret) {
+			dev_err(component->dev, "Failed to connect component, err = %d\n", ret);
+			return ret;
+		}
 
-	schedule_work(&drv->client->work);
+		schedule_work(&drv->client->work);
+	}
 
 	return 0;
 }
@@ -285,17 +302,22 @@ static int dsp_platform_compr_trigger_stop(struct snd_compr_stream *cstream)
 		dev_err(component->dev, "Fail to flush component, err = %d\n", ret);
 		return ret;
 	}
+	drv->client->input_bytes = 0;
+	drv->client->consume_bytes = 0;
+	drv->client->offset = 0;
 
-	ret = xaf_comp_delete(drv->client, &drv->component[0]);
-	if (ret) {
-		dev_err(component->dev, "Fail to delete component, err = %d\n", ret);
-		return ret;
-	}
+	if (!dsp_priv->dsp_is_lpa) {
+		ret = xaf_comp_delete(drv->client, &drv->component[0]);
+		if (ret) {
+			dev_err(component->dev, "Fail to delete component, err = %d\n", ret);
+			return ret;
+		}
 
-	ret = xaf_comp_delete(drv->client, &drv->component[1]);
-	if (ret) {
-		dev_err(component->dev, "Fail to delete component, err = %d\n", ret);
-		return ret;
+		ret = xaf_comp_delete(drv->client, &drv->component[1]);
+		if (ret) {
+			dev_err(component->dev, "Fail to delete component, err = %d\n", ret);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -363,7 +385,10 @@ static int dsp_platform_compr_pointer(struct snd_compr_stream *cstream,
 		goto out;
 	}
 
-	tstamp->copied_total = drv->client->input_bytes;
+	if (drv->client->input_bytes != drv->client->consume_bytes)
+		tstamp->copied_total = drv->client->input_bytes+drv->client->offset-4096;
+	else
+		tstamp->copied_total = drv->client->input_bytes+drv->client->offset;
 	tstamp->byte_offset = drv->client->input_bytes;
 	tstamp->pcm_frames = 0x900;
 	tstamp->pcm_io_frames = g_param[1].mixData.value;
@@ -408,6 +433,69 @@ static int dsp_platform_compr_copy(struct snd_compr_stream *cstream,
 					       p_comp->inptr, copied,
 					       XF_EMPTY_THIS_BUFFER);
 			schedule_work(&drv->client->work);
+		}
+	}
+
+	return copied;
+}
+
+static int dsp_platform_compr_lpa_copy(struct snd_compr_stream *cstream,
+					char __user *buf,
+					size_t count)
+{
+	struct snd_soc_pcm_runtime *rtd = cstream->private_data;
+	struct snd_soc_component *component = snd_soc_rtdcom_lookup(rtd, FSL_DSP_COMP_NAME);
+	struct fsl_dsp *dsp_priv = snd_soc_component_get_drvdata(component);
+	struct dsp_data *drv = &dsp_priv->dsp_data;
+	struct xaf_comp *p_comp = &drv->component[0];
+	int copied = 0;
+	int ret;
+
+	if (drv->client->input_bytes == drv->client->consume_bytes) {
+		if (drv->client->offset+count >= INBUF_SIZE_LPA-4096 || !buf) {
+			/* buf == NULL and count == 1 is for drain and */
+			/* suspend as tinycompress drain is blocking call */
+			copied = count;
+			if (!buf)
+				copied = 0;
+			if (buf) {
+				ret = copy_from_user(p_comp->inptr+drv->client->offset, buf, copied);
+				if (ret) {
+					dev_err(component->dev, "failed to get message from user space\n");
+					return -EFAULT;
+				}
+			}
+
+			if (cstream->runtime->state == SNDRV_PCM_STATE_RUNNING) {
+				ret = xaf_comp_process(drv->client, p_comp,
+						p_comp->inptr, drv->client->offset+copied,
+						XF_EMPTY_THIS_BUFFER);
+				if (!drv->client->input_bytes) {
+					ret = xaf_connect(drv->client,
+							&drv->component[0],
+							&drv->component[1],
+							1,
+							OUTBUF_SIZE);
+					if (ret) {
+						dev_err(component->dev, "Failed to connect component, err = %d\n", ret);
+						return ret;
+					}
+				}
+
+				schedule_work(&drv->client->work);
+				drv->client->input_bytes += drv->client->offset+copied;
+				drv->client->offset = 0;
+			}
+			if (!buf)
+				copied = count;
+		} else {
+			ret = copy_from_user(p_comp->inptr+drv->client->offset, buf, count);
+			if (ret) {
+				dev_err(component->dev, "failed to get message from user space\n");
+				return -EFAULT;
+			}
+			copied = count;
+			drv->client->offset += copied;
 		}
 	}
 
@@ -491,6 +579,18 @@ const struct snd_compr_ops dsp_platform_compr_ops = {
 	.trigger = dsp_platform_compr_trigger,
 	.pointer = dsp_platform_compr_pointer,
 	.copy = dsp_platform_compr_copy,
+	.get_caps = dsp_platform_compr_get_caps,
+	.get_codec_caps = dsp_platform_compr_get_codec_caps,
+};
+
+const struct snd_compr_ops dsp_platform_compr_lpa_ops = {
+	.open = dsp_platform_compr_open,
+	.free = dsp_platform_compr_free,
+	.set_params = dsp_platform_compr_set_params,
+	.set_metadata = dsp_platform_compr_set_metadata,
+	.trigger = dsp_platform_compr_trigger,
+	.pointer = dsp_platform_compr_pointer,
+	.copy = dsp_platform_compr_lpa_copy,
 	.get_caps = dsp_platform_compr_get_caps,
 	.get_codec_caps = dsp_platform_compr_get_codec_caps,
 };

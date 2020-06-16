@@ -2,7 +2,7 @@
  * Freescale DSP driver
  *
  * Copyright (c) 2012-2013 by Tensilica Inc. ALL RIGHTS RESERVED.
- * Copyright 2018 NXP
+ * Copyright 2018-2020 NXP
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -795,6 +795,13 @@ static const struct file_operations dsp_fops = {
 	.release	= fsl_dsp_close,
 };
 
+extern struct snd_compr_ops dsp_platform_compr_lpa_ops;
+
+static const struct snd_soc_component_driver dsp_soc_platform_lpa_drv  = {
+	.name		= FSL_DSP_COMP_NAME,
+	.compr_ops      = &dsp_platform_compr_lpa_ops,
+};
+
 extern struct snd_compr_ops dsp_platform_compr_ops;
 
 static const struct snd_soc_component_driver dsp_soc_platform_drv  = {
@@ -987,6 +994,11 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	else
 		dsp_priv->dsp_board_type = DSP_IMX8MP_TYPE;
 
+	if (of_device_is_compatible(np, "fsl,imx8mp-dsp-lpa")) {
+		dsp_priv->dsp_board_type = DSP_IMX8MP_TYPE;
+		dsp_priv->dsp_is_lpa = 1;
+	}
+
 	dsp_priv->dev = &pdev->dev;
 
 	/* Get the addresses and IRQ */
@@ -1126,10 +1138,18 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	/* ...initialize mutex */
 	mutex_init(&dsp_priv->dsp_mutex);
 
-	ret = devm_snd_soc_register_component(&pdev->dev, &dsp_soc_platform_drv, NULL, 0);
-	if (ret) {
-		dev_err(&pdev->dev, "registering soc platform failed\n");
-		goto register_component_fail;
+	if (dsp_priv->dsp_is_lpa) {
+		ret = devm_snd_soc_register_component(&pdev->dev, &dsp_soc_platform_lpa_drv, NULL, 0);
+		if (ret) {
+			dev_err(&pdev->dev, "registering soc platform failed\n");
+			goto register_component_fail;
+		}
+	} else {
+		ret = devm_snd_soc_register_component(&pdev->dev, &dsp_soc_platform_drv, NULL, 0);
+		if (ret) {
+			dev_err(&pdev->dev, "registering soc platform failed\n");
+			goto register_component_fail;
+		}
 	}
 
 	dsp_priv->esai_ipg_clk = devm_clk_get(&pdev->dev, "esai_ipg");
@@ -1504,6 +1524,7 @@ static const struct of_device_id fsl_dsp_ids[] = {
 	{ .compatible = "fsl,imx8qxp-dsp-v1", },
 	{ .compatible = "fsl,imx8qm-dsp-v1", },
 	{ .compatible = "fsl,imx8mp-dsp-v1", },
+	{ .compatible = "fsl,imx8mp-dsp-lpa", },
 	{}
 };
 MODULE_DEVICE_TABLE(of, fsl_dsp_ids);
