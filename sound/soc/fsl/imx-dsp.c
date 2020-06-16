@@ -70,6 +70,7 @@ static const struct snd_soc_dapm_route imx_dsp_audio_map[] = {
 
 static int imx_dsp_audio_probe(struct platform_device *pdev)
 {
+	struct device_node *np = pdev->dev.of_node;
 	struct device_node *cpu_np=NULL, *codec_np=NULL, *platform_np=NULL;
 	struct snd_soc_dai_link_component *comp;
 	struct platform_device *cpu_pdev;
@@ -153,7 +154,10 @@ static int imx_dsp_audio_probe(struct platform_device *pdev)
 	data->dai[1].name = "dsp hifi be";
 	data->dai[1].stream_name = "dsp hifi be";
 	if (sysfs_streq(codec_np->name, "wm8960")) {
-		data->dai[1].codecs->dai_name = "wm8960-hifi";
+		if (of_device_is_compatible(np, "fsl,imx-dsp-audio-lpa"))
+			data->dai[1].codecs->dai_name = "rpmsg-wm8960-hifi";
+		else
+			data->dai[1].codecs->dai_name = "wm8960-hifi";
 		data->dai[1].dai_fmt = SND_SOC_DAIFMT_NB_NF |
 				       SND_SOC_DAIFMT_I2S |
 				       SND_SOC_DAIFMT_CBS_CFS;
@@ -170,6 +174,8 @@ static int imx_dsp_audio_probe(struct platform_device *pdev)
 	data->dai[1].playback_only = true;
 	data->dai[1].capture_only = false;
 	data->dai[1].dpcm_playback = 1;
+	if (of_device_is_compatible(np, "fsl,imx-dsp-audio-lpa"))
+		data->dai[1].ignore_suspend = 1;
 	data->dai[1].dpcm_capture = 0;
 	data->dai[1].no_pcm = 1,
 	data->dai[1].ignore_pmdown_time = 1,
@@ -207,6 +213,7 @@ fail:
 
 static const struct of_device_id imx_dsp_audio_dt_ids[] = {
 	{ .compatible = "fsl,imx-dsp-audio", },
+	{ .compatible = "fsl,imx-dsp-audio-lpa", },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, imx_dsp_audio_dt_ids);
