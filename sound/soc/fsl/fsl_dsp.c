@@ -967,6 +967,126 @@ static int fsl_dsp_detach_pm_domains(struct device *dev,
 	return 0;
 }
 
+static int fsl_dsp_mem_setup_lpa(struct fsl_dsp *dsp_priv)
+{
+	struct device_node *np = dsp_priv->dev->of_node;
+	struct device_node *reserved_node;
+	struct resource reserved_res;
+	int offset;
+
+	reserved_node = of_parse_phandle(np, "ocram", 0);
+	if (!reserved_node) {
+		dev_err(dsp_priv->dev, "failed to get reserved region node\n");
+		return -ENODEV;
+	}
+
+	if (of_address_to_resource(reserved_node, 0, &reserved_res)) {
+		dev_err(dsp_priv->dev, "failed to get reserved region address\n");
+		return -EINVAL;
+	}
+
+	dsp_priv->ocram_phys_addr = reserved_res.start;
+	dsp_priv->ocram_reserved_size = (reserved_res.end - reserved_res.start)
+		+ 1;
+	if (dsp_priv->ocram_reserved_size <= 0) {
+		dev_err(dsp_priv->dev, "invalid value of reserved region size\n");
+		return -EINVAL;
+	}
+
+	dsp_priv->ocram_vir_addr = ioremap_wc(dsp_priv->ocram_phys_addr,
+			dsp_priv->ocram_reserved_size);
+	if (!dsp_priv->ocram_vir_addr) {
+		dev_err(dsp_priv->dev, "failed to remap ocram space for dsp firmware\n");
+		return -ENXIO;
+	}
+	memset_io(dsp_priv->ocram_vir_addr, 0, dsp_priv->ocram_reserved_size);
+
+	reserved_node = of_parse_phandle(np, "ocram-e", 0);
+	if (!reserved_node) {
+		dev_err(dsp_priv->dev, "failed to get reserved region node\n");
+		return -ENODEV;
+	}
+
+	if (of_address_to_resource(reserved_node, 0, &reserved_res)) {
+		dev_err(dsp_priv->dev, "failed to get reserved region address\n");
+		return -EINVAL;
+	}
+
+	dsp_priv->ocram_e_phys_addr = reserved_res.start;
+	dsp_priv->ocram_e_reserved_size = (reserved_res.end - reserved_res.start)
+		+ 1;
+	if (dsp_priv->ocram_e_reserved_size <= 0) {
+		dev_err(dsp_priv->dev, "invalid value of reserved region size\n");
+		return -EINVAL;
+	}
+
+	dsp_priv->ocram_e_vir_addr = ioremap_wc(dsp_priv->ocram_e_phys_addr,
+			dsp_priv->ocram_e_reserved_size);
+	if (!dsp_priv->ocram_e_vir_addr) {
+		dev_err(dsp_priv->dev, "failed to remap ocram_e space for dsp firmware\n");
+		return -ENXIO;
+	}
+	memset_io(dsp_priv->ocram_e_vir_addr, 0, dsp_priv->ocram_e_reserved_size);
+
+	/* msg ring buffer memory */
+	dsp_priv->msg_buf_virt = dsp_priv->ocram_e_vir_addr;
+	dsp_priv->msg_buf_phys = dsp_priv->ocram_e_phys_addr;
+	dsp_priv->msg_buf_size = MSG_BUF_SIZE;
+	offset = MSG_BUF_SIZE;
+
+	/* keep dsp framework's global data when suspend/resume */
+	dsp_priv->dsp_config_virt = dsp_priv->ocram_e_vir_addr + offset;
+	dsp_priv->dsp_config_phys = dsp_priv->ocram_e_phys_addr + offset;
+	dsp_priv->dsp_config_size = DSP_CONFIG_SIZE;
+
+	dsp_priv->scratch_buf_virt = dsp_priv->ocram_vir_addr;
+	dsp_priv->scratch_buf_phys = dsp_priv->ocram_phys_addr;
+	dsp_priv->scratch_buf_size = dsp_priv->ocram_reserved_size;
+	dsp_priv->sdram_vir_addr = dsp_priv->regs + SYSRAM_OFFSET;
+	dsp_priv->sdram_phys_addr = dsp_priv->paddr + SYSRAM_OFFSET;
+	dsp_priv->sdram_reserved_size = SYSRAM_SIZE;
+
+	return 0;
+}
+
+static int fsl_dsp_mem_setup(struct fsl_dsp *dsp_priv)
+{
+	void *buf_virt;
+	dma_addr_t buf_phys;
+	int size, offset;
+
+	size = MSG_BUF_SIZE + DSP_CONFIG_SIZE;
+	buf_virt = dma_alloc_coherent(dsp_priv->dev, size, &buf_phys, GFP_KERNEL);
+	if (!buf_virt) {
+		dev_err(dsp_priv->dev, "failed alloc memory.\n");
+		return -ENOMEM;
+	}
+
+	/* msg ring buffer memory */
+	dsp_priv->msg_buf_virt = buf_virt;
+	dsp_priv->msg_buf_phys = buf_phys;
+	dsp_priv->msg_buf_size = MSG_BUF_SIZE;
+	offset = MSG_BUF_SIZE;
+
+	/* keep dsp framework's global data when suspend/resume */
+	dsp_priv->dsp_config_virt = buf_virt + offset;
+	dsp_priv->dsp_config_phys = buf_phys + offset;
+	dsp_priv->dsp_config_size = DSP_CONFIG_SIZE;
+
+	/* scratch memory for dsp framework. The sdram reserved memory
+	 * is split into two equal parts currently. The front part is
+	 * used to keep the dsp firmware, the other part is considered
+	 * as scratch memory for dsp framework.
+	 */
+	dsp_priv->scratch_buf_virt = dsp_priv->sdram_vir_addr +
+		dsp_priv->sdram_reserved_size / 2;
+	dsp_priv->scratch_buf_phys = dsp_priv->sdram_phys_addr +
+		dsp_priv->sdram_reserved_size / 2;
+	dsp_priv->scratch_buf_size = dsp_priv->sdram_reserved_size / 2;
+
+	return 0;
+}
+
 static int fsl_dsp_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -977,9 +1097,7 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 	const char *audio_iface;
 	struct resource *res;
 	void __iomem *regs;
-	void *buf_virt;
-	dma_addr_t buf_phys;
-	int size, offset, i;
+	int size, i;
 	int ret;
 	char tmp[16];
 
@@ -1092,34 +1210,19 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 
 	size = MSG_BUF_SIZE + DSP_CONFIG_SIZE;
 
-	buf_virt = dma_alloc_coherent(&pdev->dev, size, &buf_phys, GFP_KERNEL);
-	if (!buf_virt) {
-		dev_err(&pdev->dev, "failed alloc memory.\n");
-		ret = -ENOMEM;
-		goto alloc_coherent_fail;
+	if (dsp_priv->dsp_is_lpa) {
+		ret = fsl_dsp_mem_setup_lpa(dsp_priv);
+		if (ret) {
+			dev_err(&pdev->dev, "lpa mem setup fail.\n");
+			goto reserved_node_fail;
+		}
+	} else {
+		if (fsl_dsp_mem_setup(dsp_priv)) {
+			dev_err(&pdev->dev, "failed alloc memory.\n");
+			ret = -ENOMEM;
+			goto alloc_coherent_fail;
+		}
 	}
-
-	/* msg ring buffer memory */
-	dsp_priv->msg_buf_virt = buf_virt;
-	dsp_priv->msg_buf_phys = buf_phys;
-	dsp_priv->msg_buf_size = MSG_BUF_SIZE;
-	offset = MSG_BUF_SIZE;
-
-	/* keep dsp framework's global data when suspend/resume */
-	dsp_priv->dsp_config_virt = buf_virt + offset;
-	dsp_priv->dsp_config_phys = buf_phys + offset;
-	dsp_priv->dsp_config_size = DSP_CONFIG_SIZE;
-
-	/* scratch memory for dsp framework. The sdram reserved memory
-	 * is split into two equal parts currently. The front part is
-	 * used to keep the dsp firmware, the other part is considered
-	 * as scratch memory for dsp framework.
-	 */
-	dsp_priv->scratch_buf_virt = dsp_priv->sdram_vir_addr +
-					dsp_priv->sdram_reserved_size / 2;
-	dsp_priv->scratch_buf_phys = dsp_priv->sdram_phys_addr +
-					dsp_priv->sdram_reserved_size / 2;
-	dsp_priv->scratch_buf_size = dsp_priv->sdram_reserved_size / 2;
 
 	/* initialize the reference counter for dsp_priv
 	 * structure
@@ -1229,6 +1332,11 @@ register_component_fail:
 alloc_coherent_fail:
 	if (dsp_priv->sdram_vir_addr)
 		iounmap(dsp_priv->sdram_vir_addr);
+	if (dsp_priv->ocram_vir_addr)
+		iounmap(dsp_priv->ocram_vir_addr);
+	if (dsp_priv->ocram_e_vir_addr)
+		iounmap(dsp_priv->ocram_e_vir_addr);
+
 reserved_node_fail:
 	misc_deregister(&dsp_miscdev);
 misc_register_fail:
@@ -1251,6 +1359,10 @@ static int fsl_dsp_remove(struct platform_device *pdev)
 				dsp_priv->msg_buf_phys);
 	if (dsp_priv->sdram_vir_addr)
 		iounmap(dsp_priv->sdram_vir_addr);
+	if (dsp_priv->ocram_vir_addr)
+		iounmap(dsp_priv->ocram_vir_addr);
+	if (dsp_priv->ocram_e_vir_addr)
+		iounmap(dsp_priv->ocram_e_vir_addr);
 
 	pm_runtime_disable(&pdev->dev);
 	fsl_dsp_detach_pm_domains(&pdev->dev, dsp_priv);
