@@ -1600,6 +1600,9 @@ static int fsl_dsp_suspend(struct device *dev)
 	struct xf_proxy *proxy = &dsp_priv->proxy;
 	int ret = 0;
 
+	if (dsp_priv->dsp_is_lpa)
+		return ret;
+
 	if (proxy->is_ready & pm_runtime_active(dev)) {
 		ret = xf_cmd_send_suspend(proxy);
 		if (ret) {
@@ -1618,6 +1621,9 @@ static int fsl_dsp_resume(struct device *dev)
 	struct fsl_dsp *dsp_priv = dev_get_drvdata(dev);
 	struct xf_proxy *proxy = &dsp_priv->proxy;
 	int ret = 0;
+
+	if (dsp_priv->dsp_is_lpa)
+		return ret;
 
 	ret = pm_runtime_force_resume(dev);
 	if (ret)
