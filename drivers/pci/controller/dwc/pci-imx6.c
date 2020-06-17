@@ -2362,7 +2362,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	if (IS_ERR(imx6_pcie->phy)) {
 		if (PTR_ERR(imx6_pcie->phy) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
-		dev_info(dev, "couldn't get pcie-phy\n");
+		/* Set NULL if there is no pcie-phy */
 		imx6_pcie->phy = NULL;
 	}
 
