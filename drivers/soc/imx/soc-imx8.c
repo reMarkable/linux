@@ -244,6 +244,7 @@ bool imx_src_is_m4_enabled(void)
 {
 	return m4_is_enabled;
 }
+EXPORT_SYMBOL_GPL(imx_src_is_m4_enabled);
 
 int check_m4_enabled(void)
 {
@@ -258,3 +259,4 @@ int check_m4_enabled(void)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(check_m4_enabled);
