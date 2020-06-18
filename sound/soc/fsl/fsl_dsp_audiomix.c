@@ -21,7 +21,7 @@ void imx_audiomix_dsp_start(struct imx_audiomix_dsp_data *data)
 	u32 val;
 
 	val = readl(data->base + AudioDSP_REG2);
-	val &= ~(1 << 5);
+	val &= ~AudioDSP_REG2_RUNSTALL;
 	writel(val, data->base + AudioDSP_REG2);
 }
 EXPORT_SYMBOL(imx_audiomix_dsp_start);
