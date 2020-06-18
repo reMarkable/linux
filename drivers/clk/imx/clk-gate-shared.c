@@ -6,6 +6,7 @@
 #include <linux/clk-provider.h>
 #include <linux/err.h>
 #include <linux/io.h>
+#include <linux/module.h>
 #include <linux/slab.h>
 #include "clk.h"
 
@@ -104,3 +105,5 @@ struct clk *imx_dev_clk_gate_shared(struct device *dev, const char *name,
 
 	return clk;
 }
+EXPORT_SYMBOL_GPL(imx_dev_clk_gate_shared);
+MODULE_LICENSE("GPL v2");

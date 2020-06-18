@@ -547,3 +547,4 @@ struct clk *imx_clk_sccg_pll(const char *name,
 
 	return hw->clk;
 }
+EXPORT_SYMBOL_GPL(imx_clk_sccg_pll);

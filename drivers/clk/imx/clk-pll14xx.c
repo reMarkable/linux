@@ -424,3 +424,4 @@ struct clk *imx_dev_clk_pll14xx(struct device *dev, const char *name,
 
 	return clk;
 }
+EXPORT_SYMBOL_GPL(imx_dev_clk_pll14xx);

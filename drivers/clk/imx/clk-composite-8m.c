@@ -184,3 +184,4 @@ fail:
 	kfree(mux);
 	return ERR_CAST(hw);
 }
+EXPORT_SYMBOL_GPL(imx8m_clk_composite_flags);

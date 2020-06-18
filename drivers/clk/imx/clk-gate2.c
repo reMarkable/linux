@@ -197,3 +197,4 @@ struct clk_hw *clk_hw_register_gate2(struct device *dev, const char *name,
 
 	return hw;
 }
+EXPORT_SYMBOL_GPL(clk_hw_register_gate2);
