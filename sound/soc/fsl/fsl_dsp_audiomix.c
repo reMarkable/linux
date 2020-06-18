@@ -26,6 +26,16 @@ void imx_audiomix_dsp_start(struct imx_audiomix_dsp_data *data)
 }
 EXPORT_SYMBOL(imx_audiomix_dsp_start);
 
+void imx_audiomix_dsp_stall(struct imx_audiomix_dsp_data *data)
+{
+	u32 val;
+
+	val = readl(data->base + AudioDSP_REG2);
+	val |= AudioDSP_REG2_RUNSTALL;
+	writel(val, data->base + AudioDSP_REG2);
+}
+EXPORT_SYMBOL(imx_audiomix_dsp_stall);
+
 void imx_audiomix_dsp_pid_set(struct imx_audiomix_dsp_data *data, u32 val)
 {
 	writel(val, data->base + AudioDSP_REG3);
