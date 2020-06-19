@@ -5,6 +5,7 @@
  */
 
 #include <dt-bindings/firmware/imx/rsrc.h>
+#include <linux/module.h>
 
 #include "clk-scu.h"
 
@@ -116,3 +117,5 @@ const struct imx_clk_scu_rsrc_table imx_clk_scu_rsrc_imx8qm = {
 	.rsrc = imx8qm_clk_scu_rsrc_table,
 	.num = ARRAY_SIZE(imx8qm_clk_scu_rsrc_table),
 };
+EXPORT_SYMBOL_GPL(imx_clk_scu_rsrc_imx8qm);
+MODULE_LICENSE("GPL v2");

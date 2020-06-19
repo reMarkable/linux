@@ -296,3 +296,4 @@ static int __init imx8qm_acm_init(void)
 	return platform_driver_register(&imx8qm_acm_clk_driver);
 }
 fs_initcall(imx8qm_acm_init);
+MODULE_LICENSE("GPL v2");

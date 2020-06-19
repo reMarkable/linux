@@ -123,3 +123,4 @@ static struct platform_driver imx8qxp_lpcg_clk_driver = {
 };
 
 builtin_platform_driver(imx8qxp_lpcg_clk_driver);
+MODULE_LICENSE("GPL v2");

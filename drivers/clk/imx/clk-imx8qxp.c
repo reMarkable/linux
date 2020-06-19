@@ -90,6 +90,7 @@ static const struct of_device_id imx8qxp_match[] = {
 	{ .compatible = "fsl,imx8dxl-clk", &imx_clk_scu_rsrc_imx8dxl, },
 	{ /* sentinel */ }
 };
+MODULE_DEVICE_TABLE(of, imx8qxp_match);
 
 static int imx8qxp_clk_probe(struct platform_device *pdev)
 {
@@ -291,3 +292,6 @@ static int __init imx8qxp_clk_driver_init(void)
 	return platform_driver_register(&imx8qxp_clk_driver);
 }
 subsys_initcall_sync(imx8qxp_clk_driver_init);
+MODULE_AUTHOR("Aisheng Dong <aisheng.dong@nxp.com>");
+MODULE_DESCRIPTION("NXP i.MX8QXP clock driver");
+MODULE_LICENSE("GPL v2");
