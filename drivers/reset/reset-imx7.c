@@ -223,6 +223,7 @@ static int imx8mq_reset_set(struct reset_controller_dev *rcdev,
 			udelay(10);
 		break;
 
+	case IMX8MQ_RESET_PCIEPHY_PERST:
 	case IMX8MQ_RESET_PCIE_CTRL_APPS_EN:
 	case IMX8MQ_RESET_PCIE_CTRL_APPS_CLK_REQ:
 	case IMX8MQ_RESET_PCIE2_CTRL_APPS_EN:	/* fallthrough */
