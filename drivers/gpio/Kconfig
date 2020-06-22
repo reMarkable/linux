@@ -378,7 +378,8 @@ config GPIO_MVEBU
 	select REGMAP_MMIO
 
 config GPIO_MXC
-	def_bool y
+	tristate "NXP MXC GPIO Support"
+	default y
 	depends on ARCH_MXC
 	select GPIO_GENERIC
 	select GENERIC_IRQ_CHIP
