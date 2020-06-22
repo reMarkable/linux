@@ -1642,8 +1642,11 @@ static int sim_open(struct inode *inode, struct file *file)
 		return errval;
 	}
 
-	if (!sim->open_cnt)
-		clk_prepare_enable(sim->clk);
+	if (!sim->open_cnt) {
+		errval = clk_prepare_enable(sim->clk);
+		if (errval)
+			return errval;
+	}
 
 	sim->open_cnt = 1;
 
