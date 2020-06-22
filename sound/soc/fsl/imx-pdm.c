@@ -25,6 +25,7 @@ struct imx_pdm_data {
 	struct snd_soc_dai_link dai;
 	struct snd_soc_card card;
 	unsigned int decimation;
+	int osr_id;
 };
 
 static const struct imx_pdm_mic_fs_mul {
@@ -40,6 +41,84 @@ static const unsigned int imx_pdm_mic_rates[] = {
 	8000,  11025, 16000, 22050,
 	32000, 44100, 48000, 64000,
 };
+
+static const struct imx_pdm_mic_osr_map {
+	int id;
+	unsigned int osr;
+} osr_map[] = {
+	{ .id = 0, .osr =  48 }, /* 4x12 */
+	{ .id = 1, .osr =  64 }, /* 4x16 */
+	{ .id = 2, .osr =  96 }, /* 4x24 */
+	{ .id = 3, .osr = 128 }, /* 4x32 */
+	{ .id = 4, .osr = 192 }, /* 4x48 */
+};
+
+static int imx_pdm_mic_get_osr_id(int decimation)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(osr_map); i++) {
+		if (osr_map[i].osr == decimation)
+			return osr_map[i].id;
+	}
+
+	return -EINVAL;
+}
+
+static unsigned int imx_pdm_mic_get_osr_rate(int osr_id)
+{
+	int i;
+
+	for (i = 0; ARRAY_SIZE(osr_map); i++) {
+		if (osr_map[i].id == osr_id)
+			return osr_map[i].osr;
+	}
+
+	return -EINVAL;
+}
+
+static const char *const osr_rate_text[] = {
+	"OSR_4x12",
+	"OSR_4x16",
+	"OSR_4x24",
+	"OSR_4x32",
+	"OSR_4x48"
+};
+
+static int osr_rate_get(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_card *card = snd_kcontrol_chip(kcontrol);
+	struct imx_pdm_data *data = snd_soc_card_get_drvdata(card);
+
+	ucontrol->value.enumerated.item[0] = data->osr_id;
+
+	return 0;
+}
+
+static int osr_rate_set(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_card *card = snd_kcontrol_chip(kcontrol);
+	struct imx_pdm_data *data = snd_soc_card_get_drvdata(card);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	unsigned int *item = ucontrol->value.enumerated.item;
+	int osr = snd_soc_enum_item_to_val(e, item[0]);
+
+	data->decimation = imx_pdm_mic_get_osr_rate(osr);
+	data->osr_id = osr;
+
+	return 0;
+}
+
+static const struct soc_enum osr_rate_enum =
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(osr_rate_text), osr_rate_text);
+
+const struct snd_kcontrol_new imx_pdm_mic_snd_ctrls[] = {
+	SOC_ENUM_EXT("over sampling ratio", osr_rate_enum,
+		     osr_rate_get, osr_rate_set),
+};
+
 static struct snd_pcm_hw_constraint_list imx_pdm_mic_rate_constrains = {
 	.count = ARRAY_SIZE(imx_pdm_mic_rates),
 	.list = imx_pdm_mic_rates,
@@ -63,6 +142,7 @@ static unsigned long imx_pdm_mic_mclk_freq(unsigned int decimation,
 
 	return 0;
 }
+
 
 static int imx_pdm_mic_startup(struct snd_pcm_substream *substream)
 {
@@ -180,6 +260,12 @@ static int imx_pdm_mic_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
+	data->osr_id = imx_pdm_mic_get_osr_id(data->decimation);
+	if (data->osr_id < 0) {
+		ret = -EINVAL;
+		goto fail;
+	}
+
 	data->dai.cpus = &dlc[0];
 	data->dai.num_cpus = 1;
 	data->dai.platforms = &dlc[1];
@@ -207,6 +293,8 @@ static int imx_pdm_mic_probe(struct platform_device *pdev)
 
 	data->card.num_links = 1;
 	data->card.dai_link = &data->dai;
+	data->card.controls = imx_pdm_mic_snd_ctrls;
+	data->card.num_controls = ARRAY_SIZE(imx_pdm_mic_snd_ctrls);
 
 	platform_set_drvdata(pdev, &data->card);
 	snd_soc_card_set_drvdata(&data->card, data);
