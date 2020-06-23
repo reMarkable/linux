@@ -34,27 +34,22 @@
 		ranges;
 
 		vdev0vring0: vdev0vring0@9ff00000 {
-                        compatible = "shared-dma-pool";
 			reg = <0x9ff00000 0x8000>;
 			no-map;
 		};
 		vdev0vring1: vdev0vring1@9ff08000 {
-                        compatible = "shared-dma-pool";
 			reg = <0x9ff08000 0x8000>;
 			no-map;
 		};
 		vdev1vring0: vdev1vring0@9ff10000 {
-                        compatible = "shared-dma-pool";
 			reg = <0x9ff10000 0x8000>;
 			no-map;
 		};
 		vdev1vring1: vdev1vring1@9ff18000 {
-                        compatible = "shared-dma-pool";
 			reg = <0x9ff18000 0x8000>;
 			no-map;
 		};
 		vdev1vring3 {
-			compatible = "shared-dma-pool";
 			reg = <0x9ff20000 0xe0000>;
 			no-map;
 		};
