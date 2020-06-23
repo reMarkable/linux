@@ -903,7 +903,7 @@
 
 	pinctrl_one_wire_gpio: one_wire_gpio_grp {
 		fsl,pins = <
-			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000074
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000004
 			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000004
 		>;
 	};
