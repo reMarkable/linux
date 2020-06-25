@@ -348,9 +348,6 @@ static int max77818_charger_get_input_current(struct max77818_charger *chg,
 		 */
 		ret = regmap_read(chg->regmap, REG_CHG_CNFG_10, &val);
 		if (ret) {
-			dev_warn(chg->dev,
-				 "failed to read CNFG_10: %d\n",
-				 ret);
 			return ret;
 		}
 
@@ -366,9 +363,6 @@ static int max77818_charger_get_input_current(struct max77818_charger *chg,
 		 */
 		ret = regmap_read(chg->regmap, REG_CHG_CNFG_09, &val);
 		if (ret) {
-			dev_warn(chg->dev,
-				 "failed to read CNFG_09: %d\n",
-				 ret);
 			return ret;
 		}
 
@@ -502,7 +496,6 @@ static int max77818_charger_get_charger_mode(struct max77818_charger *chg)
 
 	ret = regmap_read(chg->regmap, REG_CHG_CNFG_00, &read_val);
 	if (ret) {
-		dev_err(chg->dev, "failed to read CNFG_00: %d\n", ret);
 		return ret;
 	}
 	dev_dbg(chg->dev, "Read raw charger_mode register: 0x%02x\n", read_val);
@@ -775,8 +768,6 @@ static int max77818_charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CURRENT_MAX2:
 		ret = max77818_charger_get_input_current(chg, &val->intval);
 		if (ret) {
-			dev_warn(chg->dev, "failed to read max current from device: %d\n",
-				 ret);
 			ret = -ENODEV;
 			goto out;
 		}
@@ -784,8 +775,6 @@ static int max77818_charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		ret = max77818_charger_get_charger_mode(chg);
 		if (ret) {
-			dev_warn(chg->dev, "failed to read charger_mode from device: %d\n",
-				ret);
 			ret = -ENODEV;
 			goto out;
 		}
