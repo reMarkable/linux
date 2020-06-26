@@ -278,6 +278,9 @@ static int __dcss_ctxld_enable(struct dcss_ctxld *ctxld)
 	u32 sb_hp_cnt, sb_lp_cnt, db_cnt;
 	struct dcss_dev *dcss = dcss_drv_dev_to_dcss(ctxld->dev);
 
+	if (!dcss)
+		return 0;
+
 	dcss_dpr_write_sysctrl(dcss->dpr);
 
 	dcss_scaler_write_sclctrl(dcss->scaler);
