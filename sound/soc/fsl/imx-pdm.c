@@ -25,6 +25,9 @@ struct imx_pdm_data {
 	struct snd_soc_dai_link dai;
 	struct snd_soc_card card;
 	unsigned int decimation;
+	unsigned long mclk_11k;
+	unsigned long mclk_8k;
+	bool fixed_mclk;
 	int osr_id;
 };
 
@@ -35,6 +38,21 @@ static const struct imx_pdm_mic_fs_mul {
 } fs_mul[] = {
 	{ .min =  8000, .max = 11025, .mul =  8 }, /* low power */
 	{ .min = 16000, .max = 64000, .mul = 16 }, /* performance */
+};
+
+/* Ratio based on default Audio PLLs
+ * Audio PLL1 = 393216000 Hz
+ * Audio PLL2 = 361267200 Hz
+ */
+static const struct imx_pdm_mic_mclk_fixed {
+	unsigned long mclk_11k;
+	unsigned long mclk_8k;
+	unsigned int ratio;
+} mclk_fixed[] = {
+	{ .mclk_11k = 11289600, .mclk_8k = 12288000, .ratio = 32 },
+	{ .mclk_11k = 15052800, .mclk_8k = 16384000, .ratio = 24 },
+	{ .mclk_11k = 22579200, .mclk_8k = 24576000, .ratio = 16 },
+	{ .mclk_11k = 45158400, .mclk_8k = 49152000, .ratio =  8 },
 };
 
 static const unsigned int imx_pdm_mic_rates[] = {
@@ -143,6 +161,21 @@ static unsigned long imx_pdm_mic_mclk_freq(unsigned int decimation,
 	return 0;
 }
 
+static int imx_pdm_mic_get_mclk_fixed(struct imx_pdm_data *data,
+		unsigned int ratio)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(mclk_fixed); i++) {
+		if (mclk_fixed[i].ratio == ratio) {
+			data->mclk_11k = mclk_fixed[i].mclk_11k;
+			data->mclk_8k = mclk_fixed[i].mclk_8k;
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
 
 static int imx_pdm_mic_startup(struct snd_pcm_substream *substream)
 {
@@ -203,8 +236,15 @@ static int imx_pdm_mic_hw_params(struct snd_pcm_substream *substream,
 		dev_err(card->dev, "fail to set cpu sysclk: %d\n", ret);
 		return ret;
 	}
+
+	if (data->fixed_mclk) {
+		mclk_freq = (do_div(sample_rate, 8000) ?
+			data->mclk_11k : data->mclk_8k);
+	} else {
+		mclk_freq = imx_pdm_mic_mclk_freq(data->decimation,
+			sample_rate);
+	}
 	/* set mclk freq */
-	mclk_freq = imx_pdm_mic_mclk_freq(data->decimation, sample_rate);
 	ret = snd_soc_dai_set_sysclk(cpu_dai, FSL_SAI_CLK_MAST1,
 			mclk_freq, SND_SOC_CLOCK_OUT);
 	if (ret) {
@@ -212,6 +252,9 @@ static int imx_pdm_mic_hw_params(struct snd_pcm_substream *substream,
 			mclk_freq);
 		return ret;
 	}
+
+	dev_dbg(card->dev, "mclk: %lu, bclk ratio: %u\n",
+			mclk_freq, data->decimation);
 
 	return 0;
 }
@@ -228,6 +271,9 @@ static int imx_pdm_mic_probe(struct platform_device *pdev)
 	struct platform_device *cpu_pdev;
 	struct imx_pdm_data *data;
 	struct snd_soc_dai_link_component *dlc;
+	unsigned long sai_mclk, sai_pll8k;
+	struct fsl_sai *sai;
+	unsigned int ratio;
 	int ret;
 
 	dlc = devm_kzalloc(&pdev->dev, 3 * sizeof(*dlc), GFP_KERNEL);
@@ -264,6 +310,26 @@ static int imx_pdm_mic_probe(struct platform_device *pdev)
 	if (data->osr_id < 0) {
 		ret = -EINVAL;
 		goto fail;
+	}
+
+	if (of_find_property(np, "fixed-mclk", NULL))
+		data->fixed_mclk = true;
+
+	if (data->fixed_mclk) {
+		sai = dev_get_drvdata(&cpu_pdev->dev);
+		/* Get SAI clock settings */
+		sai_mclk = clk_get_rate(sai->mclk_clk[FSL_SAI_CLK_MAST1]);
+		sai_pll8k = clk_get_rate(sai->pll8k_clk);
+		ratio = sai_pll8k / sai_mclk;
+
+		ret = imx_pdm_mic_get_mclk_fixed(data, ratio);
+		if (ret) {
+			dev_err(&pdev->dev, "fail to set fixed mclk: %d\n", ret);
+			return ret;
+		}
+
+		dev_dbg(&pdev->dev, "sai_pll8k: %lu, sai_mclk: %lu, ratio: %u\n",
+			sai_pll8k, sai_mclk, ratio);
 	}
 
 	data->dai.cpus = &dlc[0];
