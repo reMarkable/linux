@@ -1453,7 +1453,8 @@ static int mipi_csis_subdev_init(struct v4l2_subdev *mipi_sd,
 	mipi_sd->owner = THIS_MODULE;
 	snprintf(mipi_sd->name, sizeof(mipi_sd->name), "%s.%d",
 		 CSIS_SUBDEV_NAME, state->index);
-	mipi_sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+	if (state->index == 0)
+		mipi_sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 	mipi_sd->entity.function = MEDIA_ENT_F_IO_V4L;
 	mipi_sd->dev = &pdev->dev;
 
