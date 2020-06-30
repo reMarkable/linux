@@ -909,7 +909,7 @@ static int imx8mq_dsi_select_input(struct nwl_dsi *dsi)
 	int ret;
 
 	remote = of_graph_get_remote_node(dsi->dev->of_node, 0, 0);
-	if (strcmp(remote->name, "lcdif") == 0)
+	if (remote && strcmp(remote->name, "lcdif") == 0)
 		use_dcss = 0;
 
 	DRM_DEV_INFO(dsi->dev, "Using %s as input source\n",
