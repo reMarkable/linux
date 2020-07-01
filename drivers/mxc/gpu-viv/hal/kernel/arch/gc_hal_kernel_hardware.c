@@ -4876,10 +4876,10 @@ gckHARDWARE_SetMMU(
  ~0U : (~(~0U << ((1 ? 0:0) - (0 ? 0:0) + 1))))))) << (0 ? 0:0)))
                         ));
                 }
-            }
 
-            /* Trigger a possible dummy draw. */
-            Hardware->kernel->command->dummyDraw = gcvTRUE;
+                /* Trigger a possible dummy draw. */
+                Hardware->kernel->command->dummyDraw = gcvTRUE;
+            }
         }
 
     }
