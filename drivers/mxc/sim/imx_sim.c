@@ -34,7 +34,7 @@
 #include <linux/spinlock.h>
 #include <linux/time.h>
 #include <linux/pinctrl/consumer.h>
-
+#include <linux/pm_runtime.h>
 #include <linux/io.h>
 
 #define DRIVER_NAME "mxc_sim"
@@ -1630,7 +1630,7 @@ copy_data:
 
 static int sim_open(struct inode *inode, struct file *file)
 {
-	int errval = SIM_OK;
+	int errval;
 	struct sim_t *sim = dev_get_drvdata(sim_dev.parent);
 
 	file->private_data = sim;
@@ -1642,17 +1642,21 @@ static int sim_open(struct inode *inode, struct file *file)
 		return errval;
 	}
 
-	if (!sim->open_cnt) {
-		errval = clk_prepare_enable(sim->clk);
-		if (errval)
-			return errval;
-	}
-
 	sim->open_cnt = 1;
+	errval = pm_runtime_get_sync(sim_dev.parent);
+	if (errval < 0)
+		return errval;
 
 	errval = sim_reset_module(sim);
+	if (errval < 0)
+		goto out_runtime_put;
+
 	sim_data_reset(sim);
 
+	return 0;
+
+out_runtime_put:
+	pm_runtime_put(sim_dev.parent);
 	return errval;
 };
 
@@ -1669,10 +1673,7 @@ static int sim_release(struct inode *inode, struct file *file)
 	if (sim->present != SIM_PRESENT_REMOVED)
 		sim_deactivate(sim);
 
-
-	if (sim->open_cnt)
-		clk_disable_unprepare(sim->clk);
-
+	pm_runtime_put(sim_dev.parent);
 	sim->open_cnt = 0;
 
 	return 0;
@@ -1732,7 +1733,6 @@ static int sim_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-
 	of_id = of_match_device(sim_imx_dt_ids, &pdev->dev);
 	if (of_id)
 		pdev->id_entry = of_id->data;
@@ -1740,7 +1740,6 @@ static int sim_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	sim->clk_rate = FCLK_FREQ;
-	sim->open_cnt = 0;
 
 	sim->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!sim->res) {
@@ -1795,6 +1794,20 @@ static int sim_probe(struct platform_device *pdev)
 	 */
 	sim_dev.parent = &(pdev->dev);
 
+	pm_runtime_get_noresume(&pdev->dev);
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+
+	sim->open_cnt = 1;
+	ret = clk_prepare_enable(sim->clk);
+	if (ret)
+		return ret;
+	/* Let pm_runtime_put() disable the clock.
+	 * If CONFIG_PM is not enabled, the clock will stay powered.
+	 */
+	pm_runtime_put(&pdev->dev);
+	sim->open_cnt = 0;
+
 	misc_register(&sim_dev);
 
 	return 0;
@@ -1802,33 +1815,53 @@ static int sim_probe(struct platform_device *pdev)
 
 static int sim_remove(struct platform_device *pdev)
 {
-	struct sim_t *sim = platform_get_drvdata(pdev);
-
-	if (sim->open_cnt)
-		clk_disable_unprepare(sim->clk);
+	pm_runtime_disable(&pdev->dev);
 
 	misc_deregister(&sim_dev);
 
 	return 0;
 }
 
-#ifdef CONFIG_PM
-static int sim_suspend(struct platform_device *pdev, pm_message_t state)
+static int __maybe_unused sim_suspend(struct device *dev)
 {
-	struct sim_t *sim = platform_get_drvdata(pdev);
+	int err;
 
-	if (sim->open_cnt)
-		clk_disable_unprepare(sim->clk);
+	err = pm_runtime_force_suspend(dev);
+	if (err)
+		return err;
 
-	pinctrl_pm_select_sleep_state(&pdev->dev);
+	pinctrl_pm_select_sleep_state(dev);
 
 	return 0;
 }
 
-static int sim_resume(struct platform_device *pdev)
+static int __maybe_unused sim_resume(struct device *dev)
 {
-	struct sim_t *sim = platform_get_drvdata(pdev);
-	int err = 0;
+	int err;
+
+	err = pm_runtime_force_resume(dev);
+	if (err)
+		return err;
+
+	pinctrl_pm_select_default_state(dev);
+
+	return 0;
+}
+
+static int __maybe_unused sim_runtime_suspend(struct device *dev)
+{
+	struct sim_t *sim = dev_get_drvdata(dev);
+
+	if (sim->open_cnt)
+		clk_disable_unprepare(sim->clk);
+
+	return 0;
+}
+
+static int __maybe_unused sim_runtime_resume(struct device *dev)
+{
+	int err;
+	struct sim_t *sim = dev_get_drvdata(dev);
 
 	if (sim->open_cnt) {
 		err = clk_prepare_enable(sim->clk);
@@ -1836,25 +1869,23 @@ static int sim_resume(struct platform_device *pdev)
 			return err;
 	}
 
-	pinctrl_pm_select_default_state(&pdev->dev);
-
-	return err;
+	return 0;
 }
-#else
-#define sim_suspend NULL
-#define sim_resume NULL
-#endif
+
+static const struct dev_pm_ops sim_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(sim_suspend, sim_resume)
+	SET_RUNTIME_PM_OPS(sim_runtime_suspend, sim_runtime_resume, NULL)
+};
 
 static struct platform_driver sim_driver = {
 	.driver = {
 			.name = DRIVER_NAME,
 			.owner = THIS_MODULE,
+			.pm = &sim_pm_ops,
 			.of_match_table = sim_imx_dt_ids,
 			},
 	.probe = sim_probe,
 	.remove = sim_remove,
-	.suspend = sim_suspend,
-	.resume = sim_resume,
 	.id_table = imx_sim_devtype,
 };
 
