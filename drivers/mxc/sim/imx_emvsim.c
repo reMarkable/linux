@@ -1596,7 +1596,7 @@ static int emvsim_probe(struct platform_device *pdev)
 
 	emvsim->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!emvsim->res) {
-		dev_err(emvsim_dev.parent, "Can't get the MEMORY\n");
+		dev_err(&pdev->dev, "Can't get the MEMORY\n");
 		return -ENOMEM;
 	}
 	emvsim->ioaddr = devm_ioremap_resource(&pdev->dev, emvsim->res);
@@ -1611,14 +1611,14 @@ static int emvsim_probe(struct platform_device *pdev)
 	emvsim->clk = devm_clk_get(&pdev->dev, "sim");
 	if (IS_ERR(emvsim->clk)) {
 		ret = PTR_ERR(emvsim->clk);
-		dev_err(emvsim_dev.parent, "Get PER CLK ERROR !\n");
+		dev_err(&pdev->dev, "Get PER CLK ERROR !\n");
 		return ret;
 	}
 
 	emvsim->ipg = devm_clk_get(&pdev->dev, "ipg");
 	if (IS_ERR(emvsim->ipg)) {
 		ret = PTR_ERR(emvsim->ipg);
-		dev_err(emvsim_dev.parent, "Get IPG CLK ERROR !\n");
+		dev_err(&pdev->dev, "Get IPG CLK ERROR !\n");
 		return ret;
 	}
 
