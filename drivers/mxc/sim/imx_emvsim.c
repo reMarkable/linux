@@ -1479,7 +1479,6 @@ copy_data:
 
 static int emvsim_open(struct inode *inode, struct file *file)
 {
-	int err;
 	int errval = SIM_OK;
 	struct emvsim_t *emvsim = dev_get_drvdata(emvsim_dev.parent);
 
@@ -1492,9 +1491,9 @@ static int emvsim_open(struct inode *inode, struct file *file)
 	}
 
 	emvsim->open_cnt = 1;
-	err = pm_runtime_get_sync(emvsim_dev.parent);
-	if (err < 0)
-		return err;
+	errval = pm_runtime_get_sync(emvsim_dev.parent);
+	if (errval < 0)
+		return errval;
 
 	init_completion(&emvsim->xfer_done);
 	errval = emvsim_reset_module(emvsim);
@@ -1646,17 +1645,22 @@ static int emvsim_probe(struct platform_device *pdev)
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
 
-	ret = misc_register(&emvsim_dev);
-
 	emvsim->open_cnt = 1;
-	clk_prepare_enable(emvsim->ipg);
-	clk_prepare_enable(emvsim->clk);
-
+	ret = clk_prepare_enable(emvsim->ipg);
+	if (ret)
+		return ret;
+	ret = clk_prepare_enable(emvsim->clk);
+	if (ret) {
+		clk_disable_unprepare(emvsim->ipg);
+		return ret;
+	}
 	/* Let pm_runtime_put() disable the clocks.
 	 * If CONFIG_PM is not enabled, the clocks will stay powered.
 	 */
 	pm_runtime_put(&pdev->dev);
 	emvsim->open_cnt = 0;
+
+	ret = misc_register(&emvsim_dev);
 
 	dev_info(&pdev->dev, "emvsim register %s\n", ret ? "fail" : "success");
 
@@ -1712,11 +1716,18 @@ static int __maybe_unused emvsim_resume(struct device *dev)
 
 static int __maybe_unused emvsim_runtime_resume(struct device *dev)
 {
+	int err;
 	struct emvsim_t *emvsim = dev_get_drvdata(dev);
 
 	if (emvsim->open_cnt) {
-		clk_prepare_enable(emvsim->ipg);
-		clk_prepare_enable(emvsim->clk);
+		err = clk_prepare_enable(emvsim->ipg);
+		if (err)
+			return err;
+		err = clk_prepare_enable(emvsim->clk);
+		if (err) {
+			clk_disable_unprepare(emvsim->ipg);
+			return err;
+		}
 	}
 
 	return 0;
