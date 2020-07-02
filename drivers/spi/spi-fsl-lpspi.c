@@ -971,12 +971,20 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 
 	ret = fsl_lpspi_dma_init(&pdev->dev, fsl_lpspi, controller);
 	if (ret == -EPROBE_DEFER)
-		goto out_controller_put;
+		goto err_disable_runtime_pm;
 
 	if (ret < 0)
 		dev_err(&pdev->dev, "dma setup error %d, use pio\n", ret);
 
+	pm_runtime_mark_last_busy(fsl_lpspi->dev);
+	pm_runtime_put_autosuspend(fsl_lpspi->dev);
+
 	return 0;
+
+err_disable_runtime_pm:
+	pm_runtime_dont_use_autosuspend(fsl_lpspi->dev);
+	pm_runtime_put_sync(fsl_lpspi->dev);
+	pm_runtime_disable(fsl_lpspi->dev);
 
 out_controller_put:
 	spi_controller_put(controller);
