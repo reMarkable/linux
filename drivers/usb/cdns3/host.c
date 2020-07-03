@@ -185,6 +185,9 @@ static int cdns3_host_start(struct cdns3 *cdns)
 	if (ret)
 		goto err4;
 
+	if (HCC_MAX_PSA(xhci->hcc_params) >= 4)
+		xhci->shared_hcd->can_do_streams = 1;
+
 	ret = usb_add_hcd(xhci->shared_hcd, 0, IRQF_SHARED);
 	if (ret)
 		goto err5;
