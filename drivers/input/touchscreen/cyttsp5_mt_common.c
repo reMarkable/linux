@@ -36,6 +36,31 @@
 #define MT_PARAM_FUZZ(md, sig_ost) PARAM_FUZZ(md->pdata->frmwrk, sig_ost)
 #define MT_PARAM_FLAT(md, sig_ost) PARAM_FLAT(md->pdata->frmwrk, sig_ost)
 
+void cyttsp5_pr_buf_debug(struct device *dev, u8 *dptr, int size,
+		const char *data_name)
+{
+	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
+	u8 *pr_buf = cd->pr_buf;
+	int i, k;
+	const char fmt[] = "%02X ";
+	int max;
+
+	if (!size)
+		return;
+
+	max = (CY_MAX_PRBUF_SIZE - 1) - sizeof(CY_PR_TRUNCATED);
+
+	pr_buf[0] = 0;
+	for (i = k = 0; i < size && k < max; i++, k += 3)
+		scnprintf(pr_buf + k, CY_MAX_PRBUF_SIZE, fmt, dptr[i]);
+
+	if (size)
+		dev_err(dev, "%s:  %s[0..%d]=%s%s\n", __func__, data_name,
+			size - 1, pr_buf, size <= max ? "" : CY_PR_TRUNCATED);
+	else
+		dev_err(dev, "%s:  %s[]\n", __func__, data_name);
+}
+
 static void cyttsp5_mt_lift_all(struct cyttsp5_mt_data *md)
 {
 	int max = md->si->tch_abs[CY_TCH_T].max;
@@ -223,6 +248,10 @@ static void cyttsp5_get_mt_touches(struct cyttsp5_mt_data *md,
 			if (md->mt_function.input_sync)
 				md->mt_function.input_sync(md->input);
 			mt_sync_count++;
+			cyttsp5_pr_buf_debug(dev, si->xy_mode, si->desc.tch_header_size,
+					"Err xy_mode");
+			cyttsp5_pr_buf_debug(dev, si->xy_data,
+					num_cur_tch* si->desc.tch_record_size, "Err xy_data");
 			continue;
 		}
 
