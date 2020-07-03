@@ -2542,7 +2542,7 @@ static int precheck_frame(struct vpu_ctx *ctx, struct vpu_frame_info *frame)
 		return -EINVAL;
 	}
 
-	bytesskiped = find_frame_start_and_skip(ctx, frame, 0);
+	bytesskiped = find_frame_start_and_skip(ctx, frame, 1);
 	if (!bytesskiped)
 		return 0;
 
