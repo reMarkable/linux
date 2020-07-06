@@ -266,6 +266,8 @@ struct mxc_mipi_csi2_dev {
 
 	struct device *pd_csi;
 	struct device *pd_isi;
+	struct device_link *pd_csi_link;
+	struct device_link *pd_isi_link;
 
 	struct mutex lock;
 
@@ -708,6 +710,7 @@ static int mipi_csi2_attach_pd(struct mxc_mipi_csi2_dev *csi2dev)
 			       DL_FLAG_PM_RUNTIME);
 	if (IS_ERR(link))
 		return PTR_ERR(link);
+	csi2dev->pd_csi_link = link;
 
 	csi2dev->pd_isi = dev_pm_domain_attach_by_name(dev, "pd_isi_ch0");
 	if (IS_ERR(csi2dev->pd_isi)) {
@@ -723,8 +726,17 @@ static int mipi_csi2_attach_pd(struct mxc_mipi_csi2_dev *csi2dev)
 			       DL_FLAG_PM_RUNTIME);
 	if (IS_ERR(link))
 		return PTR_ERR(link);
+	csi2dev->pd_isi_link = link;
 
 	return 0;
+}
+
+static void mipi_csi2_detach_pd(struct mxc_mipi_csi2_dev *csi2dev)
+{
+	device_link_del(csi2dev->pd_csi_link);
+	device_link_del(csi2dev->pd_isi_link);
+	dev_pm_domain_detach(csi2dev->pd_csi, true);
+	dev_pm_domain_detach(csi2dev->pd_isi, true);
 }
 
 static int mipi_csi2_clk_enable(struct mxc_mipi_csi2_dev *csi2dev)
@@ -1084,6 +1096,7 @@ static int mipi_csi2_remove(struct platform_device *pdev)
 	struct mxc_mipi_csi2_dev *csi2dev = sd_to_mxc_mipi_csi2_dev(sd);
 
 	mipi_sc_fw_init(csi2dev, 0);
+	mipi_csi2_detach_pd(csi2dev);
 	media_entity_cleanup(&csi2dev->sd.entity);
 	pm_runtime_disable(&pdev->dev);
 
