@@ -35,6 +35,9 @@ struct intmux_data {
 	void __iomem *regs;
 	struct clk *ipg_clk;
 	int channum;
+#ifdef CONFIG_PM
+	u32 *saved_reg;
+#endif
 	struct intmux_irqchip_data irqchip_data[];
 };
 
@@ -161,6 +164,15 @@ static int imx_intmux_probe(struct platform_device *pdev)
 	intmux_data->pdev = pdev;
 	spin_lock_init(&intmux_data->lock);
 
+	if (IS_ENABLED(CONFIG_PM)) {
+		/* save CHANIER register */
+		intmux_data->saved_reg = devm_kzalloc(&pdev->dev,
+						      sizeof(u32) * channum,
+						      GFP_KERNEL);
+		if (!intmux_data->saved_reg)
+			return -ENOMEM;
+	}
+
 	ret = clk_prepare_enable(intmux_data->ipg_clk);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to enable ipg clk: %d\n", ret);
@@ -212,6 +224,55 @@ static int imx_intmux_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static void imx_intmux_save_regs(struct intmux_data *intmux_data)
+{
+	int i;
+
+	for (i = 0; i < intmux_data->channum; i++)
+		intmux_data->saved_reg[i] = readl_relaxed(intmux_data->regs
+							  + CHANIER(i));
+}
+
+static void imx_intmux_restore_regs(struct intmux_data *intmux_data)
+{
+	int i;
+
+	for (i = 0; i < intmux_data->channum; i++)
+		writel_relaxed(intmux_data->saved_reg[i], intmux_data->regs
+			       + CHANIER(i));
+}
+
+static int imx_intmux_suspend(struct device *dev)
+{
+	struct intmux_data *intmux_data = dev_get_drvdata(dev);
+
+	imx_intmux_save_regs(intmux_data);
+	clk_disable_unprepare(intmux_data->ipg_clk);
+
+	return 0;
+}
+
+static int imx_intmux_resume(struct device *dev)
+{
+	struct intmux_data *intmux_data = dev_get_drvdata(dev);
+	int ret;
+
+	ret = clk_prepare_enable(intmux_data->ipg_clk);
+	if (ret) {
+		dev_err(dev, "failed to enable ipg clk: %d\n", ret);
+		return ret;
+	}
+	imx_intmux_restore_regs(intmux_data);
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops imx_intmux_pm_ops = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(imx_intmux_suspend, imx_intmux_resume)
+};
+
 static const struct of_device_id imx_intmux_id[] = {
 	{ .compatible = "nxp,imx-intmux", },
 	{},
@@ -221,6 +282,7 @@ static struct platform_driver imx_intmux_driver = {
 	.driver = {
 		.name = "imx-intmux",
 		.of_match_table = imx_intmux_id,
+		.pm = &imx_intmux_pm_ops,
 	},
 	.probe = imx_intmux_probe,
 	.remove = imx_intmux_remove,
