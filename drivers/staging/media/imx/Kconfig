@@ -55,6 +55,15 @@ config IMX8_MEDIA_DEVICE
 	  This media device is a virtual device which used to manage
 	  all modules in image subsystem of imx8qxp/qm platform.
 
+config IMX8_ISI_HW
+	tristate "IMX8 Image Sensor Interface hardware driver"
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	default y
+	help
+	  ISI hardware driver is used to export functions to config
+	  ISI registers and it is shared by isi capture and mem2mem
+	  driver
+
 config IMX8_ISI_CORE
 	bool "IMX8 Image Sensor Interface Core Driver"
 	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
