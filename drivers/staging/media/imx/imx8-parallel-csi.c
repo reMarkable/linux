@@ -157,6 +157,8 @@ struct mxc_parallel_csi_dev {
 
 	struct device *pd_pi;
 	struct device *pd_isi;
+	struct device_link *pd_pi_link;
+	struct device_link *pd_isi_link;
 
 	struct mutex lock;
 
@@ -242,6 +244,7 @@ static int mxc_pcsi_attach_pd(struct mxc_parallel_csi_dev *pcsidev)
 			       DL_FLAG_PM_RUNTIME);
 	if (IS_ERR(link))
 		return PTR_ERR(link);
+	pcsidev->pd_pi_link = link;
 
 	pcsidev->pd_isi = dev_pm_domain_attach_by_name(dev, "pd_isi_ch0");
 	if (IS_ERR(pcsidev->pd_isi)) {
@@ -257,8 +260,17 @@ static int mxc_pcsi_attach_pd(struct mxc_parallel_csi_dev *pcsidev)
 			       DL_FLAG_PM_RUNTIME);
 	if (IS_ERR(link))
 		return PTR_ERR(link);
+	pcsidev->pd_isi_link = link;
 
 	return 0;
+}
+
+static void mxc_pcsi_detach_pd(struct mxc_parallel_csi_dev *pcsidev)
+{
+	device_link_del(pcsidev->pd_pi_link);
+	device_link_del(pcsidev->pd_isi_link);
+	dev_pm_domain_detach(pcsidev->pd_pi, true);
+	dev_pm_domain_detach(pcsidev->pd_isi, true);
 }
 
 static int mxc_pcsi_clk_enable(struct mxc_parallel_csi_dev *pcsidev)
@@ -756,6 +768,7 @@ static int mxc_parallel_csi_remove(struct platform_device *pdev)
 	struct mxc_parallel_csi_dev *pcsidev =
 			(struct mxc_parallel_csi_dev *)platform_get_drvdata(pdev);
 
+	mxc_pcsi_detach_pd(pcsidev);
 	media_entity_cleanup(&pcsidev->sd.entity);
 	pm_runtime_disable(&pdev->dev);
 
