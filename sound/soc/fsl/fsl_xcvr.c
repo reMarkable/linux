@@ -30,7 +30,7 @@ struct fsl_xcvr {
 	const char *fw_name;
 	u8 streams;
 	u32 mode;
-	u32 arc_mode_idx;
+	u32 arc_mode;
 	void __iomem *ram_addr;
 	struct snd_dmaengine_dai_dma_data dma_prms_rx;
 	struct snd_dmaengine_dai_dma_data dma_prms_tx;
@@ -45,8 +45,10 @@ static const struct fsl_xcvr_pll_conf {
 	u32 mfd;  /* unsigned int */
 	u32 fout; /* Fout = Fref*(MFI + MFN/MFD), Fref is 24MHz */
 } fsl_xcvr_pll_cfg[] = {
-	{ .mfi = 32, .mfn = 96, .mfd = 125, .fout = 786432000, },
-	{ .mfi = 30, .mfn = 66, .mfd = 625, .fout = 722534400, },
+	{ .mfi = 54, .mfn = 1,  .mfd = 6,   .fout = 1300000000, }, /* 1.3 GHz */
+	{ .mfi = 32, .mfn = 96, .mfd = 125, .fout = 786432000, },  /* 8000 Hz */
+	{ .mfi = 30, .mfn = 66, .mfd = 625, .fout = 722534400, },  /* 11025 Hz */
+	{ .mfi = 29, .mfn = 1,  .mfd = 6,   .fout = 700000000, },  /* 700 MHz */
 };
 
 static const u32 fsl_xcvr_earc_channels[] = { 1, 2, 8, 16, 32, }; /* one bit 6, 12 ? */
@@ -87,7 +89,7 @@ static int fsl_xcvr_arc_mode_put(struct snd_kcontrol *kcontrol,
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
 	unsigned int *item = ucontrol->value.enumerated.item;
 
-	xcvr->arc_mode_idx = snd_soc_enum_item_to_val(e, item[0]);
+	xcvr->arc_mode = snd_soc_enum_item_to_val(e, item[0]);
 
 	return 0;
 }
@@ -98,13 +100,13 @@ static int fsl_xcvr_arc_mode_get(struct snd_kcontrol *kcontrol,
 	struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
 	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
 
-	ucontrol->value.enumerated.item[0] = xcvr->arc_mode_idx;
+	ucontrol->value.enumerated.item[0] = xcvr->arc_mode;
 
 	return 0;
 }
 
-static const int fsl_xcvr_arc_mode_ints[] = {
-	FSL_XCVR_ISR_SET_ARC_SE_INT, FSL_XCVR_ISR_SET_ARC_CM_INT,
+static const int fsl_xcvr_phy_arc_cfg[] = {
+	FSL_XCVR_PHY_CTRL_ARC_MODE_SE_EN, FSL_XCVR_PHY_CTRL_ARC_MODE_CM_EN,
 };
 
 static const char * const fsl_xcvr_arc_mode[] = { "Single Ended", "Common", };
@@ -241,8 +243,7 @@ static int fsl_xcvr_ai_write(struct fsl_xcvr *xcvr, u8 reg, u32 data, bool phy)
 	return 0;
 }
 
-static int __maybe_unused fsl_xcvr_en_phy_pll(struct fsl_xcvr *xcvr, bool earc,
-					      u32 freq)
+static int fsl_xcvr_en_phy_pll(struct fsl_xcvr *xcvr, u32 freq, bool tx)
 {
 	struct device *dev = &xcvr->pdev->dev;
 	u32 i, div = 0, log2;
@@ -286,13 +287,30 @@ static int __maybe_unused fsl_xcvr_en_phy_pll(struct fsl_xcvr *xcvr, bool earc,
 	fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_CTRL0_CLR,
 			  FSL_XCVR_PLL_CTRL0_HROFF, 0);
 	udelay(100);
-	/* PLL: POSTDIV: PDIV0 */
-	fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_PDIV, log2, 0);
-	/* PLL: CTRL_SET: CLKMUX0_EN */
-	fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_CTRL0_SET,
-			  FSL_XCVR_PLL_CTRL0_CM0_EN, 0);
+	if (tx) { /* TX is enabled for SPDIF only */
+		/* PLL: POSTDIV: PDIV0 */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_PDIV,
+				  FSL_XCVR_PLL_PDIVx(log2, 0), 0);
+		/* PLL: CTRL_SET: CLKMUX0_EN */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_CTRL0_SET,
+				  FSL_XCVR_PLL_CTRL0_CM0_EN, 0);
+	} else if (xcvr->mode == FSL_XCVR_MODE_EARC) { /* eARC RX */
+		/* PLL: POSTDIV: PDIV1 */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_PDIV,
+				  FSL_XCVR_PLL_PDIVx(log2, 1), 0);
+		/* PLL: CTRL_SET: CLKMUX1_EN */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_CTRL0_SET,
+				  FSL_XCVR_PLL_CTRL0_CM1_EN, 0);
+	} else { /* SPDIF / ARC RX */
+		/* PLL: POSTDIV: PDIV2 */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_PDIV,
+				  FSL_XCVR_PLL_PDIVx(log2, 2), 0);
+		/* PLL: CTRL_SET: CLKMUX2_EN */
+		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PLL_CTRL0_SET,
+				  FSL_XCVR_PLL_CTRL0_CM2_EN, 0);
+	}
 
-	if (earc) { /* eARC mode */
+	if (xcvr->mode == FSL_XCVR_MODE_EARC) { /* eARC mode */
 		/* PHY: CTRL_SET: TX_DIFF_OE, PHY_EN */
 		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
 				  FSL_XCVR_PHY_CTRL_TSDIFF_OE |
@@ -300,11 +318,16 @@ static int __maybe_unused fsl_xcvr_en_phy_pll(struct fsl_xcvr *xcvr, bool earc,
 		/* PHY: CTRL2_SET: EARC_TX_MODE */
 		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL2_SET,
 				  FSL_XCVR_PHY_CTRL2_EARC_TXMS, 1);
-
-	} else { /* SPDIF mode */
-		/* PHY: CTRL_SET: SPDIF_EN */
-		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
-				  FSL_XCVR_PHY_CTRL_SPDIF_EN, 1);
+	} else if (!tx) { /* SPDIF / ARC RX mode */
+		if (xcvr->mode == FSL_XCVR_MODE_SPDIF)
+			/* PHY: CTRL_SET: SPDIF_EN */
+			fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
+					  FSL_XCVR_PHY_CTRL_SPDIF_EN, 1);
+		else	/* PHY: CTRL_SET: ARC RX setup */
+			fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
+					  FSL_XCVR_PHY_CTRL_PHY_EN |
+					  FSL_XCVR_PHY_CTRL_RX_CM_EN |
+					  fsl_xcvr_phy_arc_cfg[xcvr->arc_mode], 1);
 	}
 
 	dev_dbg(dev, "PLL Fexp: %u, Fout: %u, mfi: %u, mfn: %u, mfd: %d, div: %u, pdiv0: %u\n",
@@ -313,8 +336,7 @@ static int __maybe_unused fsl_xcvr_en_phy_pll(struct fsl_xcvr *xcvr, bool earc,
 	return 0;
 }
 
-static int __maybe_unused fsl_xcvr_en_aud_pll(struct fsl_xcvr *xcvr, bool earc,
-					      u32 freq)
+static int fsl_xcvr_en_aud_pll(struct fsl_xcvr *xcvr, u32 freq)
 {
 	struct device *dev = &xcvr->pdev->dev;
 	int ret;
@@ -339,7 +361,7 @@ static int __maybe_unused fsl_xcvr_en_aud_pll(struct fsl_xcvr *xcvr, bool earc,
 		return ret;
 	}
 
-	if (earc) { /* eARC mode */
+	if (xcvr->mode == FSL_XCVR_MODE_EARC) { /* eARC mode */
 		/* PHY: CTRL_SET: TX_DIFF_OE, PHY_EN */
 		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
 				  FSL_XCVR_PHY_CTRL_TSDIFF_OE |
@@ -348,11 +370,9 @@ static int __maybe_unused fsl_xcvr_en_aud_pll(struct fsl_xcvr *xcvr, bool earc,
 		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL2_SET,
 				  FSL_XCVR_PHY_CTRL2_EARC_TXMS, 1);
 	} else { /* SPDIF mode */
-		/* PHY: CTRL_SET: TX_CLK_AUD_SS */
+		/* PHY: CTRL_SET: TX_CLK_AUD_SS | SPDIF_EN */
 		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
-				  FSL_XCVR_PHY_CTRL_TX_CLK_AUD_SS, 1);
-		/* PHY: CTRL_SET: SPDIF_EN */
-		fsl_xcvr_ai_write(xcvr, FSL_XCVR_PHY_CTRL_SET,
+				  FSL_XCVR_PHY_CTRL_TX_CLK_AUD_SS |
 				  FSL_XCVR_PHY_CTRL_SPDIF_EN, 1);
 	}
 
@@ -361,39 +381,91 @@ static int __maybe_unused fsl_xcvr_en_aud_pll(struct fsl_xcvr *xcvr, bool earc,
 	return 0;
 }
 
+#define FSL_XCVR_SPDIF_RX_FREQ	175000000
 static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 			    struct snd_soc_dai *dai)
 {
 	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-	u32 m_ctl = 0, v_ctl = 0, m_isr = 0, v_isr = 0;
+	u32 m_ctl = 0, v_ctl = 0;
 	u32 r = substream->runtime->rate, ch = substream->runtime->channels;
 	u32 fout = 32 * r * ch * 10 * 2;
 	int ret = 0;
 
-	if (tx && xcvr->mode == FSL_XCVR_MODE_SPDIF) {
-		ret = fsl_xcvr_en_aud_pll(xcvr, false, fout);
-		if (ret < 0) {
-			dev_err(dai->dev, "Failed to set TX freq %u: %d\n",
-				fout, ret);
-			return ret;
+	switch (xcvr->mode) {
+	case FSL_XCVR_MODE_SPDIF:
+	case FSL_XCVR_MODE_ARC:
+		if (tx) {
+			ret = fsl_xcvr_en_aud_pll(xcvr, fout);
+			if (ret < 0) {
+				dev_err(dai->dev, "Failed to set TX freq %u: %d\n",
+					fout, ret);
+				return ret;
+			}
+
+			ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_DPTH_CTRL_SET,
+					   FSL_XCVR_TX_DPTH_CTRL_FRM_FMT);
+			if (ret < 0) {
+				dev_err(dai->dev, "Failed to set TX_DPTH: %d\n", ret);
+				return ret;
+			}
+
+			/**
+			 * set SPDIF MODE - this flag is used to gate
+			 * SPDIF output, useless for SPDIF RX
+			 */
+			m_ctl |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
+			v_ctl |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
+		} else {
+			/**
+			 * Clear RX FIFO, flip RX FIFO bits,
+			 * disable eARC related HW mode detects
+			 */
+			ret = regmap_write(xcvr->regmap, FSL_XCVR_RX_DPTH_CTRL_SET,
+					   FSL_XCVR_RX_DPTH_CTRL_STORE_FMT |
+					   FSL_XCVR_RX_DPTH_CTRL_CLR_RX_FIFO |
+					   FSL_XCVR_RX_DPTH_CTRL_COMP |
+					   FSL_XCVR_RX_DPTH_CTRL_LAYB_CTRL);
+			if (ret < 0) {
+				dev_err(dai->dev, "Failed to set RX_DPTH: %d\n", ret);
+				return ret;
+			}
+
+			ret = fsl_xcvr_en_phy_pll(xcvr, FSL_XCVR_SPDIF_RX_FREQ, tx);
+			if (ret < 0) {
+				dev_err(dai->dev, "Failed to set RX freq %u: %d\n",
+					FSL_XCVR_SPDIF_RX_FREQ, ret);
+				return ret;
+			}
+		}
+		break;
+	case FSL_XCVR_MODE_EARC:
+		if (!tx) {
+			/** Clear RX FIFO, flip RX FIFO bits */
+			ret = regmap_write(xcvr->regmap, FSL_XCVR_RX_DPTH_CTRL_SET,
+					   FSL_XCVR_RX_DPTH_CTRL_STORE_FMT |
+					   FSL_XCVR_RX_DPTH_CTRL_CLR_RX_FIFO);
+			if (ret < 0) {
+				dev_err(dai->dev, "Failed to set RX_DPTH: %d\n", ret);
+				return ret;
+			}
+
+			/** Enable eARC related HW mode detects */
+			ret = regmap_write(xcvr->regmap, FSL_XCVR_RX_DPTH_CTRL_CLR,
+					   FSL_XCVR_RX_DPTH_CTRL_COMP |
+					   FSL_XCVR_RX_DPTH_CTRL_LAYB_CTRL);
+			if (ret < 0) {
+				dev_err(dai->dev, "Failed to clr TX_DPTH: %d\n", ret);
+				return ret;
+			}
 		}
 
-		ret = regmap_write(xcvr->regmap, FSL_XCVR_TX_DPTH_CTRL_SET,
-				   FSL_XCVR_TX_DPTH_CTRL_FRM_FMT);
-		if (ret < 0) {
-			dev_err(dai->dev, "Failed to set TX_DPTH: %d\n", ret);
-			return ret;
-		}
-	} else {
-		/* Release M0+ reset */
-		ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL,
-					 FSL_XCVR_EXT_CTRL_CORE_RESET, 0);
-		if (ret < 0) {
-			dev_err(dai->dev, "M0+ core release failed: %d\n", ret);
-			return ret;
-		}
-		mdelay(100);
+		/* clear CMDC RESET */
+		m_ctl |= FSL_XCVR_EXT_CTRL_CMDC_RESET(tx);
+		/* set TX_RX_MODE */
+		m_ctl |= FSL_XCVR_EXT_CTRL_TX_RX_MODE;
+		v_ctl |= (tx ? FSL_XCVR_EXT_CTRL_TX_RX_MODE : 0);
+		break;
 	}
 
 	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_IER0,
@@ -403,46 +475,11 @@ static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 		return ret;
 	}
 
-	/* configure EXT_CTRL */
-	switch (xcvr->mode) {
-	case FSL_XCVR_MODE_SPDIF:
-		/* set SPDIF MODE */
-		m_ctl |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
-		v_ctl |= FSL_XCVR_EXT_CTRL_SPDIF_MODE;
-		if (!tx) {
-			m_isr |= FSL_XCVR_ISR_SET_SPDIF_MODE(tx);
-			v_isr |= FSL_XCVR_ISR_SET_SPDIF_MODE(tx);
-		}
-		if (xcvr->streams == 3) { // both Tx and Rx are in use
-			m_isr |= FSL_XCVR_ISR_DMAC_SPARE_INT;
-			v_isr |= FSL_XCVR_ISR_DMAC_SPARE_INT;
-		}
-		break;
-	case FSL_XCVR_MODE_ARC:
-		/* Enable ISR */
-		m_isr |= fsl_xcvr_arc_mode_ints[xcvr->arc_mode_idx];
-		v_isr |= fsl_xcvr_arc_mode_ints[xcvr->arc_mode_idx];
-		break;
-	case FSL_XCVR_MODE_EARC:
-		/* clear CMDC RESET */
-		m_ctl |= FSL_XCVR_EXT_CTRL_CMDC_RESET(tx);
-		/* set TX_RX_MODE */
-		m_ctl |= FSL_XCVR_EXT_CTRL_TX_RX_MODE;
-		v_ctl |= (tx ? FSL_XCVR_EXT_CTRL_TX_RX_MODE : 0);
-		break;
-	}
-
 	/* clear DPATH RESET */
 	m_ctl |= FSL_XCVR_EXT_CTRL_DPTH_RESET(tx);
 	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL, m_ctl, v_ctl);
 	if (ret < 0) {
 		dev_err(dai->dev, "Error while setting EXT_CTRL: %d\n", ret);
-		return ret;
-	}
-
-	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_ISR_SET, m_isr, v_isr);
-	if (ret < 0) {
-		dev_err(dai->dev, "Error while setting M0 ISR: %d\n", ret);
 		return ret;
 	}
 
@@ -705,14 +742,6 @@ err_firmware:
 	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL, mask, val);
 	if (ret < 0) {
 		dev_err(dev, "Failed to set watermarks: %d\n", ret);
-		return ret;
-	}
-
-	/* Flip RX FIFO bits */
-	ret = regmap_write(xcvr->regmap, FSL_XCVR_RX_DPTH_CTRL_SET,
-			   FSL_XCVR_RX_DPTH_CTRL_STORE_FMT);
-	if (ret < 0) {
-		dev_err(dev, "Failed to set reverse bit in RX FIFO: %d\n", ret);
 		return ret;
 	}
 
@@ -1289,6 +1318,15 @@ static int fsl_xcvr_runtime_resume(struct device *dev)
 		dev_err(dev, "failed to load firmware.\n");
 		return ret;
 	}
+
+	/* Release M0+ reset */
+	ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL,
+				 FSL_XCVR_EXT_CTRL_CORE_RESET, 0);
+	if (ret < 0) {
+		dev_err(dev, "M0+ core release failed: %d\n", ret);
+		return ret;
+	}
+	mdelay(50);
 
 	return 0;
 }
