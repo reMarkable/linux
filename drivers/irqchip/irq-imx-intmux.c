@@ -15,6 +15,7 @@
 #include <linux/irqdomain.h>
 #include <linux/of_platform.h>
 #include <linux/spinlock.h>
+#include <linux/pm_runtime.h>
 
 #define CHANCSR(n)	(0x0 + 0x40 * n)
 #define CHANVEC(n)	(0x4 + 0x40 * n)
@@ -22,6 +23,7 @@
 #define CHANIPR(n)	(0x20 + (0x40 * n))
 
 struct intmux_irqchip_data {
+	struct irq_chip chip;
 	int chanidx;
 	int irq;
 	struct irq_domain *domain;
@@ -89,8 +91,10 @@ static struct irq_chip imx_intmux_irq_chip = {
 static int imx_intmux_irq_map(struct irq_domain *h, unsigned int irq,
 				irq_hw_number_t hwirq)
 {
+	struct intmux_irqchip_data *irqchip_data = h->host_data;
+
 	irq_set_chip_data(irq, h->host_data);
-	irq_set_chip_and_handler(irq, &imx_intmux_irq_chip, handle_edge_irq);
+	irq_set_chip_and_handler(irq, &irqchip_data->chip, handle_edge_irq);
 
 	return 0;
 }
@@ -173,13 +177,9 @@ static int imx_intmux_probe(struct platform_device *pdev)
 			return -ENOMEM;
 	}
 
-	ret = clk_prepare_enable(intmux_data->ipg_clk);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to enable ipg clk: %d\n", ret);
-		return ret;
-	}
-
 	for (i = 0; i < channum; i++) {
+		intmux_data->irqchip_data[i].chip = imx_intmux_irq_chip;
+		intmux_data->irqchip_data[i].chip.parent_device = &pdev->dev;
 		intmux_data->irqchip_data[i].chanidx = i;
 		intmux_data->irqchip_data[i].irq = platform_get_irq(pdev, i);
 		if (intmux_data->irqchip_data[i].irq <= 0) {
@@ -204,6 +204,21 @@ static int imx_intmux_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, intmux_data);
 
+	pm_runtime_get_noresume(&pdev->dev);
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+
+	ret = clk_prepare_enable(intmux_data->ipg_clk);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to enable ipg clk: %d\n", ret);
+		return ret;
+	}
+	/*
+	 * Let pm_runtime_put() disable clock.
+	 * If CONFIG_PM is not enabled, the clock will stay powered.
+	 */
+	pm_runtime_put(&pdev->dev);
+
 	return 0;
 }
 
@@ -219,7 +234,7 @@ static int imx_intmux_remove(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, NULL);
-	clk_disable_unprepare(intmux_data->ipg_clk);
+	pm_runtime_disable(&pdev->dev);
 
 	return 0;
 }
@@ -243,7 +258,7 @@ static void imx_intmux_restore_regs(struct intmux_data *intmux_data)
 			       + CHANIER(i));
 }
 
-static int imx_intmux_suspend(struct device *dev)
+static int imx_intmux_runtime_suspend(struct device *dev)
 {
 	struct intmux_data *intmux_data = dev_get_drvdata(dev);
 
@@ -253,7 +268,7 @@ static int imx_intmux_suspend(struct device *dev)
 	return 0;
 }
 
-static int imx_intmux_resume(struct device *dev)
+static int imx_intmux_runtime_resume(struct device *dev)
 {
 	struct intmux_data *intmux_data = dev_get_drvdata(dev);
 	int ret;
@@ -270,7 +285,10 @@ static int imx_intmux_resume(struct device *dev)
 #endif
 
 static const struct dev_pm_ops imx_intmux_pm_ops = {
-	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(imx_intmux_suspend, imx_intmux_resume)
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+				      pm_runtime_force_resume)
+	SET_RUNTIME_PM_OPS(imx_intmux_runtime_suspend,
+			   imx_intmux_runtime_resume, NULL)
 };
 
 static const struct of_device_id imx_intmux_id[] = {
