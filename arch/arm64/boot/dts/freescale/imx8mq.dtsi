@@ -625,13 +625,16 @@
 				clock-names = "ckil", "osc_25m", "osc_27m",
 				              "clk_ext1", "clk_ext2",
 				              "clk_ext3", "clk_ext4";
-				assigned-clocks = <&clk IMX8MQ_CLK_NAND_USDHC_BUS>,
+				assigned-clocks = <&clk IMX8MQ_CLK_NOC>,
+						  <&clk IMX8MQ_CLK_NAND_USDHC_BUS>,
 						  <&clk IMX8MQ_CLK_AUDIO_AHB>,
 						  <&clk IMX8MQ_AUDIO_PLL1>,
 						  <&clk IMX8MQ_AUDIO_PLL2>;
-				assigned-clock-parents = <&clk IMX8MQ_SYS1_PLL_266M>,
+				assigned-clock-parents = <&clk IMX8MQ_SYS1_PLL_800M>,
+							 <&clk IMX8MQ_SYS1_PLL_266M>,
 							 <&clk IMX8MQ_SYS2_PLL_500M>;
-				assigned-clock-rates = <0>,
+				assigned-clock-rates = <800000000>,
+						       <0>,
 						       <0>,
 						       <786432000>,
 						       <722534400>;
