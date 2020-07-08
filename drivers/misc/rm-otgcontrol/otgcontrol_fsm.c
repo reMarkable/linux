@@ -1495,6 +1495,9 @@ static int otgcontrol_do_device_connected_procedure(
 			"connection (i.e. enabling host mode)\n",
 			__func__);
 
+		/* Sleep to avoid race, let USB driver handle itself before setting DR mode */
+		usleep_range(300000, 400000);
+
 		otgcontrol_set_dr_mode(otgc_data,
 				       OTG1_DR_MODE__HOST);
 		otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_DEVICE_CONNECTED;
