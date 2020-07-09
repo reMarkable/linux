@@ -368,49 +368,14 @@ static int fsl_xcvr_prepare(struct snd_pcm_substream *substream,
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 	u32 m_ctl = 0, v_ctl = 0, m_isr = 0, v_isr = 0;
 	u32 r = substream->runtime->rate, ch = substream->runtime->channels;
-	snd_pcm_format_t f = substream->runtime->format;
-	u32 reg, val, fout = 32 * r * ch * 10 * 2;
-	int i, ret = 0;
+	u32 fout = 32 * r * ch * 10 * 2;
+	int ret = 0;
 
 	if (tx && xcvr->mode == FSL_XCVR_MODE_SPDIF) {
-		for (i = 0; i < 6; i++) {
-			val = (xcvr->tx_iec958.status[4 * i + 0] << 24) |
-			      (xcvr->tx_iec958.status[4 * i + 1] << 16) |
-			      (xcvr->tx_iec958.status[4 * i + 2] <<  8) |
-			      (xcvr->tx_iec958.status[4 * i + 3] <<  0);
-			/* Update TX CS data bits */
-			ret = regmap_write(xcvr->regmap,
-					   FSL_XCVR_TX_CS_DATA_0 + 4 * i, val);
-			if (ret < 0) {
-				dev_err(dai->dev, "Failed to set TXCS%d: %d\n",
-					i, ret);
-				return ret;
-			}
-		}
-
 		ret = fsl_xcvr_en_aud_pll(xcvr, false, fout);
 		if (ret < 0) {
 			dev_err(dai->dev, "Failed to set TX freq %u: %d\n",
 				fout, ret);
-			return ret;
-		}
-
-		/* enable/disable IEC958 encoding as function of input format */
-		val  = FSL_XCVR_TX_DPTH_CTRL_CS_MOD;
-		val |= FSL_XCVR_TX_DPTH_CTRL_EN_PREAMBLE;
-		val |= FSL_XCVR_TX_DPTH_CTRL_EN_PARITY;
-
-		if (f == SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE) {
-			/* disable IEC958 encoding */
-			reg = FSL_XCVR_TX_DPTH_CTRL_CLR;
-		} else {
-			/* enable IEC958 encoding */
-			reg = FSL_XCVR_TX_DPTH_CTRL_SET;
-		}
-		ret = regmap_write(xcvr->regmap, reg, val);
-		if (ret < 0) {
-			dev_err(dai->dev, "Failed to en/dis IEC958 encode: %d\n",
-				ret);
 			return ret;
 		}
 
@@ -585,27 +550,6 @@ static void fsl_xcvr_shutdown(struct snd_pcm_substream *substream,
 		dev_err(dai->dev, "Err setting DPATH RESET: %d\n", ret);
 		return;
 	}
-}
-
-static int fsl_xcvr_hw_params(struct snd_pcm_substream *substream,
-			      struct snd_pcm_hw_params *params,
-			      struct snd_soc_dai *dai)
-{
-	struct fsl_xcvr *xcvr = snd_soc_dai_get_drvdata(dai);
-	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-	int ret;
-
-	if (!tx)
-		return 0;
-
-	ret = snd_pcm_create_iec958_consumer_hw_params(params,
-		xcvr->tx_iec958.status, ARRAY_SIZE(xcvr->tx_iec958.status));
-	if (ret < 0) {
-		dev_err(dai->dev, "Creating IEC958 CS failed %d\n", ret);
-		return ret;
-	}
-
-	return 0;
 }
 
 static int fsl_xcvr_trigger(struct snd_pcm_substream *substream, int cmd,
@@ -875,7 +819,6 @@ static struct snd_soc_dai_ops fsl_xcvr_dai_ops = {
 	.startup = fsl_xcvr_startup,
 	.shutdown = fsl_xcvr_shutdown,
 	.trigger = fsl_xcvr_trigger,
-	.hw_params = fsl_xcvr_hw_params,
 };
 
 static int fsl_xcvr_dai_probe(struct snd_soc_dai *dai)
@@ -905,8 +848,7 @@ static struct snd_soc_dai_driver fsl_xcvr_dai = {
 		.rate_min = 32000,
 		.rate_max = 1536000,
 		.rates = SNDRV_PCM_RATE_KNOT,
-		.formats = SNDRV_PCM_FMTBIT_S24_LE |
-			   SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE,
+		.formats = SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE,
 	},
 	.capture = {
 		.stream_name = "CPU-Capture",
