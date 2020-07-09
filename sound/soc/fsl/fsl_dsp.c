@@ -404,6 +404,25 @@ static int fsl_dsp_open(struct inode *inode, struct file *file)
 	return ret;
 }
 
+static int fsl_dsp_wait_idle(struct fsl_dsp *dsp_priv)
+{
+	int timeout = 200;
+
+	if (dsp_priv->dsp_is_lpa) {
+		/* FW code is on OCRAM_A, Need wait DSP idle before gate */
+		/* OCRAM_A clock. Or DSP will hang */
+		while (!imx_audiomix_dsp_pwaitmode(dsp_priv->audiomix)) {
+			if (!timeout--) {
+				dev_err(dsp_priv->dev, "DSP failed to idle\n");
+				return -ETIME;
+			}
+			udelay(5);
+		}
+	}
+
+	return 0;
+}
+
 int fsl_dsp_close_func(struct xf_client *client)
 {
 	struct fsl_dsp *dsp_priv;
@@ -418,6 +437,10 @@ int fsl_dsp_close_func(struct xf_client *client)
 		xf_msg_free_all(proxy, &client->queue);
 
 	dsp_priv = (struct fsl_dsp *)client->global;
+
+	/* wait until DSP idle */
+	fsl_dsp_wait_idle(dsp_priv);
+
 	dev = dsp_priv->dev;
 	pm_runtime_put_sync(dev);
 
