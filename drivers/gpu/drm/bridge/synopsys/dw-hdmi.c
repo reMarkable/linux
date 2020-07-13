@@ -2949,7 +2949,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 		pdevinfo.size_data = sizeof(audio);
 		pdevinfo.dma_mask = DMA_BIT_MASK(32);
 		hdmi->audio = platform_device_register_full(&pdevinfo);
-	} else if (config3 & HDMI_CONFIG3_GPAUD) {
+	} else if (iores && config3 & HDMI_CONFIG3_GPAUD) {
 		struct dw_hdmi_audio_data audio;
 
 		audio.phys = iores->start;
