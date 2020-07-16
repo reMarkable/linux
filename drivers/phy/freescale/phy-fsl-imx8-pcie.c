@@ -181,14 +181,16 @@ static int imx8_pcie_phy_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	imx8_phy->flags &= ~IMX8MP_PCIE_PHY_FLAG_EXT_OSC;
-	if (of_property_read_u32(np, "clk_mode", &val) < 0)
+	if (of_property_read_u32(np, "ext_osc", &val) < 0)
 		/*
-		 * Not specify clk_mod, use the external OSC as default
+		 * Not specify ext_osc, use the external OSC as default
 		 * CLK mode.
 		 */
 		imx8_phy->flags |= IMX8MP_PCIE_PHY_FLAG_EXT_OSC;
 	if (val == 0)
 		imx8_phy->flags &= ~IMX8MP_PCIE_PHY_FLAG_EXT_OSC;
+	else if (val == 1)
+		imx8_phy->flags |= IMX8MP_PCIE_PHY_FLAG_EXT_OSC;
 	else
 		dev_info(dev, "invalid clk mode %d.\n", val);
 
