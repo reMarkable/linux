@@ -1006,7 +1006,7 @@ static irqreturn_t irq0_isr(int irq, void *devid)
 	struct device *dev = &xcvr->pdev->dev;
 	struct regmap *regmap = xcvr->regmap;
 	void __iomem *reg_ctrl, *reg_buff;
-	u32 isr, val;
+	u32 isr, val, i;
 
 	regmap_read(regmap, FSL_XCVR_EXT_ISR, &isr);
 	regmap_write(regmap, FSL_XCVR_EXT_ISR_CLR, isr);
@@ -1032,6 +1032,11 @@ static irqreturn_t irq0_isr(int irq, void *devid)
 			/* copy CS buffer */
 			memcpy_fromio(&xcvr->rx_iec958.status, reg_buff,
 				      sizeof(xcvr->rx_iec958.status));
+			for (i = 0; i < 6; i++) {
+				val = *(u32 *)(xcvr->rx_iec958.status + i*4);
+				*(u32 *)(xcvr->rx_iec958.status + i*4) =
+					bitrev32(val);
+			}
 			/* clear CS control register */
 			memset_io(reg_ctrl, 0, sizeof(val));
 		}
