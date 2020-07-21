@@ -31,8 +31,6 @@
 #define FW_ALIVE_TIMEOUT_US		1000000
 #define MAILBOX_RETRY_US		1000
 #define MAILBOX_TIMEOUT_US		5000000
-#define LINK_TRAINING_RETRY_MS		20
-#define LINK_TRAINING_TIMEOUT_MS	500
 
 #define mhdp_readx_poll_timeout(op, addr, offset, val, cond, sleep_us, timeout_us)	\
 ({ \
@@ -54,22 +52,6 @@
 	} \
 	(cond) ? 0 : -ETIMEDOUT; \
 })
-
-static inline u32 get_unaligned_be24(const void *p)
-{
-	const u8 *_p = p;
-
-	return _p[0] << 16 | _p[1] << 8 | _p[2];
-}
-
-static inline void put_unaligned_be24(u32 val, void *p)
-{
-	u8 *_p = p;
-
-	_p[0] = val >> 16;
-	_p[1] = val >> 8;
-	_p[2] = val;
-}
 
 u32 cdns_mhdp_bus_read(struct cdns_mhdp_device *mhdp, u32 offset)
 {
@@ -178,6 +160,25 @@ void cdns_mhdp_clock_reset(struct cdns_mhdp_device *mhdp)
 	cdns_mhdp_bus_write(0, mhdp, APB_INT_MASK);
 }
 EXPORT_SYMBOL(cdns_mhdp_clock_reset);
+
+bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp)
+{
+	u32  alive, newalive;
+	u8 retries_left = 50;
+
+	alive = cdns_mhdp_bus_read(mhdp, KEEP_ALIVE);
+
+	while (retries_left--) {
+		udelay(2);
+
+		newalive = cdns_mhdp_bus_read(mhdp, KEEP_ALIVE);
+		if (alive == newalive)
+			continue;
+		return true;
+	}
+	return false;
+}
+EXPORT_SYMBOL(cdns_mhdp_check_alive);
 
 int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
 {
@@ -360,70 +361,6 @@ int cdns_mhdp_reg_write_bit(struct cdns_mhdp_device *mhdp, u16 addr,
 }
 EXPORT_SYMBOL(cdns_mhdp_reg_write_bit);
 
-int cdns_mhdp_dpcd_read(struct cdns_mhdp_device *mhdp,
-			u32 addr, u8 *data, u16 len)
-{
-	u8 msg[5], reg[5];
-	int ret;
-
-	put_unaligned_be16(len, msg);
-	put_unaligned_be24(addr, msg + 2);
-
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-				     DPTX_READ_DPCD, sizeof(msg), msg);
-	if (ret)
-		goto err_dpcd_read;
-
-	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_DP_TX,
-						 DPTX_READ_DPCD,
-						 sizeof(reg) + len);
-	if (ret)
-		goto err_dpcd_read;
-
-	ret = cdns_mhdp_mailbox_read_receive(mhdp, reg, sizeof(reg));
-	if (ret)
-		goto err_dpcd_read;
-
-	ret = cdns_mhdp_mailbox_read_receive(mhdp, data, len);
-
-err_dpcd_read:
-	return ret;
-}
-EXPORT_SYMBOL(cdns_mhdp_dpcd_read);
-
-int cdns_mhdp_dpcd_write(struct cdns_mhdp_device *mhdp, u32 addr, u8 value)
-{
-	u8 msg[6], reg[5];
-	int ret;
-
-	put_unaligned_be16(1, msg);
-	put_unaligned_be24(addr, msg + 2);
-	msg[5] = value;
-
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-				     DPTX_WRITE_DPCD, sizeof(msg), msg);
-	if (ret)
-		goto err_dpcd_write;
-
-	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_DP_TX,
-						 DPTX_WRITE_DPCD, sizeof(reg));
-	if (ret)
-		goto err_dpcd_write;
-
-	ret = cdns_mhdp_mailbox_read_receive(mhdp, reg, sizeof(reg));
-	if (ret)
-		goto err_dpcd_write;
-
-	if (addr != get_unaligned_be24(reg + 2))
-		ret = -EINVAL;
-
-err_dpcd_write:
-	if (ret)
-		DRM_DEV_ERROR(mhdp->dev, "dpcd write failed: %d\n", ret);
-	return ret;
-}
-EXPORT_SYMBOL(cdns_mhdp_dpcd_write);
-
 int cdns_mhdp_load_firmware(struct cdns_mhdp_device *mhdp, const u32 *i_mem,
 			    u32 i_size, const u32 *d_mem, u32 d_size)
 {
@@ -557,19 +494,18 @@ u32 cdns_mhdp_get_event(struct cdns_mhdp_device *mhdp)
 }
 EXPORT_SYMBOL(cdns_mhdp_get_event);
 
-int cdns_mhdp_get_hpd_status(struct cdns_mhdp_device *mhdp)
+int cdns_mhdp_read_hpd(struct cdns_mhdp_device *mhdp)
 {
 	u8 status;
 	int ret;
 
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-				     DPTX_HPD_STATE, 0, NULL);
+	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_GENERAL, GENERAL_GET_HPD_STATE,
+				  0, NULL);
 	if (ret)
 		goto err_get_hpd;
 
-	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_DP_TX,
-						 DPTX_HPD_STATE,
-						 sizeof(status));
+	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_GENERAL,
+							GENERAL_GET_HPD_STATE, sizeof(status));
 	if (ret)
 		goto err_get_hpd;
 
@@ -580,10 +516,10 @@ int cdns_mhdp_get_hpd_status(struct cdns_mhdp_device *mhdp)
 	return status;
 
 err_get_hpd:
-	DRM_DEV_ERROR(mhdp->dev, "get hpd status failed: %d\n", ret);
+	DRM_ERROR("read hpd  failed: %d\n", ret);
 	return ret;
 }
-EXPORT_SYMBOL(cdns_mhdp_get_hpd_status);
+EXPORT_SYMBOL(cdns_mhdp_read_hpd);
 
 int cdns_mhdp_get_edid_block(void *data, u8 *edid,
 			  unsigned int block, size_t length)
@@ -627,107 +563,6 @@ int cdns_mhdp_get_edid_block(void *data, u8 *edid,
 	return ret;
 }
 EXPORT_SYMBOL(cdns_mhdp_get_edid_block);
-
-static int cdns_mhdp_training_start(struct cdns_mhdp_device *mhdp)
-{
-	unsigned long timeout;
-	u8 msg, event[2];
-	int ret;
-
-	msg = LINK_TRAINING_RUN;
-
-	/* start training */
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-				     DPTX_TRAINING_CONTROL, sizeof(msg), &msg);
-	if (ret)
-		goto err_training_start;
-
-	timeout = jiffies + msecs_to_jiffies(LINK_TRAINING_TIMEOUT_MS);
-	while (time_before(jiffies, timeout)) {
-		msleep(LINK_TRAINING_RETRY_MS);
-		ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-					     DPTX_READ_EVENT, 0, NULL);
-		if (ret)
-			goto err_training_start;
-
-		ret = cdns_mhdp_mailbox_validate_receive(mhdp,
-							 MB_MODULE_ID_DP_TX,
-							 DPTX_READ_EVENT,
-							 sizeof(event));
-		if (ret)
-			goto err_training_start;
-
-		ret = cdns_mhdp_mailbox_read_receive(mhdp, event,
-						     sizeof(event));
-		if (ret)
-			goto err_training_start;
-
-		if (event[1] & CLK_RECOVERY_FAILED)
-			DRM_DEV_ERROR(mhdp->dev, "clock recovery failed\n");
-		else if (event[1] & EQ_PHASE_FINISHED)
-			return 0;
-	}
-
-	ret = -ETIMEDOUT;
-
-err_training_start:
-	DRM_DEV_ERROR(mhdp->dev, "training failed: %d\n", ret);
-	return ret;
-}
-
-static int cdns_mhdp_get_training_status(struct cdns_mhdp_device *mhdp)
-{
-	u8 status[10];
-	int ret;
-
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-				     DPTX_READ_LINK_STAT, 0, NULL);
-	if (ret)
-		goto err_get_training_status;
-
-	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_DP_TX,
-						 DPTX_READ_LINK_STAT,
-						 sizeof(status));
-	if (ret)
-		goto err_get_training_status;
-
-	ret = cdns_mhdp_mailbox_read_receive(mhdp, status, sizeof(status));
-	if (ret)
-		goto err_get_training_status;
-
-	mhdp->dp.link.rate = drm_dp_bw_code_to_link_rate(status[0]); 
-	mhdp->dp.link.num_lanes = status[1];
-
-err_get_training_status:
-	if (ret)
-		DRM_DEV_ERROR(mhdp->dev, "get training status failed: %d\n",
-			      ret);
-	return ret;
-}
-
-int cdns_mhdp_train_link(struct cdns_mhdp_device *mhdp)
-{
-	int ret;
-
-	ret = cdns_mhdp_training_start(mhdp);
-	if (ret) {
-		DRM_DEV_ERROR(mhdp->dev, "Failed to start training %d\n",
-			      ret);
-		return ret;
-	}
-
-	ret = cdns_mhdp_get_training_status(mhdp);
-	if (ret) {
-		DRM_DEV_ERROR(mhdp->dev, "Failed to get training stat %d\n",
-			      ret);
-		return ret;
-	}
-
-	DRM_DEV_DEBUG_KMS(mhdp->dev, "rate:0x%x, lanes:%d\n", mhdp->dp.link.rate,
-			  mhdp->dp.link.num_lanes);
-	return ret;
-}
-EXPORT_SYMBOL(cdns_mhdp_train_link);
 
 int cdns_mhdp_set_video_status(struct cdns_mhdp_device *mhdp, int active)
 {
@@ -948,57 +783,6 @@ err_config_video:
 }
 EXPORT_SYMBOL(cdns_mhdp_config_video);
 
-int cdns_mhdp_adjust_lt(struct cdns_mhdp_device *mhdp,
-			u8 nlanes, u16 udelay, u8 *lanes_data, u8 *dpcd)
-{
-	u8 payload[7];
-	u8 hdr[5]; /* For DPCD read response header */
-	u32 addr;
-	u8 const nregs = 6; /* Registers 0x202-0x207 */
-	int ret;
-
-	if (nlanes != 4 && nlanes != 2 && nlanes != 1) {
-		DRM_DEV_ERROR(mhdp->dev, "invalid number of lanes: %d\n",
-			      nlanes);
-		ret = -EINVAL;
-		goto err_adjust_lt;
-	}
-
-	payload[0] = nlanes;
-	put_unaligned_be16(udelay, payload + 1);
-	memcpy(payload + 3, lanes_data, nlanes);
-
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_DP_TX,
-				     DPTX_ADJUST_LT,
-				     sizeof(payload), payload);
-	if (ret)
-		goto err_adjust_lt;
-
-	/* Yes, read the DPCD read command response */
-	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_DP_TX,
-						 DPTX_READ_DPCD,
-						 sizeof(hdr) + nregs);
-	if (ret)
-		goto err_adjust_lt;
-
-	ret = cdns_mhdp_mailbox_read_receive(mhdp, hdr, sizeof(hdr));
-	if (ret)
-		goto err_adjust_lt;
-
-	addr = get_unaligned_be24(hdr + 2);
-	if (addr != DP_LANE0_1_STATUS)
-		goto err_adjust_lt;
-
-	ret = cdns_mhdp_mailbox_read_receive(mhdp, dpcd, nregs);
-
-err_adjust_lt:
-	if (ret)
-		DRM_DEV_ERROR(mhdp->dev, "Failed to adjust Link Training.\n");
-
-	return ret;
-}
-EXPORT_SYMBOL(cdns_mhdp_adjust_lt);
-
 int cdns_phy_reg_write(struct cdns_mhdp_device *mhdp, u32 addr, u32 val)
 {
 	return cdns_mhdp_reg_write(mhdp, ADDR_PHY_AFE + (addr << 2), val);
@@ -1010,49 +794,3 @@ u32 cdns_phy_reg_read(struct cdns_mhdp_device *mhdp, u32 addr)
 	return cdns_mhdp_reg_read(mhdp, ADDR_PHY_AFE + (addr << 2));
 }
 EXPORT_SYMBOL(cdns_phy_reg_read);
-
-int cdns_mhdp_read_hpd(struct cdns_mhdp_device *mhdp)
-{
-	u8 status;
-	int ret;
-
-	ret = cdns_mhdp_mailbox_send(mhdp, MB_MODULE_ID_GENERAL, GENERAL_GET_HPD_STATE,
-				  0, NULL);
-	if (ret)
-		goto err_get_hpd;
-
-	ret = cdns_mhdp_mailbox_validate_receive(mhdp, MB_MODULE_ID_GENERAL,
-							GENERAL_GET_HPD_STATE, sizeof(status));
-	if (ret)
-		goto err_get_hpd;
-
-	ret = cdns_mhdp_mailbox_read_receive(mhdp, &status, sizeof(status));
-	if (ret)
-		goto err_get_hpd;
-
-	return status;
-
-err_get_hpd:
-	DRM_ERROR("read hpd  failed: %d\n", ret);
-	return ret;
-}
-EXPORT_SYMBOL(cdns_mhdp_read_hpd);
-
-bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp)
-{
-	u32  alive, newalive;
-	u8 retries_left = 50;
-
-	alive = cdns_mhdp_bus_read(mhdp, KEEP_ALIVE);
-
-	while (retries_left--) {
-		udelay(2);
-
-		newalive = cdns_mhdp_bus_read(mhdp, KEEP_ALIVE);
-		if (alive == newalive)
-			continue;
-		return true;
-	}
-	return false;
-}
-EXPORT_SYMBOL(cdns_mhdp_check_alive);
