@@ -19,7 +19,7 @@
 #include <linux/io.h>
 
 #include <drm/bridge/cdns-mhdp-common.h>
-#include "cdn-mhdp-phy.h"
+#include "cdns-mhdp-phy.h"
 
 /* HDMI TX clock control settings */
 struct hdmi_ctrl {

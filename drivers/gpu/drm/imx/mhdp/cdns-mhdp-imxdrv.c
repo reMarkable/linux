@@ -14,8 +14,8 @@
 #include <drm/drm_encoder_slave.h>
 
 #include "cdns-mhdp-imx.h"
-#include "cdn-mhdp-phy.h"
-#include "imx-drm.h"
+#include "cdns-mhdp-phy.h"
+#include "../imx-drm.h"
 
 static void cdns_mhdp_imx_encoder_disable(struct drm_encoder *encoder)
 {

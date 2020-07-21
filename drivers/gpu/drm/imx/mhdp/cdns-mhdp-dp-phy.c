@@ -13,7 +13,7 @@
 #include <linux/kernel.h>
 #include <drm/drm_dp_helper.h>
 #include <drm/bridge/cdns-mhdp-common.h>
-#include "cdn-mhdp-phy.h"
+#include "cdns-mhdp-phy.h"
 
 enum dp_link_rate {
 	RATE_1_6 = 162000,
