@@ -13,10 +13,9 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CDNS_MHDP_COMMON_H_
-#define CDNS_MHDP_COMMON_H_
+#ifndef CDNS_MHDP_H_
+#define CDNS_MHDP_H_
 
-#include <drm/bridge/cdns-mhdp-cbs.h>
 #include <drm/drm_bridge.h>
 #include <drm/drm_connector.h>
 #include <drm/drm_dp_helper.h>
@@ -698,11 +697,12 @@ struct cdns_mhdp_device {
 
 	union {
 		struct _dp_data {
-			struct drm_dp_link	link;
+			u8 dpcd[DP_RECEIVER_CAP_SIZE];
+			u32 rate;
+			u8 num_lanes;
 			struct drm_dp_aux	aux;
 			struct cdns_mhdp_host	host;
 			struct cdns_mhdp_sink	sink;
-			struct cdns_mhdp_mst_cbs cbs;
 			bool is_mst;
 			bool can_mst;
 		} dp;
@@ -727,7 +727,6 @@ int cdns_mhdp_set_firmware_active(struct cdns_mhdp_device *mhdp, bool enable);
 int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_event_config(struct cdns_mhdp_device *mhdp);
 u32 cdns_mhdp_get_event(struct cdns_mhdp_device *mhdp);
-int cdns_mhdp_get_hpd_status(struct cdns_mhdp_device *mhdp);
 int cdns_mhdp_dpcd_write(struct cdns_mhdp_device *mhdp, u32 addr, u8 value);
 int cdns_mhdp_dpcd_read(struct cdns_mhdp_device *mhdp,
 			u32 addr, u8 *data, u16 len);
@@ -789,6 +788,7 @@ int cdns_hdmi_bind(struct platform_device *pdev,
 void cdns_hdmi_set_sample_rate(struct cdns_mhdp_device *mhdp, unsigned int rate);
 void cdns_hdmi_audio_enable(struct cdns_mhdp_device *mhdp);
 void cdns_hdmi_audio_disable(struct cdns_mhdp_device *mhdp);
+
 /* DP  */
 int cdns_dp_probe(struct platform_device *pdev,
 		 struct cdns_mhdp_device *mhdp);
@@ -803,4 +803,4 @@ int cdns_mhdp_register_cec_driver(struct device *dev);
 int cdns_mhdp_unregister_cec_driver(struct device *dev);
 #endif
 
-#endif /* CDNS_MHDP_COMMON_H_ */
+#endif /* CDNS_MHDP_H_ */

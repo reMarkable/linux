@@ -12,7 +12,7 @@
 #ifndef CDNS_MHDP_IMX_H_
 #define CDNS_MHDP_IMX_H_
 
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include <drm/drm_encoder_slave.h>
 
 

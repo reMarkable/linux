@@ -12,7 +12,7 @@
 #include <linux/clk.h>
 #include <linux/kernel.h>
 #include <drm/drm_dp_helper.h>
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include "cdns-mhdp-phy.h"
 
 enum dp_link_rate {
@@ -137,7 +137,7 @@ static void dp_aux_cfg(struct cdns_mhdp_device *mhdp)
 static void dp_phy_pma_cmn_cfg_24mhz(struct cdns_mhdp_device *mhdp)
 {
 	int k;
-	u32 num_lanes = mhdp->dp.link.num_lanes;
+	u32 num_lanes = mhdp->dp.num_lanes;
 	u16 val;
 
 	val = cdns_phy_reg_read(mhdp, PHY_PMA_CMN_CTRL1);
@@ -157,8 +157,8 @@ static void dp_phy_pma_cmn_cfg_24mhz(struct cdns_mhdp_device *mhdp)
 /* Valid for 24 MHz only */
 static void dp_phy_pma_cmn_pll0_24mhz(struct cdns_mhdp_device *mhdp)
 {
-	u32 num_lanes = mhdp->dp.link.num_lanes;
-	u32 link_rate = mhdp->dp.link.rate;
+	u32 num_lanes = mhdp->dp.num_lanes;
+	u32 link_rate = mhdp->dp.rate;
 	u16 val;
 	int index, i, k;
 
@@ -228,7 +228,7 @@ static void dp_phy_pma_cmn_pll0_24mhz(struct cdns_mhdp_device *mhdp)
 /* PMA common configuration for 27MHz */
 static void dp_phy_pma_cmn_cfg_27mhz(struct cdns_mhdp_device *mhdp)
 {
-	u32 num_lanes = mhdp->dp.link.num_lanes;
+	u32 num_lanes = mhdp->dp.num_lanes;
 	u16 val;
 	int k;
 
@@ -279,8 +279,8 @@ static void dp_phy_pma_cmn_cfg_27mhz(struct cdns_mhdp_device *mhdp)
 
 static void dp_phy_pma_cmn_pll0_27mhz(struct cdns_mhdp_device *mhdp)
 {
-	u32 num_lanes = mhdp->dp.link.num_lanes;
-	u32 link_rate = mhdp->dp.link.rate;
+	u32 num_lanes = mhdp->dp.num_lanes;
+	u32 link_rate = mhdp->dp.rate;
 	u16 val;
 	int index, i, k;
 
@@ -324,6 +324,10 @@ static void dp_phy_pma_cmn_pll0_27mhz(struct cdns_mhdp_device *mhdp)
 
 	/* DP PHY PLL 27MHz configuration */
 	index = link_rate_index(link_rate);
+	if (index < 0) {
+		dev_err(mhdp->dev, "wrong link rate index\n");
+		return;
+	}
 	for (i = 0; i < ARRAY_SIZE(phy_pll_27m_cfg); i++)
 		cdns_phy_reg_write(mhdp, phy_pll_27m_cfg[i].addr, phy_pll_27m_cfg[i].val[index]);
 

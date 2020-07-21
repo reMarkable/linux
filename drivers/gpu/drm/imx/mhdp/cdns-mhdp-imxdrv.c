@@ -9,7 +9,7 @@
 #include <linux/platform_device.h>
 #include <linux/component.h>
 #include <drm/drm_of.h>
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_encoder_slave.h>
 

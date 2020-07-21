@@ -10,7 +10,8 @@
 #include <linux/firmware.h>
 #include <linux/pm_domain.h>
 #include <linux/clk.h>
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
+#include <drm/drm_print.h>
 
 #include "cdns-mhdp-imx.h"
 

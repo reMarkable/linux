@@ -9,14 +9,15 @@
  * (at your option) any later version.
  *
  */
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_edid.h>
 #include <drm/drm_encoder_slave.h>
 #include <drm/drm_of.h>
 #include <drm/drm_probe_helper.h>
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
+#include <drm/drm_print.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/irq.h>
@@ -113,8 +114,6 @@ static void dp_pixel_clk_reset(struct cdns_mhdp_device *mhdp)
 static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp)
 {
 	u32 lane_mapping = mhdp->lane_mapping;
-	struct drm_dp_link *link = &mhdp->dp.link;
-	char linkid[6];
 	int ret;
 
 	cdns_mhdp_plat_call(mhdp, pclk_rate);
@@ -124,35 +123,20 @@ static void cdns_dp_mode_set(struct cdns_mhdp_device *mhdp)
 
 	dp_pixel_clk_reset(mhdp);
 
-	ret = drm_dp_downstream_id(&mhdp->dp.aux, linkid);
+	/* Get DP Caps  */
+	ret = drm_dp_dpcd_read(&mhdp->dp.aux, DP_DPCD_REV, mhdp->dp.dpcd,
+			       DP_RECEIVER_CAP_SIZE);
 	if (ret < 0) {
-		DRM_INFO("Failed to Get DP link ID: %d\n", ret);
+		DRM_ERROR("Failed to get caps %d\n", ret);
 		return;
 	}
-	DRM_INFO("DP link id: %s, 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n",
-		 linkid, linkid[0], linkid[1], linkid[2], linkid[3], linkid[4],
-		 linkid[5]);
 
-	/* Check dp link */
-	ret = drm_dp_link_probe(&mhdp->dp.aux, link);
-	if (ret < 0) {
-		DRM_INFO("Failed to probe DP link: %d\n", ret);
-		return;
-	}
-	DRM_INFO("DP revision: 0x%x\n", link->revision);
-	DRM_INFO("DP rate: %d Mbps\n", link->rate);
-	DRM_INFO("DP number of lanes: %d\n", link->num_lanes);
-	DRM_INFO("DP capabilities: 0x%lx\n", link->capabilities);
+	mhdp->dp.rate = drm_dp_max_link_rate(mhdp->dp.dpcd);
+	mhdp->dp.num_lanes = drm_dp_max_lane_count(mhdp->dp.dpcd);
 
 	/* check the max link rate */
-	if (link->rate > CDNS_DP_MAX_LINK_RATE)
-		link->rate = CDNS_DP_MAX_LINK_RATE;
-
-	drm_dp_link_power_up(&mhdp->dp.aux, link);
-	if (ret < 0) {
-		DRM_INFO("Failed to power DP link: %d\n", ret);
-		return;
-	}
+	if (mhdp->dp.rate > CDNS_DP_MAX_LINK_RATE)
+		mhdp->dp.rate = CDNS_DP_MAX_LINK_RATE;
 
 	/* Initialize link rate/num_lanes as panel max link rate/max_num_lanes */
 	cdns_mhdp_plat_call(mhdp, phy_set);
@@ -334,8 +318,6 @@ static void cdn_dp_bridge_enable(struct drm_bridge *bridge)
 	struct cdns_mhdp_device *mhdp = bridge->driver_private;
 	int ret;
 
-	drm_dp_link_power_up(&mhdp->dp.aux, &mhdp->dp.link);
-
 	/* Link trainning */
 	ret = cdns_mhdp_train_link(mhdp);
 	if (ret) {
@@ -376,12 +358,12 @@ static void hotplug_work_func(struct work_struct *work)
 	if (connector->status == connector_status_connected) {
 		/* Cable connedted  */
 		DRM_INFO("HDMI/DP Cable Plug In\n");
-		/* force mode set to recovery weston DP video display */
-		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI/DP Cable Plug Out\n");
+		/* force mode set for cable replugin to recovery DP video modes */
+		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }

@@ -4,7 +4,7 @@
  *
  */
 #include <linux/clk.h>
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>

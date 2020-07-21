@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <asm/unaligned.h>
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include <drm/drm_print.h>
 #include <linux/io.h>
 
@@ -155,8 +155,8 @@ static int cdns_mhdp_get_training_status(struct cdns_mhdp_device *mhdp)
 	if (ret)
 		goto err_get_training_status;
 
-	mhdp->dp.link.rate = drm_dp_bw_code_to_link_rate(status[0]);
-	mhdp->dp.link.num_lanes = status[1];
+	mhdp->dp.rate = drm_dp_bw_code_to_link_rate(status[0]);
+	mhdp->dp.num_lanes = status[1];
 
 err_get_training_status:
 	if (ret)
@@ -183,8 +183,8 @@ int cdns_mhdp_train_link(struct cdns_mhdp_device *mhdp)
 		return ret;
 	}
 
-	DRM_DEV_DEBUG_KMS(mhdp->dev, "rate:0x%x, lanes:%d\n", mhdp->dp.link.rate,
-			  mhdp->dp.link.num_lanes);
+	DRM_DEV_DEBUG_KMS(mhdp->dev, "rate:0x%x, lanes:%d\n", mhdp->dp.rate,
+			  mhdp->dp.num_lanes);
 	return ret;
 }
 EXPORT_SYMBOL(cdns_mhdp_train_link);

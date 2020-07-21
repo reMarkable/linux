@@ -15,7 +15,7 @@
 #include <linux/workqueue.h>
 #include <linux/kthread.h>
 #include <linux/freezer.h>
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 
 #define CEC_NAME	"cdns-mhdp-cec"
 

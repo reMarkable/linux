@@ -7,9 +7,10 @@
  * (at your option) any later version.
  */
 
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
+#include <drm/drm_print.h>
 #include <linux/io.h>
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include <linux/regmap.h>
 
 void cdns_mhdp_infoframe_set(struct cdns_mhdp_device *mhdp,

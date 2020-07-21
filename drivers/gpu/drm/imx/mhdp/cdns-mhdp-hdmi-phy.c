@@ -10,7 +10,8 @@
  *
  */
 #include <drm/drm_of.h>
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
+#include <drm/drm_print.h>
 #include <drm/drm_crtc_helper.h>
 #include <linux/io.h>
 #include <drm/drm_edid.h>
@@ -18,7 +19,7 @@
 #include <drm/drm_atomic.h>
 #include <linux/io.h>
 
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include "cdns-mhdp-phy.h"
 
 /* HDMI TX clock control settings */

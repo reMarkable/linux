@@ -22,7 +22,7 @@
 
 #include <asm/unaligned.h>
 
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_print.h>
 #include <linux/regmap.h>
@@ -180,7 +180,7 @@ bool cdns_mhdp_check_alive(struct cdns_mhdp_device *mhdp)
 }
 EXPORT_SYMBOL(cdns_mhdp_check_alive);
 
-int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
+static int mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
 {
 	int val, ret;
 
@@ -192,9 +192,8 @@ int cdns_mhdp_mailbox_read(struct cdns_mhdp_device *mhdp)
 
 	return cdns_mhdp_bus_read(mhdp, MAILBOX0_RD_DATA) & 0xff;
 }
-EXPORT_SYMBOL(cdns_mhdp_mailbox_read);
 
-static int cdp_dp_mailbox_write(struct cdns_mhdp_device *mhdp, u8 val)
+static int mhdp_mailbox_write(struct cdns_mhdp_device *mhdp, u8 val)
 {
 	int ret, full;
 
@@ -219,7 +218,7 @@ int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
 
 	/* read the header of the message */
 	for (i = 0; i < 4; i++) {
-		ret = cdns_mhdp_mailbox_read(mhdp);
+		ret = mhdp_mailbox_read(mhdp);
 		if (ret < 0)
 			return ret;
 
@@ -235,7 +234,7 @@ int cdns_mhdp_mailbox_validate_receive(struct cdns_mhdp_device *mhdp,
 		 * clear the mailbox by reading its contents.
 		 */
 		for (i = 0; i < mbox_size; i++)
-			if (cdns_mhdp_mailbox_read(mhdp) < 0)
+			if (mhdp_mailbox_read(mhdp) < 0)
 				break;
 
 		return -EINVAL;
@@ -252,7 +251,7 @@ int cdns_mhdp_mailbox_read_receive(struct cdns_mhdp_device *mhdp,
 	int ret;
 
 	for (i = 0; i < buff_size; i++) {
-		ret = cdns_mhdp_mailbox_read(mhdp);
+		ret = mhdp_mailbox_read(mhdp);
 		if (ret < 0)
 			return ret;
 
@@ -274,13 +273,13 @@ int cdns_mhdp_mailbox_send(struct cdns_mhdp_device *mhdp, u8 module_id,
 	put_unaligned_be16(size, header + 2);
 
 	for (i = 0; i < 4; i++) {
-		ret = cdp_dp_mailbox_write(mhdp, header[i]);
+		ret = mhdp_mailbox_write(mhdp, header[i]);
 		if (ret)
 			return ret;
 	}
 
 	for (i = 0; i < size; i++) {
-		ret = cdp_dp_mailbox_write(mhdp, message[i]);
+		ret = mhdp_mailbox_write(mhdp, message[i]);
 		if (ret)
 			return ret;
 	}
@@ -416,14 +415,14 @@ int cdns_mhdp_set_firmware_active(struct cdns_mhdp_device *mhdp, bool enable)
 	msg[4] = enable ? FW_ACTIVE : FW_STANDBY;
 
 	for (i = 0; i < sizeof(msg); i++) {
-		ret = cdp_dp_mailbox_write(mhdp, msg[i]);
+		ret = mhdp_mailbox_write(mhdp, msg[i]);
 		if (ret)
 			goto err_set_firmware_active;
 	}
 
 	/* read the firmware state */
 	for (i = 0; i < sizeof(msg); i++)  {
-		ret = cdns_mhdp_mailbox_read(mhdp);
+		ret = mhdp_mailbox_read(mhdp);
 		if (ret < 0)
 			goto err_set_firmware_active;
 
@@ -444,8 +443,8 @@ int cdns_mhdp_set_host_cap(struct cdns_mhdp_device *mhdp)
 	u8 msg[8];
 	int ret;
 
-	msg[0] = drm_dp_link_rate_to_bw_code(mhdp->dp.link.rate);
-	msg[1] = mhdp->dp.link.num_lanes | SCRAMBLER_EN;
+	msg[0] = drm_dp_link_rate_to_bw_code(mhdp->dp.rate);
+	msg[1] = mhdp->dp.num_lanes | SCRAMBLER_EN;
 	msg[2] = VOLTAGE_LEVEL_2;
 	msg[3] = PRE_EMPHASIS_LEVEL_3;
 	msg[4] = PTS1 | PTS2 | PTS3 | PTS4;
@@ -580,7 +579,7 @@ int cdns_mhdp_set_video_status(struct cdns_mhdp_device *mhdp, int active)
 }
 EXPORT_SYMBOL(cdns_mhdp_set_video_status);
 
-static int cdns_mhdp_get_msa_misc(struct video_info *video,
+static int mhdp_get_msa_misc(struct video_info *video,
 				  struct drm_display_mode *mode)
 {
 	u32 msa_misc;
@@ -601,7 +600,7 @@ static int cdns_mhdp_get_msa_misc(struct video_info *video,
 	case YCBCR_4_2_0:
 		val[0] = 5;
 		break;
-	};
+	}
 
 	switch (video->color_depth) {
 	case 6:
@@ -619,7 +618,7 @@ static int cdns_mhdp_get_msa_misc(struct video_info *video,
 	case 16:
 		val[1] = 4;
 		break;
-	};
+	}
 
 	msa_misc = 2 * val[0] + 32 * val[1] +
 		   ((video->color_fmt == Y_ONLY) ? (1 << 14) : 0);
@@ -639,7 +638,7 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 	bit_per_pix = (video->color_fmt == YCBCR_4_2_2) ?
 		      (video->color_depth * 2) : (video->color_depth * 3);
 
-	link_rate = mhdp->dp.link.rate / 1000;
+	link_rate = mhdp->dp.rate / 1000;
 
 	ret = cdns_mhdp_reg_write(mhdp, BND_HSYNC2VSYNC, VIF_BYPASS_INTERLACE);
 	if (ret)
@@ -659,13 +658,13 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 	do {
 		tu_size_reg += 2;
 		symbol = (u64) tu_size_reg * mode->clock * bit_per_pix;
-		do_div(symbol, mhdp->dp.link.num_lanes * link_rate * 8);
+		do_div(symbol, mhdp->dp.num_lanes * link_rate * 8);
 		rem = do_div(symbol, 1000);
 		if (tu_size_reg > 64) {
 			ret = -EINVAL;
 			DRM_DEV_ERROR(mhdp->dev,
 				      "tu error, clk:%d, lanes:%d, rate:%d\n",
-				      mode->clock, mhdp->dp.link.num_lanes,
+				      mode->clock, mhdp->dp.num_lanes,
 				      link_rate);
 			goto err_config_video;
 		}
@@ -680,7 +679,7 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 
 	/* set the FIFO Buffer size */
 	val = div_u64(mode->clock * (symbol + 1), 1000) + link_rate;
-	val /= (mhdp->dp.link.num_lanes * link_rate);
+	val /= (mhdp->dp.num_lanes * link_rate);
 	val = div_u64(8 * (symbol + 1), bit_per_pix) - val;
 	val += 2;
 	ret = cdns_mhdp_reg_write(mhdp, DP_VC_TABLE(15), val);
@@ -701,7 +700,7 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 	case 16:
 		val = BCS_16;
 		break;
-	};
+	}
 
 	val += video->color_fmt << 8;
 	ret = cdns_mhdp_reg_write(mhdp, DP_FRAMER_PXL_REPR, val);
@@ -748,7 +747,7 @@ int cdns_mhdp_config_video(struct cdns_mhdp_device *mhdp)
 	if (ret)
 		goto err_config_video;
 
-	val = cdns_mhdp_get_msa_misc(video, mode);
+	val = mhdp_get_msa_misc(video, mode);
 	ret = cdns_mhdp_reg_write(mhdp, MSA_MISC, val);
 	if (ret)
 		goto err_config_video;

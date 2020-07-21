@@ -14,10 +14,11 @@
  */
 #include <linux/clk.h>
 #include <linux/reset.h>
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include <sound/hdmi-codec.h>
 #include <drm/drm_of.h>
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
+#include <drm/drm_print.h>
 
 #define CDNS_DP_SPDIF_CLK		200000000
 
@@ -151,7 +152,7 @@ static void cdns_mhdp_audio_config_i2s(struct cdns_mhdp_device *mhdp,
 	u32 transmission_type = 0; /* not required for L-PCM */
 
 	if (numofchannels == 2) {
-		if (mhdp->dp.link.num_lanes == 1)
+		if (mhdp->dp.num_lanes == 1)
 			sub_pckt_num = 2;
 		else
 			sub_pckt_num = 4;

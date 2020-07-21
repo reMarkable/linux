@@ -10,7 +10,7 @@
 #ifndef _CDN_DP_PHY_H
 #define _CDN_DP_PHY_H
 
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 
 #define CMN_SSM_BIAS_TMR                0x0022
 #define CMN_PLLSM0_PLLEN_TMR            0x0029

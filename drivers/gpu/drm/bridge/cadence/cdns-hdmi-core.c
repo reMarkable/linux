@@ -9,14 +9,15 @@
  * (at your option) any later version.
  *
  */
-#include <drm/bridge/cdns-mhdp-common.h>
+#include <drm/bridge/cdns-mhdp.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_edid.h>
 #include <drm/drm_encoder_slave.h>
 #include <drm/drm_of.h>
 #include <drm/drm_probe_helper.h>
+#include <drm/drm_print.h>
 #include <drm/drm_scdc_helper.h>
-#include <drm/drmP.h>
+#include <drm/drm_vblank.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/hdmi.h>
@@ -481,12 +482,13 @@ static void hotplug_work_func(struct work_struct *work)
 
 	if (connector->status == connector_status_connected) {
 		DRM_INFO("HDMI Cable Plug In\n");
-		/* force mode set to recovery weston HDMI2.0 video modes */
 		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_OUT]);
 	} else if (connector->status == connector_status_disconnected) {
 		/* Cable Disconnedted  */
 		DRM_INFO("HDMI Cable Plug Out\n");
+		/* force mode set for cable replugin to recovery HDMI2.0 video modes */
+		mhdp->force_mode_set = true;
 		enable_irq(mhdp->irq[IRQ_IN]);
 	}
 }
