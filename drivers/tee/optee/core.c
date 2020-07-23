@@ -613,6 +613,10 @@ static struct optee *optee_probe(struct device_node *np)
 		goto err;
 	}
 
+#if defined(CONFIG_HAVE_IMX_BUSFREQ)
+	if (of_find_compatible_node(NULL, NULL, "fsl,imx_busfreq"))
+		sec_caps |= OPTEE_SMC_SEC_CAP_IMX_BUSFREQ;
+#endif
 	optee->invoke_fn = invoke_fn;
 	optee->sec_caps = sec_caps;
 

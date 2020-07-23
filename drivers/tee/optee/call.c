@@ -14,8 +14,7 @@
 #include "optee_private.h"
 #include "optee_smc.h"
 
-#if defined(CONFIG_SOC_IMX6) || defined(CONFIG_SOC_IMX7) \
-	|| (CONFIG_HAVE_IMX8_SOC)
+#if defined(CONFIG_HAVE_IMX_BUSFREQ)
 #include <linux/busfreq-imx.h>
 #endif
 
@@ -141,13 +140,13 @@ u32 optee_do_call_with_arg(struct tee_context *ctx, phys_addr_t parg)
 	/* Initialize waiter */
 	optee_cq_wait_init(&optee->call_queue, &w);
 
-#if defined(CONFIG_SOC_IMX6) || defined(CONFIG_SOC_IMX7) \
-	|| (CONFIG_HAVE_IMX8_SOC)
+#if defined(CONFIG_HAVE_IMX_BUSFREQ)
 	/*
 	 * Request Busfreq to HIGH to prevent DDR self-refresh while
 	 * executing Secure stuff
 	 */
-	request_bus_freq(BUS_FREQ_HIGH);
+	if (optee->sec_caps & OPTEE_SMC_SEC_CAP_IMX_BUSFREQ)
+		request_bus_freq(BUS_FREQ_HIGH);
 #endif
 
 	while (true) {
@@ -178,12 +177,12 @@ u32 optee_do_call_with_arg(struct tee_context *ctx, phys_addr_t parg)
 
 	optee_rpc_finalize_call(&call_ctx);
 
-#if defined(CONFIG_SOC_IMX6) || defined(CONFIG_SOC_IMX7) \
-	|| (CONFIG_HAVE_IMX8_SOC)
+#if defined(CONFIG_HAVE_IMX_BUSFREQ)
 	/*
 	 * Release Busfreq from HIGH
 	 */
-	release_bus_freq(BUS_FREQ_HIGH);
+	if (optee->sec_caps & OPTEE_SMC_SEC_CAP_IMX_BUSFREQ)
+		release_bus_freq(BUS_FREQ_HIGH);
 #endif
 
 	/*
