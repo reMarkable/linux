@@ -378,9 +378,12 @@ cdns_hdmi_bridge_mode_valid(struct drm_bridge *bridge,
 	if (mode->hdisplay > 5120 || mode->vdisplay > 2160)
 		return MODE_BAD_HVALUE;
 
-	vic = drm_match_cea_mode(mode);
-	if (vic == 0)
-		return MODE_BAD;
+	/* imx8mq-hdmi does not support non CEA modes */
+	if (!strncmp("imx8mq-hdmi", mhdp->plat_data->plat_name, 11)) {
+		vic = drm_match_cea_mode(mode);
+		if (vic == 0)
+			return MODE_BAD;
+	}
 
 	mhdp->valid_mode = mode;
 	ret = cdns_mhdp_plat_call(mhdp, phy_video_valid);
