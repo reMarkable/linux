@@ -41,6 +41,14 @@
 #include <media/v4l2-device.h>
 #include <linux/reset.h>
 
+#if defined(CONFIG_MODVERSIONS) && !defined(MODVERSIONS)
+#define MODVERSIONS
+#endif
+
+#ifdef MODVERSIONS
+#include <config/modversions.h>
+#endif
+
 #define CSIS_DRIVER_NAME		"mxc-mipi-csi2-sam"
 #define CSIS_SUBDEV_NAME		"mxc-mipi-csi2"
 #define CSIS_MAX_ENTITIES		2
@@ -60,9 +68,8 @@
 #define MIPI_CSIS_VC3_PAD_SOURCE	7
 #define MIPI_CSIS_VCX_PADS_NUM		8
 
-
-#define MIPI_CSIS_DEF_PIX_WIDTH		640
-#define MIPI_CSIS_DEF_PIX_HEIGHT	480
+#define MIPI_CSIS_DEF_PIX_WIDTH		1920
+#define MIPI_CSIS_DEF_PIX_HEIGHT	1080
 
 /* Register map definition */
 
@@ -72,6 +79,7 @@
 /* CSIS common control */
 #define MIPI_CSIS_CMN_CTRL			0x04
 #define MIPI_CSIS_CMN_CTRL_UPDATE_SHADOW	(1 << 16)
+#define MIPI_CSIS_CMN_CTRL_HDR_MODE		(1 << 11)
 #define MIPI_CSIS_CMN_CTRL_INTER_MODE		(1 << 10)
 #define MIPI_CSIS_CMN_CTRL_LANE_NR_OFFSET	8
 #define MIPI_CSIS_CMN_CTRL_LANE_NR_MASK		(3 << 8)
@@ -282,6 +290,22 @@ struct csis_hw_reset1 {
 	u8 rst_bit;
 };
 
+enum {
+	VVCSIOC_RESET = 0x100,
+	VVCSIOC_POWERON,
+	VVCSIOC_POWEROFF,
+	VVCSIOC_STREAMON,
+	VVCSIOC_STREAMOFF,
+	VVCSIOC_S_FMT,
+	VVCSIOC_S_HDR,
+};
+
+struct csi_sam_format {
+	int64_t format;
+	__u32 width;
+	__u32 height;
+};
+
 struct csi_state;
 typedef int (*mipi_csis_phy_reset_t)(struct csi_state *state);
 
@@ -371,11 +395,14 @@ struct csi_state {
 	struct regulator     *mipi_phy_regulator;
 
 	struct regmap *gasket;
+	struct regmap *mix_gpr;
+
 	struct reset_control *soft_resetn;
 	struct reset_control *clk_enable;
 	struct reset_control *mipi_reset;
 
 	mipi_csis_phy_reset_t phy_reset_fn;
+	bool hdr;
 };
 
 static int debug;
@@ -393,7 +420,6 @@ static const struct csis_pix_format mipi_csis_formats[] = {
 		.data_alignment = 24,
 	}, {
 		.code = MEDIA_BUS_FMT_UYVY8_2X8,
-		.code = MEDIA_BUS_FMT_YUYV8_2X8,
 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_YCBCR422_8BIT,
 		.data_alignment = 16,
 	}, {
@@ -404,7 +430,39 @@ static const struct csis_pix_format mipi_csis_formats[] = {
 		.code = MEDIA_BUS_FMT_SBGGR8_1X8,
 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW8,
 		.data_alignment = 8,
-	}
+	}, {
+		.code = MEDIA_BUS_FMT_SBGGR10_1X10,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW10,
+		.data_alignment = 16,
+	}, {
+		.code = MEDIA_BUS_FMT_SGBRG10_1X10,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW10,
+		.data_alignment = 16,
+	}, {
+		.code = MEDIA_BUS_FMT_SGRBG10_1X10,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW10,
+		.data_alignment = 16,
+	}, {
+		.code = MEDIA_BUS_FMT_SRGGB10_1X10,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW10,
+		.data_alignment = 16,
+	}, {
+		.code = MEDIA_BUS_FMT_SBGGR12_1X12,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
+		.data_alignment = 16,
+	}, {
+		.code = MEDIA_BUS_FMT_SGBRG12_1X12,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
+		.data_alignment = 16,
+	}, {
+		.code = MEDIA_BUS_FMT_SGRBG12_1X12,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
+		.data_alignment = 16,
+	}, {
+		.code = MEDIA_BUS_FMT_SRGGB12_1X12,
+		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
+		.data_alignment = 16,
+	},
 };
 
 #define mipi_csis_write(__csis, __r, __v) writel(__v, __csis->regs + __r)
@@ -597,6 +655,9 @@ static void mipi_csis_phy_reset_mx8mn(struct csi_state *state)
 
 	reset_control_deassert(reset);
 	usleep_range(10, 20);
+
+	/* temporary place */
+	regmap_write(state->mix_gpr, 0x138, 0x8d8360);
 }
 
 static void mipi_csis_system_enable(struct csi_state *state, int on)
@@ -644,6 +705,15 @@ static void __mipi_csis_set_format(struct csi_state *state)
 	/* Pixel resolution */
 	val = mf->width | (mf->height << 16);
 	mipi_csis_write(state, MIPI_CSIS_ISPRESOL_CH0, val);
+	if (state->hdr) {
+		mipi_csis_write(state, MIPI_CSIS_ISPRESOL_CH1, val);
+		mipi_csis_write(state, MIPI_CSIS_ISPRESOL_CH2, val);
+		mipi_csis_write(state, MIPI_CSIS_ISPRESOL_CH3, val);
+		val = state->csis_fmt->fmt_reg;
+		mipi_csis_write(state, MIPI_CSIS_ISPCONFIG_CH1, val | 1);
+		mipi_csis_write(state, MIPI_CSIS_ISPCONFIG_CH2, val | 2);
+		mipi_csis_write(state, MIPI_CSIS_ISPCONFIG_CH3, val | 3);
+	}
 }
 
 static void mipi_csis_set_hsync_settle(struct csi_state *state)
@@ -663,6 +733,7 @@ static void mipi_csis_set_params(struct csi_state *state)
 	val = mipi_csis_read(state, MIPI_CSIS_CMN_CTRL);
 	val &= ~MIPI_CSIS_CMN_CTRL_LANE_NR_MASK;
 	val |= (state->num_lanes - 1) << MIPI_CSIS_CMN_CTRL_LANE_NR_OFFSET;
+	val |= MIPI_CSIS_CMN_CTRL_HDR_MODE;
 	mipi_csis_write(state, MIPI_CSIS_CMN_CTRL, val);
 
 	__mipi_csis_set_format(state);
@@ -695,6 +766,11 @@ static void mipi_csis_set_params(struct csi_state *state)
 	val = mipi_csis_read(state, MIPI_CSIS_CMN_CTRL);
 	val |= (MIPI_CSIS_CMN_CTRL_UPDATE_SHADOW |
 		MIPI_CSIS_CMN_CTRL_UPDATE_SHADOW_CTRL);
+	if (state->hdr) {
+		val |= MIPI_CSIS_CMN_CTRL_HDR_MODE;
+		val |= 0xE0000;
+	}
+
 	mipi_csis_write(state, MIPI_CSIS_CMN_CTRL, val);
 }
 
@@ -813,6 +889,30 @@ static void disp_mix_gasket_config(struct csi_state *state)
 	case MEDIA_BUS_FMT_SBGGR8_1X8:
 		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW8;
 		break;
+	case MEDIA_BUS_FMT_SBGGR10_1X10:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW10;
+		break;
+	case MEDIA_BUS_FMT_SGBRG10_1X10:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW10;
+		break;
+	case MEDIA_BUS_FMT_SGRBG10_1X10:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW10;
+		break;
+	case MEDIA_BUS_FMT_SRGGB10_1X10:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW10;
+		break;
+	case MEDIA_BUS_FMT_SBGGR12_1X12:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
+		break;
+	case MEDIA_BUS_FMT_SGBRG12_1X12:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
+		break;
+	case MEDIA_BUS_FMT_SGRBG12_1X12:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
+		break;
+	case MEDIA_BUS_FMT_SRGGB12_1X12:
+		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
+		break;
 	default:
 		pr_err("gasket not support format %d\n", fmt->code);
 		return;
@@ -855,7 +955,6 @@ static void mipi_csis_start_stream(struct csi_state *state)
 	mipi_csis_system_enable(state, true);
 	disp_mix_gasket_enable(state, true);
 	mipi_csis_enable_interrupts(state, true);
-
 	msleep(5);
 }
 
@@ -1118,9 +1217,133 @@ static int mipi_csis_log_status(struct v4l2_subdev *mipi_sd)
 	return 0;
 }
 
+static int csis_s_fmt(struct v4l2_subdev *sd, struct csi_sam_format *fmt)
+{
+	u32 code;
+	const struct csis_pix_format *csis_format;
+	struct csi_state *state = container_of(sd, struct csi_state, sd);
+
+	switch (fmt->format) {
+	case V4L2_PIX_FMT_SBGGR10:
+	    code = MEDIA_BUS_FMT_SBGGR10_1X10;
+	    break;
+	case V4L2_PIX_FMT_SGBRG10:
+	    code = MEDIA_BUS_FMT_SGBRG10_1X10;
+	    break;
+	case V4L2_PIX_FMT_SGRBG10:
+	    code = MEDIA_BUS_FMT_SGRBG10_1X10;
+	    break;
+	case V4L2_PIX_FMT_SRGGB10:
+	    code = MEDIA_BUS_FMT_SRGGB10_1X10;
+	    break;
+	case V4L2_PIX_FMT_SBGGR12:
+	    code = MEDIA_BUS_FMT_SBGGR12_1X12;
+	    break;
+	case V4L2_PIX_FMT_SGBRG12:
+	    code = MEDIA_BUS_FMT_SGBRG12_1X12;
+	    break;
+	case V4L2_PIX_FMT_SGRBG12:
+	    code = MEDIA_BUS_FMT_SGRBG12_1X12;
+	    break;
+	case V4L2_PIX_FMT_SRGGB12:
+	    code = MEDIA_BUS_FMT_SRGGB12_1X12;
+	    break;
+	default:
+		return -EINVAL;
+	}
+	csis_format = find_csis_format(code);
+	if (csis_format == NULL)
+		return -EINVAL;
+
+	state->csis_fmt = csis_format;
+	state->format.width = fmt->width;
+	state->format.height = fmt->height;
+	disp_mix_gasket_config(state);
+	mipi_csis_set_params(state);
+	return 0;
+}
+
+static int csis_s_hdr(struct v4l2_subdev *sd, bool enable)
+{
+	struct csi_state *state = container_of(sd, struct csi_state, sd);
+
+	v4l2_dbg(2, debug, &state->sd, "%s: %d\n", __func__, enable);
+	state->hdr = enable;
+	return 0;
+}
+
+static int csis_ioc_qcap(struct v4l2_subdev *dev, void *args)
+{
+	struct v4l2_capability *cap = (struct v4l2_capability *)args;
+	strcpy((char *)cap->driver, "csi_samsung_subdev");
+	return 0;
+}
+
+#ifdef CONFIG_HARDENED_USERCOPY
+#define USER_TO_KERNEL(TYPE) \
+	do {\
+		TYPE tmp; \
+		arg = (void *)(&tmp); \
+		copy_from_user(arg, arg_user, sizeof(TYPE));\
+	} while (0)
+
+#define KERNEL_TO_USER(TYPE) \
+		copy_to_user(arg_user, arg, sizeof(TYPE));
+#else
+#define USER_TO_KERNEL(TYPE)
+#define KERNEL_TO_USER(TYPE)
+#endif
+static long csis_priv_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg_user)
+{
+	int ret = 1;
+	struct csi_state *state = container_of(sd, struct csi_state, sd);
+	void *arg = arg_user;
+
+	pm_runtime_get_sync(state->dev);
+
+	switch (cmd) {
+	case VVCSIOC_RESET:
+		mipi_csis_sw_reset(state);
+		ret = 0;
+		break;
+	case VVCSIOC_POWERON:
+		ret = mipi_csis_s_power(sd, 1);
+		break;
+	case VVCSIOC_POWEROFF:
+		ret = mipi_csis_s_power(sd, 0);
+		break;
+	case VVCSIOC_STREAMON:
+		ret = mipi_csis_s_stream(sd, 1);
+		break;
+	case VVCSIOC_STREAMOFF:
+		ret = mipi_csis_s_stream(sd, 0);
+		break;
+	case VVCSIOC_S_FMT: {
+		USER_TO_KERNEL(struct csi_sam_format);
+		ret = csis_s_fmt(sd, (struct csi_sam_format *)arg);
+		break;
+	}
+	case VVCSIOC_S_HDR: {
+		USER_TO_KERNEL(bool);
+		ret = csis_s_hdr(sd, *(bool *) arg);
+		break;
+	}
+	case VIDIOC_QUERYCAP:
+		ret = csis_ioc_qcap(sd, arg);
+		break;
+	default:
+		v4l2_err(&state->sd, "unsupported csi-sam command %d.", cmd);
+		break;
+	}
+	pm_runtime_put(state->dev);
+
+	return ret;
+}
+
 static struct v4l2_subdev_core_ops mipi_csis_core_ops = {
 	.s_power = mipi_csis_s_power,
 	.log_status = mipi_csis_log_status,
+	.ioctl = csis_priv_ioctl,
 };
 
 static struct v4l2_subdev_video_ops mipi_csis_video_ops = {
@@ -1240,7 +1463,7 @@ static int mipi_csis_subdev_init(struct v4l2_subdev *mipi_sd,
 	state->format.height = MIPI_CSIS_DEF_PIX_HEIGHT;
 
 	/* This allows to retrieve the platform device id by the host driver */
-	v4l2_set_subdevdata(mipi_sd, pdev);
+	v4l2_set_subdevdata(mipi_sd, state);
 
 	return ret;
 }
@@ -1352,17 +1575,22 @@ static int mipi_csis_probe(struct platform_device *pdev)
 		}
 	}
 
+	state->mix_gpr = syscon_regmap_lookup_by_phandle(dev->of_node, "gpr");
+	if (IS_ERR(state->mix_gpr)) {
+		dev_err(dev, "failed to get mix gpr\n");
+		return PTR_ERR(state->mix_gpr);
+	}
+
+
 	mem_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	state->regs = devm_ioremap_resource(dev, mem_res);
 	if (IS_ERR(state->regs))
 		return PTR_ERR(state->regs);
-
 	state->irq = platform_get_irq(pdev, 0);
 	if (state->irq < 0) {
 		dev_err(dev, "Failed to get irq\n");
 		return state->irq;
 	}
-
 	ret = mipi_csis_clk_get(state);
 	if (ret < 0)
 		return ret;
@@ -1375,8 +1603,7 @@ static int mipi_csis_probe(struct platform_device *pdev)
 	disp_mix_sft_rstn(state->soft_resetn, false);
 	phy_reset_fn(state);
 
-	mipi_csis_clk_disable(state);
-
+	/*mipi_csis_clk_disable(state);*/
 	ret = devm_request_irq(dev, state->irq, mipi_csis_irq_handler, 0,
 			       dev_name(dev), state);
 	if (ret) {
