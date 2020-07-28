@@ -14,13 +14,11 @@
  * GNU General Public License for more details.
  */
 
-#include "imx8mp-evk-ov2775.dts"
-
-&ov2775_0 {
-	status = "disabled";
-};
+#include "imx8mp-evk.dts"
 
 &i2c2 {
+	/delete-node/ov5640_mipi@3c;
+
 	basler_camera@36 {
 		compatible = "basler,basler-camera-vvcam", "basler-camera-vvcam";
 		reg = <0x36>;
@@ -28,11 +26,40 @@
 		status = "okay";
 
 		port {
-			endpoint {
+			basler_ep_0: endpoint {
 				data-lanes = <1 2 3 4>;
 				clock-lanes = <0>;
 				link-frequencies = /bits/ 64 <248000000>;
+				remote-endpoint = <&mipi_csi0_ep>;
 			};
 		};
 	};
+};
+
+&mipi_csi_0 {
+	status = "okay";
+
+	port@0 {
+		mipi_csi0_ep: endpoint {
+			remote-endpoint = <&basler_ep_0>;
+			data-lanes = <4>;
+			csis-hs-settle = <16>;
+		};
+	};
+};
+
+&cameradev {
+	status = "okay";
+};
+
+&isi_0 {
+	status = "disabled";
+};
+
+&isp_0 {
+	status = "okay";
+};
+
+&dewarp {
+	status = "okay";
 };
