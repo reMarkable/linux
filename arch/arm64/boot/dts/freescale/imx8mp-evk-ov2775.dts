@@ -18,15 +18,13 @@
 #include "imx8mp-evk.dts"
 
 &i2c2 {
-	ov5640_0: ov5640_mipi@3c {
-		status = "disabled";
-	};
+	/delete-node/ov5640_mipi@3c;
 
 	ov2775_0: ov2775_mipi@36 {
 		compatible = "ovti,ov2775";
 		reg = <0x36>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
 		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
 		clock-names = "csi_mclk";
 		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
@@ -38,6 +36,14 @@
 		mclk = <24000000>;
 		mclk_source = <0>;
 		status = "okay";
+
+		port {
+			ov2775_mipi_0_ep: endpoint {
+				data-lanes = <1 2 3 4>;
+				clock-lanes = <0>;
+				remote-endpoint = <&mipi_csi0_ep>;
+			};
+		};
 
 	};
 };
@@ -56,7 +62,7 @@
 		compatible = "ovti,ov2775";
 		reg = <0x36>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
 		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
 		clock-names = "csi_mclk";
 		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
@@ -87,30 +93,22 @@
 	status = "okay";
 };
 
+&dewarp {
+	status = "okay";
+};
+
 &mipi_csi_0 {
-	clocks = <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>,
-			 <&clk IMX8MP_CLK_MEDIA_AXI>,
-			 <&clk IMX8MP_CLK_MEDIA_APB>;
-	clock-names = "mipi_clk", "axi_root", "apb_root";
-	assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>,
-			  <&clk IMX8MP_CLK_MEDIA_AXI>,
-			  <&clk IMX8MP_CLK_MEDIA_APB>;
-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>,
-				 <&clk IMX8MP_SYS_PLL2_500M>,
-				 <&clk IMX8MP_SYS_PLL1_800M>;
-	assigned-clock-rates = <500000000>, <500000000>, <200000000>;
+	status = "okay";
+
+	port@0 {
+		endpoint {
+			remote-endpoint = <&ov2775_mipi_0_ep>;
+			data-lanes = <4>;
+			csis-hs-settle = <16>;
+		};
+	};
 };
 
 &mipi_csi_1 {
-	clocks = <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>,
-			 <&clk IMX8MP_CLK_MEDIA_AXI>,
-			 <&clk IMX8MP_CLK_MEDIA_APB>;
-	clock-names = "mipi_clk", "axi_root", "apb_root";
-	assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>,
-			  <&clk IMX8MP_CLK_MEDIA_AXI>,
-			  <&clk IMX8MP_CLK_MEDIA_APB>;
-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>,
-				 <&clk IMX8MP_SYS_PLL2_500M>,
-				 <&clk IMX8MP_SYS_PLL1_800M>;
-	assigned-clock-rates = <500000000>, <500000000>, <200000000>;
+	status = "disabled";
 };
