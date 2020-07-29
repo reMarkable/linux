@@ -14,7 +14,7 @@
 	dspaudio: dspaudio {
 		compatible = "fsl,dsp-audio";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_sai3>;
+		pinctrl-0 = <&pinctrl_sai3 &pinctrl_uart4>;
 		status = "okay";
 	};
 
@@ -39,7 +39,7 @@
 	/* console  for debug dsp*/
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart4>;
-	status = "okay";
+	status = "disabled";
 };
 
 &iomuxc {
