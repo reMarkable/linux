@@ -161,4 +161,16 @@ enum xa_config_param_renderer {
 	XA_RENDERER_CONFIG_PARAM_NUM            = 7,
 };
 
+/* pcm codec configuration parameters */
+enum xa_config_param_pcm {
+	XA_PCM_CONFIG_PARAM_SAMPLE_RATE         = 0, /* not supported */
+	XA_PCM_CONFIG_PARAM_IN_PCM_WIDTH        = 1,
+	XA_PCM_CONFIG_PARAM_IN_CHANNELS         = 2, /* not supported */
+	XA_PCM_CONFIG_PARAM_OUT_PCM_WIDTH       = 3, /* not supported */
+	XA_PCM_CONFIG_PARAM_OUT_CHANNELS        = 4, /* not supported */
+	XA_PCM_CONFIG_PARAM_CHANROUTING         = 5, /* not supported */
+	XA_PCM_CONFIG_PARAM_FUNC_PRINT          = 13, /* not supported */
+	XA_PCM_CONFIG_PARAM_NUM                 = 14, /* not supported */
+};
+
 #endif /* FSL_DSP_XAF_API_H */

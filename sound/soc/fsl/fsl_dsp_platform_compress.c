@@ -14,7 +14,7 @@
 #include "fsl_dsp_platform.h"
 #include "fsl_dsp_xaf_api.h"
 
-#define NUM_CODEC 2
+#define NUM_CODEC 3
 #define MIN_FRAGMENT 1
 #define MAX_FRAGMENT 1
 #define MIN_FRAGMENT_SIZE (4 * 1024)
@@ -137,6 +137,9 @@ static int dsp_platform_compr_set_params(struct snd_compr_stream *cstream,
 	int ret;
 
 	switch (params->codec.id) {
+	case SND_AUDIOCODEC_PCM:
+		drv->codec_type = CODEC_PCM_DEC;
+		break;
 	case SND_AUDIOCODEC_MP3:
 		drv->codec_type = CODEC_MP3_DEC;
 		break;
@@ -209,6 +212,21 @@ static int dsp_platform_compr_set_params(struct snd_compr_stream *cstream,
 	drv->client->input_bytes = 0;
 	drv->client->consume_bytes = 0;
 	drv->client->offset = 0;
+
+	if (drv->codec_type == CODEC_PCM_DEC) {
+		s_param.id = XA_PCM_CONFIG_PARAM_IN_PCM_WIDTH;
+		if (params->codec.format == SNDRV_PCM_FORMAT_S32_LE)
+			s_param.mixData.value = 32;
+		else
+			s_param.mixData.value = 16;
+		ret = xaf_comp_set_config(drv->client, &drv->component[0], 1, &s_param);
+		if (ret) {
+			dev_err(component->dev,
+				"set param[cmd:0x%x|val:0x%x] error, err = %d\n",
+				s_param.id, s_param.mixData.value, ret);
+			goto err_comp1_create;
+		}
+	}
 
 	s_param.id = XA_RENDERER_CONFIG_PARAM_SAMPLE_RATE;
 	s_param.mixData.value = params->codec.sample_rate;
@@ -512,9 +530,31 @@ static int dsp_platform_compr_get_caps(struct snd_compr_stream *cstream,
 	caps->max_fragments = MAX_FRAGMENT;
 	caps->codecs[0] = SND_AUDIOCODEC_MP3;
 	caps->codecs[1] = SND_AUDIOCODEC_AAC;
+	caps->codecs[2] = SND_AUDIOCODEC_PCM;
 
 	return 0;
 }
+
+static struct snd_compr_codec_caps caps_pcm = {
+	.num_descriptors = 1,
+	.descriptor[0].max_ch = 2,
+	.descriptor[0].sample_rates[0] = 192000,
+	.descriptor[0].sample_rates[1] = 176400,
+	.descriptor[0].sample_rates[2] = 96000,
+	.descriptor[0].sample_rates[3] = 88200,
+	.descriptor[0].sample_rates[4] = 48000,
+	.descriptor[0].sample_rates[5] = 44100,
+	.descriptor[0].sample_rates[6] = 32000,
+	.descriptor[0].sample_rates[7] = 16000,
+	.descriptor[0].sample_rates[8] = 8000,
+	.descriptor[0].num_sample_rates = 9,
+	.descriptor[0].bit_rate[0] = 320,
+	.descriptor[0].bit_rate[1] = 192,
+	.descriptor[0].num_bitrates = 2,
+	.descriptor[0].profiles = SND_AUDIOPROFILE_PCM,
+	.descriptor[0].modes = 0,
+	.descriptor[0].formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE,
+};
 
 static struct snd_compr_codec_caps caps_mp3 = {
 	.num_descriptors = 1,
@@ -559,6 +599,8 @@ static int dsp_platform_compr_get_codec_caps(struct snd_compr_stream *cstream,
 		*codec = caps_mp3;
 	else if (codec->codec == SND_AUDIOCODEC_AAC)
 		*codec = caps_aac;
+	else if (codec->codec == SND_AUDIOCODEC_PCM)
+		*codec = caps_pcm;
 	else
 		return -EINVAL;
 

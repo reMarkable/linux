@@ -44,7 +44,8 @@
 #define CODEC_DRM_DEC		6
 #define CODEC_SBC_DEC		7
 #define CODEC_SBC_ENC		8
-#define CODEC_DEMO_DEC		9
+#define CODEC_PCM_DEC		9
+#define CODEC_DEMO_DEC		10
 
 #define RENDER_ESAI		0x10
 #define RENDER_SAI		0x11
