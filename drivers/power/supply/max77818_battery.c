@@ -1040,7 +1040,7 @@ static struct max77818_of_property max77818_relax_cfg =
 	{"maxim,relax-cfg", MAX17042_RelaxCFG, regmap_write};
 
 static struct max77818_of_property max77818_custom_param_list [] = {
-	{ "maxim,learn-cfg", MAX17042_LearnCFG, regmap_write },
+	{ "maxim,learn-cfg", MAX17042_LearnCFG, regmap_write, true },
 	{ "maxim,config", MAX17042_CONFIG, regmap_write },
 	{ "maxim,config2", MAX77818_Config2, regmap_write },
 	{ "maxim,full-soc-threshold", MAX17047_FullSOCThr, regmap_write },
