@@ -128,7 +128,6 @@ enum icm_action_t {
 /* ...resume component operation */
 #define XF_SUSPEND                      __XF_OPCODE(0, 0, 15)
 
-
 /*******************************************************************************
  * Ring buffer support
  ******************************************************************************/
@@ -429,6 +428,8 @@ void *xf_proxy_a2b(struct xf_proxy *proxy, u32 address);
 
 int xf_cmd_send_suspend(struct xf_proxy *proxy);
 int xf_cmd_send_resume(struct xf_proxy *proxy);
+int xf_cmd_send_pause(struct xf_proxy *proxy);
+int xf_cmd_send_pause_release(struct xf_proxy *proxy);
 
 int xf_cmd_alloc(struct xf_proxy *proxy, void **buffer, u32 length);
 int xf_cmd_free(struct xf_proxy *proxy, void *buffer, u32 length);
@@ -514,7 +515,8 @@ int xf_close(struct xf_client *client, struct xf_handle *handle);
 /* ...component output eos operation */
 #define XF_OUTPUT_EOS                   __XF_OPCODE(0, 0, 18)
 
+#define XF_PAUSE_RELEASE                __XF_OPCODE(0, 0, 19)
 /* ...total amount of supported decoder commands */
-#define __XF_OP_NUM                     19
+#define __XF_OP_NUM                     20
 
 #endif

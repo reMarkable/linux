@@ -357,6 +357,39 @@ static int dsp_platform_compr_trigger_drain(struct snd_compr_stream *cstream)
 	return 0;
 }
 
+static int dsp_platform_compr_trigger_pause(struct snd_compr_stream *cstream)
+{
+	struct snd_soc_pcm_runtime *rtd = cstream->private_data;
+	struct snd_soc_component *component = snd_soc_rtdcom_lookup(rtd, FSL_DSP_COMP_NAME);
+	struct fsl_dsp *dsp_priv = snd_soc_component_get_drvdata(component);
+	struct xf_proxy  *proxy  = &dsp_priv->proxy;
+	int ret;
+
+	ret = xf_cmd_send_pause(proxy);
+	if (ret) {
+		dev_err("trigger pause err = %d\n", ret);
+		return ret;
+	}
+	return 0;
+}
+
+static int dsp_platform_compr_trigger_pause_release(struct snd_compr_stream *cstream)
+{
+	struct snd_soc_pcm_runtime *rtd = cstream->private_data;
+	struct snd_soc_component *component = snd_soc_rtdcom_lookup(rtd, FSL_DSP_COMP_NAME);
+	struct fsl_dsp *dsp_priv = snd_soc_component_get_drvdata(component);
+	struct xf_proxy  *proxy  = &dsp_priv->proxy;
+	int ret;
+
+	ret = xf_cmd_send_pause_release(proxy);
+	if (ret) {
+		dev_err("trigger pause release err = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 static int dsp_platform_compr_trigger(struct snd_compr_stream *cstream, int cmd)
 {
 	int ret = 0;
@@ -374,8 +407,10 @@ static int dsp_platform_compr_trigger(struct snd_compr_stream *cstream, int cmd)
 	case SND_COMPR_TRIGGER_PARTIAL_DRAIN:
 		break;
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+		ret = dsp_platform_compr_trigger_pause(cstream);
 		break;
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+		ret = dsp_platform_compr_trigger_pause_release(cstream);
 		break;
 	}
 

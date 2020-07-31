@@ -246,6 +246,8 @@ irqreturn_t fsl_dsp_mu_isr(int irq, void *dev_id)
 			break;
 		case XF_SUSPEND:
 		case XF_RESUME:
+		case XF_PAUSE:
+		case XF_PAUSE_RELEASE:
 			complete(&proxy->cmd_complete);
 			break;
 		default:
@@ -761,6 +763,48 @@ int xf_cmd_send_resume(struct xf_proxy *proxy)
 	msghdr.ack  = 0;
 	msghdr.intr = 1;
 	msghdr.msg  = XF_RESUME;
+	msghdr.size = 0;
+	icm_intr_send(proxy, msghdr.allbits);
+
+	/* wait for response here */
+	ret = icm_ack_wait(proxy, msghdr.allbits);
+
+	return ret;
+}
+/*
+ * pause & pause_release functions
+ */
+int xf_cmd_send_pause(struct xf_proxy *proxy)
+{
+	union icm_header_t msghdr;
+	int ret = 0;
+
+	init_completion(&proxy->cmd_complete);
+
+	msghdr.allbits = 0;	/* clear all bits; */
+	msghdr.ack  = 0;
+	msghdr.intr = 1;
+	msghdr.msg  = XF_PAUSE;
+	msghdr.size = 0;
+	icm_intr_send(proxy, msghdr.allbits);
+
+	/* wait for response here */
+	ret = icm_ack_wait(proxy, msghdr.allbits);
+
+	return ret;
+}
+
+int xf_cmd_send_pause_release(struct xf_proxy *proxy)
+{
+	union icm_header_t msghdr;
+	int ret = 0;
+
+	init_completion(&proxy->cmd_complete);
+
+	msghdr.allbits = 0;	/* clear all bits; */
+	msghdr.ack  = 0;
+	msghdr.intr = 1;
+	msghdr.msg  = XF_PAUSE_RELEASE;
 	msghdr.size = 0;
 	icm_intr_send(proxy, msghdr.allbits);
 
