@@ -200,24 +200,19 @@ static int otgcontrol_reset_fsm(struct rm_otgcontrol_data *otgc_data)
 	if(otgcontrol_get_current_gpio_state(otgc_data) ==
 			OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED) {
 		dev_dbg(otgc_data->dev,
-			"%s: Device is connected, "
-			"doing default authenticated device connection procedure",
-			__func__);
+			"Device is connected, "
+			"doing default authenticated device connection procedure\n");
 
-		ret = otgcontrol_do_device_connected_procedure(otgc_data, false);
+		ret = otgcontrol_do_device_connected_procedure(otgc_data, true);
 		if (ret < 0) {
 			dev_err(otgc_data->dev,
-				"%s: Failed to reset FSM "
-				"(unable to complete device connection procedure)\n",
-				__func__);
+				"Unable to complete device connection procedure\n");
 
 			dev_dbg(otgc_data->dev,
-				"%s: Just wait for device disconnect/connect\n",
-				__func__);
+				"Waiting for device disconnect/connect\n");
 
 			otgc_data->otg_controlstate =
 					OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
-			return ret;
 		}
 	}
 	else {
@@ -1368,132 +1363,29 @@ static int otgcontrol_do_device_connected_procedure(
 		struct rm_otgcontrol_data *otgc_data,
 		bool authentication_required)
 {
-	int i, ret;
-	char tty_device_name[50], buf[100];
-
-	dev_dbg(otgc_data->dev,
-		"%s: Powering up connected device (if no charger is connected)\n",
-		__func__);
-
-	ret = otgcontrol_change_otg_charger_mode_int(
-				otgc_data,
-				OTG1_CHARGERMODE_OTG); /* OTG POWER ON */
-	if (ret < 0) {
-		dev_dbg(otgc_data->dev,
-			"%s: Unable to turn on OTG power, check connections\n",
-			__func__);
-		return ret;
-	}
+	int ret;
 
 	if (authentication_required) {
-		dev_dbg(otgc_data->dev,
-			"%s: Deactivating GPIO IRQ and sending authentication "
-			"challenge to connected device\n",
-			__func__);
-
-		otgcontrol_deactivate_gpio_irq(otgc_data);
-
-		/* Wait for device to boot */
-		dev_dbg(otgc_data->dev,
-			"%s: Waiting for device to boot\n",
-			__func__);
-
-		for(i = 0;i < 5000;i++) udelay(1000);
-
-		/* Send challenge response */
-		dev_dbg(otgc_data->dev,
-			"%s: Changing one-wire mux config (UART TX)\n",
-			__func__);
-
-		otgcontrol_switch_one_wire_mux_state(
-					otgc_data,
-					OTG1_ONEWIRE_STATE__UART_TX);
-
-		dev_dbg(otgc_data->dev,
-			"%s: Sending authentication challenge\n",
-			__func__);
-
-		sprintf(tty_device_name,
-			"/dev/%s",
-			otgc_data->pdata->one_wire_tty_name);
-
-		ret = otgcontrol_onewire_write_tty(otgc_data,
-						   tty_device_name,
-						   ":0001ff#");
-		if (ret < 0)
-		{
-			dev_err(otgc_data->dev,
-				"%s: Failed to send authentication challenge to "
-				"connected device\n",
-				__func__);
-			return ret;
-		}
-
-		/* Wait for message to be sendt before switching direction */
-		dev_dbg(otgc_data->dev,
-			"%s: Waiting 100 ms approx. to let tx message leave "
-			"before switching direction\n",
-			__func__);
-
-		for(i = 0;i < 100;i++) udelay(1000);
-
-		dev_dbg(otgc_data->dev,
-			"%s: Changing one-wire mux config (UART RX)\n",
-			__func__);
-
-		ret = otgcontrol_switch_one_wire_mux_state(
-					otgc_data,
-					OTG1_ONEWIRE_STATE__UART_RX);
-		if (ret < 0) {
-			dev_dbg(otgc_data->dev,
-				"%s: Unable to switch one-wire mux config, "
-				"cannot authenticate connected device\n",
-				__func__);
-			return ret;
-		}
-
-		/* Wait for response or timeout */
-		dev_dbg(otgc_data->dev,
-			"%s: Waiting for response from connected device\n",
-			__func__);
-
-		/* For now, just block here until response has been received */
-		int count = otgcontrol_onewire_read_until_cr(otgc_data,
-							     "/dev/ttymxc5",
-							     buf, 100);
-		buf[count] = 0;
-		dev_dbg(otgc_data->dev, "%s: Read '%s'",
-			__func__,
-			buf);
-
-		/* Verify response */
-		/* For now just take it to be good and enable USB connection
-		 * (i.e. enable host mode) */
-		dev_dbg(otgc_data->dev,
-			"%s: Taking response to be good and activating USB "
-			"connection (i.e enabling host mode)\n",
-			__func__);
-
-		ret = otgcontrol_do_set_controlmode(otgc_data,
-						    OTG1_DR_MODE__HOST);
-		if (ret < 0) {
-			dev_dbg(otgc_data->dev,
-				"%s: Unable to set USB OTG host mode - "
-				"disconnect and re-connect connected device\n",
-				__func__);
-			return ret;
-		}
-
-		otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_DEVICE_CONNECTED;
-		otgc_data->otg1_controllermode = OTG_MODE__ONEWIRE_AUTH;
-		return 0;
+		dev_warn(otgc_data->dev,
+			 "Authenticated connection not supported, ignoring..\n");
+		return  -ENOTSUPP;
 	}
 	else
 	{
 		dev_dbg(otgc_data->dev,
-			"%s: Authentication not required, activating USB "
-			"connection (i.e. enabling host mode)\n",
-			__func__);
+			"Authentication not required, activating USB connection\n");
+
+		dev_dbg(otgc_data->dev,
+			"Powering up connected device (if no charger is connected)\n");
+
+		ret = otgcontrol_change_otg_charger_mode_int(
+					otgc_data,
+					OTG1_CHARGERMODE_OTG); /* OTG POWER ON */
+		if (ret < 0) {
+			dev_dbg(otgc_data->dev,
+				"Unable to turn on OTG power, check connections\n");
+			return ret;
+		}
 
 		/* Sleep to avoid race, let USB driver handle itself before setting DR mode */
 		usleep_range(300000, 400000);
