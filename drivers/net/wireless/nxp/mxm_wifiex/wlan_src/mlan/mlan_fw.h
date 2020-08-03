@@ -1174,10 +1174,8 @@ typedef enum _WLAN_802_11_WEP_STATUS {
 #define HostCmd_CMD_SDIO_GPIO_INT_CONFIG 0x0088
 #endif
 
-#ifdef MFG_CMD_SUPPORT
 /** Host Command ID : Mfg command */
 #define HostCmd_CMD_MFG_COMMAND 0x0089
-#endif
 /** Host Command ID : Inactivity timeout ext */
 #define HostCmd_CMD_INACTIVITY_TIMEOUT_EXT 0x008a
 
@@ -6544,7 +6542,8 @@ typedef MLAN_PACK_START struct {
 	MeasType_t meas_type; /**< Measurement type */
 	MeasRequest_t req; /**< Measurement request data */
 
-} MLAN_PACK_END HostCmd_DS_MEASUREMENT_REQUEST;
+} MLAN_PACK_END HostCmd_DS_MEASUREMENT_REQUEST,
+	*pHostCmd_DS_MEASUREMENT_REQUEST;
 
 /**
  * @brief Structure passed back from firmware with a measurement report,
@@ -6557,7 +6556,7 @@ typedef MLAN_PACK_START struct {
 	MeasType_t meas_type; /**< Measurement type */
 	MeasReport_t rpt; /**< Measurement report data */
 
-} MLAN_PACK_END HostCmd_DS_MEASUREMENT_REPORT;
+} MLAN_PACK_END HostCmd_DS_MEASUREMENT_REPORT, *pHostCmd_DS_MEASUREMENT_REPORT;
 
 typedef MLAN_PACK_START struct {
 	t_u16 startFreq;
@@ -6684,7 +6683,7 @@ typedef MLAN_PACK_START struct _dual_desc_buf {
 	t_u16 reserved;
 	/** Physical address of the buffer */
 	t_u64 paddr;
-} MLAN_PACK_END adma_dual_desc_buf;
+} MLAN_PACK_END adma_dual_desc_buf, *padma_dual_desc_buf;
 
 #if defined(PCIE8997) || defined(PCIE8897)
 /** PCIE ring buffer description for DATA */
@@ -6701,7 +6700,7 @@ typedef MLAN_PACK_START struct _mlan_pcie_data_buf {
 	t_u64 paddr;
 	/** Reserved */
 	t_u32 reserved;
-} MLAN_PACK_END mlan_pcie_data_buf;
+} MLAN_PACK_END mlan_pcie_data_buf, *pmlan_pcie_data_buf;
 
 /** PCIE ring buffer description for EVENT */
 typedef MLAN_PACK_START struct _mlan_pcie_evt_buf {
@@ -6711,7 +6710,7 @@ typedef MLAN_PACK_START struct _mlan_pcie_evt_buf {
 	t_u16 len;
 	/** Buffer descriptor flags */
 	t_u16 flags;
-} MLAN_PACK_END mlan_pcie_evt_buf;
+} MLAN_PACK_END mlan_pcie_evt_buf, *pmlan_pcie_evt_buf;
 
 /** PCIE host buffer configuration */
 typedef MLAN_PACK_START struct _HostCmd_DS_PCIE_HOST_BUF_DETAILS {
@@ -7259,8 +7258,11 @@ typedef struct MLAN_PACK_START _HostCmd_DS_COMMAND {
 		HostCmd_DS_CHANNEL_TRPC_CONFIG ch_trpc_config;
 		HostCmd_DS_LOW_POWER_MODE_CFG lpm_cfg;
 		HostCmd_DS_BAND_STEERING band_steer_info;
+		struct mfg_cmd_generic_cfg mfg_generic_cfg;
+		struct mfg_cmd_tx_cont mfg_tx_cont;
+		struct mfg_cmd_tx_frame2 mfg_tx_frame2;
 	} params;
-} MLAN_PACK_END HostCmd_DS_COMMAND;
+} MLAN_PACK_END HostCmd_DS_COMMAND, *pHostCmd_DS_COMMAND;
 
 /** PS_CMD_ConfirmSleep */
 typedef MLAN_PACK_START struct _OPT_Confirm_Sleep {

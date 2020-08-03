@@ -64,8 +64,8 @@ Change Log:
  *  @param pcmd_node    A pointer to cmd_ctrl_node structure
  *  @return             N/A
  */
-static t_void wlan_queue_scan_cmd(IN mlan_private *pmpriv,
-				  IN cmd_ctrl_node *pcmd_node)
+static t_void wlan_queue_scan_cmd(mlan_private *pmpriv,
+				  cmd_ctrl_node *pcmd_node)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 
@@ -90,7 +90,7 @@ done:
  *
  *  @return             N/A
  */
-void wlan_check_scan_queue(IN pmlan_adapter pmadapter)
+void wlan_check_scan_queue(pmlan_adapter pmadapter)
 {
 	cmd_ctrl_node *pcmd_node = MNULL;
 	t_u16 num = 0;
@@ -502,9 +502,8 @@ t_u8 *wlan_strchr(t_u8 *s, int c)
  *    @param size         data length
  *    @return             MLAN_STATUS_SUCCESS--success, otherwise--fail
  */
-static t_u32 wlan_process_hostcmd_cfg(IN pmlan_private pmpriv,
-				      IN t_u16 cfg_type, IN t_u8 *data,
-				      IN t_size size)
+static t_u32 wlan_process_hostcmd_cfg(pmlan_private pmpriv, t_u16 cfg_type,
+				      t_u8 *data, t_size size)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	t_u8 *pos = data;
@@ -631,9 +630,9 @@ static t_u32 wlan_process_hostcmd_cfg(IN pmlan_private pmpriv,
  *
  *  @return             N/A
  */
-static void wlan_init_cmd_node(IN pmlan_private pmpriv,
-			       IN cmd_ctrl_node *pcmd_node, IN t_u32 cmd_no,
-			       IN t_void *pioctl_buf, IN t_void *pdata_buf)
+static void wlan_init_cmd_node(pmlan_private pmpriv, cmd_ctrl_node *pcmd_node,
+			       t_u32 cmd_no, t_void *pioctl_buf,
+			       t_void *pdata_buf)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 
@@ -874,9 +873,9 @@ static cmd_ctrl_node *wlan_get_bss_pending_ioctl_cmd(pmlan_adapter pmadapter,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-static mlan_status wlan_ret_host_cmd(IN pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *resp,
-				     IN mlan_ioctl_req *pioctl_buf)
+static mlan_status wlan_ret_host_cmd(pmlan_private pmpriv,
+				     HostCmd_DS_COMMAND *resp,
+				     mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *misc;
 	t_u16 size = wlan_le16_to_cpu(resp->size);
@@ -904,9 +903,8 @@ static mlan_status wlan_ret_host_cmd(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-static mlan_status wlan_cmd_host_cmd(IN pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *cmd,
-				     IN t_void *pdata_buf)
+static mlan_status wlan_cmd_host_cmd(pmlan_private pmpriv,
+				     HostCmd_DS_COMMAND *cmd, t_void *pdata_buf)
 {
 	mlan_ds_misc_cmd *pcmd_ptr = (mlan_ds_misc_cmd *)pdata_buf;
 
@@ -974,8 +972,8 @@ static t_u16 wlan_get_cmd_timeout(t_u16 cmd_id)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-static mlan_status wlan_dnld_cmd_to_fw(IN mlan_private *pmpriv,
-				       IN cmd_ctrl_node *pcmd_node)
+static mlan_status wlan_dnld_cmd_to_fw(mlan_private *pmpriv,
+				       cmd_ctrl_node *pcmd_node)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
@@ -1330,7 +1328,7 @@ mlan_status wlan_recv_event(pmlan_private priv, mlan_event_id event_id,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_alloc_cmd_buffer(IN mlan_adapter *pmadapter)
+mlan_status wlan_alloc_cmd_buffer(mlan_adapter *pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
@@ -1388,7 +1386,7 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_free_cmd_buffer(IN mlan_adapter *pmadapter)
+mlan_status wlan_free_cmd_buffer(mlan_adapter *pmadapter)
 {
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
 	cmd_ctrl_node *pcmd_array;
@@ -1538,7 +1536,7 @@ done:
  *
  *  @return             N/A
  */
-t_void wlan_request_cmd_lock(IN mlan_adapter *pmadapter)
+t_void wlan_request_cmd_lock(mlan_adapter *pmadapter)
 {
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
 
@@ -1558,7 +1556,7 @@ t_void wlan_request_cmd_lock(IN mlan_adapter *pmadapter)
  *
  *  @return             N/A
  */
-t_void wlan_release_cmd_lock(IN mlan_adapter *pmadapter)
+t_void wlan_release_cmd_lock(mlan_adapter *pmadapter)
 {
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
 
@@ -1584,9 +1582,9 @@ t_void wlan_release_cmd_lock(IN mlan_adapter *pmadapter)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_prepare_cmd(IN mlan_private *pmpriv, IN t_u16 cmd_no,
-			     IN t_u16 cmd_action, IN t_u32 cmd_oid,
-			     IN t_void *pioctl_buf, IN t_void *pdata_buf)
+mlan_status wlan_prepare_cmd(mlan_private *pmpriv, t_u16 cmd_no,
+			     t_u16 cmd_action, t_u32 cmd_oid,
+			     t_void *pioctl_buf, t_void *pdata_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = MNULL;
@@ -1720,8 +1718,8 @@ done:
  *
  *  @return             N/A
  */
-t_void wlan_insert_cmd_to_free_q(IN mlan_adapter *pmadapter,
-				 IN cmd_ctrl_node *pcmd_node)
+t_void wlan_insert_cmd_to_free_q(mlan_adapter *pmadapter,
+				 cmd_ctrl_node *pcmd_node)
 {
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
 	mlan_ioctl_req *pioctl_req = MNULL;
@@ -1760,9 +1758,8 @@ done:
  *
  *  @return             N/A
  */
-t_void wlan_insert_cmd_to_pending_q(IN mlan_adapter *pmadapter,
-				    IN cmd_ctrl_node *pcmd_node,
-				    IN t_u32 add_tail)
+t_void wlan_insert_cmd_to_pending_q(mlan_adapter *pmadapter,
+				    cmd_ctrl_node *pcmd_node, t_u32 add_tail)
 {
 	HostCmd_DS_COMMAND *pcmd = MNULL;
 	t_u16 command;
@@ -2213,7 +2210,7 @@ exit:
  *
  *  @return             N/A
  */
-t_void wlan_flush_scan_queue(IN pmlan_adapter pmadapter)
+t_void wlan_flush_scan_queue(pmlan_adapter pmadapter)
 {
 	cmd_ctrl_node *pcmd_node = MNULL;
 
@@ -2577,9 +2574,8 @@ t_void wlan_cancel_pending_ioctl(pmlan_adapter pmadapter,
  *
  *  @return           N/A
  */
-t_void wlan_fill_hal_wifi_rate(IN pmlan_private pmpriv,
-			       IN mlan_wifi_rate *pmlan_rate,
-			       OUT wifi_rate *prate)
+t_void wlan_fill_hal_wifi_rate(pmlan_private pmpriv, mlan_wifi_rate *pmlan_rate,
+			       wifi_rate *prate)
 {
 	t_u8 index = 0;
 	t_u8 rate_info = 0;
@@ -2629,9 +2625,8 @@ t_void wlan_fill_hal_wifi_rate(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_ver_ext(IN pmlan_private pmpriv,
-			     IN HostCmd_DS_COMMAND *resp,
-			     IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_ver_ext(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			     mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_VERSION_EXT *ver_ext = &resp->params.verext;
 	mlan_ds_get_info *info;
@@ -2656,9 +2651,8 @@ mlan_status wlan_ret_ver_ext(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_rx_mgmt_ind(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *resp,
-				 IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_rx_mgmt_ind(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				 mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *misc = MNULL;
 	ENTER();
@@ -2764,9 +2758,9 @@ t_void wlan_host_sleep_wakeup_event(pmlan_private priv)
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_802_11_hs_cfg(IN pmlan_private pmpriv,
-				   IN HostCmd_DS_COMMAND *resp,
-				   IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_802_11_hs_cfg(pmlan_private pmpriv,
+				   HostCmd_DS_COMMAND *resp,
+				   mlan_ioctl_req *pioctl_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	HostCmd_DS_802_11_HS_CFG_ENH *phs_cfg = &resp->params.opt_hs_cfg;
@@ -2901,9 +2895,8 @@ void wlan_process_sleep_confirm_resp(pmlan_adapter pmadapter, t_u8 *pbuf,
  *  @return             MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_enh_power_mode(pmlan_private pmpriv,
-				    IN HostCmd_DS_COMMAND *cmd,
-				    IN t_u16 cmd_action, IN t_u16 ps_bitmap,
-				    IN t_void *pdata_buf)
+				    HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				    t_u16 ps_bitmap, t_void *pdata_buf)
 {
 	HostCmd_DS_802_11_PS_MODE_ENH *psmode_enh = &cmd->params.psmode_enh;
 	t_u8 *tlv = MNULL;
@@ -3055,9 +3048,9 @@ mlan_status wlan_cmd_enh_power_mode(pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_enh_power_mode(IN pmlan_private pmpriv,
-				    IN HostCmd_DS_COMMAND *resp,
-				    IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_enh_power_mode(pmlan_private pmpriv,
+				    HostCmd_DS_COMMAND *resp,
+				    mlan_ioctl_req *pioctl_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	MrvlIEtypesHeader_t *mrvl_tlv = MNULL;
@@ -3240,9 +3233,9 @@ mlan_status wlan_ret_enh_power_mode(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_802_11_tx_rate_query(IN pmlan_private pmpriv,
-					  IN HostCmd_DS_COMMAND *resp,
-					  IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_802_11_tx_rate_query(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *resp,
+					  mlan_ioctl_req *pioctl_buf)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_ds_rate *rate = MNULL;
@@ -3453,9 +3446,8 @@ mlan_status wlan_ret_802_11_tx_rate_query(IN pmlan_private pmpriv,
  *
  * @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_robustcoex(IN pmlan_private pmpriv,
-				IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-				IN t_u16 *pdata_buf)
+mlan_status wlan_cmd_robustcoex(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+				t_u16 cmd_action, t_u16 *pdata_buf)
 {
 	HostCmd_DS_802_11_ROBUSTCOEX *rbstcx = &cmd->params.robustcoexparams;
 	mlan_ds_misc_robustcoex_params *robustcoex_params = MNULL;
@@ -3503,8 +3495,8 @@ mlan_status wlan_cmd_robustcoex(IN pmlan_private pmpriv,
  *
  * @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_ssu(IN pmlan_private pmpriv, IN HostCmd_DS_COMMAND *cmd,
-			 IN t_u16 cmd_action, IN t_u16 *pdata_buf)
+mlan_status wlan_cmd_ssu(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			 t_u16 cmd_action, t_u16 *pdata_buf)
 {
 	HostCmd_DS_SSU_CFG *ssu_cfg_cmd = &cmd->params.ssu_params;
 	mlan_ds_ssu_params *ssu_params = MNULL;
@@ -3569,9 +3561,8 @@ mlan_status wlan_cmd_ssu(IN pmlan_private pmpriv, IN HostCmd_DS_COMMAND *cmd,
  *
  * @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_dmcs_config(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *cmd,
-				 IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_dmcs_config(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+				 t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_DMCS_CFG *dmcs = &cmd->params.dmcs;
 	mlan_ds_misc_mapping_policy *dmcs_params = MNULL;
@@ -3607,9 +3598,8 @@ mlan_status wlan_cmd_dmcs_config(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_dmcs_config(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *resp,
-				 IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_dmcs_config(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				 mlan_ioctl_req *pioctl_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	HostCmd_DS_DMCS_CFG *dmcs = &resp->params.dmcs;
@@ -3681,10 +3671,9 @@ mlan_status wlan_ret_dmcs_config(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_tx_rate_cfg(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *cmd,
-				 IN t_u16 cmd_action, IN t_void *pdata_buf,
-				 IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_cmd_tx_rate_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+				 t_u16 cmd_action, t_void *pdata_buf,
+				 mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_TX_RATE_CFG *rate_cfg =
 		(HostCmd_DS_TX_RATE_CFG *)&(cmd->params.tx_rate_cfg);
@@ -3822,9 +3811,8 @@ mlan_status wlan_cmd_tx_rate_cfg(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_tx_rate_cfg(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *resp,
-				 IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_tx_rate_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				 mlan_ioctl_req *pioctl_buf)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_ds_rate *ds_rate = MNULL;
@@ -4005,7 +3993,7 @@ mlan_status wlan_ret_tx_rate_cfg(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_PENDING or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_adapter_get_hw_spec(IN pmlan_adapter pmadapter)
+mlan_status wlan_adapter_get_hw_spec(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private priv = wlan_get_priv(pmadapter, MLAN_BSS_ROLE_ANY);
@@ -4102,7 +4090,7 @@ done:
  *
  *  @return             MLAN_STATUS_PENDING or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_adapter_init_cmd(IN pmlan_adapter pmadapter)
+mlan_status wlan_adapter_init_cmd(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private pmpriv = MNULL;
@@ -4207,10 +4195,9 @@ done:
 }
 
 #ifdef RX_PACKET_COALESCE
-mlan_status wlan_cmd_rx_pkt_coalesce_cfg(IN pmlan_private pmpriv,
-					 IN HostCmd_DS_COMMAND *cmd,
-					 IN t_u16 cmd_action,
-					 IN t_void *pdata_buf)
+mlan_status wlan_cmd_rx_pkt_coalesce_cfg(pmlan_private pmpriv,
+					 HostCmd_DS_COMMAND *cmd,
+					 t_u16 cmd_action, t_void *pdata_buf)
 {
 	mlan_ds_misc_rx_packet_coalesce *rx_pkt_cfg =
 		(mlan_ds_misc_rx_packet_coalesce *)pdata_buf;
@@ -4248,9 +4235,9 @@ mlan_status wlan_cmd_rx_pkt_coalesce_cfg(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_rx_pkt_coalesce_cfg(IN pmlan_private pmpriv,
-					 const IN HostCmd_DS_COMMAND *resp,
-					 OUT mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_rx_pkt_coalesce_cfg(pmlan_private pmpriv,
+					 const HostCmd_DS_COMMAND *resp,
+					 mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *pcfg = MNULL;
 	const HostCmd_DS_RX_PKT_COAL_CFG *presp_cfg =
@@ -4292,7 +4279,7 @@ mlan_status wlan_download_vdll_block(mlan_adapter *pmadapter, t_u8 *block,
 	mlan_status status = MLAN_STATUS_FAILURE;
 	mlan_status ret = MLAN_STATUS_PENDING;
 #if defined(SDIO) || defined(PCIE)
-	vdll_dnld_ctrl *ctrl = &pmadapter->vdll_ctrl;
+	pvdll_dnld_ctrl ctrl = &pmadapter->vdll_ctrl;
 #endif
 	mlan_buffer *pmbuf = MNULL;
 	mlan_private *pmpriv = wlan_get_priv(pmadapter, MLAN_BSS_ROLE_ANY);
@@ -4438,8 +4425,7 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_process_vdll_event(IN pmlan_private pmpriv,
-				    pmlan_buffer pevent)
+mlan_status wlan_process_vdll_event(pmlan_private pmpriv, pmlan_buffer pevent)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	vdll_ind *ind = MNULL;
@@ -4500,8 +4486,7 @@ mlan_status wlan_process_vdll_event(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_get_hw_spec(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *pcmd)
+mlan_status wlan_cmd_get_hw_spec(pmlan_private pmpriv, HostCmd_DS_COMMAND *pcmd)
 {
 	HostCmd_DS_GET_HW_SPEC *hw_spec = &pcmd->params.hw_spec;
 
@@ -4527,8 +4512,8 @@ mlan_status wlan_cmd_get_hw_spec(IN pmlan_private pmpriv,
 
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_sdio_rx_aggr_cfg(IN HostCmd_DS_COMMAND *pcmd,
-				      IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_sdio_rx_aggr_cfg(HostCmd_DS_COMMAND *pcmd,
+				      t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_SDIO_SP_RX_AGGR_CFG *cfg = &pcmd->params.sdio_rx_aggr;
 
@@ -4549,8 +4534,8 @@ mlan_status wlan_cmd_sdio_rx_aggr_cfg(IN HostCmd_DS_COMMAND *pcmd,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_sdio_rx_aggr_cfg(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *resp)
+mlan_status wlan_ret_sdio_rx_aggr_cfg(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *resp)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	HostCmd_DS_SDIO_SP_RX_AGGR_CFG *cfg = &resp->params.sdio_rx_aggr;
@@ -4580,9 +4565,9 @@ mlan_status wlan_ret_sdio_rx_aggr_cfg(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_cfg_data(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *pcmd, IN t_u16 cmd_action,
-			      IN t_u32 cmd_oid, IN t_void *pdata_buf)
+mlan_status wlan_cmd_cfg_data(pmlan_private pmpriv, HostCmd_DS_COMMAND *pcmd,
+			      t_u16 cmd_action, t_u32 cmd_oid,
+			      t_void *pdata_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	HostCmd_DS_802_11_CFG_DATA *pcfg_data = &(pcmd->params.cfg_data);
@@ -4633,9 +4618,8 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_cfg_data(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *resp,
-			      IN t_void *pioctl_buf)
+mlan_status wlan_ret_cfg_data(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			      t_void *pioctl_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 
@@ -4659,9 +4643,8 @@ mlan_status wlan_ret_cfg_data(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_mac_control(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *pcmd,
-				 IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_mac_control(pmlan_private pmpriv, HostCmd_DS_COMMAND *pcmd,
+				 t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_MAC_CONTROL *pmac = &pcmd->params.mac_ctrl;
 	t_u32 action = *((t_u32 *)pdata_buf);
@@ -4692,9 +4675,8 @@ mlan_status wlan_cmd_mac_control(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_mac_control(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *resp,
-				 IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_mac_control(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				 mlan_ioctl_req *pioctl_buf)
 {
 	ENTER();
 	LEAVE();
@@ -4710,9 +4692,8 @@ mlan_status wlan_ret_mac_control(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_get_hw_spec(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *resp,
-				 IN t_void *pioctl_buf)
+mlan_status wlan_ret_get_hw_spec(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				 t_void *pioctl_buf)
 {
 	HostCmd_DS_GET_HW_SPEC *hw_spec = &resp->params.hw_spec;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -5042,10 +5023,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_802_11_radio_control(IN pmlan_private pmpriv,
-					  IN HostCmd_DS_COMMAND *cmd,
-					  IN t_u16 cmd_action,
-					  IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_radio_control(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *cmd,
+					  t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_802_11_RADIO_CONTROL *pradio_control = &cmd->params.radio;
 	t_u32 radio_ctl;
@@ -5070,9 +5050,9 @@ mlan_status wlan_cmd_802_11_radio_control(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_802_11_radio_control(IN pmlan_private pmpriv,
-					  IN HostCmd_DS_COMMAND *resp,
-					  IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_802_11_radio_control(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *resp,
+					  mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_802_11_RADIO_CONTROL *pradio_ctrl =
 		(HostCmd_DS_802_11_RADIO_CONTROL *)&resp->params.radio;
@@ -5100,10 +5080,9 @@ mlan_status wlan_ret_802_11_radio_control(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_remain_on_channel(IN pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *cmd,
-				       IN t_u16 cmd_action,
-				       IN t_void *pdata_buf)
+mlan_status wlan_cmd_remain_on_channel(pmlan_private pmpriv,
+				       HostCmd_DS_COMMAND *cmd,
+				       t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_REMAIN_ON_CHANNEL *remain_channel =
 		&cmd->params.remain_on_chan;
@@ -5138,9 +5117,9 @@ mlan_status wlan_cmd_remain_on_channel(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_remain_on_channel(IN pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *resp,
-				       IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_remain_on_channel(pmlan_private pmpriv,
+				       HostCmd_DS_COMMAND *resp,
+				       mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_REMAIN_ON_CHANNEL *remain_channel =
 		&resp->params.remain_on_chan;
@@ -5171,9 +5150,9 @@ mlan_status wlan_ret_remain_on_channel(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_wifi_direct_mode(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *cmd,
-				      IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_wifi_direct_mode(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				      t_void *pdata_buf)
 {
 	HostCmd_DS_WIFI_DIRECT_MODE *wfd_mode = &cmd->params.wifi_direct_mode;
 	t_u16 mode = *((t_u16 *)pdata_buf);
@@ -5198,9 +5177,9 @@ mlan_status wlan_cmd_wifi_direct_mode(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_wifi_direct_mode(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *resp,
-				      IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_wifi_direct_mode(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_WIFI_DIRECT_MODE *wfd_mode = &resp->params.wifi_direct_mode;
 	mlan_ds_bss *bss = MNULL;
@@ -5225,10 +5204,9 @@ mlan_status wlan_ret_wifi_direct_mode(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_p2p_params_config(IN pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *cmd,
-				       IN t_u16 cmd_action,
-				       IN t_void *pdata_buf)
+mlan_status wlan_cmd_p2p_params_config(pmlan_private pmpriv,
+				       HostCmd_DS_COMMAND *cmd,
+				       t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_WIFI_DIRECT_PARAM_CONFIG *p2p_config =
 		&cmd->params.p2p_params_config;
@@ -5316,9 +5294,9 @@ mlan_status wlan_cmd_p2p_params_config(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_p2p_params_config(IN pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *resp,
-				       IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_p2p_params_config(pmlan_private pmpriv,
+				       HostCmd_DS_COMMAND *resp,
+				       mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_WIFI_DIRECT_PARAM_CONFIG *p2p_config =
 		&resp->params.p2p_params_config;
@@ -5421,8 +5399,8 @@ mlan_status wlan_ret_p2p_params_config(IN pmlan_private pmpriv,
  *  @return             MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_802_11_mimo_switch(pmlan_private pmpriv,
-					IN HostCmd_DS_COMMAND *cmd,
-					IN t_void *pdata_buf)
+					HostCmd_DS_COMMAND *cmd,
+					t_void *pdata_buf)
 {
 	HostCmd_DS_MIMO_SWITCH *mimo_switch_cmd = &cmd->params.mimo_switch;
 	mlan_ds_mimo_switch *pmimo_switch = (mlan_ds_mimo_switch *)pdata_buf;
@@ -5447,9 +5425,9 @@ mlan_status wlan_cmd_802_11_mimo_switch(pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_hs_wakeup_reason(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *cmd,
-				      IN t_void *pdata_buf)
+mlan_status wlan_cmd_hs_wakeup_reason(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd,
+				      t_void *pdata_buf)
 {
 	ENTER();
 
@@ -5471,9 +5449,9 @@ mlan_status wlan_cmd_hs_wakeup_reason(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_hs_wakeup_reason(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *resp,
-				      IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_hs_wakeup_reason(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_HS_WAKEUP_REASON *hs_wakeup_reason =
 		(HostCmd_DS_HS_WAKEUP_REASON *)&resp->params.hs_wakeup_reason;
@@ -5500,9 +5478,9 @@ mlan_status wlan_ret_hs_wakeup_reason(IN pmlan_private pmpriv,
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
 mlan_status wlan_cmd_tx_rx_pkt_stats(pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *cmd,
-				     IN pmlan_ioctl_req pioctl_buf,
-				     IN t_void *pdata_buf)
+				     HostCmd_DS_COMMAND *cmd,
+				     pmlan_ioctl_req pioctl_buf,
+				     t_void *pdata_buf)
 {
 	HostCmd_DS_TX_RX_HISTOGRAM *ptx_rx_histogram =
 		&cmd->params.tx_rx_histogram;
@@ -5535,9 +5513,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_tx_rx_pkt_stats(IN pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *resp,
-				     IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_tx_rx_pkt_stats(pmlan_private pmpriv,
+				     HostCmd_DS_COMMAND *resp,
+				     mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_TX_RX_HISTOGRAM *ptx_rx_histogram =
 		&resp->params.tx_rx_histogram;
@@ -5583,9 +5561,8 @@ mlan_status wlan_ret_tx_rx_pkt_stats(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_cw_mode_ctrl(IN pmlan_private pmpriv,
-				  IN HostCmd_DS_COMMAND *cmd,
-				  IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_cw_mode_ctrl(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+				  t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_CW_MODE_CTRL *cwmode_ctrl = &cmd->params.cwmode;
 	mlan_ds_cw_mode_ctrl *cw_mode = (mlan_ds_cw_mode_ctrl *)pdata_buf;
@@ -5616,9 +5593,9 @@ mlan_status wlan_cmd_cw_mode_ctrl(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_cw_mode_ctrl(IN pmlan_private pmpriv,
-				  IN HostCmd_DS_COMMAND *resp,
-				  IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_cw_mode_ctrl(pmlan_private pmpriv,
+				  HostCmd_DS_COMMAND *resp,
+				  mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_CW_MODE_CTRL *cwmode_resp = &resp->params.cwmode;
 	mlan_ds_misc_cfg *misc = MNULL;
@@ -5653,10 +5630,9 @@ mlan_status wlan_ret_cw_mode_ctrl(IN pmlan_private pmpriv,
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_802_11_rf_antenna(IN pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *cmd,
-				       IN t_u16 cmd_action,
-				       IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_rf_antenna(pmlan_private pmpriv,
+				       HostCmd_DS_COMMAND *cmd,
+				       t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_802_11_RF_ANTENNA *pantenna = &cmd->params.antenna;
 	mlan_ds_ant_cfg *ant_cfg = (mlan_ds_ant_cfg *)pdata_buf;
@@ -5725,9 +5701,9 @@ mlan_status wlan_cmd_802_11_rf_antenna(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_802_11_rf_antenna(IN pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *resp,
-				       IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_802_11_rf_antenna(pmlan_private pmpriv,
+				       HostCmd_DS_COMMAND *resp,
+				       mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_802_11_RF_ANTENNA *pantenna = &resp->params.antenna;
 	t_u16 tx_ant_mode = wlan_le16_to_cpu(pantenna->tx_antenna_mode);
@@ -5829,9 +5805,8 @@ mlan_status wlan_ret_802_11_rf_antenna(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_reg_access(IN pmlan_private pmpriv,
-				IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-				IN t_void *pdata_buf)
+mlan_status wlan_cmd_reg_access(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+				t_u16 cmd_action, t_void *pdata_buf)
 {
 	mlan_ds_reg_rw *reg_rw;
 #if defined(PCIE9098) || defined(SD9098) || defined(USB9098) ||                \
@@ -5984,8 +5959,8 @@ mlan_status wlan_cmd_reg_access(IN pmlan_private pmpriv,
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
 mlan_status wlan_ret_reg_access(mlan_adapter *pmadapter, t_u16 type,
-				IN HostCmd_DS_COMMAND *resp,
-				IN mlan_ioctl_req *pioctl_buf)
+				HostCmd_DS_COMMAND *resp,
+				mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_reg_mem *reg_mem = MNULL;
 	mlan_ds_reg_rw *reg_rw = MNULL;
@@ -6081,8 +6056,8 @@ mlan_status wlan_ret_reg_access(mlan_adapter *pmadapter, t_u16 type,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_mem_access(IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-				IN t_void *pdata_buf)
+mlan_status wlan_cmd_mem_access(HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				t_void *pdata_buf)
 {
 	mlan_ds_mem_rw *mem_rw = (mlan_ds_mem_rw *)pdata_buf;
 	HostCmd_DS_MEM_ACCESS *mem_access =
@@ -6110,9 +6085,8 @@ mlan_status wlan_cmd_mem_access(IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_mem_access(IN pmlan_private pmpriv,
-				IN HostCmd_DS_COMMAND *resp,
-				IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_mem_access(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_reg_mem *reg_mem = MNULL;
 	mlan_ds_mem_rw *mem_rw = MNULL;
@@ -6202,10 +6176,9 @@ void wlan_bt_coex_wlan_param_update_event(pmlan_private priv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_802_11_supplicant_pmk(IN pmlan_private pmpriv,
-					   IN HostCmd_DS_COMMAND *cmd,
-					   IN t_u16 cmd_action,
-					   IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_supplicant_pmk(pmlan_private pmpriv,
+					   HostCmd_DS_COMMAND *cmd,
+					   t_u16 cmd_action, t_void *pdata_buf)
 {
 	MrvlIEtypes_PMK_t *ppmk_tlv = MNULL;
 	MrvlIEtypes_Passphrase_t *ppassphrase_tlv = MNULL;
@@ -6357,9 +6330,9 @@ mlan_status wlan_cmd_802_11_supplicant_pmk(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_802_11_supplicant_pmk(IN pmlan_private pmpriv,
-					   IN HostCmd_DS_COMMAND *resp,
-					   IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_802_11_supplicant_pmk(pmlan_private pmpriv,
+					   HostCmd_DS_COMMAND *resp,
+					   mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_802_11_SUPPLICANT_PMK *supplicant_pmk_resp =
 		&resp->params.esupplicant_psk;
@@ -6403,11 +6376,8 @@ mlan_status wlan_ret_802_11_supplicant_pmk(IN pmlan_private pmpriv,
 				if ((tlv != TLV_TYPE_SSID) &&
 				    (tlv != TLV_TYPE_BSSID) &&
 				    (tlv != TLV_TYPE_PASSPHRASE) &&
-				    (tlv != TLV_TYPE_PMK)
-#ifdef WAP3_SAE
-				    && (tlv != TLV_TYPE_SAE_PASSWORD)
-#endif
-				)
+				    (tlv != TLV_TYPE_PMK) &&
+				    (tlv != TLV_TYPE_SAE_PASSWORD))
 					break;
 				switch (tlv) {
 				case TLV_TYPE_SSID:
@@ -6552,8 +6522,8 @@ mlan_status wlan_ret_802_11_supplicant_pmk(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_ind_rst_cfg(IN HostCmd_DS_COMMAND *cmd,
-				 IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_ind_rst_cfg(HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				 t_void *pdata_buf)
 {
 	mlan_ds_ind_rst_cfg *pdata_ind_rst = (mlan_ds_ind_rst_cfg *)pdata_buf;
 	HostCmd_DS_INDEPENDENT_RESET_CFG *ind_rst_cfg =
@@ -6584,9 +6554,8 @@ mlan_status wlan_cmd_ind_rst_cfg(IN HostCmd_DS_COMMAND *cmd,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_ind_rst_cfg(IN pmlan_private pmpriv,
-				 IN HostCmd_DS_COMMAND *resp,
-				 IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_ind_rst_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				 mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *misc = MNULL;
 	const HostCmd_DS_INDEPENDENT_RESET_CFG *ind_rst_cfg =
@@ -6618,10 +6587,9 @@ mlan_status wlan_ret_ind_rst_cfg(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_ps_inactivity_timeout(IN pmlan_private pmpriv,
-					   IN HostCmd_DS_COMMAND *cmd,
-					   IN t_u16 cmd_action,
-					   IN t_void *pdata_buf)
+mlan_status wlan_cmd_ps_inactivity_timeout(pmlan_private pmpriv,
+					   HostCmd_DS_COMMAND *cmd,
+					   t_u16 cmd_action, t_void *pdata_buf)
 {
 	t_u16 timeout = *((t_u16 *)pdata_buf);
 	HostCmd_DS_802_11_PS_INACTIVITY_TIMEOUT *ps_inact_tmo =
@@ -6651,8 +6619,8 @@ mlan_status wlan_cmd_ps_inactivity_timeout(IN pmlan_private pmpriv,
  *  @param cmd_action   The action: GET
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_get_tsf(pmlan_private pmpriv, IN HostCmd_DS_COMMAND *cmd,
-			     IN t_u16 cmd_action)
+mlan_status wlan_cmd_get_tsf(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			     t_u16 cmd_action)
 {
 	ENTER();
 
@@ -6672,9 +6640,8 @@ mlan_status wlan_cmd_get_tsf(pmlan_private pmpriv, IN HostCmd_DS_COMMAND *cmd,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_get_tsf(IN pmlan_private pmpriv,
-			     IN HostCmd_DS_COMMAND *resp,
-			     IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_get_tsf(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			     mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *misc_cfg = MNULL;
 	HostCmd_DS_TSF *tsf_pointer = (HostCmd_DS_TSF *)&resp->params.tsf;
@@ -6698,9 +6665,9 @@ mlan_status wlan_ret_get_tsf(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_chan_region_cfg(IN pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *resp,
-				     IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_chan_region_cfg(pmlan_private pmpriv,
+				     HostCmd_DS_COMMAND *resp,
+				     mlan_ioctl_req *pioctl_buf)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_u16 action;
@@ -6797,9 +6764,9 @@ done:
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_packet_aggr_ctrl(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *cmd,
-				      IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_packet_aggr_ctrl(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				      t_void *pdata_buf)
 {
 	HostCmd_DS_PACKET_AGGR_CTRL *aggr_ctrl = &cmd->params.aggr_ctrl;
 	mlan_ds_misc_aggr_ctrl *aggr = (mlan_ds_misc_aggr_ctrl *)pdata_buf;
@@ -6830,9 +6797,9 @@ mlan_status wlan_cmd_packet_aggr_ctrl(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_packet_aggr_ctrl(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *resp,
-				      IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_packet_aggr_ctrl(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *misc = MNULL;
 	HostCmd_DS_PACKET_AGGR_CTRL *aggr_ctrl = &resp->params.aggr_ctrl;
@@ -6932,9 +6899,9 @@ mlan_status wlan_ret_packet_aggr_ctrl(IN pmlan_private pmpriv,
  *  @param pdata_buf    A void pointer to information buffer
  *  @return             N/A
  */
-mlan_status wlan_cmd_fw_dump_event(IN pmlan_private pmpriv,
-				   IN HostCmd_DS_COMMAND *cmd,
-				   IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_fw_dump_event(pmlan_private pmpriv,
+				   HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				   t_void *pdata_buf)
 {
 	ENTER();
 
@@ -6957,10 +6924,10 @@ mlan_status wlan_cmd_fw_dump_event(IN pmlan_private pmpriv,
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  *
  */
-mlan_status wlan_cmd_802_11_link_statistic(IN pmlan_private pmpriv,
-					   IN HostCmd_DS_COMMAND *cmd,
-					   IN t_u16 cmd_action,
-					   IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_cmd_802_11_link_statistic(pmlan_private pmpriv,
+					   HostCmd_DS_COMMAND *cmd,
+					   t_u16 cmd_action,
+					   mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_get_info *info = (mlan_ds_get_info *)(pioctl_buf->pbuf);
 	HostCmd_DS_802_11_LINK_STATISTIC *ll_stat =
@@ -7306,9 +7273,9 @@ static void wlan_fill_link_statistic(mlan_private *priv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_get_link_statistic(IN pmlan_private pmpriv,
-					IN HostCmd_DS_COMMAND *resp,
-					IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_get_link_statistic(pmlan_private pmpriv,
+					HostCmd_DS_COMMAND *resp,
+					mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_get_info *info;
 	t_u8 *link_statistic = MNULL;
@@ -7349,9 +7316,8 @@ mlan_status wlan_ret_get_link_statistic(IN pmlan_private pmpriv,
  *  @param pdata_buf    A void pointer to information buffer
  *  @return             MLAN_STATUS_SUCCESS/ MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_boot_sleep(IN pmlan_private pmpriv,
-				IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-				IN t_void *pdata_buf)
+mlan_status wlan_cmd_boot_sleep(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+				t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_BOOT_SLEEP *boot_sleep = MNULL;
 	t_u16 enable = *(t_u16 *)pdata_buf;
@@ -7378,9 +7344,8 @@ mlan_status wlan_cmd_boot_sleep(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_boot_sleep(IN pmlan_private pmpriv,
-				IN HostCmd_DS_COMMAND *resp,
-				IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_boot_sleep(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_BOOT_SLEEP *boot_sleep = &resp->params.boot_sleep;
 	mlan_ds_misc_cfg *cfg = (mlan_ds_misc_cfg *)pioctl_buf->pbuf;
@@ -7406,8 +7371,8 @@ mlan_status wlan_ret_boot_sleep(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_crypto(IN pmlan_private pmpriv, IN HostCmd_DS_COMMAND *cmd,
-			    IN t_u16 cmd_action, IN t_u16 *pdata_buf)
+mlan_status wlan_cmd_crypto(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			    t_u16 cmd_action, t_u16 *pdata_buf)
 {
 	HostCmd_DS_CRYPTO *cry_cmd = &cmd->params.crypto_cmd;
 	mlan_ds_sup_cfg *cfg = (mlan_ds_sup_cfg *)pdata_buf;
@@ -7607,9 +7572,8 @@ mlan_status wlan_cmd_crypto(IN pmlan_private pmpriv, IN HostCmd_DS_COMMAND *cmd,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_crypto(IN pmlan_private pmpriv,
-			    IN HostCmd_DS_COMMAND *resp,
-			    IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_crypto(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			    mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_CRYPTO *crypto_cmd = &resp->params.crypto_cmd;
 #if defined(DRV_EMBEDDED_AUTHENTICATOR) || defined(DRV_EMBEDDED_SUPPLICANT)
@@ -7655,9 +7619,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_802_11_mac_address(IN pmlan_private pmpriv,
-					IN HostCmd_DS_COMMAND *cmd,
-					IN t_u16 cmd_action)
+mlan_status wlan_cmd_802_11_mac_address(pmlan_private pmpriv,
+					HostCmd_DS_COMMAND *cmd,
+					t_u16 cmd_action)
 {
 	ENTER();
 	cmd->command = wlan_cpu_to_le16(HostCmd_CMD_802_11_MAC_ADDRESS);
@@ -7686,9 +7650,9 @@ mlan_status wlan_cmd_802_11_mac_address(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_802_11_mac_address(IN pmlan_private pmpriv,
-					IN HostCmd_DS_COMMAND *resp,
-					IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_802_11_mac_address(pmlan_private pmpriv,
+					HostCmd_DS_COMMAND *resp,
+					mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_802_11_MAC_ADDRESS *pmac_addr = &resp->params.mac_addr;
 	mlan_ds_bss *bss = MNULL;
@@ -7720,9 +7684,8 @@ mlan_status wlan_ret_802_11_mac_address(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_rxabortcfg(pmlan_private pmpriv,
-				IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-				IN t_void *pdata_buf)
+mlan_status wlan_cmd_rxabortcfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+				t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_CMD_RX_ABORT_CFG *cfg_cmd =
 		(HostCmd_DS_CMD_RX_ABORT_CFG *)&cmd->params.rx_abort_cfg;
@@ -7753,9 +7716,8 @@ mlan_status wlan_cmd_rxabortcfg(pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_rxabortcfg(IN pmlan_private pmpriv,
-				IN HostCmd_DS_COMMAND *resp,
-				IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_rxabortcfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+				mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_CMD_RX_ABORT_CFG *cfg_cmd =
 		(HostCmd_DS_CMD_RX_ABORT_CFG *)&resp->params.rx_abort_cfg;
@@ -7783,8 +7745,8 @@ mlan_status wlan_ret_rxabortcfg(IN pmlan_private pmpriv,
  *  @return         MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_rxabortcfg_ext(pmlan_private pmpriv,
-				    IN HostCmd_DS_COMMAND *cmd,
-				    IN t_u16 cmd_action, IN t_void *pdata_buf)
+				    HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				    t_void *pdata_buf)
 {
 	HostCmd_DS_CMD_RX_ABORT_CFG_EXT *cfg_cmd =
 		(HostCmd_DS_CMD_RX_ABORT_CFG_EXT *)&cmd->params.rx_abort_cfg_ext;
@@ -7817,9 +7779,9 @@ mlan_status wlan_cmd_rxabortcfg_ext(pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_rxabortcfg_ext(IN pmlan_private pmpriv,
-				    IN HostCmd_DS_COMMAND *resp,
-				    IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_rxabortcfg_ext(pmlan_private pmpriv,
+				    HostCmd_DS_COMMAND *resp,
+				    mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_CMD_RX_ABORT_CFG_EXT *cfg_cmd =
 		(HostCmd_DS_CMD_RX_ABORT_CFG_EXT *)&resp->params
@@ -7850,9 +7812,8 @@ mlan_status wlan_ret_rxabortcfg_ext(IN pmlan_private pmpriv,
  *  @return         MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_tx_ampdu_prot_mode(pmlan_private pmpriv,
-					IN HostCmd_DS_COMMAND *cmd,
-					IN t_u16 cmd_action,
-					IN t_void *pdata_buf)
+					HostCmd_DS_COMMAND *cmd,
+					t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_CMD_TX_AMPDU_PROT_MODE *cfg_cmd =
 		(HostCmd_DS_CMD_TX_AMPDU_PROT_MODE *)&cmd->params
@@ -7884,9 +7845,9 @@ mlan_status wlan_cmd_tx_ampdu_prot_mode(pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_tx_ampdu_prot_mode(IN pmlan_private pmpriv,
-					IN HostCmd_DS_COMMAND *resp,
-					IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_tx_ampdu_prot_mode(pmlan_private pmpriv,
+					HostCmd_DS_COMMAND *resp,
+					mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_CMD_TX_AMPDU_PROT_MODE *cfg_cmd =
 		(HostCmd_DS_CMD_TX_AMPDU_PROT_MODE *)&resp->params
@@ -7914,8 +7875,8 @@ mlan_status wlan_ret_tx_ampdu_prot_mode(IN pmlan_private pmpriv,
  *  @return         MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_rate_adapt_cfg(pmlan_private pmpriv,
-				    IN HostCmd_DS_COMMAND *cmd,
-				    IN t_u16 cmd_action, IN t_void *pdata_buf)
+				    HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				    t_void *pdata_buf)
 {
 	HostCmd_DS_CMD_RATE_ADAPT_CFG *cfg_cmd =
 		(HostCmd_DS_CMD_RATE_ADAPT_CFG *)&cmd->params.rate_adapt_cfg;
@@ -7949,9 +7910,9 @@ mlan_status wlan_cmd_rate_adapt_cfg(pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_rate_adapt_cfg(IN pmlan_private pmpriv,
-				    IN HostCmd_DS_COMMAND *resp,
-				    IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_rate_adapt_cfg(pmlan_private pmpriv,
+				    HostCmd_DS_COMMAND *resp,
+				    mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_CMD_RATE_ADAPT_CFG *cfg_cmd =
 		(HostCmd_DS_CMD_RATE_ADAPT_CFG *)&resp->params.rate_adapt_cfg;
@@ -7984,8 +7945,8 @@ mlan_status wlan_ret_rate_adapt_cfg(IN pmlan_private pmpriv,
  *  @return             MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_cck_desense_cfg(pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *cmd,
-				     IN t_u16 cmd_action, IN t_void *pdata_buf)
+				     HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				     t_void *pdata_buf)
 {
 	HostCmd_DS_CMD_CCK_DESENSE_CFG *cfg_cmd =
 		(HostCmd_DS_CMD_CCK_DESENSE_CFG *)&cmd->params.cck_desense_cfg;
@@ -8020,9 +7981,9 @@ mlan_status wlan_cmd_cck_desense_cfg(pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_cck_desense_cfg(IN pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *resp,
-				     IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_cck_desense_cfg(pmlan_private pmpriv,
+				     HostCmd_DS_COMMAND *resp,
+				     mlan_ioctl_req *pioctl_buf)
 {
 	HostCmd_DS_CMD_CCK_DESENSE_CFG *cfg_cmd =
 		(HostCmd_DS_CMD_CCK_DESENSE_CFG *)&resp->params.cck_desense_cfg;
@@ -8055,9 +8016,9 @@ mlan_status wlan_ret_cck_desense_cfg(IN pmlan_private pmpriv,
  *  @param pdata_buf    A void pointer to information buffer
  *  @return             N/A
  */
-mlan_status wlan_cmd_config_dyn_bw(IN pmlan_private pmpriv,
-				   IN HostCmd_DS_COMMAND *cmd,
-				   IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_config_dyn_bw(pmlan_private pmpriv,
+				   HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				   t_void *pdata_buf)
 {
 	HostCmd_DS_DYN_BW *dyn_bw_cmd = &cmd->params.dyn_bw;
 
@@ -8082,9 +8043,8 @@ mlan_status wlan_cmd_config_dyn_bw(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_dyn_bw(IN pmlan_private pmpriv,
-			    IN HostCmd_DS_COMMAND *resp,
-			    IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_dyn_bw(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			    mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *cfg = MNULL;
 	HostCmd_DS_DYN_BW *dyn_bw = &resp->params.dyn_bw;
@@ -8110,10 +8070,9 @@ mlan_status wlan_ret_dyn_bw(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_get_chan_trpc_config(IN pmlan_private pmpriv,
-					  IN HostCmd_DS_COMMAND *cmd,
-					  IN t_u16 cmd_action,
-					  IN t_void *pdata_buf)
+mlan_status wlan_cmd_get_chan_trpc_config(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *cmd,
+					  t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_CHANNEL_TRPC_CONFIG *trpc_cfg = &cmd->params.ch_trpc_config;
 	mlan_ds_misc_chan_trpc_cfg *cfg =
@@ -8138,10 +8097,10 @@ mlan_status wlan_cmd_get_chan_trpc_config(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_set_get_low_power_mode_cfg(IN pmlan_private pmpriv,
-						IN HostCmd_DS_COMMAND *cmd,
-						IN t_u16 cmd_action,
-						IN t_void *pdata_buf)
+mlan_status wlan_cmd_set_get_low_power_mode_cfg(pmlan_private pmpriv,
+						HostCmd_DS_COMMAND *cmd,
+						t_u16 cmd_action,
+						t_void *pdata_buf)
 {
 	HostCmd_DS_LOW_POWER_MODE_CFG *lpm_cfg = &cmd->params.lpm_cfg;
 	t_u16 lpm = *(t_u16 *)pdata_buf;
@@ -8170,9 +8129,9 @@ mlan_status wlan_cmd_set_get_low_power_mode_cfg(IN pmlan_private pmpriv,
  *  @return             MLAN_STATUS_SUCCESS
 
  */
-mlan_status wlan_ret_set_get_low_power_mode_cfg(IN pmlan_private pmpriv,
-						IN HostCmd_DS_COMMAND *resp,
-						IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_set_get_low_power_mode_cfg(pmlan_private pmpriv,
+						HostCmd_DS_COMMAND *resp,
+						mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_power_cfg *cfg = MNULL;
 	HostCmd_DS_LOW_POWER_MODE_CFG *lpm_cfg = &resp->params.lpm_cfg;
@@ -8199,9 +8158,9 @@ mlan_status wlan_ret_set_get_low_power_mode_cfg(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_get_chan_trpc_config(IN pmlan_private pmpriv,
-					  IN HostCmd_DS_COMMAND *resp,
-					  IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_get_chan_trpc_config(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *resp,
+					  mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_misc_cfg *misc = MNULL;
 	HostCmd_DS_CHANNEL_TRPC_CONFIG *trpc_cfg = &resp->params.ch_trpc_config;

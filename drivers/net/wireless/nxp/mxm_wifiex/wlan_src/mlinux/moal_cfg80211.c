@@ -977,9 +977,10 @@ int woal_cfg80211_deinit_p2p(moal_private *priv)
 		woal_set_get_uap_power_mode(priv, MLAN_ACT_SET, &ps_mgmt);
 		bss_role = MLAN_BSS_ROLE_STA;
 		if (MLAN_STATUS_SUCCESS !=
-		    woal_cfg80211_bss_role_cfg(priv, MLAN_ACT_SET, &bss_role))
+		    woal_cfg80211_bss_role_cfg(priv, MLAN_ACT_SET, &bss_role)) {
 			ret = -EFAULT;
-		goto done;
+			goto done;
+		}
 	}
 
 	wifi_direct_mode = WIFI_DIRECT_MODE_DISABLE;
@@ -1241,7 +1242,7 @@ int woal_cfg80211_set_wiphy_params(struct wiphy *wiphy, u32 changed)
 	moal_handle *handle = (moal_handle *)woal_get_wiphy_priv(wiphy);
 #ifdef UAP_CFG80211
 #ifdef UAP_SUPPORT
-	mlan_uap_bss_param *sys_cfg = NULL;
+	pmlan_uap_bss_param sys_cfg = NULL;
 #endif
 #endif
 	int frag_thr = wiphy->frag_threshold;
@@ -1416,10 +1417,13 @@ int woal_cfg80211_del_key(struct wiphy *wiphy, struct net_device *netdev,
 		LEAVE();
 		return -EFAULT;
 	}
-
+	/* del_key will be trigger from cfg80211_rx_mlme_mgmt funtion
+	 * where we receive deauth/disassoicate packet in rx_work
+	 * use MOAL_NO_WAIT to avoid dead lock
+	 */
 	if (MLAN_STATUS_FAILURE ==
 	    woal_cfg80211_set_key(priv, 0, 0, NULL, 0, NULL, 0, key_index,
-				  mac_addr, 1, MOAL_IOCTL_WAIT)) {
+				  mac_addr, 1, MOAL_NO_WAIT)) {
 		PRINTM(MERROR, "Error deleting the crypto keys\n");
 		LEAVE();
 		return -EFAULT;
@@ -3308,8 +3312,10 @@ static t_u16 woal_filter_beacon_ies(moal_private *priv, const t_u8 *ie, int len,
 				break;
 			else {
 				if ((out_len + length + 2) < ie_out_len) {
-					memcpy(ie_out + out_len, pos,
-					       length + 2);
+					moal_memcpy_ext(priv->phandle,
+							ie_out + out_len, pos,
+							length + 2,
+							ie_out_len - out_len);
 					out_len += length + 2;
 				} else {
 					PRINTM(MERROR,
@@ -3330,7 +3336,9 @@ static t_u16 woal_filter_beacon_ies(moal_private *priv, const t_u8 *ie, int len,
 				break;
 			}
 			if ((out_len + length + 2) < ie_out_len) {
-				memcpy(ie_out + out_len, pos, length + 2);
+				moal_memcpy_ext(priv->phandle, ie_out + out_len,
+						pos, length + 2,
+						ie_out_len - out_len);
 				out_len += length + 2;
 			} else {
 				PRINTM(MERROR,
@@ -4122,6 +4130,159 @@ done:
 #endif
 
 #if KERNEL_VERSION(4, 20, 0) <= CFG80211_VERSION_CODE
+/*
+===============
+11AX CAP for uAP
+===============
+Note: bits not mentioned below are set to 0.
+
+5G
+===
+HE MAC Cap:
+Bit0:  1  (+HTC HE Support)
+Bit25: 1  (OM Control Support. But uAP does not support
+	   Tx OM received from the STA, as it does not support UL OFDMA)
+
+HE PHY Cap:
+Bit1-7: 0x2 (Supported Channel Width Set.
+	     Note it would be changed after 80+80 MHz is supported)
+Bit8-11: 0x3 (Punctured Preamble Rx.
+	      Note: it would be changed after 80+80 MHz is supported)
+Bit12: 0x0 (Device Class)
+Bit13: 0x1 (LDPC coding in Payload)
+Bit17: 0x1 (NDP with 4xHE-LTF+3.2usGI)
+Bit18: 0x1 (STBC Tx <= 80 MHz)
+Bit19: 0x1 (STBC Rx <= 80 MHz)
+Bit20: 0x1 (Doppler Tx)
+Bit21: 0x1 (Doppler Rx)
+Bit27-28: 0x1 (DCM Max Constellation Rx)
+Bit31: 0x1 (SU Beamformer)
+Bit32: 0x1 (SU BeamFormee)
+Bit34-36: 0x7 (Beamformee STS <= 80 MHz)
+Bit40-42: 0x1 (Number of Sounding Dimentions <= 80 MHz)
+Bit53: 0x1 (Partial Bandwidth Extended Range)
+Bit55: 0x1 (PPE Threshold Present.
+	    Note: PPE threshold may have some changes later)
+Bit58: 0x1 (HE SU PPDU and HE MU PPDU with 4xHE-LTF+0.8usGI)
+Bit59-61: 0x1 (Max Nc)
+Bit75: 0x1 (Rx 1024-QAM Support < 242-tone RU)
+*/
+
+#define UAP_HE_MAC_CAP0_MASK 0x01
+#define UAP_HE_MAC_CAP1_MASK 0x00
+#define UAP_HE_MAC_CAP2_MASK 0x00
+#define UAP_HE_MAC_CAP3_MASK 0x00
+#define UAP_HE_MAC_CAP4_MASK 0x02
+#define UAP_HE_MAC_CAP5_MASK 0x00
+#define UAP_HE_PHY_CAP0_MASK 0x04
+#define UAP_HE_PHY_CAP1_MASK 0x23
+#define UAP_HE_PHY_CAP2_MASK 0x3E
+#define UAP_HE_PHY_CAP3_MASK 0x88
+#define UAP_HE_PHY_CAP4_MASK 0x1D
+#define UAP_HE_PHY_CAP5_MASK 0x01
+#define UAP_HE_PHY_CAP6_MASK 0xA0
+#define UAP_HE_PHY_CAP7_MASK 0x0C
+#define UAP_HE_PHY_CAP8_MASK 0x00
+#define UAP_HE_PHY_CAP9_MASK 0x08
+#define UAP_HE_PHY_CAP10_MASK 0x00
+
+/*
+2G
+===
+HE MAC Cap:
+Bit0:   1  (+HTC HE Support)
+Bit25: 1  (OM Control Support. Note: uAP does not support
+	Tx OM received from the STA, as it does not support UL OFDMA)
+
+HE PHY Cap:
+Bit1-7: 0x1 (Supported Channel Width Set)
+Bit8-11: 0x0 (Punctured Preamble Rx)
+Bit12: 0x0 (Device Class)
+Bit13: 0x1 (LDPC coding in Payload)
+Bit17: 0x1 (NDP with 4xLTF+3.2usGI)
+Bit18: 0x1 (STBC Tx <= 80 MHz)
+Bit19: 0x1 (STBC Rx <= 80 MHz)
+Bit20: 0x1 (Doppler Tx)
+Bit21: 0x1 (Doppler Rx)
+Bit27-28: 0x1 (DCM Max Constellation Rx)
+Bit31: 0x1 (SU Beamformer)
+Bit32: 0x1 (SU BeamFormee)
+Bit34-36: 0x7 (Beamformee STS <= 80 MHz)
+Bit40-42: 0x1 (Number of Sounding Dimentions <= 80 MHz)
+Bit53: 0x1 (Partial Bandwidth Extended Range)
+Bit55: 0x1 (PPE Threshold Present.
+	    Note: PPE threshold may have some changes later)
+Bit58: 0x1 (HE SU PPDU and HE MU PPDU with 4xHE-LTF+0.8usGI)
+Bit59-61: 0x1 (Max Nc)
+Bit75: 0x1 (Rx 1024-QAM Support < 242-tone RU)
+*/
+#define UAP_HE_2G_MAC_CAP0_MASK 0x01
+#define UAP_HE_2G_MAC_CAP1_MASK 0x00
+#define UAP_HE_2G_MAC_CAP2_MASK 0x00
+#define UAP_HE_2G_MAC_CAP3_MASK 0x00
+#define UAP_HE_2G_MAC_CAP4_MASK 0x02
+#define UAP_HE_2G_MAC_CAP5_MASK 0x00
+#define UAP_HE_2G_PHY_CAP0_MASK 0x04
+#define UAP_HE_2G_PHY_CAP1_MASK 0x20
+#define UAP_HE_2G_PHY_CAP2_MASK 0x3E
+#define UAP_HE_2G_PHY_CAP3_MASK 0x88
+#define UAP_HE_2G_PHY_CAP4_MASK 0x1D
+#define UAP_HE_2G_PHY_CAP5_MASK 0x01
+#define UAP_HE_2G_PHY_CAP6_MASK 0xA0
+#define UAP_HE_2G_PHY_CAP7_MASK 0x0C
+#define UAP_HE_2G_PHY_CAP8_MASK 0x00
+#define UAP_HE_2G_PHY_CAP9_MASK 0x08
+#define UAP_HE_2G_PHY_CAP10_MASK 0x00
+
+/**
+ *  @brief update 11ax ie for AP mode *
+ *  @param band     band config
+ *  @hecap_ie      a pointer to mlan_ds_11ax_he_capa
+ *
+ *  @return         0--success, otherwise failure
+ */
+void woal_uap_update_11ax_ie(t_u8 band, mlan_ds_11ax_he_capa *hecap_ie)
+{
+	if (band == BAND_5GHZ) {
+		hecap_ie->he_mac_cap[0] &= UAP_HE_MAC_CAP0_MASK;
+		hecap_ie->he_mac_cap[1] &= UAP_HE_MAC_CAP1_MASK;
+		hecap_ie->he_mac_cap[2] &= UAP_HE_MAC_CAP2_MASK;
+		hecap_ie->he_mac_cap[3] &= UAP_HE_MAC_CAP3_MASK;
+		hecap_ie->he_mac_cap[4] &= UAP_HE_MAC_CAP4_MASK;
+		hecap_ie->he_mac_cap[5] &= UAP_HE_MAC_CAP5_MASK;
+		hecap_ie->he_phy_cap[0] &= UAP_HE_PHY_CAP0_MASK;
+		hecap_ie->he_phy_cap[1] &= UAP_HE_PHY_CAP1_MASK;
+		hecap_ie->he_phy_cap[2] &= UAP_HE_PHY_CAP2_MASK;
+		hecap_ie->he_phy_cap[3] &= UAP_HE_PHY_CAP3_MASK;
+		hecap_ie->he_phy_cap[4] &= UAP_HE_PHY_CAP4_MASK;
+		hecap_ie->he_phy_cap[5] &= UAP_HE_PHY_CAP5_MASK;
+		hecap_ie->he_phy_cap[6] &= UAP_HE_PHY_CAP6_MASK;
+		hecap_ie->he_phy_cap[7] &= UAP_HE_PHY_CAP7_MASK;
+		hecap_ie->he_phy_cap[8] &= UAP_HE_PHY_CAP8_MASK;
+		hecap_ie->he_phy_cap[9] &= UAP_HE_PHY_CAP9_MASK;
+		hecap_ie->he_phy_cap[10] &= UAP_HE_PHY_CAP10_MASK;
+	} else {
+		hecap_ie->he_mac_cap[0] &= UAP_HE_2G_MAC_CAP0_MASK;
+		hecap_ie->he_mac_cap[1] &= UAP_HE_2G_MAC_CAP1_MASK;
+		hecap_ie->he_mac_cap[2] &= UAP_HE_2G_MAC_CAP2_MASK;
+		hecap_ie->he_mac_cap[3] &= UAP_HE_2G_MAC_CAP3_MASK;
+		hecap_ie->he_mac_cap[4] &= UAP_HE_2G_MAC_CAP4_MASK;
+		hecap_ie->he_mac_cap[5] &= UAP_HE_2G_MAC_CAP5_MASK;
+		hecap_ie->he_phy_cap[0] &= UAP_HE_2G_PHY_CAP0_MASK;
+		hecap_ie->he_phy_cap[1] &= UAP_HE_2G_PHY_CAP1_MASK;
+		hecap_ie->he_phy_cap[2] &= UAP_HE_2G_PHY_CAP2_MASK;
+		hecap_ie->he_phy_cap[3] &= UAP_HE_2G_PHY_CAP3_MASK;
+		hecap_ie->he_phy_cap[4] &= UAP_HE_2G_PHY_CAP4_MASK;
+		hecap_ie->he_phy_cap[5] &= UAP_HE_2G_PHY_CAP5_MASK;
+		hecap_ie->he_phy_cap[6] &= UAP_HE_2G_PHY_CAP6_MASK;
+		hecap_ie->he_phy_cap[7] &= UAP_HE_2G_PHY_CAP7_MASK;
+		hecap_ie->he_phy_cap[8] &= UAP_HE_2G_PHY_CAP8_MASK;
+		hecap_ie->he_phy_cap[9] &= UAP_HE_2G_PHY_CAP9_MASK;
+		hecap_ie->he_phy_cap[10] &= UAP_HE_2G_PHY_CAP10_MASK;
+	}
+	return;
+}
+
 /**
  *  @brief Sets up the CFG802.11 specific HE capability fields *  with default
  * values
@@ -4145,10 +4306,13 @@ void woal_cfg80211_setup_he_cap(moal_private *priv,
 	if (band->band == NL80211_BAND_5GHZ) {
 		phe_cap = (mlan_ds_11ax_he_capa *)fw_info.hw_he_cap;
 		hw_hecap_len = fw_info.hw_hecap_len;
+		woal_uap_update_11ax_ie(BAND_5GHZ, phe_cap);
 	} else {
 		phe_cap = (mlan_ds_11ax_he_capa *)fw_info.hw_2g_he_cap;
 		hw_hecap_len = fw_info.hw_2g_hecap_len;
+		woal_uap_update_11ax_ie(BAND_2GHZ, phe_cap);
 	}
+
 	if (!hw_hecap_len)
 		return;
 	DBG_HEXDUMP(MCMD_D, "Setup HECAP", (u8 *)phe_cap, hw_hecap_len);
@@ -4230,6 +4394,38 @@ void woal_cfg80211_free_iftype_data(struct wiphy *wiphy)
 }
 #endif
 
+/*
+ * @brief  prepare and send fake deauth packet to cfg80211 to
+ *         notify wpa_supplicant about disconnection
+ *	       <host_mlme, wiphy suspend case>
+ *
+ * @param priv           A pointer moal_private structure
+ * @param reason_code    disconnect reason code
+ *
+ * @return          N/A
+ */
+void woal_deauth_event(moal_private *priv, int reason_code)
+{
+	struct woal_event *evt;
+	unsigned long flags;
+	moal_handle *handle = priv->phandle;
+
+	evt = kzalloc(sizeof(struct woal_event), GFP_ATOMIC);
+	if (!evt) {
+		PRINTM(MERROR, "Fail to alloc memory for deauth event\n");
+		LEAVE();
+		return;
+	}
+	evt->priv = priv;
+	evt->type = WOAL_EVENT_DEAUTH;
+	evt->reason_code = reason_code;
+	INIT_LIST_HEAD(&evt->link);
+	spin_lock_irqsave(&handle->evt_lock, flags);
+	list_add_tail(&evt->link, &handle->evt_queue);
+	spin_unlock_irqrestore(&handle->evt_lock, flags);
+	queue_work(handle->evt_workqueue, &handle->evt_work);
+}
+
 #ifdef STA_CFG80211
 #if KERNEL_VERSION(3, 2, 0) <= CFG80211_VERSION_CODE
 /**
@@ -4267,22 +4463,12 @@ void woal_bgscan_stop_event(moal_private *priv)
  */
 void woal_cfg80211_notify_sched_scan_stop(moal_private *priv)
 {
-#if KERNEL_VERSION(3, 14, 6) <= CFG80211_VERSION_CODE
-	if (rtnl_is_locked())
-		cfg80211_sched_scan_stopped_rtnl(priv->wdev->wiphy
+	cfg80211_sched_scan_stopped(priv->wdev->wiphy
 #if KERNEL_VERSION(4, 12, 0) <= CFG80211_VERSION_CODE
-						 ,
-						 0
+				    ,
+				    0
 #endif
-		);
-	else
-#endif
-		cfg80211_sched_scan_stopped(priv->wdev->wiphy
-#if KERNEL_VERSION(4, 12, 0) <= CFG80211_VERSION_CODE
-					    ,
-					    0
-#endif
-		);
+	);
 	priv->sched_scanning = MFALSE;
 	PRINTM(MEVENT, "Sched_Scan stopped\n");
 }
@@ -4308,7 +4494,8 @@ void woal_channel_switch_event(moal_private *priv, chan_band_info *pchan_info)
 	if (evt) {
 		evt->priv = priv;
 		evt->type = WOAL_EVENT_CHAN_SWITCH;
-		memcpy(&evt->chan_info, pchan_info, sizeof(chan_band_info));
+		moal_memcpy_ext(priv->phandle, &evt->chan_info, pchan_info,
+				sizeof(chan_band_info), sizeof(chan_band_info));
 		INIT_LIST_HEAD(&evt->link);
 		spin_lock_irqsave(&handle->evt_lock, flags);
 		list_add_tail(&evt->link, &handle->evt_queue);
@@ -4403,6 +4590,7 @@ mlan_status woal_chandef_create(moal_private *priv,
 	mlan_status status = MLAN_STATUS_SUCCESS;
 
 	ENTER();
+	memset(chandef, 0, sizeof(struct cfg80211_chan_def));
 	chandef->center_freq2 = 0;
 	if (pchan_info->bandcfg.chanBand == BAND_2GHZ)
 		band = IEEE80211_BAND_2GHZ;

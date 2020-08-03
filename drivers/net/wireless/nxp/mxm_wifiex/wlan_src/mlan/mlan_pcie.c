@@ -49,8 +49,8 @@ Change log:
 			Local Functions
 ********************************************************/
 
-static mlan_status wlan_pcie_delete_evtbd_ring(mlan_adapter *pmadapter);
-static mlan_status wlan_pcie_delete_rxbd_ring(mlan_adapter *pmadapter);
+static mlan_status wlan_pcie_delete_evtbd_ring(pmlan_adapter pmadapter);
+static mlan_status wlan_pcie_delete_rxbd_ring(pmlan_adapter pmadapter);
 
 #if defined(PCIE9098) || defined(PCIE9097)
 /**
@@ -660,10 +660,10 @@ static mlan_status wlan_pcie_create_txbd_ring(mlan_adapter *pmadapter)
 	pmlan_callbacks pcb = &pmadapter->callbacks;
 	t_u32 i;
 #if defined(PCIE8997) || defined(PCIE8897)
-	mlan_pcie_data_buf *ptx_bd_buf;
+	pmlan_pcie_data_buf ptx_bd_buf;
 #endif
 #if defined(PCIE9098) || defined(PCIE9097)
-	adma_dual_desc_buf *padma_bd_buf;
+	padma_dual_desc_buf padma_bd_buf;
 #endif
 
 	ENTER();
@@ -1082,7 +1082,7 @@ static mlan_status wlan_pcie_create_evtbd_ring(mlan_adapter *pmadapter)
 	mlan_buffer *pmbuf = MNULL;
 	t_u32 i;
 #if defined(PCIE8997) || defined(PCIE8897)
-	mlan_pcie_evt_buf *pevtbd_buf;
+	pmlan_pcie_evt_buf pevtbd_buf;
 #endif
 
 #if defined(PCIE9098) || defined(PCIE9097)
@@ -2866,7 +2866,7 @@ done:
  *
  *  @return		MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_pcie_init_fw(IN pmlan_adapter pmadapter)
+mlan_status wlan_pcie_init_fw(pmlan_adapter pmadapter)
 {
 	pmlan_callbacks pcb = &pmadapter->callbacks;
 	t_u32 txbd_val = 0;
@@ -2905,8 +2905,8 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-static mlan_status wlan_pcie_prog_fw_w_helper(IN mlan_adapter *pmadapter,
-					      IN mlan_fw_image *fw)
+static mlan_status wlan_pcie_prog_fw_w_helper(mlan_adapter *pmadapter,
+					      mlan_fw_image *fw)
 {
 	mlan_status ret = MLAN_STATUS_FAILURE;
 	t_u8 *firmware = fw->pfw_buf;
@@ -2992,7 +2992,7 @@ static mlan_status wlan_pcie_prog_fw_w_helper(IN mlan_adapter *pmadapter,
 			}
 			if (len)
 				break;
-			wlan_udelay(pmadapter, 10);
+			wlan_udelay(pmadapter, 50);
 		}
 
 		if (!len) {
@@ -3673,8 +3673,7 @@ mlan_status wlan_pcie_init(mlan_adapter *pmadapter)
  *
  *  @return		MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_pcie_dnld_fw(IN pmlan_adapter pmadapter,
-			      IN pmlan_fw_image pmfw)
+mlan_status wlan_pcie_dnld_fw(pmlan_adapter pmadapter, pmlan_fw_image pmfw)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	t_u32 poll_num = 1;
@@ -4072,9 +4071,8 @@ mlan_status wlan_set_pcie_buf_config(mlan_private *pmpriv)
  *  @return             MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_pcie_host_buf_cfg(pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *cmd,
-				       IN t_u16 cmd_action,
-				       IN t_void *pdata_buf)
+				       HostCmd_DS_COMMAND *cmd,
+				       t_u16 cmd_action, t_pvoid pdata_buf)
 {
 	HostCmd_DS_PCIE_HOST_BUF_DETAILS *ppcie_hoost_spec =
 		&cmd->params.pcie_host_spec;
@@ -4104,8 +4102,7 @@ mlan_status wlan_cmd_pcie_host_buf_cfg(pmlan_private pmpriv,
  *
  *  @return			MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_pm_pcie_wakeup_card(IN pmlan_adapter pmadapter,
-				     IN t_u8 timeout)
+mlan_status wlan_pm_pcie_wakeup_card(pmlan_adapter pmadapter, t_u8 timeout)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	t_u32 age_ts_usec;
@@ -4129,7 +4126,7 @@ mlan_status wlan_pm_pcie_wakeup_card(IN pmlan_adapter pmadapter,
 	return ret;
 }
 
-mlan_status wlan_pcie_debug_dump(IN pmlan_adapter pmadapter)
+mlan_status wlan_pcie_debug_dump(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_buffer pmbuf = pmadapter->pcard_pcie->cmdrsp_buf;
@@ -4155,8 +4152,8 @@ mlan_status wlan_pcie_debug_dump(IN pmlan_adapter pmadapter)
  *  @param pmbuf     A pointer to the mlan_buffer
  *  @return          N/A
  */
-mlan_status wlan_pcie_data_complete(IN pmlan_adapter pmadapter,
-				    mlan_buffer *pmbuf, mlan_status status)
+mlan_status wlan_pcie_data_complete(pmlan_adapter pmadapter, mlan_buffer *pmbuf,
+				    mlan_status status)
 {
 	ENTER();
 

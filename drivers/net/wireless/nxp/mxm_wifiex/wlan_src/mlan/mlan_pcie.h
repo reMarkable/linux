@@ -616,18 +616,17 @@ mlan_status wlan_get_pcie_device(pmlan_adapter pmadapter);
 mlan_status wlan_set_pcie_buf_config(mlan_private *pmpriv);
 
 /** Init write pointer */
-mlan_status wlan_pcie_init_fw(IN pmlan_adapter pmadapter);
+mlan_status wlan_pcie_init_fw(pmlan_adapter pmadapter);
 
 #if defined(PCIE8997) || defined(PCIE8897)
 /** Prepare command PCIE host buffer config */
 mlan_status wlan_cmd_pcie_host_buf_cfg(pmlan_private pmpriv,
-				       IN HostCmd_DS_COMMAND *cmd,
-				       IN t_u16 cmd_action,
-				       IN t_void *pdata_buf);
+				       pHostCmd_DS_COMMAND cmd,
+				       t_u16 cmd_action, t_pvoid pdata_buf);
 #endif
 
 /** Wakeup PCIE card */
-mlan_status wlan_pcie_wakeup(mlan_adapter *pmadapter);
+mlan_status wlan_pcie_wakeup(pmlan_adapter pmadapter);
 
 /** Set DRV_READY register */
 mlan_status wlan_set_drv_ready_reg(mlan_adapter *pmadapter, t_u32 val);

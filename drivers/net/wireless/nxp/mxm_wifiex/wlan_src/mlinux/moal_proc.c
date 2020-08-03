@@ -100,6 +100,10 @@ static int woal_info_proc_read(struct seq_file *sfp, void *data)
 #ifdef UAP_SUPPORT
 	mlan_ds_uap_stats ustats;
 #endif
+	union {
+		t_u32 l;
+		t_u8 c[4];
+	} ver;
 
 	ENTER();
 
@@ -147,6 +151,9 @@ static int woal_info_proc_read(struct seq_file *sfp, void *data)
 #endif
 	seq_printf(sfp, "driver_version = %s", fmt);
 	seq_printf(sfp, "\ninterface_name=\"%s\"\n", netdev->name);
+	ver.l = handle->fw_release_number;
+	seq_printf(sfp, "firmware_major_version=%u.%u.%u\n", ver.c[2], ver.c[1],
+		   ver.c[0]);
 #ifdef WIFI_DIRECT_SUPPORT
 	if (priv->bss_type == MLAN_BSS_TYPE_WIFIDIRECT) {
 		if (GET_BSS_ROLE(priv) == MLAN_BSS_ROLE_STA)
@@ -363,6 +370,7 @@ static ssize_t woal_config_write(struct file *f, const char __user *buf,
 	int func = 0, reg = 0, val = 0;
 #endif
 	moal_handle *ref_handle = NULL;
+	t_u32 cmd = 0;
 	int copy_len;
 	moal_private *priv = NULL;
 
@@ -465,6 +473,60 @@ static ssize_t woal_config_write(struct file *f, const char __user *buf,
 		PRINTM(MMSG, "Request fw_reload=%d\n", config_data);
 		woal_request_fw_reload(handle, config_data);
 	}
+	if (!strncmp(databuf, "rf_test_mode", strlen("rf_test_mode"))) {
+		line += strlen("rf_test_mode") + 1;
+		config_data = (t_u32)woal_string_to_number(line);
+		PRINTM(MINFO, "RF test mode: %d\n", (int)config_data);
+		if (config_data != (t_u32)handle->rf_test_mode)
+			if (woal_process_rf_test_mode(handle, config_data) !=
+			    MLAN_STATUS_SUCCESS)
+				PRINTM(MERROR, "Could not set RF test mode\n");
+	}
+	if (!strncmp(databuf, "tx_antenna", strlen("tx_antenna"))) {
+		line += strlen("tx_antenna") + 1;
+		config_data = (t_u32)woal_string_to_number(line);
+		cmd = MFG_CMD_TX_ANT;
+	}
+	if (!strncmp(databuf, "rx_antenna", strlen("rx_antenna"))) {
+		line += strlen("rx_antenna") + 1;
+		config_data = (t_u32)woal_string_to_number(line);
+		cmd = MFG_CMD_RX_ANT;
+	}
+	if (!strncmp(databuf, "channel", strlen("channel"))) {
+		line += strlen("channel") + 1;
+		config_data = (t_u32)woal_string_to_number(line);
+		cmd = MFG_CMD_RF_CHAN;
+	}
+	if (!strncmp(databuf, "band", strlen("band"))) {
+		line += strlen("band") + 1;
+		config_data = (t_u32)woal_string_to_number(line);
+		cmd = MFG_CMD_RF_BAND_AG;
+	}
+	if (!strncmp(databuf, "bandwidth", strlen("bandwidth"))) {
+		line += strlen("bandwidth") + 1;
+		config_data = (t_u32)woal_string_to_number(line);
+		cmd = MFG_CMD_RF_CHANNELBW;
+	}
+	if (!strncmp(databuf, "get_and_reset_per", strlen("get_and_reset_per")))
+		cmd = MFG_CMD_CLR_RX_ERR;
+	if (!strncmp(databuf, "tx_power=", strlen("tx_power=")) &&
+	    count > strlen("tx_power="))
+		cmd = MFG_CMD_RFPWR;
+	if (!strncmp(databuf, "tx_frame=", strlen("tx_frame=")) &&
+	    count > strlen("tx_frame="))
+		cmd = MFG_CMD_TX_FRAME;
+	if (!strncmp(databuf, "tx_continuous=", strlen("tx_continuous=")) &&
+	    count > strlen("tx_continuous="))
+		cmd = MFG_CMD_TX_CONT;
+
+	if (cmd && handle->rf_test_mode &&
+	    (woal_process_rf_test_mode_cmd(
+		     handle, cmd, (const char *)databuf, (size_t)count,
+		     MLAN_ACT_SET, config_data) != MLAN_STATUS_SUCCESS)) {
+		PRINTM(MERROR, "RF test mode cmd error\n");
+	}
+	if (cmd && !handle->rf_test_mode)
+		PRINTM(MERROR, "RF test mode is disabled\n");
 	MODULE_PUT;
 	LEAVE();
 	return (int)count;
@@ -481,6 +543,7 @@ static ssize_t woal_config_write(struct file *f, const char __user *buf,
 static int woal_config_read(struct seq_file *sfp, void *data)
 {
 	moal_handle *handle = (moal_handle *)sfp->private;
+	int i;
 
 	ENTER();
 
@@ -499,7 +562,64 @@ static int woal_config_read(struct seq_file *sfp, void *data)
 			   handle->cmd52_val);
 	}
 #endif /* SD */
-
+	seq_printf(sfp, "rf_test_mode=%u\n", handle->rf_test_mode);
+	if (handle->rf_test_mode && handle->rf_data) {
+		seq_printf(sfp, "tx_antenna=%u\n", handle->rf_data->tx_antenna);
+		seq_printf(sfp, "rx_antenna=%u\n", handle->rf_data->rx_antenna);
+		seq_printf(sfp, "band=%u\n", handle->rf_data->band);
+		seq_printf(sfp, "bandwidth=%u\n", handle->rf_data->bandwidth);
+		if (handle->rf_data->channel)
+			seq_printf(sfp, "channel=%u\n",
+				   handle->rf_data->channel);
+		else
+			seq_printf(sfp, "channel=\n");
+		seq_printf(sfp, "total rx pkt count=%u\n",
+			   handle->rf_data->rx_tot_pkt_count);
+		seq_printf(sfp, "rx multicast/broadcast pkt count=%u\n",
+			   handle->rf_data->rx_mcast_bcast_pkt_count);
+		seq_printf(sfp, "rx fcs error pkt count=%u\n",
+			   handle->rf_data->rx_pkt_fcs_err_count);
+		if (handle->rf_data->tx_power_data[0]) {
+			seq_printf(sfp, "tx_power=%u",
+				   handle->rf_data->tx_power_data[0]);
+			seq_printf(sfp, " %u",
+				   handle->rf_data->tx_power_data[1]);
+			seq_printf(sfp, " %u\n",
+				   handle->rf_data->tx_power_data[2]);
+		} else
+			seq_printf(sfp, "tx_power=\n");
+		seq_printf(sfp, "tx_continuous=%u",
+			   handle->rf_data->tx_cont_data[0]);
+		if (handle->rf_data->tx_cont_data[0] == MTRUE) {
+			seq_printf(sfp, " %u",
+				   handle->rf_data->tx_cont_data[1]);
+			seq_printf(sfp, " 0x%x",
+				   handle->rf_data->tx_cont_data[2]);
+			for (i = 3; i < 6; i++)
+				seq_printf(sfp, " %u",
+					   handle->rf_data->tx_cont_data[i]);
+		}
+		seq_printf(sfp, "\n");
+		seq_printf(sfp, "tx_frame=%u",
+			   handle->rf_data->tx_frame_data[0]);
+		if (handle->rf_data->tx_frame_data[0] == MTRUE) {
+			seq_printf(sfp, " %u",
+				   handle->rf_data->tx_frame_data[1]);
+			seq_printf(sfp, " 0x%x",
+				   handle->rf_data->tx_frame_data[2]);
+			for (i = 3; i < 13; i++)
+				seq_printf(sfp, " %u",
+					   handle->rf_data->tx_frame_data[i]);
+			seq_printf(sfp, " %02x:%02x:%02x:%02x:%02x:%02x",
+				   handle->rf_data->bssid[0],
+				   handle->rf_data->bssid[1],
+				   handle->rf_data->bssid[2],
+				   handle->rf_data->bssid[3],
+				   handle->rf_data->bssid[4],
+				   handle->rf_data->bssid[5]);
+		}
+		seq_printf(sfp, "\n");
+	}
 	MODULE_PUT;
 	LEAVE();
 	return 0;

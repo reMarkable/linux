@@ -55,8 +55,8 @@ t_u16 wlan_convert_mcsmap_to_maxrate(mlan_private *priv, t_u16 bands,
  *  @return             channel center frequency center, if found; O, otherwise
  */
 
-t_u8 wlan_get_center_freq_idx(IN mlan_private *pmpriv, IN t_u16 band,
-			      IN t_u32 pri_chan, IN t_u8 chan_bw)
+t_u8 wlan_get_center_freq_idx(mlan_private *pmpriv, t_u16 band, t_u32 pri_chan,
+			      t_u8 chan_bw)
 {
 	t_u8 center_freq_idx = 0;
 
@@ -217,8 +217,8 @@ static void wlan_fill_cap_info(mlan_private *priv, VHT_capa_t *vht_cap,
  *
  *  @return     MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_11ac_ioctl_vhtcfg(IN pmlan_adapter pmadapter,
-					  IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11ac_ioctl_vhtcfg(pmlan_adapter pmadapter,
+					  pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -493,8 +493,8 @@ static mlan_status wlan_11ac_ioctl_vhtcfg(IN pmlan_adapter pmadapter,
  *
  *  @return     MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status wlan_11ac_ioctl_opermodecfg(IN pmlan_adapter pmadapter,
-					       IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11ac_ioctl_opermodecfg(pmlan_adapter pmadapter,
+					       pmlan_ioctl_req pioctl_req)
 {
 	mlan_ds_11ac_cfg *cfg = MNULL;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -537,9 +537,8 @@ static mlan_status wlan_11ac_ioctl_opermodecfg(IN pmlan_adapter pmadapter,
  *
  *  @return     MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status
-wlan_11ac_ioctl_supported_mcs_set(IN pmlan_adapter pmadapter,
-				  IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11ac_ioctl_supported_mcs_set(pmlan_adapter pmadapter,
+						     pmlan_ioctl_req pioctl_req)
 {
 	/*mlan_ds_11ac_cfg *cfg= MNULL;*/
 	/*int rx_mcs_supp;*/
@@ -1187,9 +1186,8 @@ mlan_status wlan_11ac_cfg_ioctl(pmlan_adapter pmadapter,
  *  @param pdata_buf    A pointer to data buffer
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_11ac_cfg(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			      IN t_void *pdata_buf)
+mlan_status wlan_cmd_11ac_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			      t_u16 cmd_action, t_void *pdata_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	HostCmd_DS_11AC_CFG *vhtcfg = &cmd->params.vhtcfg;
@@ -1228,9 +1226,8 @@ mlan_status wlan_cmd_11ac_cfg(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_11ac_cfg(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *resp,
-			      IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_11ac_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			      mlan_ioctl_req *pioctl_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	mlan_ds_11ac_cfg *cfg = MNULL;

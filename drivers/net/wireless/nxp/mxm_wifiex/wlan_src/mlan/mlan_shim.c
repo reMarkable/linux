@@ -108,7 +108,7 @@ mlan_operations *mlan_ops[] = {
 };
 
 /** Global moal_assert callback */
-t_void (*assert_callback)(IN t_void *pmoal_handle, IN t_u32 cond) = MNULL;
+t_void (*assert_callback)(t_pvoid pmoal_handle, t_u32 cond) = MNULL;
 #ifdef DEBUG_LEVEL1
 #ifdef DEBUG_LEVEL2
 #define DEFAULT_DEBUG_MASK (0xffffffff)
@@ -117,12 +117,12 @@ t_void (*assert_callback)(IN t_void *pmoal_handle, IN t_u32 cond) = MNULL;
 #endif
 
 /** Global moal_print callback */
-t_void (*print_callback)(IN t_void *pmoal_handle, IN t_u32 level,
-			 IN char *pformat, IN...) = MNULL;
+t_void (*print_callback)(t_pvoid pmoal_handle, t_u32 level, char *pformat,
+			 IN...) = MNULL;
 
 /** Global moal_get_system_time callback */
-mlan_status (*get_sys_time_callback)(IN t_void *pmoal_handle, OUT t_u32 *psec,
-				     OUT t_u32 *pusec) = MNULL;
+mlan_status (*get_sys_time_callback)(t_pvoid pmoal_handle, t_pu32 psec,
+				     t_pu32 pusec) = MNULL;
 
 /** Global driver debug mit masks */
 t_u32 mlan_drvdbg = DEFAULT_DEBUG_MASK;
@@ -146,10 +146,10 @@ void wlan_process_pending_ioctl(mlan_adapter *pmadapter)
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb;
 #if defined(STA_SUPPORT) && defined(UAP_SUPPORT)
-	mlan_ds_bss *bss = MNULL;
+	pmlan_ds_bss bss = MNULL;
 #endif
 #ifdef STA_SUPPORT
-	mlan_ds_misc_cfg *misc = MNULL;
+	pmlan_ds_misc_cfg misc = MNULL;
 #endif
 	ENTER();
 
@@ -215,9 +215,9 @@ extern mlan_adapter_operations mlan_sdio_ops;
  *                         MLAN_STATUS_FAILURE
  *                             The registration failed.
  *
- * mlan_status mlan_register (
- *   IN pmlan_device     pmdevice,
- *   OUT t_void          **ppmlan_adapter
+ * mlan_status mlan_register(
+ *   pmlan_device     pmdevice,
+ *   t_void           **ppmlan_adapter
  * );
  *
  * Comments
@@ -229,7 +229,7 @@ extern mlan_adapter_operations mlan_sdio_ops;
  * See Also
  *   mlan_unregister
  */
-mlan_status mlan_register(IN pmlan_device pmdevice, OUT t_void **ppmlan_adapter)
+mlan_status mlan_register(pmlan_device pmdevice, t_void **ppmlan_adapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_adapter pmadapter = MNULL;
@@ -575,7 +575,7 @@ exit_register:
  *  @return                MLAN_STATUS_SUCCESS
  *                             The deregistration succeeded.
  */
-mlan_status mlan_unregister(IN t_void *pmlan_adapter)
+mlan_status mlan_unregister(t_void *pmlan_adapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -625,7 +625,7 @@ mlan_status mlan_unregister(IN t_void *pmlan_adapter)
  *                         MLAN_STATUS_FAILURE
  *                             The firmware download failed.
  */
-mlan_status mlan_dnld_fw(IN t_void *pmlan_adapter, IN pmlan_fw_image pmfw)
+mlan_status mlan_dnld_fw(t_void *pmlan_adapter, pmlan_fw_image pmfw)
 {
 	mlan_status ret = MLAN_STATUS_FAILURE;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -657,8 +657,7 @@ mlan_status mlan_dnld_fw(IN t_void *pmlan_adapter, IN pmlan_fw_image pmfw)
  *  @return               MLAN_STATUS_SUCCESS
  *
  */
-mlan_status mlan_set_init_param(IN t_void *pmlan_adapter,
-				IN pmlan_init_param pparam)
+mlan_status mlan_set_init_param(t_void *pmlan_adapter, pmlan_init_param pparam)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -698,7 +697,7 @@ mlan_status mlan_set_init_param(IN t_void *pmlan_adapter,
  *                         MLAN_STATUS_FAILURE
  *                             The firmware initialization failed.
  */
-mlan_status mlan_init_fw(IN t_void *pmlan_adapter)
+mlan_status mlan_init_fw(t_void *pmlan_adapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -728,7 +727,7 @@ mlan_status mlan_init_fw(IN t_void *pmlan_adapter)
  *              MLAN_STATUS_FAILURE
  *                              The firmware shutdown call failed.
  */
-mlan_status mlan_shutdown_fw(IN t_void *pmlan_adapter)
+mlan_status mlan_shutdown_fw(t_void *pmlan_adapter)
 {
 	mlan_status ret = MLAN_STATUS_PENDING;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -936,7 +935,7 @@ void mlan_block_rx_process(mlan_adapter *pmadapter, t_u8 block)
  *
  *  @return			MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status mlan_rx_process(IN t_void *pmlan_adapter, IN t_u8 *rx_pkts)
+mlan_status mlan_rx_process(t_void *pmlan_adapter, t_u8 *rx_pkts)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -1033,7 +1032,7 @@ exit_rx_proc:
  *
  *  @return			MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status mlan_main_process(IN t_void *pmlan_adapter)
+mlan_status mlan_main_process(t_void *pmlan_adapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -1282,7 +1281,7 @@ exit_main_proc:
  *
  *  @return			MLAN_STATUS_PENDING
  */
-mlan_status mlan_send_packet(IN t_void *pmlan_adapter, IN pmlan_buffer pmbuf)
+mlan_status mlan_send_packet(t_void *pmlan_adapter, pmlan_buffer pmbuf)
 {
 	mlan_status ret = MLAN_STATUS_PENDING;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -1333,7 +1332,7 @@ mlan_status mlan_send_packet(IN t_void *pmlan_adapter, IN pmlan_buffer pmbuf)
  *  @return		MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING --success,
  * otherwise fail
  */
-mlan_status mlan_ioctl(IN t_void *adapter, IN pmlan_ioctl_req pioctl_req)
+mlan_status mlan_ioctl(t_void *adapter, pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_adapter pmadapter = (pmlan_adapter)adapter;
@@ -1369,9 +1368,9 @@ exit:
  *
  *  @return			MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status mlan_write_data_async_complete(IN t_void *pmlan_adapter,
-					   IN pmlan_buffer pmbuf, IN t_u32 port,
-					   IN mlan_status status)
+mlan_status mlan_write_data_async_complete(t_void *pmlan_adapter,
+					   pmlan_buffer pmbuf, t_u32 port,
+					   mlan_status status)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -1402,8 +1401,7 @@ mlan_status mlan_write_data_async_complete(IN t_void *pmlan_adapter,
  *  @return			MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE or
  * MLAN_STATUS_PENDING
  */
-mlan_status mlan_recv(IN t_void *pmlan_adapter, IN pmlan_buffer pmbuf,
-		      IN t_u32 port)
+mlan_status mlan_recv(t_void *pmlan_adapter, pmlan_buffer pmbuf, t_u32 port)
 {
 	mlan_status ret = MLAN_STATUS_PENDING;
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
@@ -1554,9 +1552,8 @@ mlan_status mlan_recv(IN t_void *pmlan_adapter, IN pmlan_buffer pmbuf,
  *
  *  @return			MLAN_STATUS_SUCCESS
  */
-mlan_status mlan_recv_packet_complete(IN t_void *pmlan_adapter,
-				      IN pmlan_buffer pmbuf,
-				      IN mlan_status status)
+mlan_status mlan_recv_packet_complete(t_void *pmlan_adapter, pmlan_buffer pmbuf,
+				      mlan_status status)
 {
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
 
@@ -1575,8 +1572,7 @@ mlan_status mlan_recv_packet_complete(IN t_void *pmlan_adapter,
  *
  *  @return			wmm queue priority (0 - 3)
  */
-t_u8 mlan_select_wmm_queue(IN t_void *pmlan_adapter, IN t_u8 bss_num,
-			   IN t_u8 tid)
+t_u8 mlan_select_wmm_queue(t_void *pmlan_adapter, t_u8 bss_num, t_u8 tid)
 {
 	mlan_adapter *pmadapter = (mlan_adapter *)pmlan_adapter;
 	pmlan_private pmpriv = pmadapter->priv[bss_num];
@@ -1597,7 +1593,7 @@ t_u8 mlan_select_wmm_queue(IN t_void *pmlan_adapter, IN t_u8 bss_num,
  *  @param adapter  A pointer to mlan_adapter structure
  *  @return         MLAN_STATUS_FAILURE -- if the intererupt is not for us
  */
-mlan_status mlan_interrupt(IN t_u16 msg_id, IN t_void *adapter)
+mlan_status mlan_interrupt(t_u16 msg_id, t_void *adapter)
 {
 	mlan_adapter *pmadapter = (mlan_adapter *)adapter;
 	mlan_status ret;
@@ -1616,7 +1612,7 @@ mlan_status mlan_interrupt(IN t_u16 msg_id, IN t_void *adapter)
  *  @param keep_wakeup   keep wake up flag
  *  @return         N/A
  */
-t_void mlan_pm_wakeup_card(IN t_void *adapter, IN t_u8 keep_wakeup)
+t_void mlan_pm_wakeup_card(t_void *adapter, t_u8 keep_wakeup)
 {
 	mlan_adapter *pmadapter = (mlan_adapter *)adapter;
 
@@ -1634,7 +1630,7 @@ t_void mlan_pm_wakeup_card(IN t_void *adapter, IN t_u8 keep_wakeup)
  *  @param adapter  A pointer to mlan_adapter structure
  *  @return         MTRUE/MFALSE
  */
-t_u8 mlan_is_main_process_running(IN t_void *adapter)
+t_u8 mlan_is_main_process_running(t_void *adapter)
 {
 	mlan_adapter *pmadapter = (mlan_adapter *)adapter;
 	pmlan_callbacks pcb = &pmadapter->callbacks;
@@ -1663,8 +1659,7 @@ t_u8 mlan_is_main_process_running(IN t_void *adapter)
  *  @param func_num PCIE function num
  *  @return         N/A
  */
-t_void mlan_set_int_mode(IN t_void *adapter, IN t_u32 int_mode,
-			 IN t_u8 func_num)
+t_void mlan_set_int_mode(t_void *adapter, t_u32 int_mode, t_u8 func_num)
 {
 	mlan_adapter *pmadapter = (mlan_adapter *)adapter;
 	ENTER();

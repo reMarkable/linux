@@ -53,7 +53,7 @@ Change log:
 /********************************************************
 			Global Variables
 ********************************************************/
-extern mlan_operations *mlan_ops[];
+extern pmlan_operations mlan_ops[];
 /*******************************************************
 			Local Functions
 ********************************************************/
@@ -424,7 +424,7 @@ mlan_status wlan_init_priv(pmlan_private priv)
 	pmlan_adapter pmadapter = priv->adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 #ifdef USB
-	usb_tx_aggr_params *pusb_tx_aggr = MNULL;
+	pusb_tx_aggr_params pusb_tx_aggr = MNULL;
 #endif
 
 	ENTER();
@@ -905,8 +905,7 @@ t_void wlan_init_adapter(pmlan_adapter pmadapter)
  *                    otherwise MLAN_STATUS_FAILURE
  *
  */
-mlan_status wlan_init_priv_lock_list(IN pmlan_adapter pmadapter,
-				     t_u8 start_index)
+mlan_status wlan_init_priv_lock_list(pmlan_adapter pmadapter, t_u8 start_index)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private priv = MNULL;
@@ -998,7 +997,7 @@ error:
  *                    otherwise MLAN_STATUS_FAILURE
  *
  */
-mlan_status wlan_init_lock_list(IN pmlan_adapter pmadapter)
+mlan_status wlan_init_lock_list(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb = &pmadapter->callbacks;
@@ -1093,7 +1092,7 @@ error:
  *  @return           None
  *
  */
-t_void wlan_free_lock_list(IN pmlan_adapter pmadapter)
+t_void wlan_free_lock_list(pmlan_adapter pmadapter)
 {
 	pmlan_private priv = MNULL;
 	pmlan_callbacks pcb = &pmadapter->callbacks;
@@ -1223,7 +1222,7 @@ t_void wlan_free_lock_list(IN pmlan_adapter pmadapter)
  *                    otherwise MLAN_STATUS_FAILURE
  *
  */
-mlan_status wlan_init_timer(IN pmlan_adapter pmadapter)
+mlan_status wlan_init_timer(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb = &pmadapter->callbacks;
@@ -1275,7 +1274,7 @@ error:
  *  @return           None
  *
  */
-t_void wlan_free_timer(IN pmlan_adapter pmadapter)
+t_void wlan_free_timer(pmlan_adapter pmadapter)
 {
 	pmlan_callbacks pcb = &pmadapter->callbacks;
 #if defined(USB)
@@ -1315,7 +1314,7 @@ t_void wlan_free_timer(IN pmlan_adapter pmadapter)
  *  @return		MLAN_STATUS_SUCCESS, MLAN_STATUS_PENDING or
  * MLAN_STATUS_FAILURE
  */
-mlan_status wlan_init_fw(IN pmlan_adapter pmadapter)
+mlan_status wlan_init_fw(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 #ifdef PCIE
@@ -1372,7 +1371,7 @@ done:
  *  @return		MLAN_STATUS_SUCCESS, MLAN_STATUS_PENDING or
  * MLAN_STATUS_FAILURE
  */
-void wlan_update_hw_spec(IN pmlan_adapter pmadapter)
+void wlan_update_hw_spec(pmlan_adapter pmadapter)
 {
 	t_u32 i;
 
@@ -1502,7 +1501,7 @@ void wlan_update_hw_spec(IN pmlan_adapter pmadapter)
  *  @return		MLAN_STATUS_SUCCESS, MLAN_STATUS_PENDING or
  * MLAN_STATUS_FAILURE
  */
-mlan_status wlan_init_priv_fw(IN pmlan_adapter pmadapter)
+mlan_status wlan_init_priv_fw(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private priv = MNULL;
@@ -1758,7 +1757,7 @@ t_void wlan_free_priv(mlan_private *pmpriv)
  *
  *  @return             N/A
  */
-mlan_status wlan_init_interface(IN pmlan_adapter pmadapter)
+mlan_status wlan_init_interface(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb = MNULL;
@@ -1857,7 +1856,7 @@ error:
  *  @return		MLAN_STATUS_SUCCESS
  *              The firmware initialization callback succeeded.
  */
-mlan_status wlan_get_hw_spec_complete(IN pmlan_adapter pmadapter)
+mlan_status wlan_get_hw_spec_complete(pmlan_adapter pmadapter)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -1908,7 +1907,7 @@ mlan_status wlan_get_hw_spec_complete(IN pmlan_adapter pmadapter)
  *  @return		MLAN_STATUS_SUCCESS
  *              The firmware initialization callback succeeded.
  */
-mlan_status wlan_init_fw_complete(IN pmlan_adapter pmadapter)
+mlan_status wlan_init_fw_complete(pmlan_adapter pmadapter)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -1942,7 +1941,7 @@ mlan_status wlan_init_fw_complete(IN pmlan_adapter pmadapter)
  *  @return             MLAN_STATUS_SUCCESS
  *                      The firmware shutdown callback succeeded.
  */
-mlan_status wlan_shutdown_fw_complete(IN pmlan_adapter pmadapter)
+mlan_status wlan_shutdown_fw_complete(pmlan_adapter pmadapter)
 {
 	pmlan_callbacks pcb = &pmadapter->callbacks;
 	mlan_status status = MLAN_STATUS_SUCCESS;

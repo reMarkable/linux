@@ -476,7 +476,7 @@ typedef struct _moal_802_11_rates {
 	t_u8 num_of_rates;
 	/** Rates */
 	t_u8 rates[MLAN_SUPPORTED_RATES];
-} moal_802_11_rates;
+} moal_802_11_rates, *pmoal_802_11_rates;
 
 #if defined(STA_WEXT) || defined(UAP_WEXT)
 int woal_wext_do_ioctl(struct net_device *dev, struct ifreq *req, int cmd);

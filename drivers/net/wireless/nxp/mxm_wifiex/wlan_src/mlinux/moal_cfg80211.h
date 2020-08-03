@@ -80,7 +80,7 @@ void *woal_get_wiphy_priv(struct wiphy *wiphy);
 void *woal_get_netdev_priv(struct net_device *dev);
 #ifdef STA_SUPPORT
 /** get scan interface */
-moal_private *woal_get_scan_interface(moal_handle *handle);
+pmoal_private woal_get_scan_interface(pmoal_handle handle);
 #if KERNEL_VERSION(3, 8, 0) <= CFG80211_VERSION_CODE
 /** AUTH pending flag */
 #define HOST_MLME_AUTH_PENDING MBIT(0)
@@ -88,8 +88,10 @@ moal_private *woal_get_scan_interface(moal_handle *handle);
 #define HOST_MLME_AUTH_DONE MBIT(1)
 #define HOST_MLME_ASSOC_PENDING MBIT(2)
 #define HOST_MLME_ASSOC_DONE MBIT(3)
-void woal_host_mlme_disconnect(moal_private *priv, t_u16 reason_code, t_u8 *sa);
+void woal_host_mlme_disconnect(pmoal_private priv, u16 reason_code, u8 *sa);
 void woal_host_mlme_work_queue(struct work_struct *work);
+void woal_host_mlme_process_assoc_resp(moal_private *priv,
+				       mlan_ds_misc_assoc_rsp *assoc_rsp);
 #endif
 #endif
 
@@ -120,7 +122,7 @@ int woal_cfg80211_del_key(struct wiphy *wiphy, struct net_device *dev,
 			  const t_u8 *mac_addr);
 #ifdef STA_SUPPORT
 /** Opportunistic Key Caching APIs support */
-struct pmksa_entry *woal_get_pmksa_entry(moal_private *priv, const u8 *bssid);
+struct pmksa_entry *woal_get_pmksa_entry(pmoal_private priv, const u8 *bssid);
 
 int woal_flush_pmksa_list(moal_private *priv);
 
@@ -166,7 +168,7 @@ static inline int woal_cfg80211_scan_done(struct cfg80211_scan_request *request,
 	return 0;
 }
 mlan_status woal_inform_bss_from_scan_result(moal_private *priv,
-					     mlan_ssid_bssid *ssid_bssid,
+					     pmlan_ssid_bssid ssid_bssid,
 					     t_u8 wait_option);
 #endif
 #endif
@@ -422,7 +424,7 @@ void woal_csa_work_queue(struct work_struct *work);
 #if defined(UAP_CFG80211) || defined(STA_CFG80211)
 #if KERNEL_VERSION(3, 5, 0) <= CFG80211_VERSION_CODE
 void woal_cfg80211_notify_channel(moal_private *priv,
-				  chan_band_info *pchan_info);
+				  pchan_band_info pchan_info);
 void woal_channel_switch_event(moal_private *priv, chan_band_info *pchan_info);
 #endif
 #endif
@@ -433,6 +435,8 @@ void woal_bgscan_stop_event(moal_private *priv);
 void woal_cfg80211_notify_sched_scan_stop(moal_private *priv);
 #endif
 #endif
+
+void woal_deauth_event(moal_private *priv, int reason_code);
 
 #if KERNEL_VERSION(3, 8, 0) <= CFG80211_VERSION_CODE
 mlan_status woal_chandef_create(moal_private *priv,
@@ -463,6 +467,6 @@ void woal_cfg80211_setup_vht_cap(moal_private *priv,
 				 struct ieee80211_sta_vht_cap *vht_cap);
 #endif
 int woal_cfg80211_assoc(moal_private *priv, void *sme, t_u8 wait_option,
-			mlan_ds_misc_assoc_rsp *assoc_rsp);
+			pmlan_ds_misc_assoc_rsp assoc_rsp);
 
 #endif /* _MOAL_CFG80211_H_ */

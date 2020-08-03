@@ -110,7 +110,7 @@ mlan_status wlan_process_tx(pmlan_private priv, pmlan_buffer pmbuf,
 	t_u32 sec = 0, usec = 0;
 #endif
 #ifdef STA_SUPPORT
-	TxPD *plocal_tx_pd = MNULL;
+	PTxPD plocal_tx_pd = MNULL;
 #endif
 
 	ENTER();
@@ -187,9 +187,8 @@ done:
  *
  *  @return			MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_write_data_complete(IN pmlan_adapter pmadapter,
-				     IN pmlan_buffer pmbuf,
-				     IN mlan_status status)
+mlan_status wlan_write_data_complete(pmlan_adapter pmadapter,
+				     pmlan_buffer pmbuf, mlan_status status)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb;
@@ -250,9 +249,8 @@ mlan_status wlan_write_data_complete(IN pmlan_adapter pmadapter,
  *
  *  @return			MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_recv_packet_complete(IN pmlan_adapter pmadapter,
-				      IN pmlan_buffer pmbuf,
-				      IN mlan_status status)
+mlan_status wlan_recv_packet_complete(pmlan_adapter pmadapter,
+				      pmlan_buffer pmbuf, mlan_status status)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb;

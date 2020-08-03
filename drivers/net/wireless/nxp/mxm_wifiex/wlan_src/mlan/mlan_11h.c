@@ -1074,7 +1074,7 @@ static t_u32 wlan_11h_get_current_radar_detect_flags(mlan_adapter *pmadapter)
  *  @return             MTRUE (need update) or MFALSE (no change in flags)
  */
 static t_bool wlan_11h_check_radar_det_state(mlan_adapter *pmadapter,
-					     OUT t_u32 *pnew_state)
+					     t_u32 *pnew_state)
 {
 	t_u32 radar_det_state_new = 0;
 	t_bool ret;
@@ -1120,7 +1120,7 @@ static t_bool wlan_11h_check_radar_det_state(mlan_adapter *pmadapter,
  *
  *  @return                 frenquency index
  */
-static t_u8 wlan_11h_get_channel_freq_idx(IN t_u8 channel_num)
+static t_u8 wlan_11h_get_channel_freq_idx(t_u8 channel_num)
 {
 	t_u8 index;
 	t_u8 center_freq[] = {42, 58, 106, 122, 138, 155};
@@ -1153,9 +1153,9 @@ static t_u8 wlan_11h_get_channel_freq_idx(IN t_u8 channel_num)
  *  @return                 MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
 static mlan_status
-wlan_11h_prepare_custom_ie_chansw(IN mlan_adapter *pmadapter,
-				  OUT mlan_ioctl_req **ppioctl_req,
-				  IN t_bool is_adding_ie)
+wlan_11h_prepare_custom_ie_chansw(mlan_adapter *pmadapter,
+				  mlan_ioctl_req **ppioctl_req,
+				  t_bool is_adding_ie)
 {
 	mlan_ioctl_req *pioctl_req = MNULL;
 	mlan_ds_misc_cfg *pds_misc_cfg = MNULL;
@@ -3274,8 +3274,7 @@ void wlan_dfs_rep_bw_change(mlan_adapter *pmadapter)
  *
  *  @return MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE or MLAN_STATUS_PENDING
  */
-void wlan_11h_update_bandcfg(IN Band_Config_t *uap_band_cfg,
-			     IN t_u8 new_channel)
+void wlan_11h_update_bandcfg(Band_Config_t *uap_band_cfg, t_u8 new_channel)
 {
 	t_u8 chan_offset;
 	ENTER();

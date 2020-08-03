@@ -124,8 +124,8 @@ int woal_get_event_id(int event)
  *
  * @return      0: success  1: fail
  */
-int woal_cfg80211_vendor_event(IN moal_private *priv, IN int event,
-			       IN t_u8 *data, IN int len)
+int woal_cfg80211_vendor_event(moal_private *priv, int event, t_u8 *data,
+			       int len)
 {
 	struct wiphy *wiphy = NULL;
 	struct sk_buff *skb = NULL;
@@ -181,8 +181,8 @@ int woal_cfg80211_vendor_event(IN moal_private *priv, IN int event,
  *
  * @return      0: success  1: fail
  */
-struct sk_buff *woal_cfg80211_alloc_vendor_event(IN moal_private *priv,
-						 IN int event, IN int len)
+struct sk_buff *woal_cfg80211_alloc_vendor_event(moal_private *priv, int event,
+						 int len)
 {
 	struct wiphy *wiphy = NULL;
 	struct sk_buff *skb = NULL;
@@ -1323,8 +1323,8 @@ int woal_ring_pull_data(moal_private *priv, int ring_id, void *data,
  *
  * @return      0: success  1: fail
  */
-int woal_ring_buffer_data_vendor_event(IN moal_private *priv, IN int ring_id,
-				       IN t_u8 *data, IN int len,
+int woal_ring_buffer_data_vendor_event(moal_private *priv, int ring_id,
+				       t_u8 *data, int len,
 				       wifi_ring_buffer_status *ring_status)
 {
 	struct wiphy *wiphy = NULL;
@@ -1894,8 +1894,8 @@ done:
  *
  * @return      0: success  1: fail
  */
-int woal_wake_reason_vendor_event(IN moal_private *priv,
-				  IN mlan_ds_hs_wakeup_reason wake_reason)
+int woal_wake_reason_vendor_event(moal_private *priv,
+				  mlan_ds_hs_wakeup_reason wake_reason)
 {
 	struct wiphy *wiphy = NULL;
 	struct sk_buff *skb = NULL;
@@ -1983,11 +1983,13 @@ woal_cfg80211_subcmd_start_packet_fate_monitor(struct wiphy *wiphy,
 					       struct wireless_dev *wdev,
 					       const void *data, int data_len)
 {
-	struct net_device *dev = wdev->netdev;
-	moal_private *priv = (moal_private *)woal_get_netdev_priv(dev);
 	struct sk_buff *skb = NULL;
 	t_u32 reply_len = 0;
 	int ret = 0;
+
+	/* TODO: Tune pkt fate monitor for TP, Disabling it for now */
+	// struct net_device *dev = wdev->netdev;
+	// moal_private *priv = (moal_private *)woal_get_netdev_priv(dev);
 
 	ENTER();
 
@@ -1999,7 +2001,8 @@ woal_cfg80211_subcmd_start_packet_fate_monitor(struct wiphy *wiphy,
 		goto done;
 	}
 
-	priv->pkt_fate_monitor_enable = MTRUE;
+	/* TODO: Tune pkt fate monitor for TP, Disabling it for now */
+	// priv->pkt_fate_monitor_enable = MTRUE;
 
 	ret = cfg80211_vendor_cmd_reply(skb);
 
@@ -2024,11 +2027,10 @@ done:
  *
  * @return      0: success  1: fail
  */
-int woal_packet_fate_vendor_event(IN moal_private *priv,
-				  IN packet_fate_packet_type pkt_type,
-				  IN t_u8 fate, IN frame_type payload_type,
-				  IN t_u32 drv_ts_usec, IN t_u32 fw_ts_usec,
-				  IN t_u8 *data, IN t_u32 len)
+int woal_packet_fate_vendor_event(moal_private *priv,
+				  packet_fate_packet_type pkt_type, t_u8 fate,
+				  frame_type payload_type, t_u32 drv_ts_usec,
+				  t_u32 fw_ts_usec, t_u8 *data, t_u32 len)
 {
 	struct wiphy *wiphy = NULL;
 	struct sk_buff *skb = NULL;

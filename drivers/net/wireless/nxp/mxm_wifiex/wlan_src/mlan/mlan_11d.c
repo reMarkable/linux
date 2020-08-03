@@ -1439,8 +1439,8 @@ mlan_status wlan_11d_prepare_dnld_domain_info_cmd(mlan_private *pmpriv)
  *
  *  @return             Pointer to the mapped country code string
  */
-static t_u8 *wlan_11d_map_country_code(IN pmlan_adapter pmadapter,
-				       IN t_u8 *pcountry_code)
+static t_u8 *wlan_11d_map_country_code(pmlan_adapter pmadapter,
+				       t_u8 *pcountry_code)
 {
 	/* Since firmware can only recognize EU as ETSI domain and there is no
 	 * memory left for some devices to convert it in firmware, driver need
@@ -1461,8 +1461,8 @@ static t_u8 *wlan_11d_map_country_code(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_11d_cfg_domain_info(IN pmlan_adapter pmadapter,
-				     IN mlan_ioctl_req *pioctl_req)
+mlan_status wlan_11d_cfg_domain_info(pmlan_adapter pmadapter,
+				     mlan_ioctl_req *pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];

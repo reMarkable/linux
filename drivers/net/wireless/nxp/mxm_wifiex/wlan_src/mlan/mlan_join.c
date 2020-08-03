@@ -269,9 +269,9 @@ static int wlan_cmd_append_tsf_tlv(mlan_private *pmriv, t_u8 **ppbuffer,
  *
  *  @return            MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-static mlan_status wlan_get_common_rates(IN mlan_private *pmpriv,
-					 IN t_u8 *rate1, IN t_u32 rate1_size,
-					 IN t_u8 *rate2, IN t_u32 rate2_size)
+static mlan_status wlan_get_common_rates(mlan_private *pmpriv, t_u8 *rate1,
+					 t_u32 rate1_size, t_u8 *rate2,
+					 t_u32 rate2_size)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmpriv->adapter->callbacks;
@@ -346,10 +346,10 @@ done:
  *
  *  @return                 MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-static mlan_status wlan_setup_rates_from_bssdesc(IN mlan_private *pmpriv,
-						 IN BSSDescriptor_t *pbss_desc,
-						 OUT t_u8 *pout_rates,
-						 OUT t_u32 *pout_rates_size)
+static mlan_status wlan_setup_rates_from_bssdesc(mlan_private *pmpriv,
+						 BSSDescriptor_t *pbss_desc,
+						 t_u8 *pout_rates,
+						 t_u32 *pout_rates_size)
 {
 	t_u8 card_rates[WLAN_SUPPORTED_RATES];
 	t_u32 card_rates_size = 0;
@@ -395,8 +395,8 @@ static mlan_status wlan_setup_rates_from_bssdesc(IN mlan_private *pmpriv,
  *
  *  @return              N/A
  */
-static t_void wlan_update_tsf_timestamps(IN mlan_private *pmpriv,
-					 IN BSSDescriptor_t *pnew_bss_desc)
+static t_void wlan_update_tsf_timestamps(mlan_private *pmpriv,
+					 BSSDescriptor_t *pnew_bss_desc)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_u32 table_idx;
@@ -789,9 +789,9 @@ t_u8 wlan_find_ie(t_u8 *ie, t_u8 ie_len, t_u8 ie_type)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_802_11_associate(IN mlan_private *pmpriv,
-				      IN HostCmd_DS_COMMAND *cmd,
-				      IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_associate(mlan_private *pmpriv,
+				      HostCmd_DS_COMMAND *cmd,
+				      t_void *pdata_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -1242,9 +1242,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_802_11_associate(IN mlan_private *pmpriv,
-				      IN HostCmd_DS_COMMAND *resp,
-				      IN t_void *pioctl_buf)
+mlan_status wlan_ret_802_11_associate(mlan_private *pmpriv,
+				      HostCmd_DS_COMMAND *resp,
+				      t_void *pioctl_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_ioctl_req *pioctl_req = (mlan_ioctl_req *)pioctl_buf;
@@ -1552,9 +1552,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_802_11_ad_hoc_start(IN mlan_private *pmpriv,
-					 IN HostCmd_DS_COMMAND *cmd,
-					 IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_ad_hoc_start(mlan_private *pmpriv,
+					 HostCmd_DS_COMMAND *cmd,
+					 t_void *pdata_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -1853,9 +1853,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_802_11_ad_hoc_join(IN mlan_private *pmpriv,
-					IN HostCmd_DS_COMMAND *cmd,
-					IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_ad_hoc_join(mlan_private *pmpriv,
+					HostCmd_DS_COMMAND *cmd,
+					t_void *pdata_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -2135,9 +2135,8 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_802_11_ad_hoc(IN mlan_private *pmpriv,
-				   IN HostCmd_DS_COMMAND *resp,
-				   IN t_void *pioctl_buf)
+mlan_status wlan_ret_802_11_ad_hoc(mlan_private *pmpriv,
+				   HostCmd_DS_COMMAND *resp, t_void *pioctl_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_ioctl_req *pioctl_req = (mlan_ioctl_req *)pioctl_buf;
@@ -2291,8 +2290,8 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_associate(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
-			   IN BSSDescriptor_t *pbss_desc)
+mlan_status wlan_associate(mlan_private *pmpriv, t_void *pioctl_buf,
+			   BSSDescriptor_t *pbss_desc)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	t_u8 current_bssid[MLAN_MAC_ADDR_LENGTH];
@@ -2334,8 +2333,8 @@ mlan_status wlan_associate(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
  *
  *  @return             MLAN_STATUS_SUCCESS--success, MLAN_STATUS_FAILURE--fail
  */
-mlan_status wlan_adhoc_start(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
-			     IN mlan_802_11_ssid *padhoc_ssid)
+mlan_status wlan_adhoc_start(mlan_private *pmpriv, t_void *pioctl_buf,
+			     mlan_802_11_ssid *padhoc_ssid)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	wlan_meas_state_t *pmeas_state = &pmpriv->adapter->state_meas;
@@ -2391,8 +2390,8 @@ mlan_status wlan_adhoc_start(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
  *
  *  @return             MLAN_STATUS_SUCCESS--success, MLAN_STATUS_FAILURE--fail
  */
-mlan_status wlan_adhoc_join(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
-			    IN BSSDescriptor_t *pbss_desc)
+mlan_status wlan_adhoc_join(mlan_private *pmpriv, t_void *pioctl_buf,
+			    BSSDescriptor_t *pbss_desc)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -2447,9 +2446,8 @@ mlan_status wlan_adhoc_join(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
  *  @return          MLAN_STATUS_SUCCESS--success, MLAN_STATUS_FAILURE--fail,
  * MLAN_STATUS_PENDING--pending
  */
-mlan_status wlan_disconnect(IN mlan_private *pmpriv,
-			    IN mlan_ioctl_req *pioctl_req,
-			    IN mlan_deauth_param *deauth_param)
+mlan_status wlan_disconnect(mlan_private *pmpriv, mlan_ioctl_req *pioctl_req,
+			    mlan_deauth_param *deauth_param)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_deauth_param local_param = {.mac_addr = {0, 0, 0, 0, 0, 0},
@@ -2511,7 +2509,7 @@ mlan_status wlan_disconnect(IN mlan_private *pmpriv,
  *
  *  @return         Radio type designator for use in a channel TLV
  */
-t_u8 wlan_band_to_radio_type(IN t_u8 band)
+t_u8 wlan_band_to_radio_type(t_u8 band)
 {
 	t_u8 ret_radio_type;
 

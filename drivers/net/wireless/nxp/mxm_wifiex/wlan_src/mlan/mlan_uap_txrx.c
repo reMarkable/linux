@@ -60,7 +60,7 @@ static mlan_status wlan_upload_uap_rx_packet(pmlan_adapter pmadapter,
 #ifdef DEBUG_LEVEL1
 	pmlan_private priv = pmadapter->priv[pmbuf->bss_index];
 #endif
-	RxPD *prx_pd;
+	PRxPD prx_pd;
 	ENTER();
 	prx_pd = (RxPD *)(pmbuf->pbuf + pmbuf->data_offset);
 
@@ -160,7 +160,7 @@ static mlan_status wlan_check_unicast_packet(mlan_private *priv, t_u8 *mac)
  *
  *  @return        headptr or MNULL
  */
-t_void *wlan_ops_uap_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
+t_void *wlan_ops_uap_process_txpd(t_void *priv, pmlan_buffer pmbuf)
 {
 	pmlan_private pmpriv = (pmlan_private)priv;
 	TxPD *plocal_tx_pd;
@@ -292,8 +292,7 @@ done:
  *
  *  @return          MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ops_uap_process_rx_packet(IN t_void *adapter,
-					   IN pmlan_buffer pmbuf)
+mlan_status wlan_ops_uap_process_rx_packet(t_void *adapter, pmlan_buffer pmbuf)
 {
 	pmlan_adapter pmadapter = (pmlan_adapter)adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -457,7 +456,7 @@ done:
  *
  *  @return          MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_uap_recv_packet(IN mlan_private *priv, IN pmlan_buffer pmbuf)
+mlan_status wlan_uap_recv_packet(mlan_private *priv, pmlan_buffer pmbuf)
 {
 	pmlan_adapter pmadapter = priv->adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -599,8 +598,7 @@ done:
  *
  *  @return          MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_process_uap_rx_packet(IN mlan_private *priv,
-				       IN pmlan_buffer pmbuf)
+mlan_status wlan_process_uap_rx_packet(mlan_private *priv, pmlan_buffer pmbuf)
 {
 	pmlan_adapter pmadapter = priv->adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;

@@ -12959,8 +12959,8 @@ done:
  *  @return             channel center frequency center, if found; O, otherwise
  */
 
-t_u8 woal_get_center_freq_idx(IN moal_private *priv, IN t_u8 band,
-			      IN t_u32 pri_chan, IN t_u8 chan_bw)
+t_u8 woal_get_center_freq_idx(moal_private *priv, t_u8 band, t_u32 pri_chan,
+			      t_u8 chan_bw)
 {
 	t_u8 center_freq_idx = 0;
 

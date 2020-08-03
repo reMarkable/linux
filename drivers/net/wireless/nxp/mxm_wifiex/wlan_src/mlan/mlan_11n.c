@@ -56,8 +56,8 @@ Change log:
  *  @return				MLAN_STATUS_SUCCESS --success, otherwise
  * fail
  */
-static mlan_status wlan_11n_ioctl_max_tx_buf_size(IN pmlan_adapter pmadapter,
-						  IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_max_tx_buf_size(pmlan_adapter pmadapter,
+						  pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_ds_11n_cfg *cfg = MNULL;
@@ -80,8 +80,8 @@ static mlan_status wlan_11n_ioctl_max_tx_buf_size(IN pmlan_adapter pmadapter,
  *  @return				MLAN_STATUS_SUCCESS --success, otherwise
  * fail
  */
-static mlan_status wlan_11n_ioctl_htusrcfg(IN pmlan_adapter pmadapter,
-					   IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_htusrcfg(pmlan_adapter pmadapter,
+					   pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -157,8 +157,8 @@ static mlan_status wlan_11n_ioctl_htusrcfg(IN pmlan_adapter pmadapter,
  *
  *  @return		MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_amsdu_aggr_ctrl(IN pmlan_adapter pmadapter,
-						  IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_amsdu_aggr_ctrl(pmlan_adapter pmadapter,
+						  pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -192,8 +192,8 @@ static mlan_status wlan_11n_ioctl_amsdu_aggr_ctrl(IN pmlan_adapter pmadapter,
  *
  *  @return		MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_httxcfg(IN pmlan_adapter pmadapter,
-					  IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_httxcfg(pmlan_adapter pmadapter,
+					  pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -227,8 +227,8 @@ static mlan_status wlan_11n_ioctl_httxcfg(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_SUCCESS --success
  */
-static mlan_status wlan_11n_ioctl_tx_bf_cap(IN pmlan_adapter pmadapter,
-					    IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_tx_bf_cap(pmlan_adapter pmadapter,
+					    pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -254,8 +254,8 @@ static mlan_status wlan_11n_ioctl_tx_bf_cap(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_tx_bf_cfg(IN pmlan_adapter pmadapter,
-					    IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_tx_bf_cfg(pmlan_adapter pmadapter,
+					    pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -289,8 +289,8 @@ static mlan_status wlan_11n_ioctl_tx_bf_cfg(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_stream_cfg(IN pmlan_adapter pmadapter,
-					     IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_stream_cfg(pmlan_adapter pmadapter,
+					     pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_ds_11n_cfg *cfg = MNULL;
@@ -336,8 +336,8 @@ static mlan_status wlan_11n_ioctl_stream_cfg(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_coex_rx_winsize(IN pmlan_adapter pmadapter,
-						  IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_coex_rx_winsize(pmlan_adapter pmadapter,
+						  pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_ds_11n_cfg *cfg = MNULL;
@@ -397,8 +397,8 @@ static void wlan_11n_update_addba_request(mlan_private *priv)
  *
  *  @return				MLAN_STATUS_SUCCESS --success
  */
-static mlan_status wlan_11n_ioctl_addba_param(IN pmlan_adapter pmadapter,
-					      IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_addba_param(pmlan_adapter pmadapter,
+					      pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -481,8 +481,8 @@ void wlan_11n_delba(mlan_private *priv, int tid)
  *
  *  @return		MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_addba_reject(IN pmlan_adapter pmadapter,
-					       IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_addba_reject(pmlan_adapter pmadapter,
+					       pmlan_ioctl_req pioctl_req)
 {
 	int i = 0;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -538,9 +538,8 @@ static mlan_status wlan_11n_ioctl_addba_reject(IN pmlan_adapter pmadapter,
  *
  *  @return		MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status
-wlan_11n_ioctl_ibss_ampdu_param(IN pmlan_adapter pmadapter,
-				IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_ibss_ampdu_param(pmlan_adapter pmadapter,
+						   pmlan_ioctl_req pioctl_req)
 {
 	int i = 0;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -609,8 +608,8 @@ wlan_11n_ioctl_ibss_ampdu_param(IN pmlan_adapter pmadapter,
  *  @return     MLAN_STATUS_SUCCESS --success
  */
 static mlan_status
-wlan_11n_ioctl_min_ba_threshold_cfg(IN pmlan_adapter pmadapter,
-				    IN pmlan_ioctl_req pioctl_req)
+wlan_11n_ioctl_min_ba_threshold_cfg(pmlan_adapter pmadapter,
+				    pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_ds_11n_cfg *cfg = MNULL;
@@ -761,8 +760,8 @@ static mlan_status wlan_send_delba_to_entry_in_reorder_tbl(
  *
  *  @return		MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_delba(IN pmlan_adapter pmadapter,
-					IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_delba(pmlan_adapter pmadapter,
+					pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -870,8 +869,8 @@ static mlan_status wlan_11n_ioctl_delba(IN pmlan_adapter pmadapter,
  *
  *  @return		MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_rejectaddbareq(IN pmlan_adapter pmadapter,
-						 IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_rejectaddbareq(pmlan_adapter pmadapter,
+						 pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -996,8 +995,8 @@ void wlan_update_all_stations_ampdu(mlan_private *priv)
  *
  *  @return		MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status wlan_11n_ioctl_aggr_prio_tbl(IN pmlan_adapter pmadapter,
-						IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_aggr_prio_tbl(pmlan_adapter pmadapter,
+						pmlan_ioctl_req pioctl_req)
 {
 	int i = 0;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -1133,9 +1132,8 @@ void wlan_update_ampdu_txwinsize(pmlan_adapter pmadapter)
  *
  *  @return		MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-static mlan_status
-wlan_11n_ioctl_supported_mcs_set(IN pmlan_adapter pmadapter,
-				 IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11n_ioctl_supported_mcs_set(pmlan_adapter pmadapter,
+						    pmlan_ioctl_req pioctl_req)
 {
 	mlan_ds_11n_cfg *cfg = MNULL;
 	int rx_mcs_supp;
@@ -1884,9 +1882,9 @@ mlan_status wlan_cmd_amsdu_aggr_ctrl(mlan_private *priv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_amsdu_aggr_ctrl(IN pmlan_private pmpriv,
-				     IN HostCmd_DS_COMMAND *resp,
-				     IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_amsdu_aggr_ctrl(pmlan_private pmpriv,
+				     HostCmd_DS_COMMAND *resp,
+				     mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_11n_cfg *cfg = MNULL;
 	HostCmd_DS_AMSDU_AGGR_CTRL *amsdu_ctrl = &resp->params.amsdu_aggr_ctrl;
@@ -1913,9 +1911,8 @@ mlan_status wlan_ret_amsdu_aggr_ctrl(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_11n_cfg(IN pmlan_private pmpriv,
-			     IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			     IN t_void *pdata_buf)
+mlan_status wlan_cmd_11n_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			     t_u16 cmd_action, t_void *pdata_buf)
 {
 	HostCmd_DS_11N_CFG *htcfg = &cmd->params.htcfg;
 	mlan_ds_11n_tx_cfg *txcfg = (mlan_ds_11n_tx_cfg *)pdata_buf;
@@ -1940,9 +1937,8 @@ mlan_status wlan_cmd_11n_cfg(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_11n_cfg(IN pmlan_private pmpriv,
-			     IN HostCmd_DS_COMMAND *resp,
-			     IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_11n_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			     mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_11n_cfg *cfg = MNULL;
 	HostCmd_DS_11N_CFG *htcfg = &resp->params.htcfg;
@@ -1970,9 +1966,9 @@ mlan_status wlan_ret_11n_cfg(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_reject_addba_req(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *cmd,
-				      IN t_u16 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_reject_addba_req(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				      t_void *pdata_buf)
 {
 	HostCmd_DS_REJECT_ADDBA_REQ *preject_addba_req =
 		&cmd->params.rejectaddbareq;
@@ -1999,9 +1995,9 @@ mlan_status wlan_cmd_reject_addba_req(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_reject_addba_req(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *resp,
-				      IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_reject_addba_req(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_11n_cfg *cfg = MNULL;
 	HostCmd_DS_REJECT_ADDBA_REQ *preject_addba_req =
@@ -2027,9 +2023,8 @@ mlan_status wlan_ret_reject_addba_req(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_cmd_tx_bf_cfg(IN pmlan_private pmpriv,
-			       IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			       IN t_void *pdata_buf)
+mlan_status wlan_cmd_tx_bf_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			       t_u16 cmd_action, t_void *pdata_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	HostCmd_DS_TX_BF_CFG *txbfcfg = &cmd->params.tx_bf_cfg;
@@ -2112,9 +2107,8 @@ mlan_status wlan_cmd_tx_bf_cfg(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_tx_bf_cfg(IN pmlan_private pmpriv,
-			       IN HostCmd_DS_COMMAND *resp,
-			       IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_tx_bf_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			       mlan_ioctl_req *pioctl_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	HostCmd_DS_TX_BF_CFG *txbfcfg = &resp->params.tx_bf_cfg;
@@ -2263,8 +2257,8 @@ t_u8 wlan_get_second_channel_offset(int chan)
  *  @return             channel offset (NO_SEC_CHANNEL, SEC_CHANNEL_ABOVE,
  *                                      SEC_CHANNEL_BELOW)
  */
-t_u8 wlan_validate_chan_offset(IN mlan_private *pmpriv, IN t_u16 band,
-			       IN t_u32 chan, IN t_u8 chan_bw)
+t_u8 wlan_validate_chan_offset(mlan_private *pmpriv, t_u16 band, t_u32 chan,
+			       t_u8 chan_bw)
 {
 	t_u8 chan_offset;
 	pmlan_adapter pmadapter = pmpriv->adapter;
@@ -2305,8 +2299,8 @@ t_u8 wlan_validate_chan_offset(IN mlan_private *pmpriv, IN t_u16 band,
  *
  *  @return MTRUE/MFALSE
  */
-static int wlan_check_chan_width_ht40_by_region(IN mlan_private *pmpriv,
-						IN BSSDescriptor_t *pbss_desc)
+static int wlan_check_chan_width_ht40_by_region(mlan_private *pmpriv,
+						BSSDescriptor_t *pbss_desc)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	int i = 0;
@@ -2384,8 +2378,8 @@ static int wlan_check_chan_width_ht40_by_region(IN mlan_private *pmpriv,
  *
  *  @return bytes added to the buffer
  */
-int wlan_cmd_append_11n_tlv(IN mlan_private *pmpriv,
-			    IN BSSDescriptor_t *pbss_desc, OUT t_u8 **ppbuffer)
+int wlan_cmd_append_11n_tlv(mlan_private *pmpriv, BSSDescriptor_t *pbss_desc,
+			    t_u8 **ppbuffer)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	MrvlIETypes_HTCap_t *pht_cap;
@@ -2583,8 +2577,8 @@ int wlan_cmd_append_11n_tlv(IN mlan_private *pmpriv,
  *
  *  @return		MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-mlan_status wlan_11n_cfg_ioctl(IN pmlan_adapter pmadapter,
-			       IN pmlan_ioctl_req pioctl_req)
+mlan_status wlan_11n_cfg_ioctl(pmlan_adapter pmadapter,
+			       pmlan_ioctl_req pioctl_req)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	mlan_ds_11n_cfg *cfg = MNULL;

@@ -358,7 +358,7 @@ static void wlan_print_disconnect_reason(t_u16 reason_code)
  *
  *  @return     MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ops_sta_process_event(IN t_void *priv)
+mlan_status wlan_ops_sta_process_event(t_void *priv)
 {
 	pmlan_private pmpriv = (pmlan_private)priv;
 	pmlan_adapter pmadapter = pmpriv->adapter;

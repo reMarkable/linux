@@ -45,35 +45,30 @@ mlan_status wlan_ret_11n_delba(mlan_private *priv, HostCmd_DS_COMMAND *resp);
 mlan_status wlan_ret_11n_addba_req(mlan_private *priv,
 				   HostCmd_DS_COMMAND *resp);
 /** Handle the command response of 11ncfg command */
-mlan_status wlan_ret_11n_cfg(IN pmlan_private pmpriv,
-			     IN HostCmd_DS_COMMAND *resp,
-			     IN mlan_ioctl_req *pioctl_buf);
+mlan_status wlan_ret_11n_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			     mlan_ioctl_req *pioctl_buf);
 /** Prepare 11ncfg command */
-mlan_status wlan_cmd_11n_cfg(IN pmlan_private pmpriv,
-			     IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			     IN t_void *pdata_buf);
+mlan_status wlan_cmd_11n_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			     t_u16 cmd_action, t_void *pdata_buf);
 /** Prepare reject addba requst command */
-mlan_status wlan_cmd_reject_addba_req(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *cmd,
-				      IN t_u16 cmd_action,
-				      IN t_void *pdata_buf);
+mlan_status wlan_cmd_reject_addba_req(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				      t_void *pdata_buf);
 /** Handle the command response of rejecting addba request */
-mlan_status wlan_ret_reject_addba_req(IN pmlan_private pmpriv,
-				      IN HostCmd_DS_COMMAND *resp,
-				      IN mlan_ioctl_req *pioctl_buf);
+mlan_status wlan_ret_reject_addba_req(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf);
 /** Prepare TX BF configuration command */
-mlan_status wlan_cmd_tx_bf_cfg(IN pmlan_private pmpriv,
-			       IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			       IN t_void *pdata_buf);
+mlan_status wlan_cmd_tx_bf_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			       t_u16 cmd_action, t_void *pdata_buf);
 /** Handle the command response TX BF configuration */
-mlan_status wlan_ret_tx_bf_cfg(IN pmlan_private pmpriv,
-			       IN HostCmd_DS_COMMAND *resp,
-			       IN mlan_ioctl_req *pioctl_buf);
+mlan_status wlan_ret_tx_bf_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			       mlan_ioctl_req *pioctl_buf);
 #ifdef STA_SUPPORT
 t_u8 wlan_11n_bandconfig_allowed(mlan_private *pmpriv, t_u8 bss_band);
 /** Append the 802_11N tlv */
-int wlan_cmd_append_11n_tlv(IN mlan_private *pmpriv,
-			    IN BSSDescriptor_t *pbss_desc, OUT t_u8 **ppbuffer);
+int wlan_cmd_append_11n_tlv(mlan_private *pmpriv, BSSDescriptor_t *pbss_desc,
+			    t_u8 **ppbuffer);
 /** wlan fill HT cap tlv */
 void wlan_fill_ht_cap_tlv(mlan_private *priv, MrvlIETypes_HTCap_t *pht_cap,
 			  t_u16 band, t_u8 fill);
@@ -82,8 +77,8 @@ void wlan_fill_ht_cap_ie(mlan_private *priv, IEEEtypes_HTCap_t *pht_cap,
 			 t_u16 bands);
 #endif /* STA_SUPPORT */
 /** Miscellaneous configuration handler */
-mlan_status wlan_11n_cfg_ioctl(IN pmlan_adapter pmadapter,
-			       IN pmlan_ioctl_req pioctl_req);
+mlan_status wlan_11n_cfg_ioctl(pmlan_adapter pmadapter,
+			       pmlan_ioctl_req pioctl_req);
 /** Delete Tx BA stream table entry */
 void wlan_11n_delete_txbastream_tbl_entry(mlan_private *priv,
 					  TxBAStreamTbl *ptx_tbl);
@@ -125,8 +120,8 @@ mlan_status wlan_cmd_amsdu_aggr_ctrl(mlan_private *priv,
 				     HostCmd_DS_COMMAND *cmd, int cmd_action,
 				     void *pdata_buf);
 
-t_u8 wlan_validate_chan_offset(IN mlan_private *pmpriv, IN t_u16 band,
-			       IN t_u32 chan, IN t_u8 chan_bw);
+t_u8 wlan_validate_chan_offset(mlan_private *pmpriv, t_u16 band, t_u32 chan,
+			       t_u8 chan_bw);
 /** get channel offset */
 t_u8 wlan_get_second_channel_offset(int chan);
 

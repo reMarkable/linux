@@ -534,17 +534,17 @@ mlan_status wlan_get_sdio_device(pmlan_adapter pmadapter);
 
 mlan_status wlan_send_mp_aggr_buf(mlan_adapter *pmadapter);
 
-mlan_status wlan_re_alloc_sdio_rx_mpa_buffer(IN mlan_adapter *pmadapter);
+mlan_status wlan_re_alloc_sdio_rx_mpa_buffer(mlan_adapter *pmadapter);
 
 void wlan_decode_spa_buffer(mlan_adapter *pmadapter, t_u8 *buf, t_u32 len);
-t_void wlan_sdio_deaggr_rx_pkt(IN pmlan_adapter pmadapter, mlan_buffer *pmbuf);
+t_void wlan_sdio_deaggr_rx_pkt(pmlan_adapter pmadapter, mlan_buffer *pmbuf);
 /** Transfer data to card */
 mlan_status wlan_sdio_host_to_card(mlan_adapter *pmadapter, t_u8 type,
 				   mlan_buffer *mbuf, mlan_tx_param *tx_param);
-mlan_status wlan_set_sdio_gpio_int(IN pmlan_private priv);
+mlan_status wlan_set_sdio_gpio_int(pmlan_private priv);
 mlan_status wlan_cmd_sdio_gpio_int(pmlan_private pmpriv,
-				   IN HostCmd_DS_COMMAND *cmd,
-				   IN t_u16 cmd_action, IN t_void *pdata_buf);
+				   HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				   t_void *pdata_buf);
 mlan_status wlan_reset_fw(pmlan_adapter pmadapter);
 
 #endif /* _MLAN_SDIO_H */

@@ -594,8 +594,8 @@ exit:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-static mlan_status wlan_sdio_prog_fw_w_helper(IN pmlan_adapter pmadapter,
-					      t_u8 *fw, t_u32 fw_len)
+static mlan_status wlan_sdio_prog_fw_w_helper(pmlan_adapter pmadapter, t_u8 *fw,
+					      t_u32 fw_len)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb = &pmadapter->callbacks;
@@ -1728,8 +1728,7 @@ mlan_status wlan_enable_sdio_host_int(pmlan_adapter pmadapter)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_sdio_dnld_fw(IN pmlan_adapter pmadapter,
-			      IN pmlan_fw_image pmfw)
+mlan_status wlan_sdio_dnld_fw(pmlan_adapter pmadapter, pmlan_fw_image pmfw)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	t_u32 poll_num = 1;
@@ -1769,6 +1768,9 @@ mlan_status wlan_sdio_dnld_fw(IN pmlan_adapter pmadapter,
 #endif
 			PRINTM(MMSG,
 			       "WLAN FW already running! Skip FW download\n");
+#if defined(SDIO)
+			pmadapter->ops.wakeup_card(pmadapter, MFALSE);
+#endif
 			goto done;
 #if defined(SDIO)
 		}
@@ -2529,7 +2531,7 @@ done:
  *  @param pmbuf     A pointer to the SDIO mpa data
  *  @return          N/A
  */
-t_void wlan_sdio_deaggr_rx_pkt(IN pmlan_adapter pmadapter, mlan_buffer *pmbuf)
+t_void wlan_sdio_deaggr_rx_pkt(pmlan_adapter pmadapter, mlan_buffer *pmbuf)
 {
 	if (pmbuf->buf_type == MLAN_BUF_TYPE_SPA_DATA) {
 		wlan_decode_spa_buffer(pmadapter,
@@ -2550,7 +2552,7 @@ t_void wlan_sdio_deaggr_rx_pkt(IN pmlan_adapter pmadapter, mlan_buffer *pmbuf)
  *
  *  @return        MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_alloc_sdio_mpa_buffers(IN mlan_adapter *pmadapter,
+mlan_status wlan_alloc_sdio_mpa_buffers(mlan_adapter *pmadapter,
 					t_u32 mpa_tx_buf_size,
 					t_u32 mpa_rx_buf_size)
 {
@@ -2622,7 +2624,7 @@ error:
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_free_sdio_mpa_buffers(IN mlan_adapter *pmadapter)
+mlan_status wlan_free_sdio_mpa_buffers(mlan_adapter *pmadapter)
 {
 	pmlan_callbacks pcb = &pmadapter->callbacks;
 
@@ -2655,7 +2657,7 @@ mlan_status wlan_free_sdio_mpa_buffers(IN mlan_adapter *pmadapter)
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_re_alloc_sdio_rx_mpa_buffer(IN mlan_adapter *pmadapter)
+mlan_status wlan_re_alloc_sdio_rx_mpa_buffer(mlan_adapter *pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb = &pmadapter->callbacks;
@@ -2730,8 +2732,7 @@ error:
  *
  *  @return			MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_pm_sdio_wakeup_card(IN pmlan_adapter pmadapter,
-				     IN t_u8 timeout)
+mlan_status wlan_pm_sdio_wakeup_card(pmlan_adapter pmadapter, t_u8 timeout)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	t_u32 age_ts_usec;
@@ -2764,7 +2765,7 @@ mlan_status wlan_pm_sdio_wakeup_card(IN pmlan_adapter pmadapter,
  *
  *  @return			MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_pm_sdio_reset_card(IN pmlan_adapter pmadapter)
+mlan_status wlan_pm_sdio_reset_card(pmlan_adapter pmadapter)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_callbacks pcb = &pmadapter->callbacks;
@@ -2785,7 +2786,7 @@ mlan_status wlan_pm_sdio_reset_card(IN pmlan_adapter pmadapter)
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_set_sdio_gpio_int(IN pmlan_private priv)
+mlan_status wlan_set_sdio_gpio_int(pmlan_private priv)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_adapter pmadapter = MNULL;
@@ -2836,8 +2837,8 @@ mlan_status wlan_set_sdio_gpio_int(IN pmlan_private priv)
  *  @return             MLAN_STATUS_SUCCESS
  */
 mlan_status wlan_cmd_sdio_gpio_int(pmlan_private pmpriv,
-				   IN HostCmd_DS_COMMAND *cmd,
-				   IN t_u16 cmd_action, IN t_void *pdata_buf)
+				   HostCmd_DS_COMMAND *cmd, t_u16 cmd_action,
+				   t_void *pdata_buf)
 {
 	HostCmd_DS_SDIO_GPIO_INT_CONFIG *psdio_gpio_int =
 		&cmd->params.sdio_gpio_int;
@@ -2959,7 +2960,7 @@ done:
  *  @param pmbuf     A pointer to the mlan_buffer
  *  @return          N/A
  */
-mlan_status wlan_sdio_data_evt_complete(IN pmlan_adapter pmadapter,
+mlan_status wlan_sdio_data_evt_complete(pmlan_adapter pmadapter,
 					mlan_buffer *pmbuf, mlan_status status)
 {
 	ENTER();

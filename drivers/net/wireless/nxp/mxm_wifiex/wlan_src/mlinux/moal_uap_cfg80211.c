@@ -480,7 +480,13 @@ t_u8 woal_check_11ax_capability(moal_private *priv, t_u8 band,
 #endif
 	ENTER();
 	woal_request_get_fw_info(priv, MOAL_IOCTL_WAIT, &fw_info);
-	if (!(fw_info.fw_bands & BAND_AAX)) {
+	if ((band == BAND_5GHZ) && !(fw_info.fw_bands & BAND_AAX)) {
+		PRINTM(MCMND, "FW don't support 5G AX\n");
+		LEAVE();
+		return enable_11ax;
+	}
+	if ((band == BAND_2GHZ) && !(fw_info.fw_bands & BAND_GAX)) {
+		PRINTM(MCMND, "FW don't support 2G AX");
 		LEAVE();
 		return enable_11ax;
 	}
@@ -1248,18 +1254,17 @@ static int woal_cfg80211_beacon_config(moal_private *priv,
 			woal_uap_set_11ac_status(priv, MLAN_ACT_DISABLE,
 						 vht20_40, NULL);
 	}
-	if (sys_config->bandcfg.chanBand == BAND_5GHZ) {
-		if (enable_11ax && enable_11ac && enable_11n) {
+	if (enable_11ax && enable_11n) {
 #if CFG80211_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
-			hecap_ie = (IEEEtypes_HECap_t *)woal_parse_ext_ie_tlv(
-				ie, ie_len, HE_CAPABILITY);
+		hecap_ie = (IEEEtypes_HECap_t *)woal_parse_ext_ie_tlv(
+			ie, ie_len, HE_CAPABILITY);
 #endif
-			woal_uap_set_11ax_status(priv, MLAN_ACT_ENABLE,
-						 BAND_5GHZ, hecap_ie);
-		} else
-			woal_uap_set_11ax_status(priv, MLAN_ACT_DISABLE,
-						 BAND_5GHZ, NULL);
-	}
+		woal_uap_set_11ax_status(priv, MLAN_ACT_ENABLE,
+					 sys_config->bandcfg.chanBand,
+					 hecap_ie);
+	} else
+		woal_uap_set_11ax_status(priv, MLAN_ACT_DISABLE,
+					 sys_config->bandcfg.chanBand, NULL);
 
 #if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 	if (params->inactivity_timeout) {

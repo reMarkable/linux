@@ -697,8 +697,8 @@ enum vendor_sub_command {
 };
 
 void woal_register_cfg80211_vendor_command(struct wiphy *wiphy);
-int woal_cfg80211_vendor_event(IN moal_private *priv, IN int event,
-			       IN t_u8 *data, IN int len);
+int woal_cfg80211_vendor_event(moal_private *priv, int event, t_u8 *data,
+			       int len);
 
 enum mrvl_wlan_vendor_attr {
 	MRVL_WLAN_VENDOR_ATTR_INVALID = 0,

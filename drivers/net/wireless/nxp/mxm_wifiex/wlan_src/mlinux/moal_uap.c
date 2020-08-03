@@ -3395,6 +3395,7 @@ done:
  *  @param priv     A pointer to moal_private structure
  *  @param action   MLAN_ACT_DISABLE or MLAN_ACT_ENABLE
  *  @param band     band config
+ *  @param hecap_ie
  *
  *  @return         0--success, otherwise failure
  */

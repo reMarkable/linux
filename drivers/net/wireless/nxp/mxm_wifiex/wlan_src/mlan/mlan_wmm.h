@@ -37,7 +37,7 @@ Change log:
  *
  *  @return             TID
  */
-static INLINE t_u32 wlan_get_tid(pmlan_adapter pmadapter, raListTbl *ptr)
+static INLINE t_u32 wlan_get_tid(pmlan_adapter pmadapter, praListTbl ptr)
 {
 	pmlan_buffer mbuf;
 
@@ -84,7 +84,7 @@ static INLINE t_u32 wlan_wmm_list_len(pmlan_list_head head)
  *
  *  @return             N/A
  */
-static INLINE t_void wlan_request_ralist_lock(IN mlan_private *priv)
+static INLINE t_void wlan_request_ralist_lock(pmlan_private priv)
 {
 	mlan_adapter *pmadapter = priv->adapter;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
@@ -106,7 +106,7 @@ static INLINE t_void wlan_request_ralist_lock(IN mlan_private *priv)
  *
  *  @return             N/A
  */
-static INLINE t_void wlan_release_ralist_lock(IN mlan_private *priv)
+static INLINE t_void wlan_release_ralist_lock(pmlan_private priv)
 {
 	mlan_adapter *pmadapter = priv->adapter;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmadapter->callbacks;
@@ -153,14 +153,14 @@ extern void wlan_wmm_setup_queues(pmlan_private priv);
 /* Setup default queues */
 void wlan_wmm_default_queue_priorities(pmlan_private priv);
 /* process wmm_param_config command */
-mlan_status wlan_cmd_wmm_param_config(IN pmlan_private pmpriv,
-				      OUT HostCmd_DS_COMMAND *cmd,
-				      IN t_u8 cmd_action, IN t_void *pdata_buf);
+mlan_status wlan_cmd_wmm_param_config(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd, t_u8 cmd_action,
+				      t_void *pdata_buf);
 
 /* process wmm_param_config command response */
-mlan_status wlan_ret_wmm_param_config(IN pmlan_private pmpriv,
-				      const IN HostCmd_DS_COMMAND *resp,
-				      OUT mlan_ioctl_req *pioctl_buf);
+mlan_status wlan_ret_wmm_param_config(pmlan_private pmpriv,
+				      const HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf);
 
 #ifdef STA_SUPPORT
 /** Process WMM association request */
@@ -187,56 +187,56 @@ t_void wlan_wmm_delete_peer_ralist(pmlan_private priv, t_u8 *mac);
  *  Functions used in the cmd handling routine
  */
 /** WMM ADDTS request command handler */
-extern mlan_status wlan_cmd_wmm_addts_req(IN pmlan_private pmpriv,
-					  OUT HostCmd_DS_COMMAND *cmd,
-					  IN t_void *pdata_buf);
+extern mlan_status wlan_cmd_wmm_addts_req(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *cmd,
+					  t_void *pdata_buf);
 /** WMM DELTS request command handler */
-extern mlan_status wlan_cmd_wmm_delts_req(IN pmlan_private pmpriv,
-					  OUT HostCmd_DS_COMMAND *cmd,
-					  IN t_void *pdata_buf);
+extern mlan_status wlan_cmd_wmm_delts_req(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *cmd,
+					  t_void *pdata_buf);
 /** WMM QUEUE_STATS command handler */
-extern mlan_status wlan_cmd_wmm_queue_stats(IN pmlan_private pmpriv,
-					    OUT HostCmd_DS_COMMAND *cmd,
-					    IN t_void *pdata_buf);
+extern mlan_status wlan_cmd_wmm_queue_stats(pmlan_private pmpriv,
+					    HostCmd_DS_COMMAND *cmd,
+					    t_void *pdata_buf);
 /** WMM TS_STATUS command handler */
-extern mlan_status wlan_cmd_wmm_ts_status(IN pmlan_private pmpriv,
-					  OUT HostCmd_DS_COMMAND *cmd,
-					  IN t_void *pdata_buf);
+extern mlan_status wlan_cmd_wmm_ts_status(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *cmd,
+					  t_void *pdata_buf);
 
 /*
  *  Functions used in the cmdresp handling routine
  */
 /** WMM get status command response handler */
-extern mlan_status wlan_ret_wmm_get_status(IN pmlan_private priv, IN t_u8 *ptlv,
-					   IN int resp_len);
+extern mlan_status wlan_ret_wmm_get_status(pmlan_private priv, t_u8 *ptlv,
+					   int resp_len);
 /** WMM ADDTS request command response handler */
-extern mlan_status wlan_ret_wmm_addts_req(IN pmlan_private pmpriv,
-					  const IN HostCmd_DS_COMMAND *resp,
-					  OUT mlan_ioctl_req *pioctl_buf);
+extern mlan_status wlan_ret_wmm_addts_req(pmlan_private pmpriv,
+					  const HostCmd_DS_COMMAND *resp,
+					  mlan_ioctl_req *pioctl_buf);
 /** WMM DELTS request command response handler */
-extern mlan_status wlan_ret_wmm_delts_req(IN pmlan_private pmpriv,
-					  const IN HostCmd_DS_COMMAND *resp,
-					  OUT mlan_ioctl_req *pioctl_buf);
+extern mlan_status wlan_ret_wmm_delts_req(pmlan_private pmpriv,
+					  const HostCmd_DS_COMMAND *resp,
+					  mlan_ioctl_req *pioctl_buf);
 /** WMM QUEUE_STATS command response handler */
-extern mlan_status wlan_ret_wmm_queue_stats(IN pmlan_private pmpriv,
-					    const IN HostCmd_DS_COMMAND *resp,
-					    OUT mlan_ioctl_req *pioctl_buf);
+extern mlan_status wlan_ret_wmm_queue_stats(pmlan_private pmpriv,
+					    const HostCmd_DS_COMMAND *resp,
+					    mlan_ioctl_req *pioctl_buf);
 /** WMM TS_STATUS command response handler */
-extern mlan_status wlan_ret_wmm_ts_status(IN pmlan_private pmpriv,
-					  IN HostCmd_DS_COMMAND *resp,
-					  OUT mlan_ioctl_req *pioctl_buf);
+extern mlan_status wlan_ret_wmm_ts_status(pmlan_private pmpriv,
+					  HostCmd_DS_COMMAND *resp,
+					  mlan_ioctl_req *pioctl_buf);
 #endif /* STA_SUPPORT */
 
 /** WMM QUEUE_CONFIG command handler */
-extern mlan_status wlan_cmd_wmm_queue_config(IN pmlan_private pmpriv,
-					     OUT HostCmd_DS_COMMAND *cmd,
-					     IN t_void *pdata_buf);
+extern mlan_status wlan_cmd_wmm_queue_config(pmlan_private pmpriv,
+					     HostCmd_DS_COMMAND *cmd,
+					     t_void *pdata_buf);
 
 /** WMM QUEUE_CONFIG command response handler */
-extern mlan_status wlan_ret_wmm_queue_config(IN pmlan_private pmpriv,
-					     const IN HostCmd_DS_COMMAND *resp,
-					     OUT mlan_ioctl_req *pioctl_buf);
+extern mlan_status wlan_ret_wmm_queue_config(pmlan_private pmpriv,
+					     const HostCmd_DS_COMMAND *resp,
+					     mlan_ioctl_req *pioctl_buf);
 
-mlan_status wlan_wmm_cfg_ioctl(IN pmlan_adapter pmadapter,
-			       IN pmlan_ioctl_req pioctl_req);
+mlan_status wlan_wmm_cfg_ioctl(pmlan_adapter pmadapter,
+			       pmlan_ioctl_req pioctl_req);
 #endif /* !_MLAN_WMM_H_ */

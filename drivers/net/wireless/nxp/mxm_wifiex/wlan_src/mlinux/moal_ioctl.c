@@ -2903,7 +2903,7 @@ int woal_enable_hs(moal_private *priv)
 #ifdef SDIO_SUSPEND_RESUME
 	mlan_ds_ps_info pm_info;
 #endif
-	mlan_ds_misc_keep_alive *keep_alive = NULL;
+	pmlan_ds_misc_keep_alive keep_alive = NULL;
 
 	ENTER();
 
@@ -6476,3 +6476,488 @@ void woal_ioctl_get_misc_conf(moal_private *priv, mlan_ds_misc_cfg *info)
 		break;
 	}
 }
+
+#ifdef CONFIG_PROC_FS
+#define TX_PWR_STR_LEN 20
+#define TX_CONT_STR_LEN 50
+#define TX_FRAME_STR_LEN 80
+/*
+ *  @brief Parse mfg cmd tx pwr string
+ *
+ *  @param s        A pointer to user buffer
+ *  @param len      Length of user buffer
+ *  @param d        A pointer to mfg_cmd_generic_cfg struct
+ *  @return         0 on success, -EINVAL otherwise
+ */
+static int parse_tx_pwr_string(const char *s, size_t len,
+			       struct mfg_cmd_generic_cfg *d)
+{
+	int ret = MLAN_STATUS_SUCCESS;
+	char *string = NULL;
+	char *tmp = NULL;
+	char *pos = NULL;
+	gfp_t flag;
+
+	ENTER();
+	if (!s || !d) {
+		LEAVE();
+		return -EINVAL;
+	}
+	flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
+	string = kzalloc(TX_PWR_STR_LEN, flag);
+	if (string == NULL) {
+		LEAVE();
+		return -ENOMEM;
+	}
+
+	moal_memcpy_ext(NULL, string, s + strlen("tx_power="),
+			len - strlen("tx_power="), TX_PWR_STR_LEN - 1);
+
+	tmp = string;
+	string = strstrip(string);
+
+	/* tx power value */
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->data1 = (t_u32)woal_string_to_number(pos);
+
+	/* modulation */
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->data2 = (t_u32)woal_string_to_number(pos);
+
+	/* path id */
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->data3 = (t_u32)woal_string_to_number(pos);
+
+	if ((d->data1 > 24) || (d->data2 > 2))
+		ret = -EINVAL;
+
+	kfree(tmp);
+	LEAVE();
+	return ret;
+}
+/*
+ *  @brief Parse mfg cmd tx cont string
+ *
+ *  @param s        A pointer to user buffer
+ *  @param len      Length of user buffer
+ *  @param d        A pointer to mfg_cmd_tx_cont struct
+ *  @return         0 on success, -EINVAL otherwise
+ */
+static int parse_tx_cont_string(const char *s, size_t len,
+				struct mfg_cmd_tx_cont *d)
+{
+	int ret = MLAN_STATUS_SUCCESS;
+	char *string = NULL;
+	char *tmp = NULL;
+	char *pos = NULL;
+	gfp_t flag;
+
+	ENTER();
+	if (!s || !d) {
+		LEAVE();
+		return -EINVAL;
+	}
+	flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
+	string = kzalloc(TX_CONT_STR_LEN, flag);
+	if (string == NULL) {
+		LEAVE();
+		return -ENOMEM;
+	}
+
+	moal_memcpy_ext(NULL, string, s + strlen("tx_continuous="),
+			len - strlen("tx_continuous="), TX_CONT_STR_LEN - 1);
+
+	tmp = string;
+	string = strstrip(string);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->enable_tx = (t_u32)woal_string_to_number(pos);
+
+	if (d->enable_tx == MFALSE)
+		goto done;
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->cw_mode = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->payload_pattern = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->cs_mode = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->act_sub_ch = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->tx_rate = (t_u32)woal_string_to_number(pos);
+
+	if ((d->enable_tx > 1) || (d->cw_mode > 1) || (d->cs_mode > 1) ||
+	    (d->act_sub_ch == 2 || d->act_sub_ch > 3))
+		ret = -EINVAL;
+done:
+	kfree(tmp);
+	LEAVE();
+	return ret;
+}
+
+/*
+ *  @brief Parse mfg cmd tx frame string
+ *
+ *  @param s        A pointer to user buffer
+ *  @param len      Length of user buffer
+ *  @param d        A pointer to mfg_cmd_tx_frame2 struct
+ *  @return         0 on success, -EINVAL otherwise
+ */
+static int parse_tx_frame_string(const char *s, size_t len,
+				 struct mfg_cmd_tx_frame2 *d)
+{
+	int ret = MLAN_STATUS_SUCCESS;
+	char *string = NULL;
+	char *tmp = NULL;
+	char *pos = NULL;
+	int i;
+	gfp_t flag;
+
+	ENTER();
+	if (!s || !d) {
+		LEAVE();
+		return -EINVAL;
+	}
+	flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
+	string = kzalloc(TX_FRAME_STR_LEN, flag);
+	if (string == NULL)
+		return -ENOMEM;
+
+	moal_memcpy_ext(NULL, string, s + strlen("tx_frame="),
+			len - strlen("tx_frame="), TX_FRAME_STR_LEN - 1);
+
+	tmp = string;
+	string = strstrip(string);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->enable = (t_u32)woal_string_to_number(pos);
+
+	if (d->enable == MFALSE)
+		goto done;
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->data_rate = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->frame_pattern = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->frame_length = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->adjust_burst_sifs = (t_u16)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->burst_sifs_in_us = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->short_preamble = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->act_sub_ch = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->short_gi = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->adv_coding = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->tx_bf = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->gf_mode = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos)
+		d->stbc = (t_u32)woal_string_to_number(pos);
+
+	pos = strsep(&string, " \t");
+	if (pos) {
+		for (i = 0; i < ETH_ALEN; i++) {
+			pos = strsep(&string, ":");
+			if (pos)
+				d->bssid[i] = woal_atox(pos);
+		}
+	}
+
+	if ((d->enable > 1) || (d->frame_length == 0) ||
+	    (d->adjust_burst_sifs > 1) || (d->burst_sifs_in_us > 255) ||
+	    (d->short_preamble > 1) ||
+	    (d->act_sub_ch == 2 || d->act_sub_ch > 3) || (d->short_gi > 1) ||
+	    (d->adv_coding > 1) || (d->tx_bf > 1) || (d->gf_mode > 1) ||
+	    (d->stbc > 1))
+		ret = -EINVAL;
+done:
+	kfree(tmp);
+	LEAVE();
+	return ret;
+}
+/**
+ *  @brief This function enables/disables RF test mode in firmware
+ *
+ *  @param handle   A pointer to moal_handle structure
+ *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING on success,
+ *                  otherwise failure code
+ */
+mlan_status woal_process_rf_test_mode(moal_handle *handle, t_u32 mode)
+{
+	mlan_status ret = MLAN_STATUS_FAILURE;
+	mlan_ioctl_req *req = NULL;
+	mlan_ds_misc_cfg *misc = NULL;
+	t_u32 flag = 0;
+
+	ENTER();
+#ifdef MFG_CMD_SUPPORT
+	if (mfg_mode) {
+		LEAVE();
+		return ret;
+	}
+#endif
+	if (mode != MFG_CMD_SET_TEST_MODE && mode != MFG_CMD_UNSET_TEST_MODE) {
+		LEAVE();
+		return ret;
+	}
+
+	req = woal_alloc_mlan_ioctl_req(sizeof(mlan_ds_misc_cfg));
+	if (req) {
+		misc = (mlan_ds_misc_cfg *)req->pbuf;
+		misc->sub_command = MLAN_OID_MISC_RF_TEST_GENERIC;
+		req->req_id = MLAN_IOCTL_MISC_CFG;
+		req->action = MLAN_ACT_SET;
+		if (mode == MFG_CMD_SET_TEST_MODE)
+			misc->param.mfg_generic_cfg.mfg_cmd =
+				MFG_CMD_SET_TEST_MODE;
+		ret = woal_request_ioctl(woal_get_priv(handle,
+						       MLAN_BSS_ROLE_ANY),
+					 req, MOAL_IOCTL_WAIT);
+	}
+
+	if (ret == MLAN_STATUS_SUCCESS && mode == MFG_CMD_SET_TEST_MODE &&
+	    handle->rf_data == NULL) {
+		flag = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC :
+							  GFP_KERNEL;
+		/* Allocate memory to hold RF test mode data */
+		handle->rf_data =
+			kzalloc(sizeof(struct rf_test_mode_data), flag);
+		if (!handle->rf_data)
+			PRINTM(MERROR,
+			       "Couldn't allocate memory for RF test mode\n");
+		handle->rf_test_mode = MTRUE;
+		if (handle->rf_data) {
+			/* antenna is set to 1 by default */
+			handle->rf_data->tx_antenna = 1;
+			handle->rf_data->rx_antenna = 1;
+		}
+	} else if (mode == MFG_CMD_UNSET_TEST_MODE) {
+		if (handle->rf_data) {
+			/* Free RF test mode data memory */
+			kfree(handle->rf_data);
+			handle->rf_data = NULL;
+		}
+		handle->rf_test_mode = MFALSE;
+	}
+	if (ret != MLAN_STATUS_PENDING)
+		kfree(req);
+	LEAVE();
+	return ret;
+}
+
+/**
+ *  @brief This function sends RF test mode command in firmware
+ *
+ *  @param handle   A pointer to moal_handle structure
+ *  @return         MLAN_STATUS_SUCCESS/MLAN_STATUS_PENDING on success,
+ *                      otherwise failure code
+ */
+mlan_status woal_process_rf_test_mode_cmd(moal_handle *handle, t_u32 cmd,
+					  const char *buffer, size_t len,
+					  t_u32 action, t_u32 val)
+{
+	mlan_status ret = MLAN_STATUS_FAILURE;
+	mlan_ioctl_req *req = NULL;
+	mlan_ds_misc_cfg *misc = NULL;
+	int err = MFALSE;
+	int i;
+
+	ENTER();
+
+	if (!handle->rf_test_mode || !handle->rf_data)
+		goto done;
+
+	req = woal_alloc_mlan_ioctl_req(sizeof(mlan_ds_misc_cfg));
+	if (!req)
+		goto done;
+
+	misc = (mlan_ds_misc_cfg *)req->pbuf;
+	req->req_id = MLAN_IOCTL_MISC_CFG;
+	misc->sub_command = MLAN_OID_MISC_RF_TEST_GENERIC;
+	req->action = action;
+
+	switch (cmd) {
+	case MFG_CMD_TX_ANT:
+		if (val != 1 && val != 2)
+			err = MTRUE;
+		break;
+	case MFG_CMD_RX_ANT:
+		if (val != 1 && val != 2)
+			err = MTRUE;
+		break;
+	case MFG_CMD_RF_BAND_AG:
+		if (val != 0 && val != 1)
+			err = MTRUE;
+		break;
+	case MFG_CMD_RF_CHANNELBW:
+		if (val != 0 && val != 1 && val != 4)
+			err = MTRUE;
+		break;
+	case MFG_CMD_RF_CHAN:
+		break;
+	case MFG_CMD_CLR_RX_ERR:
+		break;
+	case MFG_CMD_RFPWR:
+		if (parse_tx_pwr_string(buffer, len,
+					&misc->param.mfg_generic_cfg))
+			err = MTRUE;
+		break;
+	case MFG_CMD_TX_CONT:
+		misc->sub_command = MLAN_OID_MISC_RF_TEST_TX_CONT;
+		if (parse_tx_cont_string(buffer, len, &misc->param.mfg_tx_cont))
+			err = MTRUE;
+		break;
+	case MFG_CMD_TX_FRAME:
+		misc->sub_command = MLAN_OID_MISC_RF_TEST_TX_FRAME;
+		if (parse_tx_frame_string(buffer, len,
+					  &misc->param.mfg_tx_frame2))
+			err = MTRUE;
+		break;
+	default:
+		err = MTRUE;
+	}
+
+	if (!err) {
+		misc->param.mfg_generic_cfg.mfg_cmd = (t_u32)cmd;
+		if (cmd != MFG_CMD_RFPWR &&
+		    misc->sub_command == MLAN_OID_MISC_RF_TEST_GENERIC)
+			misc->param.mfg_generic_cfg.data1 = val;
+
+		ret = woal_request_ioctl(woal_get_priv(handle,
+						       MLAN_BSS_ROLE_ANY),
+					 req, MOAL_IOCTL_WAIT);
+	}
+	if (ret != MLAN_STATUS_SUCCESS)
+		goto done;
+
+	switch (cmd) {
+	case MFG_CMD_TX_ANT:
+		handle->rf_data->tx_antenna = misc->param.mfg_generic_cfg.data1;
+		break;
+	case MFG_CMD_RX_ANT:
+		handle->rf_data->rx_antenna = misc->param.mfg_generic_cfg.data1;
+		break;
+	case MFG_CMD_RF_BAND_AG:
+		handle->rf_data->band = misc->param.mfg_generic_cfg.data1;
+		break;
+	case MFG_CMD_RF_CHANNELBW:
+		handle->rf_data->bandwidth = misc->param.mfg_generic_cfg.data1;
+		break;
+	case MFG_CMD_RF_CHAN:
+		handle->rf_data->channel = misc->param.mfg_generic_cfg.data1;
+		break;
+	case MFG_CMD_CLR_RX_ERR:
+		handle->rf_data->rx_tot_pkt_count =
+			misc->param.mfg_generic_cfg.data1;
+		handle->rf_data->rx_mcast_bcast_pkt_count =
+			misc->param.mfg_generic_cfg.data2;
+		handle->rf_data->rx_pkt_fcs_err_count =
+			misc->param.mfg_generic_cfg.data3;
+		break;
+	case MFG_CMD_RFPWR:
+		handle->rf_data->tx_power_data[0] =
+			misc->param.mfg_generic_cfg.data1;
+		handle->rf_data->tx_power_data[1] =
+			misc->param.mfg_generic_cfg.data2;
+		handle->rf_data->tx_power_data[2] =
+			misc->param.mfg_generic_cfg.data3;
+		break;
+	case MFG_CMD_TX_CONT:
+		handle->rf_data->tx_cont_data[0] =
+			misc->param.mfg_tx_cont.enable_tx;
+		handle->rf_data->tx_cont_data[1] =
+			misc->param.mfg_tx_cont.cw_mode;
+		handle->rf_data->tx_cont_data[2] =
+			misc->param.mfg_tx_cont.payload_pattern;
+		handle->rf_data->tx_cont_data[3] =
+			misc->param.mfg_tx_cont.cs_mode;
+		handle->rf_data->tx_cont_data[4] =
+			misc->param.mfg_tx_cont.act_sub_ch;
+		handle->rf_data->tx_cont_data[5] =
+			misc->param.mfg_tx_cont.tx_rate;
+		break;
+	case MFG_CMD_TX_FRAME:
+		handle->rf_data->tx_frame_data[0] =
+			misc->param.mfg_tx_frame2.enable;
+		handle->rf_data->tx_frame_data[1] =
+			misc->param.mfg_tx_frame2.data_rate;
+		handle->rf_data->tx_frame_data[2] =
+			misc->param.mfg_tx_frame2.frame_pattern;
+		handle->rf_data->tx_frame_data[3] =
+			misc->param.mfg_tx_frame2.frame_length;
+		handle->rf_data->tx_frame_data[4] =
+			misc->param.mfg_tx_frame2.adjust_burst_sifs;
+		handle->rf_data->tx_frame_data[5] =
+			misc->param.mfg_tx_frame2.burst_sifs_in_us;
+		handle->rf_data->tx_frame_data[6] =
+			misc->param.mfg_tx_frame2.short_preamble;
+		handle->rf_data->tx_frame_data[7] =
+			misc->param.mfg_tx_frame2.act_sub_ch;
+		handle->rf_data->tx_frame_data[8] =
+			misc->param.mfg_tx_frame2.short_gi;
+		handle->rf_data->tx_frame_data[9] =
+			misc->param.mfg_tx_frame2.adv_coding;
+		handle->rf_data->tx_frame_data[10] =
+			misc->param.mfg_tx_frame2.tx_bf;
+		handle->rf_data->tx_frame_data[11] =
+			misc->param.mfg_tx_frame2.gf_mode;
+		handle->rf_data->tx_frame_data[12] =
+			misc->param.mfg_tx_frame2.stbc;
+		for (i = 0; i < ETH_ALEN; i++) {
+			handle->rf_data->bssid[i] =
+				misc->param.mfg_tx_frame2.bssid[i];
+		}
+		break;
+	}
+done:
+	if (err || ret != MLAN_STATUS_PENDING)
+		kfree(req);
+
+	LEAVE();
+	return ret;
+}
+#endif /* RF_TEST_MODE */

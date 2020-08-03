@@ -23,7 +23,7 @@
 #include "moal_main.h"
 
 /** Global moal_handle array */
-extern moal_handle *m_handle[];
+extern pmoal_handle m_handle[];
 
 /** Firmware name */
 char *fw_name;
@@ -152,7 +152,7 @@ int cfg80211_wext = STA_CFG80211_MASK | UAP_CFG80211_MASK;
 
 #if defined(STA_CFG80211) || defined(UAP_CFG80211)
 #if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-int fw_region;
+int fw_region = 1;
 #endif
 #endif
 
@@ -572,25 +572,7 @@ static mlan_status parse_cfg_read_block(t_u8 *data, t_u32 size,
 			       moal_extflg_isset(handle, EXT_FW_SERIAL) ?
 				       "on" :
 				       "off");
-		}
-#if defined(STA_CFG80211) || defined(UAP_CFG80211)
-#if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-		else if (strncmp(line, "fw_region", strlen("fw_region")) == 0) {
-			if (parse_line_read_int(line, &out_data) !=
-			    MLAN_STATUS_SUCCESS)
-				goto err;
-			if (out_data)
-				moal_extflg_set(handle, EXT_FW_REGION);
-			else
-				moal_extflg_clear(handle, EXT_FW_REGION);
-			PRINTM(MMSG, "fw_region %s\n",
-			       moal_extflg_isset(handle, EXT_FW_REGION) ?
-				       "on" :
-				       "off");
-		}
-#endif
-#endif
-		else if (strncmp(line, "mac_addr", strlen("mac_addr")) == 0) {
+		} else if (strncmp(line, "mac_addr", strlen("mac_addr")) == 0) {
 			if (parse_line_read_string(line, &out_str) !=
 			    MLAN_STATUS_SUCCESS)
 				goto err;
@@ -1244,12 +1226,6 @@ static void woal_setup_module_param(moal_handle *handle, moal_mod_para *params)
 		handle->params.fw_reload = params->fw_reload;
 	if (fw_serial)
 		moal_extflg_set(handle, EXT_FW_SERIAL);
-#if defined(STA_CFG80211) || defined(UAP_CFG80211)
-#if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-	if (fw_region)
-		moal_extflg_set(handle, EXT_FW_REGION);
-#endif
-#endif
 	woal_dup_string(&handle->params.mac_addr, mac_addr);
 	if (params && params->mac_addr)
 		woal_dup_string(&handle->params.mac_addr, params->mac_addr);
@@ -2102,12 +2078,6 @@ module_param(fw_serial, int, 0);
 MODULE_PARM_DESC(
 	fw_serial,
 	"0: support parallel download FW; 1: support serial download FW");
-#if defined(STA_CFG80211) || defined(UAP_CFG80211)
-#if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-module_param(fw_region, int, 0);
-MODULE_PARM_DESC(fw_region, "1: create channel regulatory domain from FW");
-#endif
-#endif
 module_param(mac_addr, charp, 0660);
 MODULE_PARM_DESC(mac_addr, "MAC address");
 #ifdef MFG_CMD_SUPPORT

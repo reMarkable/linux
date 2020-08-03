@@ -348,8 +348,7 @@ done:
  *
  *   @return        MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ops_sta_process_rx_packet(IN t_void *adapter,
-					   IN pmlan_buffer pmbuf)
+mlan_status wlan_ops_sta_process_rx_packet(t_void *adapter, pmlan_buffer pmbuf)
 {
 	pmlan_adapter pmadapter = (pmlan_adapter)adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;

@@ -56,7 +56,7 @@ Change log:
  *
  *  @return        headptr or MNULL
  */
-t_void *wlan_ops_sta_process_txpd(IN t_void *priv, IN pmlan_buffer pmbuf)
+t_void *wlan_ops_sta_process_txpd(t_void *priv, pmlan_buffer pmbuf)
 {
 	mlan_private *pmpriv = (mlan_private *)priv;
 	pmlan_adapter pmadapter = pmpriv->adapter;

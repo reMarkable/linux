@@ -37,11 +37,11 @@ Change Log:
 #include "mlan_fw.h"
 
 /* Send a given measurement request to the firmware, report back the result */
-extern int wlan_meas_util_send_req(mlan_private *pmpriv,
-				   HostCmd_DS_MEASUREMENT_REQUEST *pmeas_req,
+extern int wlan_meas_util_send_req(pmlan_private pmpriv,
+				   pHostCmd_DS_MEASUREMENT_REQUEST pmeas_req,
 				   t_u32 wait_for_resp_timeout,
 				   pmlan_ioctl_req pioctl_req,
-				   HostCmd_DS_MEASUREMENT_REPORT *pmeas_rpt);
+				   pHostCmd_DS_MEASUREMENT_REPORT pmeas_rpt);
 
 /* Setup a measurement command before it is sent to the firmware */
 extern int wlan_meas_cmd_process(mlan_private *pmpriv,

@@ -323,6 +323,9 @@ enum _mlan_ioctl_req_id {
 	MLAN_OID_MISC_GET_CHAN_TRPC_CFG = 0x00200072,
 	MLAN_OID_MISC_BAND_STEERING = 0x00200073,
 	MLAN_OID_MISC_GET_REGIONPWR_CFG = 0x00200074,
+	MLAN_OID_MISC_RF_TEST_GENERIC = 0x00200075,
+	MLAN_OID_MISC_RF_TEST_TX_CONT = 0x00200076,
+	MLAN_OID_MISC_RF_TEST_TX_FRAME = 0x00200077,
 };
 
 /** Sub command size */
@@ -664,7 +667,7 @@ typedef struct _mlan_ds_misc_assoc_rsp {
 	t_u8 assoc_resp_buf[ASSOC_RSP_BUF_SIZE];
 	/** Response buffer length */
 	t_u32 assoc_resp_len;
-} mlan_ds_misc_assoc_rsp;
+} mlan_ds_misc_assoc_rsp, *pmlan_ds_misc_assoc_rsp;
 
 /** mlan_ssid_bssid  data structure for
  *  MLAN_OID_BSS_START and MLAN_OID_BSS_FIND_BSS
@@ -692,7 +695,7 @@ typedef struct _mlan_ssid_bssid {
 	t_u8 host_mlme;
 	/** assoicate resp frame/ie from firmware */
 	mlan_ds_misc_assoc_rsp assoc_rsp;
-} mlan_ssid_bssid;
+} mlan_ssid_bssid, *pmlan_ssid_bssid;
 
 /** Data structure of WMM ECW */
 typedef struct _wmm_ecw_t {
@@ -1080,7 +1083,7 @@ typedef struct _mlan_uap_bss_param {
 
 	/** uap host based config */
 	t_u32 uap_host_based_config;
-} mlan_uap_bss_param;
+} mlan_uap_bss_param, *pmlan_uap_bss_param;
 
 /** mlan_uap_scan_channels */
 typedef struct _mlan_uap_scan_channels {
@@ -1751,6 +1754,8 @@ typedef struct _mlan_fw_info {
 	t_u16 fw_bands;
 	/** region code */
 	t_u16 region_code;
+	/** force_reg */
+	t_u8 force_reg;
 	/** ECSA support */
 	t_u8 ecsa_enable;
 	/** Get log support */
@@ -1795,7 +1800,8 @@ typedef struct MLAN_PACK_START _ExtCap_t {
 	t_u8 NCC : 1; /* bit 67 */
 	t_u8 rsvdBit66 : 1; /* bit 66 */
 	t_u8 chanSchedMgnt : 1; /* bit 65 */
-	t_u8 MaxAMSDU : 2; /* bit 63-bit 64 */
+	t_u8 MaxAMSDU1 : 1; /* bit 64 */
+	t_u8 MaxAMSDU0 : 1; /* bit 63 */
 	t_u8 OperModeNtf : 1; /* bit 62 */
 	t_u8 TDLSWildBandwidth : 1; /* bit 61 */
 	t_u8 rsvdBit60 : 1; /* bit 60 */
@@ -1927,7 +1933,8 @@ typedef struct MLAN_PACK_START _ExtCap_t {
 	t_u8 rsvdBit60 : 1; /* bit 60 */
 	t_u8 TDLSWildBandwidth : 1; /* bit 61 */
 	t_u8 OperModeNtf : 1; /* bit 62 */
-	t_u8 MaxAMSDU : 2; /* bit 63-bit 64 */
+	t_u8 MaxAMSDU0 : 1; /* bit 63 */
+	t_u8 MaxAMSDU1 : 1; /* bit 64 */
 	t_u8 chanSchedMgnt : 1; /* bit 65 */
 	t_u8 rsvdBit66 : 1; /* bit 66 */
 	t_u8 NCC : 1; /* bit 67 */
@@ -2070,7 +2077,7 @@ typedef struct _ralist_info {
 	t_u8 tid;
 	/** tx_pause flag */
 	t_u8 tx_pause;
-} ralist_info;
+} ralist_info, *pralist_info;
 
 /** mlan_debug_info data structure for MLAN_OID_GET_DEBUG_INFO */
 typedef struct _mlan_debug_info {
@@ -4060,7 +4067,7 @@ typedef struct _mlan_ds_11h_chan_nop_info {
 	t_bool chan_under_nop;
 	/** chan_ban_info for new channel */
 	chan_band_info new_chan;
-} mlan_ds_11h_chan_nop_info;
+} mlan_ds_11h_chan_nop_info, *pmlan_ds_11h_chan_nop_info;
 
 typedef struct _mlan_ds_11h_chan_rep_req {
 	t_u16 startFreq;
@@ -4705,7 +4712,7 @@ typedef struct _mlan_ds_misc_keep_alive {
 	t_u8 packet[MKEEP_ALIVE_IP_PKT_MAX];
 	/** Ethernet type */
 	t_u16 ether_type;
-} mlan_ds_misc_keep_alive;
+} mlan_ds_misc_keep_alive, *pmlan_ds_misc_keep_alive;
 
 /** TX and RX histogram statistic parameters*/
 typedef MLAN_PACK_START struct _mlan_ds_misc_tx_rx_histogram {
@@ -4821,6 +4828,103 @@ typedef struct _mlan_ds_misc_chan_trpc_cfg {
 	/** buf */
 	t_u8 trpc_buf[2048];
 } mlan_ds_misc_chan_trpc_cfg;
+
+#define MFG_CMD_SET_TEST_MODE 1
+#define MFG_CMD_UNSET_TEST_MODE 0
+#define MFG_CMD_TX_ANT 0x1004
+#define MFG_CMD_RX_ANT 0x1005
+#define MFG_CMD_TX_CONT 0x1009
+#define MFG_CMD_RF_CHAN 0x100A
+#define MFG_CMD_CLR_RX_ERR 0x1010
+#define MFG_CMD_TX_FRAME 0x1021
+#define MFG_CMD_RFPWR 0x1033
+#define MFG_CMD_RF_BAND_AG 0x1034
+#define MFG_CMD_RF_CHANNELBW 0x1044
+/** MFG CMD generic cfg */
+struct MLAN_PACK_START mfg_cmd_generic_cfg {
+	/** MFG command code */
+	t_u32 mfg_cmd;
+	/** Action */
+	t_u16 action;
+	/** Device ID */
+	t_u16 device_id;
+	/** MFG Error code */
+	t_u32 error;
+	/** value 1 */
+	t_u32 data1;
+	/** value 2 */
+	t_u32 data2;
+	/** value 3 */
+	t_u32 data3;
+} MLAN_PACK_END;
+
+/** MFG CMD Tx Frame 2 */
+struct MLAN_PACK_START mfg_cmd_tx_frame2 {
+	/** MFG command code */
+	t_u32 mfg_cmd;
+	/** Action */
+	t_u16 action;
+	/** Device ID */
+	t_u16 device_id;
+	/** MFG Error code */
+	t_u32 error;
+	/** enable */
+	t_u32 enable;
+	/** data_rate */
+	t_u32 data_rate;
+	/** frame pattern */
+	t_u32 frame_pattern;
+	/** frame length */
+	t_u32 frame_length;
+	/** BSSID */
+	t_u8 bssid[MLAN_MAC_ADDR_LENGTH];
+	/** Adjust burst sifs */
+	t_u16 adjust_burst_sifs;
+	/** Burst sifs in us*/
+	t_u32 burst_sifs_in_us;
+	/** short preamble */
+	t_u32 short_preamble;
+	/** active sub channel */
+	t_u32 act_sub_ch;
+	/** short GI */
+	t_u32 short_gi;
+	/** Adv coding */
+	t_u32 adv_coding;
+	/** Tx beamforming */
+	t_u32 tx_bf;
+	/** HT Greenfield Mode*/
+	t_u32 gf_mode;
+	/** STBC */
+	t_u32 stbc;
+	/** power id */
+	t_u32 rsvd[2];
+} MLAN_PACK_END;
+
+/* MFG CMD Tx Continuous */
+struct MLAN_PACK_START mfg_cmd_tx_cont {
+	/** MFG command code */
+	t_u32 mfg_cmd;
+	/** Action */
+	t_u16 action;
+	/** Device ID */
+	t_u16 device_id;
+	/** MFG Error code */
+	t_u32 error;
+	/** enable Tx*/
+	t_u32 enable_tx;
+	/** Continuous Wave mode */
+	t_u32 cw_mode;
+	/** payload pattern */
+	t_u32 payload_pattern;
+	/** CS Mode */
+	t_u32 cs_mode;
+	/** active sub channel */
+	t_u32 act_sub_ch;
+	/** Tx rate */
+	t_u32 tx_rate;
+	/** power id */
+	t_u32 rsvd;
+} MLAN_PACK_END;
 
 typedef struct _mlan_ds_misc_chnrgpwr_cfg {
 	/** length */
@@ -4938,6 +5042,9 @@ typedef struct _mlan_ds_misc_cfg {
 		mlan_ds_misc_chnrgpwr_cfg rgchnpwr_cfg;
 
 		mlan_ds_band_steer_cfg band_steer_cfg;
+		struct mfg_cmd_generic_cfg mfg_generic_cfg;
+		struct mfg_cmd_tx_cont mfg_tx_cont;
+		struct mfg_cmd_tx_frame2 mfg_tx_frame2;
 	} param;
 } mlan_ds_misc_cfg, *pmlan_ds_misc_cfg;
 
@@ -4958,5 +5065,4 @@ typedef struct _mlan_ds_misc_cfg {
 #define MLAN_REASON_CLASS3_FRAME_FROM_NOASSOC_STA 7
 #define MLAN_REASON_DISASSOC_STA_HAS_LEFT 8
 #define MLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH 9
-
 #endif /* !_MLAN_IOCTL_H_ */

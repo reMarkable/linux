@@ -244,9 +244,9 @@ typedef t_u8 BOOLEAN;
 extern char driver_version[];
 
 /** Private structure for MOAL */
-typedef struct _moal_private moal_private;
+typedef struct _moal_private moal_private, *pmoal_private;
 /** Handle data structure for MOAL  */
-typedef struct _moal_handle moal_handle;
+typedef struct _moal_handle moal_handle, *pmoal_handle;
 
 /** Hardware status codes */
 typedef enum _MOAL_HARDWARE_STATUS {
@@ -644,8 +644,8 @@ out:
 #endif
 
 /** Threshold value of number of times the Tx timeout happened */
-#define NUM_TX_TIMEOUT_THRESHOLD 5
-
+/* WAR For EDMAC Test */
+#define NUM_TX_TIMEOUT_THRESHOLD 10
 /** Custom event : DRIVER HANG */
 #define CUS_EVT_DRIVER_HANG "EVENT=DRIVER_HANG"
 
@@ -991,6 +991,8 @@ struct tx_status_info {
 enum woal_event_type {
 	WOAL_EVENT_CHAN_SWITCH,
 	WOAL_EVENT_BGSCAN_STOP,
+	WOAL_EVENT_DEAUTH,
+	WOAL_EVENT_ASSOC_RESP,
 };
 
 /** woal event */
@@ -1003,6 +1005,8 @@ struct woal_event {
 	void *priv;
 	union {
 		chan_band_info chan_info;
+		mlan_ds_misc_assoc_rsp assoc_resp;
+		int reason_code;
 	};
 };
 
@@ -1051,6 +1055,33 @@ struct pmksa_entry {
 	u8 pmkid[PMKID_LEN];
 };
 
+struct rf_test_mode_data {
+	/* tx antenna num */
+	t_u32 tx_antenna;
+	/* rx antenna num */
+	t_u32 rx_antenna;
+	/* RF band */
+	t_u32 band;
+	/* RF bandwidth */
+	t_u32 bandwidth;
+	/* RF channel */
+	t_u32 channel;
+	/* Total Rx ucast/mcast/bcast pkt count */
+	t_u32 rx_tot_pkt_count;
+	/* Rx mcast/bcast pkt count */
+	t_u32 rx_mcast_bcast_pkt_count;
+	/* Rx fcs error count */
+	t_u32 rx_pkt_fcs_err_count;
+	/* Tx power config values */
+	t_u32 tx_power_data[3];
+	/* Tx continuous config values */
+	t_u32 tx_cont_data[6];
+	/* Tx frame config values */
+	t_u32 tx_frame_data[13];
+	/* BSSID */
+	t_u8 bssid[ETH_ALEN];
+};
+
 /** Number of samples in histogram (/proc/mwlan/adapterX/mlan0/histogram).*/
 #define HIST_MAX_SAMPLES 1048576
 #define RX_RATE_MAX 196
@@ -1073,7 +1104,7 @@ typedef struct _hgm_data {
 	atomic_t num_samples;
 	/** rx rate */
 	atomic_t rx_rate[];
-} hgm_data;
+} hgm_data, *phgm_data;
 
 /** max antenna number */
 #define MAX_ANTENNA_NUM 4
@@ -1364,7 +1395,7 @@ struct _moal_private {
 	/** tx status queue */
 	struct list_head tx_stat_queue;
 	/** rx hgm data */
-	hgm_data *hist_data[MAX_ANTENNA_NUM];
+	phgm_data hist_data[MAX_ANTENNA_NUM];
 	t_u8 random_mac[MLAN_MAC_ADDR_LENGTH];
 	BOOLEAN assoc_with_mac;
 	t_u8 gtk_data_ready;
@@ -1481,7 +1512,6 @@ enum ext_mod_params {
 #endif
 	EXT_REQ_FW_NOWAIT,
 	EXT_FW_SERIAL,
-	EXT_FW_REGION,
 #ifdef SDIO
 	EXT_INTMODE,
 #ifdef SDIO_SUSPEND_RESUME
@@ -1943,6 +1973,10 @@ struct _moal_handle {
 	t_u8 second_mac;
 	/** moal handle for another mac */
 	void *pref_mac;
+	/** RF test mode status */
+	t_u8 rf_test_mode;
+	/** pointer to rf test mode data struct */
+	struct rf_test_mode_data *rf_data;
 };
 
 /**
@@ -2664,10 +2698,10 @@ void woal_dump_firmware_info_v2(moal_handle *phandle);
 void woal_dump_firmware_info_v3(moal_handle *phandle);
 #endif /* SDIO_MMC */
 /* Store the FW dumps received from events in a file */
-void woal_store_firmware_dump(moal_handle *phandle, mlan_event *pmevent);
+void woal_store_firmware_dump(moal_handle *phandle, pmlan_event pmevent);
 
 #if defined(PCIE)
-void woal_store_ssu_dump(moal_handle *phandle, mlan_event *pmevent);
+void woal_store_ssu_dump(moal_handle *phandle, pmlan_event pmevent);
 #endif /* SSU_SUPPORT */
 
 int woal_pre_warmreset(moal_private *priv);
@@ -2705,7 +2739,7 @@ mlan_status woal_get_sta_channel(moal_private *priv, t_u8 wait_option,
 #ifdef STA_WEXT
 /** Get data rates */
 mlan_status woal_get_data_rates(moal_private *priv, t_u8 wait_option,
-				moal_802_11_rates *m_rates);
+				pmoal_802_11_rates m_rates);
 void woal_send_iwevcustom_event(moal_private *priv, char *str);
 /** Get channel list */
 mlan_status woal_get_channel_list(moal_private *priv, t_u8 wait_option,
@@ -2774,10 +2808,14 @@ mlan_status woal_get_wpa_enable(moal_private *priv, t_u8 wait_option,
 
 mlan_status woal_set_11d(moal_private *priv, t_u8 wait_option, t_u8 enable);
 
+mlan_status woal_process_rf_test_mode(moal_handle *handle, t_u32 mode);
+mlan_status woal_process_rf_test_mode_cmd(moal_handle *handle, t_u32 cmd,
+					  const char *buffer, size_t len,
+					  t_u32 action, t_u32 val);
 #if defined(STA_SUPPORT) || defined(UAP_SUPPORT)
 /** Get statistics information */
 mlan_status woal_get_stats_info(moal_private *priv, t_u8 wait_option,
-				mlan_ds_get_stats *stats);
+				pmlan_ds_get_stats stats);
 #endif /**STA_SUPPORT||UAP_SUPPORT*/
 
 mlan_status woal_set_wapi_enable(moal_private *priv, t_u8 wait_option,
@@ -2830,7 +2868,7 @@ int woal_hostcmd_ioctl(struct net_device *dev, struct ifreq *req);
 #endif
 
 mlan_status woal_set_remain_channel_ioctl(moal_private *priv, t_u8 wait_option,
-					  mlan_ds_remain_chan *pchan);
+					  pmlan_ds_remain_chan pchan);
 void woal_remain_timer_func(void *context);
 #ifdef WIFI_DIRECT_SUPPORT
 mlan_status woal_wifi_direct_mode_cfg(moal_private *priv, t_u16 action,
@@ -2994,7 +3032,7 @@ mlan_status woal_delba_all(moal_private *priv, t_u8 wait_option);
 #ifdef STA_CFG80211
 #if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 int woal_mkeep_alive_vendor_event(moal_private *priv,
-				  mlan_ds_misc_keep_alive *mkeep_alive);
+				  pmlan_ds_misc_keep_alive mkeep_alive);
 #endif
 #endif
 int woal_start_mkeep_alive(moal_private *priv, t_u8 mkeep_alive_id,

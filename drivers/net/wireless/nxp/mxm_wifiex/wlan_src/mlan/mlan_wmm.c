@@ -1799,7 +1799,7 @@ t_void wlan_wmm_add_buf_txqueue(pmlan_adapter pmadapter, pmlan_buffer pmbuf)
 	raListTbl *ra_list;
 	t_u8 ra[MLAN_MAC_ADDR_LENGTH], tid_down;
 #ifdef UAP_SUPPORT
-	sta_node *sta_ptr = MNULL;
+	psta_node sta_ptr = MNULL;
 #endif
 
 	ENTER();
@@ -2401,9 +2401,8 @@ t_void wlan_wmm_delete_peer_ralist(pmlan_private priv, t_u8 *mac)
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_wmm_addts_req(IN pmlan_private pmpriv,
-				   OUT HostCmd_DS_COMMAND *cmd,
-				   IN t_void *pdata_buf)
+mlan_status wlan_cmd_wmm_addts_req(pmlan_private pmpriv,
+				   HostCmd_DS_COMMAND *cmd, t_void *pdata_buf)
 {
 	mlan_ds_wmm_addts *paddts = (mlan_ds_wmm_addts *)pdata_buf;
 	HostCmd_DS_WMM_ADDTS_REQ *pcmd_addts = &cmd->params.add_ts;
@@ -2437,9 +2436,9 @@ mlan_status wlan_cmd_wmm_addts_req(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_wmm_addts_req(IN pmlan_private pmpriv,
-				   const IN HostCmd_DS_COMMAND *resp,
-				   OUT mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_wmm_addts_req(pmlan_private pmpriv,
+				   const HostCmd_DS_COMMAND *resp,
+				   mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_wmm_cfg *pwmm = MNULL;
 	mlan_ds_wmm_addts *paddts = MNULL;
@@ -2496,9 +2495,8 @@ mlan_status wlan_ret_wmm_addts_req(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_wmm_delts_req(IN pmlan_private pmpriv,
-				   OUT HostCmd_DS_COMMAND *cmd,
-				   IN t_void *pdata_buf)
+mlan_status wlan_cmd_wmm_delts_req(pmlan_private pmpriv,
+				   HostCmd_DS_COMMAND *cmd, t_void *pdata_buf)
 {
 	mlan_ds_wmm_delts *pdelts = (mlan_ds_wmm_delts *)pdata_buf;
 	HostCmd_DS_WMM_DELTS_REQ *pcmd_delts = &cmd->params.del_ts;
@@ -2529,9 +2527,9 @@ mlan_status wlan_cmd_wmm_delts_req(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_wmm_delts_req(IN pmlan_private pmpriv,
-				   const IN HostCmd_DS_COMMAND *resp,
-				   OUT mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_wmm_delts_req(pmlan_private pmpriv,
+				   const HostCmd_DS_COMMAND *resp,
+				   mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_wmm_cfg *pwmm;
 	IEEEtypes_WMM_TSPEC_t *ptspec_ie;
@@ -2570,9 +2568,8 @@ mlan_status wlan_ret_wmm_delts_req(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_wmm_queue_stats(IN pmlan_private pmpriv,
-				     OUT HostCmd_DS_COMMAND *cmd,
-				     IN t_void *pdata_buf)
+mlan_status wlan_cmd_wmm_queue_stats(pmlan_private pmpriv,
+				     HostCmd_DS_COMMAND *cmd, t_void *pdata_buf)
 {
 	mlan_ds_wmm_queue_stats *pqstats = (mlan_ds_wmm_queue_stats *)pdata_buf;
 	HostCmd_DS_WMM_QUEUE_STATS *pcmd_qstats = &cmd->params.queue_stats;
@@ -2613,9 +2610,9 @@ mlan_status wlan_cmd_wmm_queue_stats(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_wmm_queue_stats(IN pmlan_private pmpriv,
-				     const IN HostCmd_DS_COMMAND *resp,
-				     OUT mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_wmm_queue_stats(pmlan_private pmpriv,
+				     const HostCmd_DS_COMMAND *resp,
+				     mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_wmm_cfg *pwmm = MNULL;
 	mlan_ds_wmm_queue_stats *pqstats = MNULL;
@@ -2658,9 +2655,8 @@ mlan_status wlan_ret_wmm_queue_stats(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_wmm_ts_status(IN pmlan_private pmpriv,
-				   OUT HostCmd_DS_COMMAND *cmd,
-				   IN t_void *pdata_buf)
+mlan_status wlan_cmd_wmm_ts_status(pmlan_private pmpriv,
+				   HostCmd_DS_COMMAND *cmd, t_void *pdata_buf)
 {
 	mlan_ds_wmm_ts_status *pts_status = (mlan_ds_wmm_ts_status *)pdata_buf;
 	HostCmd_DS_WMM_TS_STATUS *pcmd_ts_status = &cmd->params.ts_status;
@@ -2689,9 +2685,9 @@ mlan_status wlan_cmd_wmm_ts_status(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_wmm_ts_status(IN pmlan_private pmpriv,
-				   IN HostCmd_DS_COMMAND *resp,
-				   OUT mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_wmm_ts_status(pmlan_private pmpriv,
+				   HostCmd_DS_COMMAND *resp,
+				   mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_wmm_cfg *pwmm = MNULL;
 	HostCmd_DS_WMM_TS_STATUS *presp_ts_status = &resp->params.ts_status;
@@ -2720,8 +2716,8 @@ mlan_status wlan_ret_wmm_ts_status(IN pmlan_private pmpriv,
  *
  *  @return     MLAN_STATUS_SUCCESS --success
  */
-static mlan_status wlan_wmm_ioctl_enable(IN pmlan_adapter pmadapter,
-					 IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_enable(pmlan_adapter pmadapter,
+					 pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -2745,8 +2741,8 @@ static mlan_status wlan_wmm_ioctl_enable(IN pmlan_adapter pmadapter,
  *
  *  @return     MLAN_STATUS_SUCCESS --success
  */
-static mlan_status wlan_wmm_ioctl_qos(IN pmlan_adapter pmadapter,
-				      IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_qos(pmlan_adapter pmadapter,
+				      pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -2776,8 +2772,8 @@ static mlan_status wlan_wmm_ioctl_qos(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_wmm_ioctl_addts_req(IN pmlan_adapter pmadapter,
-					    IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_addts_req(pmlan_adapter pmadapter,
+					    pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -2806,8 +2802,8 @@ static mlan_status wlan_wmm_ioctl_addts_req(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_wmm_ioctl_delts_req(IN pmlan_adapter pmadapter,
-					    IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_delts_req(pmlan_adapter pmadapter,
+					    pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -2836,8 +2832,8 @@ static mlan_status wlan_wmm_ioctl_delts_req(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_wmm_ioctl_queue_stats(IN pmlan_adapter pmadapter,
-					      IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_queue_stats(pmlan_adapter pmadapter,
+					      pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -2866,8 +2862,8 @@ static mlan_status wlan_wmm_ioctl_queue_stats(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_SUCCESS --success
  */
-static mlan_status wlan_wmm_ioctl_queue_status(IN pmlan_adapter pmadapter,
-					       IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_queue_status(pmlan_adapter pmadapter,
+					       pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -2907,8 +2903,8 @@ static mlan_status wlan_wmm_ioctl_queue_status(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_wmm_ioctl_ts_status(IN pmlan_adapter pmadapter,
-					    IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_ts_status(pmlan_adapter pmadapter,
+					    pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -2940,9 +2936,9 @@ static mlan_status wlan_wmm_ioctl_ts_status(IN pmlan_adapter pmadapter,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_wmm_param_config(IN pmlan_private pmpriv,
-				      OUT HostCmd_DS_COMMAND *cmd,
-				      IN t_u8 cmd_action, IN t_void *pdata_buf)
+mlan_status wlan_cmd_wmm_param_config(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd, t_u8 cmd_action,
+				      t_void *pdata_buf)
 {
 	wmm_ac_parameters_t *ac_params = (wmm_ac_parameters_t *)pdata_buf;
 	HostCmd_DS_WMM_PARAM_CONFIG *pcmd_cfg = &cmd->params.param_config;
@@ -2978,9 +2974,9 @@ mlan_status wlan_cmd_wmm_param_config(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_wmm_param_config(IN pmlan_private pmpriv,
-				      const IN HostCmd_DS_COMMAND *resp,
-				      OUT mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_wmm_param_config(pmlan_private pmpriv,
+				      const HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_wmm_cfg *pwmm = MNULL;
 	HostCmd_DS_WMM_PARAM_CONFIG *pcfg =
@@ -3013,9 +3009,9 @@ mlan_status wlan_ret_wmm_param_config(IN pmlan_private pmpriv,
  *  @param pdata_buf    A pointer to data buffer
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_wmm_queue_config(IN pmlan_private pmpriv,
-				      OUT HostCmd_DS_COMMAND *cmd,
-				      IN t_void *pdata_buf)
+mlan_status wlan_cmd_wmm_queue_config(pmlan_private pmpriv,
+				      HostCmd_DS_COMMAND *cmd,
+				      t_void *pdata_buf)
 {
 	mlan_ds_wmm_queue_config *pqcfg = (mlan_ds_wmm_queue_config *)pdata_buf;
 	HostCmd_DS_WMM_QUEUE_CONFIG *pcmd_qcfg = &cmd->params.queue_config;
@@ -3046,9 +3042,9 @@ mlan_status wlan_cmd_wmm_queue_config(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_wmm_queue_config(IN pmlan_private pmpriv,
-				      const IN HostCmd_DS_COMMAND *resp,
-				      OUT mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_wmm_queue_config(pmlan_private pmpriv,
+				      const HostCmd_DS_COMMAND *resp,
+				      mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_wmm_cfg *pwmm = MNULL;
 	const HostCmd_DS_WMM_QUEUE_CONFIG *presp_qcfg =
@@ -3077,8 +3073,8 @@ mlan_status wlan_ret_wmm_queue_config(IN pmlan_private pmpriv,
  *
  *  @return             MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_wmm_ioctl_queue_config(IN pmlan_adapter pmadapter,
-					       IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_wmm_ioctl_queue_config(pmlan_adapter pmadapter,
+					       pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	pmlan_private pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -3107,8 +3103,8 @@ static mlan_status wlan_wmm_ioctl_queue_config(IN pmlan_adapter pmadapter,
  *
  *  @return     MLAN_STATUS_SUCCESS --success, otherwise fail
  */
-mlan_status wlan_wmm_cfg_ioctl(IN pmlan_adapter pmadapter,
-			       IN pmlan_ioctl_req pioctl_req)
+mlan_status wlan_wmm_cfg_ioctl(pmlan_adapter pmadapter,
+			       pmlan_ioctl_req pioctl_req)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	mlan_ds_wmm_cfg *wmm = MNULL;

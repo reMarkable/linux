@@ -79,8 +79,8 @@ extern int wifi_status;
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_malloc(IN t_void *pmoal_handle, IN t_u32 size, IN t_u32 flag,
-			OUT t_u8 **ppbuf)
+mlan_status moal_malloc(t_void *pmoal_handle, t_u32 size, t_u32 flag,
+			t_u8 **ppbuf)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	t_u32 mem_flag =
@@ -112,7 +112,7 @@ mlan_status moal_malloc(IN t_void *pmoal_handle, IN t_u32 size, IN t_u32 flag,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_mfree(IN t_void *pmoal_handle, IN t_u8 *pbuf)
+mlan_status moal_mfree(t_void *pmoal_handle, t_u8 *pbuf)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 
@@ -133,8 +133,7 @@ mlan_status moal_mfree(IN t_void *pmoal_handle, IN t_u8 *pbuf)
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_vmalloc(IN t_void *pmoal_handle, IN t_u32 size,
-			 OUT t_u8 **ppbuf)
+mlan_status moal_vmalloc(t_void *pmoal_handle, t_u32 size, t_u8 **ppbuf)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 
@@ -157,7 +156,7 @@ mlan_status moal_vmalloc(IN t_void *pmoal_handle, IN t_u32 size,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_vfree(IN t_void *pmoal_handle, IN t_u8 *pbuf)
+mlan_status moal_vfree(t_void *pmoal_handle, t_u8 *pbuf)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 
@@ -180,8 +179,8 @@ mlan_status moal_vfree(IN t_void *pmoal_handle, IN t_u8 *pbuf)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_malloc_consistent(IN t_void *pmoal_handle, IN t_u32 size,
-				   OUT t_u8 **ppbuf, OUT t_u64 *pbuf_pa)
+mlan_status moal_malloc_consistent(t_void *pmoal_handle, t_u32 size,
+				   t_u8 **ppbuf, t_pu64 pbuf_pa)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	pcie_service_card *card = (pcie_service_card *)handle->card;
@@ -209,8 +208,8 @@ mlan_status moal_malloc_consistent(IN t_void *pmoal_handle, IN t_u32 size,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_mfree_consistent(IN t_void *pmoal_handle, IN t_u32 size,
-				  IN t_u8 *pbuf, IN t_u64 buf_pa)
+mlan_status moal_mfree_consistent(t_void *pmoal_handle, t_u32 size, t_u8 *pbuf,
+				  t_u64 buf_pa)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	pcie_service_card *card = handle->card;
@@ -234,8 +233,8 @@ mlan_status moal_mfree_consistent(IN t_void *pmoal_handle, IN t_u32 size,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_map_memory(IN t_void *pmoal_handle, IN t_u8 *pbuf,
-			    OUT t_u64 *pbuf_pa, IN t_u32 size, IN t_u32 flag)
+mlan_status moal_map_memory(t_void *pmoal_handle, t_u8 *pbuf, t_u64 *pbuf_pa,
+			    t_u32 size, t_u32 flag)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	pcie_service_card *card = (pcie_service_card *)handle->card;
@@ -268,8 +267,8 @@ mlan_status moal_map_memory(IN t_void *pmoal_handle, IN t_u8 *pbuf,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_unmap_memory(IN t_void *pmoal_handle, IN t_u8 *pbuf,
-			      IN t_u64 buf_pa, IN t_u32 size, IN t_u32 flag)
+mlan_status moal_unmap_memory(t_void *pmoal_handle, t_u8 *pbuf, t_u64 buf_pa,
+			      t_u32 size, t_u32 flag)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	pcie_service_card *card = (pcie_service_card *)handle->card;
@@ -290,8 +289,7 @@ mlan_status moal_unmap_memory(IN t_void *pmoal_handle, IN t_u8 *pbuf,
  *
  *  @return         Pointer to the memory area
  */
-t_void *moal_memset(IN t_void *pmoal_handle, IN t_void *pmem, IN t_u8 byte,
-		    IN t_u32 num)
+t_void *moal_memset(t_void *pmoal_handle, t_void *pmem, t_u8 byte, t_u32 num)
 {
 	t_void *p = pmem;
 
@@ -311,8 +309,8 @@ t_void *moal_memset(IN t_void *pmoal_handle, IN t_void *pmem, IN t_u8 byte,
  *
  *  @return         Pointer to the dest memory
  */
-t_void *moal_memcpy(IN t_void *pmoal_handle, IN t_void *pdest,
-		    IN const t_void *psrc, IN t_u32 num)
+t_void *moal_memcpy(t_void *pmoal_handle, t_void *pdest, const t_void *psrc,
+		    t_u32 num)
 {
 	t_void *p = pdest;
 
@@ -333,8 +331,8 @@ t_void *moal_memcpy(IN t_void *pmoal_handle, IN t_void *pdest,
  *
  *  @return         Pointer to the dest memory
  */
-t_void *moal_memcpy_ext(IN t_void *pmoal_handle, IN t_void *pdest,
-			IN const t_void *psrc, IN t_u32 num, IN t_u32 dest_size)
+t_void *moal_memcpy_ext(t_void *pmoal_handle, t_void *pdest, const t_void *psrc,
+			t_u32 num, t_u32 dest_size)
 {
 	t_void *p = pdest;
 	if (pdest && psrc && num && dest_size)
@@ -353,8 +351,8 @@ t_void *moal_memcpy_ext(IN t_void *pmoal_handle, IN t_void *pdest,
  *
  *  @return         Pointer to the dest memory
  */
-t_void *moal_memmove(IN t_void *pmoal_handle, IN t_void *pdest,
-		     IN const t_void *psrc, IN t_u32 num)
+t_void *moal_memmove(t_void *pmoal_handle, t_void *pdest, const t_void *psrc,
+		     t_u32 num)
 {
 	t_void *p = pdest;
 
@@ -374,8 +372,8 @@ t_void *moal_memmove(IN t_void *pmoal_handle, IN t_void *pdest,
  *
  *  @return         Compare result returns by memcmp
  */
-t_s32 moal_memcmp(IN t_void *pmoal_handle, IN const t_void *pmem1,
-		  IN const t_void *pmem2, IN t_u32 num)
+t_s32 moal_memcmp(t_void *pmoal_handle, const t_void *pmem1,
+		  const t_void *pmem2, t_u32 num)
 {
 	t_s32 result;
 
@@ -392,7 +390,7 @@ t_s32 moal_memcmp(IN t_void *pmoal_handle, IN const t_void *pmem1,
  *
  *  @return       N/A
  */
-t_void moal_udelay(IN t_void *pmoal_handle, IN t_u32 delay)
+t_void moal_udelay(t_void *pmoal_handle, t_u32 delay)
 {
 	if (delay >= 1000)
 		mdelay(delay / 1000);
@@ -409,8 +407,8 @@ t_void moal_udelay(IN t_void *pmoal_handle, IN t_u32 delay)
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_get_system_time(IN t_void *pmoal_handle, OUT t_u32 *psec,
-				 OUT t_u32 *pusec)
+mlan_status moal_get_system_time(t_void *pmoal_handle, t_u32 *psec,
+				 t_u32 *pusec)
 {
 	struct timeval t;
 
@@ -429,7 +427,7 @@ mlan_status moal_get_system_time(IN t_void *pmoal_handle, OUT t_u32 *psec,
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_get_boot_ktime(IN t_void *pmoal_handle, OUT t_u64 *pnsec)
+mlan_status moal_get_boot_ktime(t_void *pmoal_handle, t_u64 *pnsec)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
 	ktime_t time;
@@ -450,9 +448,9 @@ mlan_status moal_get_boot_ktime(IN t_void *pmoal_handle, OUT t_u64 *pnsec)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_init_timer(IN t_void *pmoal_handle, OUT t_void **pptimer,
+mlan_status moal_init_timer(t_void *pmoal_handle, t_void **pptimer,
 			    IN t_void (*callback)(t_void *pcontext),
-			    IN t_void *pcontext)
+			    t_void *pcontext)
 {
 	moal_drv_timer *timer = NULL;
 	t_u32 mem_flag =
@@ -475,7 +473,7 @@ mlan_status moal_init_timer(IN t_void *pmoal_handle, OUT t_void **pptimer,
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_free_timer(IN t_void *pmoal_handle, IN t_void *ptimer)
+mlan_status moal_free_timer(t_void *pmoal_handle, t_void *ptimer)
 {
 	moal_drv_timer *timer = (moal_drv_timer *)ptimer;
 
@@ -502,8 +500,8 @@ mlan_status moal_free_timer(IN t_void *pmoal_handle, IN t_void *ptimer)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_start_timer(IN t_void *pmoal_handle, IN t_void *ptimer,
-			     IN t_u8 periodic, IN t_u32 msec)
+mlan_status moal_start_timer(t_void *pmoal_handle, t_void *ptimer,
+			     t_u8 periodic, t_u32 msec)
 {
 	if (!ptimer)
 		return MLAN_STATUS_FAILURE;
@@ -522,7 +520,7 @@ mlan_status moal_start_timer(IN t_void *pmoal_handle, IN t_void *ptimer,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_stop_timer(IN t_void *pmoal_handle, IN t_void *ptimer)
+mlan_status moal_stop_timer(t_void *pmoal_handle, t_void *ptimer)
 {
 	if (!ptimer)
 		return MLAN_STATUS_FAILURE;
@@ -539,7 +537,7 @@ mlan_status moal_stop_timer(IN t_void *pmoal_handle, IN t_void *ptimer)
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_init_lock(IN t_void *pmoal_handle, OUT t_void **pplock)
+mlan_status moal_init_lock(t_void *pmoal_handle, t_void **pplock)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	moal_lock *mlock = NULL;
@@ -563,7 +561,7 @@ mlan_status moal_init_lock(IN t_void *pmoal_handle, OUT t_void **pplock)
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_free_lock(IN t_void *pmoal_handle, IN t_void *plock)
+mlan_status moal_free_lock(t_void *pmoal_handle, t_void *plock)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	moal_lock *mlock = plock;
@@ -583,7 +581,7 @@ mlan_status moal_free_lock(IN t_void *pmoal_handle, IN t_void *plock)
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_spin_lock(IN t_void *pmoal_handle, IN t_void *plock)
+mlan_status moal_spin_lock(t_void *pmoal_handle, t_void *plock)
 {
 	moal_lock *mlock = plock;
 	unsigned long flags = 0;
@@ -605,7 +603,7 @@ mlan_status moal_spin_lock(IN t_void *pmoal_handle, IN t_void *plock)
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_spin_unlock(IN t_void *pmoal_handle, IN t_void *plock)
+mlan_status moal_spin_unlock(t_void *pmoal_handle, t_void *plock)
 {
 	moal_lock *mlock = (moal_lock *)plock;
 
@@ -628,8 +626,8 @@ mlan_status moal_spin_unlock(IN t_void *pmoal_handle, IN t_void *plock)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_get_fw_data(IN t_void *pmoal_handle, IN t_u32 offset,
-			     IN t_u32 len, OUT t_u8 *pbuf)
+mlan_status moal_get_fw_data(t_void *pmoal_handle, t_u32 offset, t_u32 len,
+			     t_u8 *pbuf)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 
@@ -654,8 +652,7 @@ mlan_status moal_get_fw_data(IN t_void *pmoal_handle, IN t_u32 offset,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_get_vdll_data(IN t_void *pmoal_handle, IN t_u32 len,
-			       OUT t_u8 *pbuf)
+mlan_status moal_get_vdll_data(t_void *pmoal_handle, t_u32 len, t_u8 *pbuf)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	mlan_status status = MLAN_STATUS_FAILURE;
@@ -696,10 +693,8 @@ mlan_status moal_get_vdll_data(IN t_void *pmoal_handle, IN t_u32 len,
  *  @param ptbl     pointer to mplan_bss_tbl
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_get_hw_spec_complete(IN t_void *pmoal_handle,
-				      IN mlan_status status,
-				      IN mlan_hw_info *phw,
-				      IN pmlan_bss_tbl ptbl)
+mlan_status moal_get_hw_spec_complete(t_void *pmoal_handle, mlan_status status,
+				      mlan_hw_info *phw, pmlan_bss_tbl ptbl)
 {
 	ENTER();
 	if (status == MLAN_STATUS_SUCCESS) {
@@ -718,8 +713,7 @@ mlan_status moal_get_hw_spec_complete(IN t_void *pmoal_handle,
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_init_fw_complete(IN t_void *pmoal_handle,
-				  IN mlan_status status)
+mlan_status moal_init_fw_complete(t_void *pmoal_handle, mlan_status status)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	ENTER();
@@ -739,8 +733,7 @@ mlan_status moal_init_fw_complete(IN t_void *pmoal_handle,
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_shutdown_fw_complete(IN t_void *pmoal_handle,
-				      IN mlan_status status)
+mlan_status moal_shutdown_fw_complete(t_void *pmoal_handle, mlan_status status)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	ENTER();
@@ -760,9 +753,8 @@ mlan_status moal_shutdown_fw_complete(IN t_void *pmoal_handle,
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_ioctl_complete(IN t_void *pmoal_handle,
-				IN pmlan_ioctl_req pioctl_req,
-				IN mlan_status status)
+mlan_status moal_ioctl_complete(t_void *pmoal_handle,
+				pmlan_ioctl_req pioctl_req, mlan_status status)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	moal_private *priv = NULL;
@@ -834,8 +826,8 @@ mlan_status moal_ioctl_complete(IN t_void *pmoal_handle,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_alloc_mlan_buffer(IN t_void *pmoal_handle, IN t_u32 size,
-				   OUT pmlan_buffer *pmbuf)
+mlan_status moal_alloc_mlan_buffer(t_void *pmoal_handle, t_u32 size,
+				   pmlan_buffer *pmbuf)
 {
 	*pmbuf = woal_alloc_mlan_buffer((moal_handle *)pmoal_handle, size);
 	if (NULL == *pmbuf)
@@ -851,8 +843,7 @@ mlan_status moal_alloc_mlan_buffer(IN t_void *pmoal_handle, IN t_u32 size,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_free_mlan_buffer(IN t_void *pmoal_handle,
-				  IN pmlan_buffer pmbuf)
+mlan_status moal_free_mlan_buffer(t_void *pmoal_handle, pmlan_buffer pmbuf)
 {
 	if (!pmbuf)
 		return MLAN_STATUS_FAILURE;
@@ -869,9 +860,8 @@ mlan_status moal_free_mlan_buffer(IN t_void *pmoal_handle,
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_send_packet_complete(IN t_void *pmoal_handle,
-				      IN pmlan_buffer pmbuf,
-				      IN mlan_status status)
+mlan_status moal_send_packet_complete(t_void *pmoal_handle, pmlan_buffer pmbuf,
+				      mlan_status status)
 {
 	moal_private *priv = NULL;
 	moal_handle *handle = (moal_handle *)pmoal_handle;
@@ -1003,8 +993,8 @@ done:
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_recv_complete(IN t_void *pmoal_handle, IN pmlan_buffer pmbuf,
-			       IN t_u32 port, IN mlan_status status)
+mlan_status moal_recv_complete(t_void *pmoal_handle, pmlan_buffer pmbuf,
+			       t_u32 port, mlan_status status)
 {
 	moal_private *priv = NULL;
 	moal_handle *handle = (moal_handle *)pmoal_handle;
@@ -1051,8 +1041,8 @@ mlan_status moal_recv_complete(IN t_void *pmoal_handle, IN pmlan_buffer pmbuf,
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE or
  * MLAN_STATUS_PENDING or MLAN_STATUS_RESOURCE
  */
-mlan_status moal_write_data_async(IN t_void *pmoal_handle,
-				  IN pmlan_buffer pmbuf, IN t_u32 port)
+mlan_status moal_write_data_async(t_void *pmoal_handle, pmlan_buffer pmbuf,
+				  t_u32 port)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -1081,8 +1071,8 @@ mlan_status moal_write_data_async(IN t_void *pmoal_handle,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_write_data_sync(IN t_void *pmoal_handle, IN pmlan_buffer pmbuf,
-				 IN t_u32 port, IN t_u32 timeout)
+mlan_status moal_write_data_sync(t_void *pmoal_handle, pmlan_buffer pmbuf,
+				 t_u32 port, t_u32 timeout)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	return handle->ops.write_data_sync(handle, pmbuf, port, timeout);
@@ -1099,9 +1089,8 @@ mlan_status moal_write_data_sync(IN t_void *pmoal_handle, IN pmlan_buffer pmbuf,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_read_data_sync(IN t_void *pmoal_handle,
-				IN OUT pmlan_buffer pmbuf, IN t_u32 port,
-				IN t_u32 timeout)
+mlan_status moal_read_data_sync(t_void *pmoal_handle, pmlan_buffer pmbuf,
+				t_u32 port, t_u32 timeout)
 {
 	moal_handle *handle = (moal_handle *)pmoal_handle;
 	return handle->ops.read_data_sync(handle, pmbuf, port, timeout);
@@ -1117,7 +1106,7 @@ mlan_status moal_read_data_sync(IN t_void *pmoal_handle,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_write_reg(IN t_void *pmoal_handle, IN t_u32 reg, IN t_u32 data)
+mlan_status moal_write_reg(t_void *pmoal_handle, t_u32 reg, t_u32 data)
 {
 	int ret = MLAN_STATUS_FAILURE;
 	moal_handle *handle = (moal_handle *)pmoal_handle;
@@ -1135,8 +1124,7 @@ mlan_status moal_write_reg(IN t_void *pmoal_handle, IN t_u32 reg, IN t_u32 data)
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_read_reg(IN t_void *pmoal_handle, IN t_u32 reg,
-			  OUT t_u32 *data)
+mlan_status moal_read_reg(t_void *pmoal_handle, t_u32 reg, t_u32 *data)
 {
 	int ret = MLAN_STATUS_FAILURE;
 	moal_handle *handle = (moal_handle *)pmoal_handle;
@@ -1155,7 +1143,7 @@ mlan_status moal_read_reg(IN t_void *pmoal_handle, IN t_u32 reg,
  *
  *  @return         MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status moal_recv_packet(IN t_void *pmoal_handle, IN pmlan_buffer pmbuf)
+mlan_status moal_recv_packet(t_void *pmoal_handle, pmlan_buffer pmbuf)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	moal_private *priv = NULL;
@@ -1378,7 +1366,7 @@ done:
  *
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status moal_recv_event(IN t_void *pmoal_handle, IN pmlan_event pmevent)
+mlan_status moal_recv_event(t_void *pmoal_handle, pmlan_event pmevent)
 {
 #ifdef STA_SUPPORT
 	int custom_len = 0;
@@ -1406,7 +1394,7 @@ mlan_status moal_recv_event(IN t_void *pmoal_handle, IN pmlan_event pmevent)
 	moal_private *remain_priv = NULL;
 #endif
 #if defined(UAP_CFG80211) || defined(STA_CFG80211)
-	chan_band_info *pchan_info = NULL;
+	pchan_band_info pchan_info = NULL;
 #endif
 	struct timeval tstamp;
 
@@ -2958,8 +2946,7 @@ done:
  *
  *  @return         N/A
  */
-t_void moal_print(IN t_void *pmoal_handle, IN t_u32 level, IN char *pformat,
-		  IN...)
+t_void moal_print(t_void *pmoal_handle, t_u32 level, char *pformat, IN...)
 {
 #ifdef DEBUG_LEVEL1
 	va_list args;
@@ -3011,8 +2998,7 @@ t_void moal_print(IN t_void *pmoal_handle, IN t_u32 level, IN char *pformat,
  *
  *  @return            N/A
  */
-t_void moal_print_netintf(IN t_void *pmoal_handle, IN t_u32 bss_index,
-			  IN t_u32 level)
+t_void moal_print_netintf(t_void *pmoal_handle, t_u32 bss_index, t_u32 level)
 {
 #ifdef DEBUG_LEVEL1
 	moal_handle *phandle = (moal_handle *)pmoal_handle;
@@ -3037,7 +3023,7 @@ t_void moal_print_netintf(IN t_void *pmoal_handle, IN t_u32 bss_index,
  *
  *  @return                 N/A
  */
-t_void moal_assert(IN t_void *pmoal_handle, IN t_u32 cond)
+t_void moal_assert(t_void *pmoal_handle, t_u32 cond)
 {
 	if (!cond) {
 		panic("Assert failed: Panic!");
@@ -3056,9 +3042,8 @@ t_void moal_assert(IN t_void *pmoal_handle, IN t_u32 cond)
  *
  *  @return                 N/A
  */
-t_void moal_hist_data_add(IN t_void *pmoal_handle, IN t_u32 bss_index,
-			  IN t_u16 rx_rate, IN t_s8 snr, IN t_s8 nflr,
-			  IN t_u8 antenna)
+t_void moal_hist_data_add(t_void *pmoal_handle, t_u32 bss_index, t_u16 rx_rate,
+			  t_s8 snr, t_s8 nflr, t_u8 antenna)
 {
 	moal_private *priv = NULL;
 	priv = woal_bss_index_to_priv(pmoal_handle, bss_index);
@@ -3079,7 +3064,7 @@ t_void moal_hist_data_add(IN t_void *pmoal_handle, IN t_u32 bss_index,
  *  @param base  divisor
  *  @return      returns 64-bit quotient
  */
-t_u64 moal_do_div(IN t_u64 num, IN t_u32 base)
+t_u64 moal_do_div(t_u64 num, t_u32 base)
 {
 	t_u64 val = num;
 	do_div(val, base);
@@ -3094,8 +3079,7 @@ t_u64 moal_do_div(IN t_u64 num, IN t_u32 base)
  *  @param bss_index      index of priv
  *  @return      MLAN_STATUS_SUCCESS
  */
-mlan_status moal_wait_hostcmd_complete(IN t_void *pmoal_handle,
-				       IN t_u32 bss_index)
+mlan_status moal_wait_hostcmd_complete(t_void *pmoal_handle, t_u32 bss_index)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	moal_handle *handle = (moal_handle *)pmoal_handle;
@@ -3131,8 +3115,7 @@ done:
  *  @param bss_index      index of priv
  *  @return      MLAN_STATUS_SUCCESS
  */
-mlan_status moal_notify_hostcmd_complete(IN t_void *pmoal_handle,
-					 IN t_u32 bss_index)
+mlan_status moal_notify_hostcmd_complete(t_void *pmoal_handle, t_u32 bss_index)
 {
 	mlan_status status = MLAN_STATUS_SUCCESS;
 	moal_handle *handle = (moal_handle *)pmoal_handle;

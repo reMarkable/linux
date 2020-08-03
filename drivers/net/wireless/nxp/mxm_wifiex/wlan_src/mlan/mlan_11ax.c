@@ -354,8 +354,8 @@ t_u16 wlan_11ax_bandconfig_allowed(mlan_private *pmpriv, t_u16 bss_band)
  *
  *  @return     MLAN_STATUS_PENDING --success, otherwise fail
  */
-static mlan_status wlan_11ax_ioctl_hecfg(IN pmlan_adapter pmadapter,
-					 IN pmlan_ioctl_req pioctl_req)
+static mlan_status wlan_11ax_ioctl_hecfg(pmlan_adapter pmadapter,
+					 pmlan_ioctl_req pioctl_req)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_private *pmpriv = pmadapter->priv[pioctl_req->bss_index];
@@ -446,9 +446,8 @@ mlan_status wlan_11ax_cfg_ioctl(pmlan_adapter pmadapter,
  *  @param pdata_buf    A pointer to data buffer
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_11ax_cfg(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			      IN t_void *pdata_buf)
+mlan_status wlan_cmd_11ax_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			      t_u16 cmd_action, t_void *pdata_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	HostCmd_DS_11AX_CFG *axcfg = &cmd->params.axcfg;
@@ -490,9 +489,8 @@ mlan_status wlan_cmd_11ax_cfg(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_11ax_cfg(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *resp,
-			      IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_11ax_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			      mlan_ioctl_req *pioctl_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	mlan_ds_11ax_cfg *cfg = MNULL;
@@ -513,7 +511,6 @@ mlan_status wlan_ret_11ax_cfg(IN pmlan_private pmpriv,
 	/* TLV parse */
 	left_len = resp->size - sizeof(HostCmd_DS_11AX_CFG) - S_DS_GEN;
 	tlv = (MrvlIEtypes_Extension_t *)axcfg->val;
-	pmpriv->user_hecap_len = 0;
 
 	while (left_len > sizeof(MrvlIEtypesHeader_t)) {
 		tlv_type = wlan_le16_to_cpu(tlv->type);
@@ -624,9 +621,8 @@ mlan_status wlan_11ax_ioctl_cmd(pmlan_adapter pmadapter,
  *  @param pdata_buf    A pointer to data buffer
  *  @return         MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_11ax_cmd(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			      IN t_void *pdata_buf)
+mlan_status wlan_cmd_11ax_cmd(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			      t_u16 cmd_action, t_void *pdata_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	HostCmd_DS_11AX_CMD_CFG *axcmd = &cmd->params.axcmd;
@@ -704,9 +700,8 @@ mlan_status wlan_cmd_11ax_cmd(IN pmlan_private pmpriv,
  *
  *  @return        MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_ret_11ax_cmd(IN pmlan_private pmpriv,
-			      IN HostCmd_DS_COMMAND *resp,
-			      IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_11ax_cmd(pmlan_private pmpriv, HostCmd_DS_COMMAND *resp,
+			      mlan_ioctl_req *pioctl_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	mlan_ds_11ax_cmd_cfg *cfg = MNULL;
@@ -781,9 +776,8 @@ done:
  *  @param pdata_buf    A pointer to data buffer
  *  @return             Status returned
  */
-mlan_status wlan_cmd_twt_cfg(IN pmlan_private pmpriv,
-			     IN HostCmd_DS_COMMAND *cmd, IN t_u16 cmd_action,
-			     IN t_void *pdata_buf)
+mlan_status wlan_cmd_twt_cfg(pmlan_private pmpriv, HostCmd_DS_COMMAND *cmd,
+			     t_u16 cmd_action, t_void *pdata_buf)
 {
 	pmlan_adapter pmadapter = pmpriv->adapter;
 	HostCmd_DS_TWT_CFG *hostcmd_twtcfg =

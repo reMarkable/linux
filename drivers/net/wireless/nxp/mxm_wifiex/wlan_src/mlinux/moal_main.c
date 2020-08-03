@@ -82,6 +82,11 @@ extern int fw_reload;
 
 extern int wifi_status;
 
+#if defined(STA_CFG80211) || defined(UAP_CFG80211)
+#if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+extern int fw_region;
+#endif
+#endif
 /********************************************************
 		Local Variables
 ********************************************************/
@@ -1491,7 +1496,7 @@ mlan_status woal_init_sw(moal_handle *handle)
 	}
 	moal_memcpy_ext(handle, &device.callbacks, &woal_callbacks,
 			sizeof(mlan_callbacks), sizeof(mlan_callbacks));
-	device.fw_region = moal_extflg_isset(handle, EXT_FW_REGION);
+	device.fw_region = fw_region;
 	device.drv_mode = handle->params.drv_mode;
 	if (MLAN_STATUS_SUCCESS == mlan_register(&device, &pmlan))
 		handle->pmlan_adapter = pmlan;
@@ -3065,6 +3070,7 @@ static mlan_status woal_init_fw_dpc(moal_handle *handle)
 		}
 #endif /* USB_NEW_FW_DNLD */
 		PRINTM(MMSG, "WLAN FW is active\n");
+		handle->driver_status = MFALSE;
 	}
 
 	moal_get_boot_ktime(handle, &handle->on_time);
@@ -4016,7 +4022,8 @@ void woal_remove_interface(moal_handle *handle, t_u8 bss_index)
 #endif
 #endif
 #if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-	if (GET_BSS_ROLE(priv) == MLAN_BSS_ROLE_STA)
+	if (GET_BSS_ROLE(priv) == MLAN_BSS_ROLE_STA ||
+	    GET_BSS_ROLE(priv) == MLAN_BSS_ROLE_UAP)
 		woal_deinit_wifi_hal(priv);
 #endif
 
@@ -5729,6 +5736,9 @@ void woal_init_priv(moal_private *priv, t_u8 wait_option)
 		memset(&priv->beacon_after, 0,
 		       sizeof(struct cfg80211_beacon_data));
 #endif
+#if CFG80211_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+		woal_init_wifi_hal(priv);
+#endif
 #endif
 	}
 #endif
@@ -5844,6 +5854,8 @@ int woal_reset_intf(moal_private *priv, t_u8 wait_option, int all_intf)
 	}
 	handle = priv->phandle;
 
+	if (handle->rf_test_mode)
+		woal_process_rf_test_mode(handle, MFG_CMD_UNSET_TEST_MODE);
 #ifdef STA_SUPPORT
 	woal_cancel_scan(priv, wait_option);
 #endif
@@ -7883,7 +7895,7 @@ mlan_status woal_request_country_power_table(moal_private *priv, char *country)
 		LEAVE();
 		return MLAN_STATUS_FAILURE;
 	}
-	if (moal_extflg_isset(priv->phandle, EXT_FW_REGION))
+	if (fw_region)
 		strncpy(country_name, "rgpower_XX.bin",
 			strlen("rgpower_XX.bin"));
 	handle = priv->phandle;
@@ -7921,8 +7933,7 @@ mlan_status woal_request_country_power_table(moal_private *priv, char *country)
 	ret = woal_set_user_init_data(handle, COUNTRY_POWER_TABLE,
 				      MOAL_IOCTL_WAIT, file_path);
 	/* Try download WW rgpowertable */
-	if (moal_extflg_isset(priv->phandle, EXT_FW_REGION) &&
-	    (ret == MLAN_STATUS_FILE_ERR)) {
+	if (fw_region && (ret == MLAN_STATUS_FILE_ERR)) {
 		strncpy(country_name, "rgpower_WW.bin",
 			strlen("rgpower_WW.bin"));
 		last_slash = strrchr(file_path, '/');
@@ -7985,6 +7996,7 @@ t_void woal_evt_work_queue(struct work_struct *work)
 	moal_handle *handle = container_of(work, moal_handle, evt_work);
 	struct woal_event *evt;
 	unsigned long flags;
+	moal_private *priv;
 	ENTER();
 	if (handle->surprise_removed == MTRUE) {
 		LEAVE();
@@ -8014,6 +8026,16 @@ t_void woal_evt_work_queue(struct work_struct *work)
 				(moal_private *)evt->priv);
 #endif
 #endif
+			break;
+		case WOAL_EVENT_DEAUTH:
+			priv = evt->priv;
+			woal_host_mlme_disconnect(evt->priv, evt->reason_code,
+						  priv->cfg_bssid);
+			break;
+
+		case WOAL_EVENT_ASSOC_RESP:
+			woal_host_mlme_process_assoc_resp(
+				(moal_private *)evt->priv, &evt->assoc_resp);
 			break;
 		}
 		kfree(evt);
@@ -8490,6 +8512,8 @@ mlan_status woal_remove_card(void *card)
 		}
 	}
 #endif
+	if (handle->rf_test_mode)
+		woal_process_rf_test_mode(handle, MFG_CMD_UNSET_TEST_MODE);
 	handle->surprise_removed = MTRUE;
 
 	flush_workqueue(handle->workqueue);
@@ -8922,7 +8946,7 @@ void woal_request_fw_reload(moal_handle *phandle, t_u8 mode)
 	int ret = 0;
 
 #ifdef PCIE
-	pcie_service_card *card = NULL;
+	ppcie_service_card card = NULL;
 	struct pci_dev *pdev = NULL;
 #endif
 	moal_handle *handle = phandle;
@@ -9154,6 +9178,10 @@ static void woal_cleanup_module(void)
 #endif /* MMC_PM_KEEP_POWER */
 #endif /* SDIO_SUSPEND_RESUME */
 #endif
+
+		if (handle->rf_test_mode)
+			woal_process_rf_test_mode(handle,
+						  MFG_CMD_UNSET_TEST_MODE);
 
 		for (i = 0; i < handle->priv_num; i++) {
 #ifdef STA_SUPPORT

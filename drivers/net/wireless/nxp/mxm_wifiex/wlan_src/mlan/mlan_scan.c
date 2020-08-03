@@ -395,7 +395,7 @@ static t_u8 wlan_is_band_compatible(t_u8 cfg_band, t_u8 scan_band)
  *  @param pmpriv       A pointer to mlan_private structure
  *  @return             index in BSSID list
  */
-static t_s32 wlan_find_best_network_in_list(IN mlan_private *pmpriv)
+static t_s32 wlan_find_best_network_in_list(mlan_private *pmpriv)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_u32 mode = pmpriv->bss_mode;
@@ -454,8 +454,8 @@ static t_s32 wlan_find_best_network_in_list(IN mlan_private *pmpriv)
  *  @return                 N/A
  */
 static t_void wlan_scan_create_channel_list(
-	IN mlan_private *pmpriv, IN const wlan_user_scan_cfg *puser_scan_in,
-	OUT ChanScanParamSet_t *pscan_chan_list, IN t_u8 filtered_scan)
+	mlan_private *pmpriv, const wlan_user_scan_cfg *puser_scan_in,
+	ChanScanParamSet_t *pscan_chan_list, t_u8 filtered_scan)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	region_chan_t *pscan_region;
@@ -504,7 +504,7 @@ static t_void wlan_scan_create_channel_list(
 		if (!wlan_is_band_compatible(band, pscan_region->band))
 			continue;
 		for (next_chan = 0; next_chan < pscan_region->num_cfp;
-		     next_chan++, chan_idx++) {
+		     next_chan++) {
 			/* Set the default scan type to the user specified type,
 			 * will later be changed to passive on a per channel
 			 * basis if restricted by regulatory requirements (11d
@@ -512,6 +512,8 @@ static t_void wlan_scan_create_channel_list(
 			 */
 			scan_type = pmadapter->scan_type;
 			cfp = pscan_region->pcfp + next_chan;
+			if (cfp->dynamic.flags & NXP_CHANNEL_DISABLED)
+				continue;
 
 			if (wlan_is_chan_passive(pmpriv, pscan_region->band,
 						 (t_u8)cfp->channel)) {
@@ -590,6 +592,7 @@ static t_void wlan_scan_create_channel_list(
 				       .chan_scan_mode.passive_scan,
 			       pscan_chan_list[chan_idx]
 				       .chan_scan_mode.passive_to_active_scan);
+			chan_idx++;
 		}
 	}
 
@@ -604,8 +607,8 @@ static t_void wlan_scan_create_channel_list(
  *
  *  @return                   N/A
  */
-static void wlan_add_wps_probe_request_ie(IN mlan_private *pmpriv,
-					  OUT t_u8 **pptlv_out)
+static void wlan_add_wps_probe_request_ie(mlan_private *pmpriv,
+					  t_u8 **pptlv_out)
 {
 	MrvlIEtypesHeader_t *tlv;
 
@@ -651,11 +654,11 @@ static void wlan_add_wps_probe_request_ie(IN mlan_private *pmpriv,
  *  @return                   MLAN_STATUS_SUCCESS or error return otherwise
  */
 static mlan_status
-wlan_scan_channel_list(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
-		       IN t_u32 max_chan_per_scan, IN t_u8 filtered_scan,
-		       OUT wlan_scan_cmd_config *pscan_cfg_out,
-		       OUT MrvlIEtypes_ChanListParamSet_t *pchan_tlv_out,
-		       IN ChanScanParamSet_t *pscan_chan_list)
+wlan_scan_channel_list(mlan_private *pmpriv, t_void *pioctl_buf,
+		       t_u32 max_chan_per_scan, t_u8 filtered_scan,
+		       wlan_scan_cmd_config *pscan_cfg_out,
+		       MrvlIEtypes_ChanListParamSet_t *pchan_tlv_out,
+		       ChanScanParamSet_t *pscan_chan_list)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -1034,11 +1037,11 @@ wlan_scan_channel_list(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
  *  @return                 MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
 static mlan_status wlan_scan_setup_scan_config(
-	IN mlan_private *pmpriv, IN wlan_user_scan_cfg *puser_scan_in,
-	OUT wlan_scan_cmd_config *pscan_cfg_out,
-	OUT MrvlIEtypes_ChanListParamSet_t **ppchan_list_out,
-	OUT ChanScanParamSet_t *pscan_chan_list, OUT t_u8 *pmax_chan_per_scan,
-	OUT t_u8 *pfiltered_scan, OUT t_u8 *pscan_current_only)
+	mlan_private *pmpriv, wlan_user_scan_cfg *puser_scan_in,
+	wlan_scan_cmd_config *pscan_cfg_out,
+	MrvlIEtypes_ChanListParamSet_t **ppchan_list_out,
+	ChanScanParamSet_t *pscan_chan_list, t_u8 *pmax_chan_per_scan,
+	t_u8 *pfiltered_scan, t_u8 *pscan_current_only)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -1579,11 +1582,11 @@ static mlan_status wlan_scan_setup_scan_config(
  *
  *  @return                 N/A
  */
-static t_void wlan_ret_802_11_scan_get_tlv_ptrs(IN pmlan_adapter pmadapter,
-						IN MrvlIEtypes_Data_t *ptlv,
-						IN t_u32 tlv_buf_size,
-						IN t_u32 req_tlv_type,
-						OUT MrvlIEtypes_Data_t **pptlv)
+static t_void wlan_ret_802_11_scan_get_tlv_ptrs(pmlan_adapter pmadapter,
+						MrvlIEtypes_Data_t *ptlv,
+						t_u32 tlv_buf_size,
+						t_u32 req_tlv_type,
+						MrvlIEtypes_Data_t **pptlv)
 {
 	MrvlIEtypes_Data_t *pcurrent_tlv;
 	t_u32 tlv_buf_left;
@@ -1667,9 +1670,11 @@ static t_void wlan_ret_802_11_scan_get_tlv_ptrs(IN pmlan_adapter pmadapter,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-static mlan_status wlan_interpret_bss_desc_with_ie(
-	IN pmlan_adapter pmadapter, OUT BSSDescriptor_t *pbss_entry,
-	IN t_u8 **pbeacon_info, IN t_u32 *bytes_left, IN t_u8 ext_scan)
+static mlan_status wlan_interpret_bss_desc_with_ie(pmlan_adapter pmadapter,
+						   BSSDescriptor_t *pbss_entry,
+						   t_u8 **pbeacon_info,
+						   t_u32 *bytes_left,
+						   t_u8 ext_scan)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	IEEEtypes_ElementId_e element_id;
@@ -2241,8 +2246,8 @@ static mlan_status wlan_interpret_bss_desc_with_ie(
  *
  *  @return           N/A
  */
-static t_void wlan_adjust_ie_in_bss_entry(IN mlan_private *pmpriv,
-					  IN BSSDescriptor_t *pbss_entry)
+static t_void wlan_adjust_ie_in_bss_entry(mlan_private *pmpriv,
+					  BSSDescriptor_t *pbss_entry)
 {
 	ENTER();
 	if (pbss_entry->pbeacon_buf) {
@@ -2409,10 +2414,10 @@ static t_void wlan_adjust_ie_in_bss_entry(IN mlan_private *pmpriv,
  *
  *  @return           N/A
  */
-static t_void wlan_ret_802_11_scan_store_beacon(IN mlan_private *pmpriv,
-						IN t_u32 beacon_idx,
-						IN t_u32 num_of_ent,
-						IN BSSDescriptor_t *pnew_beacon)
+static t_void wlan_ret_802_11_scan_store_beacon(mlan_private *pmpriv,
+						t_u32 beacon_idx,
+						t_u32 num_of_ent,
+						BSSDescriptor_t *pnew_beacon)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_u8 *pbcn_store;
@@ -2810,7 +2815,7 @@ static t_void wlan_ret_802_11_scan_store_beacon(IN mlan_private *pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS, otherwise failure
  */
-static mlan_status wlan_update_curr_bcn(IN mlan_private *pmpriv)
+static mlan_status wlan_update_curr_bcn(mlan_private *pmpriv)
 {
 	BSSDescriptor_t *pcurr_bss = &pmpriv->curr_bss_params.bss_descriptor;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -3061,7 +3066,7 @@ static t_void wlan_update_chan_rssi(mlan_adapter *pmadapter)
  *
  *  @return             N/A
  */
-static t_void wlan_scan_process_results(IN mlan_private *pmpriv)
+static t_void wlan_scan_process_results(mlan_private *pmpriv)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_s32 j;
@@ -3254,8 +3259,8 @@ static t_void wlan_scan_process_results(IN mlan_private *pmpriv)
  *
  *  @pre                table_idx must be an index to a valid entry
  */
-static t_void wlan_scan_delete_table_entry(IN mlan_private *pmpriv,
-					   IN t_s32 table_idx)
+static t_void wlan_scan_delete_table_entry(mlan_private *pmpriv,
+					   t_s32 table_idx)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_u32 del_idx;
@@ -3553,8 +3558,8 @@ static t_void wlan_scan_delete_table_entry(IN mlan_private *pmpriv,
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
 static mlan_status
-wlan_scan_delete_ssid_table_entry(IN mlan_private *pmpriv,
-				  IN mlan_802_11_ssid *pdel_ssid)
+wlan_scan_delete_ssid_table_entry(mlan_private *pmpriv,
+				  mlan_802_11_ssid *pdel_ssid)
 {
 	mlan_status ret = MLAN_STATUS_FAILURE;
 	t_s32 table_idx;
@@ -3603,8 +3608,7 @@ wlan_scan_delete_ssid_table_entry(IN mlan_private *pmpriv,
  *
  *  @return        Index in ScanTable, or negative value if error
  */
-t_s32 wlan_is_network_compatible(IN mlan_private *pmpriv, IN t_u32 index,
-				 IN t_u32 mode)
+t_s32 wlan_is_network_compatible(mlan_private *pmpriv, t_u32 index, t_u32 mode)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	BSSDescriptor_t *pbss_desc;
@@ -3957,7 +3961,7 @@ t_s32 wlan_is_network_compatible(IN mlan_private *pmpriv, IN t_u32 index,
  *
  *  @return             MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_flush_scan_table(IN pmlan_adapter pmadapter)
+mlan_status wlan_flush_scan_table(pmlan_adapter pmadapter)
 {
 	t_u8 i = 0;
 	ENTER();
@@ -3993,8 +3997,8 @@ mlan_status wlan_flush_scan_table(IN pmlan_adapter pmadapter)
  *
  *  @return              MLAN_STATUS_SUCCESS or < 0 if error
  */
-mlan_status wlan_scan_networks(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
-			       IN wlan_user_scan_cfg *puser_scan_in)
+mlan_status wlan_scan_networks(mlan_private *pmpriv, t_void *pioctl_buf,
+			       wlan_user_scan_cfg *puser_scan_in)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -4136,9 +4140,8 @@ mlan_status wlan_scan_networks(IN mlan_private *pmpriv, IN t_void *pioctl_buf,
  *
  *  @return           MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_802_11_scan(IN mlan_private *pmpriv,
-				 IN HostCmd_DS_COMMAND *pcmd,
-				 IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_scan(mlan_private *pmpriv, HostCmd_DS_COMMAND *pcmd,
+				 t_void *pdata_buf)
 {
 	HostCmd_DS_802_11_SCAN *pscan_cmd = &pcmd->params.scan;
 	wlan_scan_cmd_config *pscan_cfg;
@@ -4175,8 +4178,8 @@ mlan_status wlan_cmd_802_11_scan(IN mlan_private *pmpriv,
  *  @return             MTRUE/MFALSE
  */
 
-t_bool wlan_active_scan_req_for_passive_chan(IN mlan_private *pmpriv,
-					     IN mlan_ioctl_req *pioctl_buf)
+t_bool wlan_active_scan_req_for_passive_chan(mlan_private *pmpriv,
+					     mlan_ioctl_req *pioctl_buf)
 {
 	t_bool ret = MFALSE;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -4345,9 +4348,8 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_802_11_scan(IN mlan_private *pmpriv,
-				 IN HostCmd_DS_COMMAND *resp,
-				 IN t_void *pioctl_buf)
+mlan_status wlan_ret_802_11_scan(mlan_private *pmpriv, HostCmd_DS_COMMAND *resp,
+				 t_void *pioctl_buf)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -4734,9 +4736,9 @@ done:
  *
  *  @return           MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_802_11_scan_ext(IN mlan_private *pmpriv,
-				     IN HostCmd_DS_COMMAND *pcmd,
-				     IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_scan_ext(mlan_private *pmpriv,
+				     HostCmd_DS_COMMAND *pcmd,
+				     t_void *pdata_buf)
 {
 	HostCmd_DS_802_11_SCAN_EXT *pext_scan_cmd = &pcmd->params.ext_scan;
 	wlan_scan_cmd_config *pscan_cfg = MNULL;
@@ -4786,9 +4788,9 @@ mlan_status wlan_cmd_802_11_scan_ext(IN mlan_private *pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_802_11_scan_ext(IN mlan_private *pmpriv,
-				     IN HostCmd_DS_COMMAND *resp,
-				     IN t_void *pioctl_buf)
+mlan_status wlan_ret_802_11_scan_ext(mlan_private *pmpriv,
+				     HostCmd_DS_COMMAND *resp,
+				     t_void *pioctl_buf)
 {
 	HostCmd_DS_802_11_SCAN_EXT *pext_scan_cmd = &(resp->params.ext_scan);
 	MrvlIEtypesHeader_t *tlv = MNULL;
@@ -4967,10 +4969,10 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-static mlan_status wlan_parse_ext_scan_result(IN mlan_private *pmpriv,
-					      IN t_u8 number_of_sets,
-					      IN t_u8 *pscan_resp,
-					      IN t_u16 scan_resp_size)
+static mlan_status wlan_parse_ext_scan_result(mlan_private *pmpriv,
+					      t_u8 number_of_sets,
+					      t_u8 *pscan_resp,
+					      t_u16 scan_resp_size)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -5190,8 +5192,8 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_handle_event_ext_scan_report(IN mlan_private *pmpriv,
-					      IN mlan_buffer *pmbuf)
+mlan_status wlan_handle_event_ext_scan_report(mlan_private *pmpriv,
+					      mlan_buffer *pmbuf)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_callbacks *pcb = &pmadapter->callbacks;
@@ -5304,8 +5306,8 @@ mlan_status wlan_handle_event_ext_scan_report(IN mlan_private *pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_handle_event_ext_scan_status(IN mlan_private *pmpriv,
-					      IN mlan_buffer *pmbuf)
+mlan_status wlan_handle_event_ext_scan_status(mlan_private *pmpriv,
+					      mlan_buffer *pmbuf)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -5417,9 +5419,9 @@ done:
  *
  *  @return           MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_802_11_bg_scan_query(IN mlan_private *pmpriv,
-					  IN HostCmd_DS_COMMAND *pcmd,
-					  IN t_void *pdata_buf)
+mlan_status wlan_cmd_802_11_bg_scan_query(mlan_private *pmpriv,
+					  HostCmd_DS_COMMAND *pcmd,
+					  t_void *pdata_buf)
 {
 	HostCmd_DS_802_11_BG_SCAN_QUERY *bg_query = &pcmd->params.bg_scan_query;
 
@@ -5450,8 +5452,8 @@ mlan_status wlan_cmd_802_11_bg_scan_query(IN mlan_private *pmpriv,
  *  @return                 channel number
  */
 static t_u8
-wlan_bgscan_create_channel_list(IN mlan_private *pmpriv,
-				IN const wlan_bgscan_cfg *pbg_scan_in,
+wlan_bgscan_create_channel_list(mlan_private *pmpriv,
+				const wlan_bgscan_cfg *pbg_scan_in,
 				MrvlIEtypes_ChanListParamSet_t *tlv_chan_list)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -5587,9 +5589,8 @@ wlan_bgscan_create_channel_list(IN mlan_private *pmpriv,
  *
  *  @return           MLAN_STATUS_SUCCESS
  */
-mlan_status wlan_cmd_bgscan_config(IN mlan_private *pmpriv,
-				   IN HostCmd_DS_COMMAND *pcmd,
-				   IN t_void *pdata_buf)
+mlan_status wlan_cmd_bgscan_config(mlan_private *pmpriv,
+				   HostCmd_DS_COMMAND *pcmd, t_void *pdata_buf)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	HostCmd_DS_802_11_BG_SCAN_CONFIG *bg_scan =
@@ -6036,9 +6037,9 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_bgscan_config(IN mlan_private *pmpriv,
-				   IN HostCmd_DS_COMMAND *resp,
-				   IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_bgscan_config(mlan_private *pmpriv,
+				   HostCmd_DS_COMMAND *resp,
+				   mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_scan *pscan = MNULL;
 	HostCmd_DS_802_11_BG_SCAN_CONFIG *bg_scan =
@@ -6076,9 +6077,9 @@ mlan_status wlan_ret_bgscan_config(IN mlan_private *pmpriv,
  *
  *  @return             MLAN_STATUS_SUCCESS or MLAN_STATUS_FAILURE
  */
-mlan_status wlan_ret_802_11_bgscan_query(IN mlan_private *pmpriv,
-					 IN HostCmd_DS_COMMAND *resp,
-					 IN mlan_ioctl_req *pioctl_buf)
+mlan_status wlan_ret_802_11_bgscan_query(mlan_private *pmpriv,
+					 HostCmd_DS_COMMAND *resp,
+					 mlan_ioctl_req *pioctl_buf)
 {
 	mlan_ds_scan *pscan = MNULL;
 	mlan_adapter *pmadapter = pmpriv->adapter;
@@ -6113,8 +6114,8 @@ mlan_status wlan_ret_802_11_bgscan_query(IN mlan_private *pmpriv,
  *
  *  @return             index in BSSID list or < 0 if error
  */
-t_s32 wlan_find_ssid_in_list(IN mlan_private *pmpriv, IN mlan_802_11_ssid *ssid,
-			     IN t_u8 *bssid, IN t_u32 mode)
+t_s32 wlan_find_ssid_in_list(mlan_private *pmpriv, mlan_802_11_ssid *ssid,
+			     t_u8 *bssid, t_u32 mode)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_s32 net = -1, j;
@@ -6195,8 +6196,7 @@ t_s32 wlan_find_ssid_in_list(IN mlan_private *pmpriv, IN mlan_802_11_ssid *ssid,
  *
  *  @return             index in BSSID list or < 0 if error
  */
-t_s32 wlan_find_bssid_in_list(IN mlan_private *pmpriv, IN t_u8 *bssid,
-			      IN t_u32 mode)
+t_s32 wlan_find_bssid_in_list(mlan_private *pmpriv, t_u8 *bssid, t_u32 mode)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	t_s32 net = -1;
@@ -6253,8 +6253,8 @@ t_s32 wlan_find_bssid_in_list(IN mlan_private *pmpriv, IN t_u8 *bssid,
  *
  *  @return         0--ssid is same, otherwise is different
  */
-t_s32 wlan_ssid_cmp(IN pmlan_adapter pmadapter, IN mlan_802_11_ssid *ssid1,
-		    IN mlan_802_11_ssid *ssid2)
+t_s32 wlan_ssid_cmp(pmlan_adapter pmadapter, mlan_802_11_ssid *ssid1,
+		    mlan_802_11_ssid *ssid2)
 {
 	ENTER();
 
@@ -6280,8 +6280,8 @@ t_s32 wlan_ssid_cmp(IN pmlan_adapter pmadapter, IN mlan_802_11_ssid *ssid1,
  *
  *  @return                     MLAN_STATUS_SUCCESS--success, otherwise--fail
  */
-mlan_status wlan_find_best_network(IN mlan_private *pmpriv,
-				   OUT mlan_ssid_bssid *preq_ssid_bssid)
+mlan_status wlan_find_best_network(mlan_private *pmpriv,
+				   mlan_ssid_bssid *preq_ssid_bssid)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_status ret = MLAN_STATUS_SUCCESS;
@@ -6340,9 +6340,8 @@ done:
  *
  *  @return             MLAN_STATUS_SUCCESS--success, otherwise--fail
  */
-mlan_status wlan_scan_specific_ssid(IN mlan_private *pmpriv,
-				    IN t_void *pioctl_buf,
-				    IN mlan_802_11_ssid *preq_ssid)
+mlan_status wlan_scan_specific_ssid(mlan_private *pmpriv, t_void *pioctl_buf,
+				    mlan_802_11_ssid *preq_ssid)
 {
 	mlan_status ret = MLAN_STATUS_SUCCESS;
 	mlan_callbacks *pcb = (mlan_callbacks *)&pmpriv->adapter->callbacks;
@@ -6399,7 +6398,7 @@ done:
  *
  *  @return             N/A
  */
-t_void wlan_save_curr_bcn(IN mlan_private *pmpriv)
+t_void wlan_save_curr_bcn(mlan_private *pmpriv)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_callbacks *pcb = (pmlan_callbacks)&pmadapter->callbacks;
@@ -6455,7 +6454,7 @@ t_void wlan_save_curr_bcn(IN mlan_private *pmpriv)
  *
  *  @return             N/A
  */
-t_void wlan_free_curr_bcn(IN mlan_private *pmpriv)
+t_void wlan_free_curr_bcn(mlan_private *pmpriv)
 {
 	mlan_adapter *pmadapter = pmpriv->adapter;
 	mlan_callbacks *pcb = (pmlan_callbacks)&pmadapter->callbacks;
