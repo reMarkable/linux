@@ -184,7 +184,7 @@ struct max77818_of_property {
 	int (*reg_write_op)(struct regmap *map,
 			    unsigned int reg,
 			    unsigned int value);
-	bool is_learned_value;
+	bool skip_verify;
 };
 
 static void max77818_do_init_completion(struct max77818_chip *chip)
@@ -1037,61 +1037,64 @@ static void max77818_lock_extra_config_registers(struct max77818_chip *chip)
 }
 
 static struct max77818_of_property max77818_relax_cfg =
-	{"maxim,relax-cfg", MAX17042_RelaxCFG, regmap_write};
+	{"maxim,relax-cfg", MAX17042_RelaxCFG, regmap_write, true};
 
 static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,learn-cfg", MAX17042_LearnCFG, regmap_write, true },
-	{ "maxim,config", MAX17042_CONFIG, regmap_write },
-	{ "maxim,config2", MAX77818_Config2, regmap_write },
-	{ "maxim,full-soc-threshold", MAX17047_FullSOCThr, regmap_write },
+
+	/* Verified and restored if required after reboot to ensure FGCC=1 */
+	{ "maxim,config", MAX17042_CONFIG, regmap_write},
+
+	{ "maxim,config2", MAX77818_Config2, regmap_write, true },
+	{ "maxim,full-soc-threshold", MAX17047_FullSOCThr, regmap_write, true },
 
 	/* learned value, skipped during verify/write operation at boot */
 	{ "maxim,fullcaprep", MAX17042_FullCAP0, max77818_write_verify_reg, true },
 
-	{ "maxim,design-cap", MAX17042_DesignCap, regmap_write },
+	{ "maxim,design-cap", MAX17042_DesignCap, regmap_write, true },
 
 	/* learned values, skipped during verify/write operation at boot */
 	{ "maxim,dpacc", MAX17042_dPacc, max77818_write_verify_reg, true },
 	{ "maxim,dqacc", MAX17042_dQacc, max77818_write_verify_reg, true },
 	{ "maxim,fullcapnom", MAX17042_FullCAPNom, max77818_write_verify_reg, true },
 
-	{ "maxim,misc-cfg", MAX17042_MiscCFG, regmap_write },
-	{ "maxim,v-empty", MAX17047_V_empty, regmap_write },
-	{ "maxim,qresidual00", MAX17047_QRTbl00, max77818_write_verify_reg },
-	{ "maxim,qresidual10", MAX17047_QRTbl10, max77818_write_verify_reg },
-	{ "maxim,qresidual20", MAX17047_QRTbl20, max77818_write_verify_reg },
-	{ "maxim,qresidual30", MAX17047_QRTbl30, max77818_write_verify_reg },
+	{ "maxim,misc-cfg", MAX17042_MiscCFG, regmap_write, true },
+	{ "maxim,v-empty", MAX17047_V_empty, regmap_write, true },
+	{ "maxim,qresidual00", MAX17047_QRTbl00, max77818_write_verify_reg, true },
+	{ "maxim,qresidual10", MAX17047_QRTbl10, max77818_write_verify_reg, true },
+	{ "maxim,qresidual20", MAX17047_QRTbl20, max77818_write_verify_reg, true },
+	{ "maxim,qresidual30", MAX17047_QRTbl30, max77818_write_verify_reg, true },
 
 	/* learned value, skipped during verify/write operation at boot */
 	{ "maxim,rcomp0", MAX17042_RCOMP0, max77818_write_verify_reg, true },
 
-	{ "maxim,tempco", MAX17042_TempCo, max77818_write_verify_reg },
-	{ "maxim,ichg-term", MAX17042_ICHGTerm, regmap_write },
-	{ "maxim,filter-cfg", MAX17042_FilterCFG, regmap_write },
+	{ "maxim,tempco", MAX17042_TempCo, max77818_write_verify_reg, true },
+	{ "maxim,ichg-term", MAX17042_ICHGTerm, regmap_write, true },
+	{ "maxim,filter-cfg", MAX17042_FilterCFG, regmap_write, true },
 
 	/* learned value, skipped during verify/write operation at boot */
 	{ "maxim,iavg-empty", MAX17042_LAvg_empty, regmap_write, true },
 
-	{ "maxim,tgain", MAX17042_TGAIN, regmap_write },
-	{ "maxim,toff", MAx17042_TOFF, regmap_write },
-	{ "maxim,tcurve", MAX77818_TCURVE, regmap_write },
-	{ "maxim,talrt-th", MAX17042_TALRT_Th, regmap_write },
-	{ "maxim,talrt-th2", MAX77818_TALRT_Th2, regmap_write },
-	{ "maxim,jeita-curr", MAX77818_JEITA_Curr, regmap_write },
-	{ "maxim,jeita-volt", MAX77818_JEITA_Volt, regmap_write },
-	{ "maxim,chargestate0", MAX77818_ChargeState0, regmap_write },
-	{ "maxim,chargestate1", MAX77818_ChargeState1, regmap_write },
-	{ "maxim,chargestate2", MAX77818_ChargeState2, regmap_write },
-	{ "maxim,chargestate3", MAX77818_ChargeState3, regmap_write },
-	{ "maxim,chargestate4", MAX77818_ChargeState4, regmap_write },
-	{ "maxim,chargestate5", MAX77818_ChargeState5, regmap_write },
-	{ "maxim,chargestate6", MAX77818_ChargeState6, regmap_write },
-	{ "maxim,chargestate7", MAX77818_ChargeState7, regmap_write },
+	{ "maxim,tgain", MAX17042_TGAIN, regmap_write, true },
+	{ "maxim,toff", MAx17042_TOFF, regmap_write, true },
+	{ "maxim,tcurve", MAX77818_TCURVE, regmap_write, true },
+	{ "maxim,talrt-th", MAX17042_TALRT_Th, regmap_write, true },
+	{ "maxim,talrt-th2", MAX77818_TALRT_Th2, regmap_write, true },
+	{ "maxim,jeita-curr", MAX77818_JEITA_Curr, regmap_write, true },
+	{ "maxim,jeita-volt", MAX77818_JEITA_Volt, regmap_write, true },
+	{ "maxim,chargestate0", MAX77818_ChargeState0, regmap_write, true },
+	{ "maxim,chargestate1", MAX77818_ChargeState1, regmap_write, true },
+	{ "maxim,chargestate2", MAX77818_ChargeState2, regmap_write, true },
+	{ "maxim,chargestate3", MAX77818_ChargeState3, regmap_write, true },
+	{ "maxim,chargestate4", MAX77818_ChargeState4, regmap_write, true },
+	{ "maxim,chargestate5", MAX77818_ChargeState5, regmap_write, true },
+	{ "maxim,chargestate6", MAX77818_ChargeState6, regmap_write, true },
+	{ "maxim,chargestate7", MAX77818_ChargeState7, regmap_write, true },
 
 	/* The order of the following ones should be respected */
-	{ "maxim,at-rate", MAX17042_AtRate, regmap_write },
-	{ "maxim,smart-chg-cfg", MAX77818_SmartChgCfg, regmap_write },
-	{ "maxim,convgcfg", MAX77818_ConvgCfg, regmap_write },
+	{ "maxim,at-rate", MAX17042_AtRate, regmap_write, true },
+	{ "maxim,smart-chg-cfg", MAX77818_SmartChgCfg, regmap_write, true },
+	{ "maxim,convgcfg", MAX77818_ConvgCfg, regmap_write, true },
 };
 
 static void max77818_verify_custom_params(struct max77818_chip *chip)
@@ -1100,14 +1103,21 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 
 	dev_dbg(chip->dev, "Verifying custom params\n");
 
-	max77818_read_param_and_verify(chip, &max77818_relax_cfg);
+	if (max77818_relax_cfg.skip_verify) {
+		dev_dbg(chip->dev,
+			"Skipping verify/write for register '%s'\n",
+			max77818_relax_cfg.property_name);
+	}
+	else {
+		max77818_read_param_and_verify(chip, &max77818_relax_cfg);
+	}
 
 	max77818_unlock_extra_config_registers(chip);
 
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
-		if (max77818_custom_param_list[i].is_learned_value) {
+		if (max77818_custom_param_list[i].skip_verify) {
 			dev_dbg(chip->dev,
-				"Skipping 'learned' value '%s'\n",
+				"Skipping verify/write for register '%s'\n",
 				max77818_custom_param_list[i].property_name);
 			continue;
 		}
