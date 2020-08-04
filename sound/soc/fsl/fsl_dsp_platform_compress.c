@@ -367,7 +367,7 @@ static int dsp_platform_compr_trigger_pause(struct snd_compr_stream *cstream)
 
 	ret = xf_cmd_send_pause(proxy);
 	if (ret) {
-		dev_err("trigger pause err = %d\n", ret);
+		dev_err(component->dev, "trigger pause err = %d\n", ret);
 		return ret;
 	}
 	return 0;
@@ -383,7 +383,7 @@ static int dsp_platform_compr_trigger_pause_release(struct snd_compr_stream *cst
 
 	ret = xf_cmd_send_pause_release(proxy);
 	if (ret) {
-		dev_err("trigger pause release err = %d\n", ret);
+		dev_err(component->dev, "trigger pause release err = %d\n", ret);
 		return ret;
 	}
 
