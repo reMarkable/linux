@@ -1880,6 +1880,8 @@ static int ci_udc_start(struct usb_gadget *gadget,
 
 	if (ci->vbus_active)
 		ci_hdrc_gadget_connect(&ci->gadget, 1);
+	else
+		usb_udc_vbus_handler(&ci->gadget, false);
 
 	return retval;
 }
