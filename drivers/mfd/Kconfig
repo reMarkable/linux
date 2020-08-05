@@ -1990,7 +1990,7 @@ config MFD_STMFX
 	  of the device.
 
 config MFD_PCA9450
-	bool "PCA9450 Power Management chip"
+	tristate "PCA9450 Power Management chip"
 	depends on I2C=y
 	select MFD_CORE
 	help
