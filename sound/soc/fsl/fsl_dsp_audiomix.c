@@ -95,3 +95,4 @@ static struct platform_driver imx_audiomix_dsp_driver = {
 	},
 };
 module_platform_driver(imx_audiomix_dsp_driver);
+MODULE_LICENSE("GPL v2");
