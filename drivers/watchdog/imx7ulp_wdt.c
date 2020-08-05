@@ -147,7 +147,7 @@ static inline void imx7ulp_wdt_init(void __iomem *base, unsigned int timeout)
 	/* set an initial timeout value in TOVAL */
 	writel(timeout, base + WDOG_TOVAL);
 	/* enable 32bit command sequence and reconfigure */
-	val = BIT(13) | BIT(8) | BIT(5);
+	val = BIT(13) | BIT(8) | BIT(5) | BIT(1) | BIT(0);
 	writel(val, base + WDOG_CS);
 }
 
