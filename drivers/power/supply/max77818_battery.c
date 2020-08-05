@@ -185,6 +185,7 @@ struct max77818_of_property {
 			    unsigned int reg,
 			    unsigned int value);
 	bool skip_verify;
+	bool require_lock;
 };
 
 static void max77818_do_init_completion(struct max77818_chip *chip)
@@ -930,6 +931,11 @@ static int  max77818_read_param_and_verify(struct max77818_chip *chip,
 			prop->register_addr,
 			read_param);
 
+		if (prop->require_lock) {
+			dev_dbg(chip->dev, "Applying lock\n");
+			mutex_lock(&chip->max77818_dev->lock);
+		}
+
 		ret = regmap_read(chip->regmap,
 				  prop->register_addr,
 				  &read_cur_value);
@@ -961,6 +967,11 @@ static int  max77818_read_param_and_verify(struct max77818_chip *chip,
 						 prop->register_addr,
 						 read_param);
 		}
+
+		if (prop->require_lock) {
+			dev_dbg(chip->dev, "Releasing lock\n");
+			mutex_unlock(&chip->max77818_dev->lock);
+		}
 	}
 	else if (ret == -EINVAL)
 		dev_warn(chip->dev,
@@ -986,6 +997,12 @@ static int  max77818_read_param_and_write(struct max77818_chip *chip,
 			prop->property_name,
 			prop->register_addr,
 			read_param);
+
+		if (prop->require_lock) {
+			dev_dbg(chip->dev, "Applying lock\n");
+			mutex_lock(&chip->max77818_dev->lock);
+		}
+
 		ret = prop->reg_write_op(chip->regmap,
 					 prop->register_addr,
 					 read_param);
@@ -993,6 +1010,11 @@ static int  max77818_read_param_and_write(struct max77818_chip *chip,
 			dev_warn(chip->dev,
 				 "Failed to write '%s' property read from DT\n",
 				 prop->property_name);
+		}
+
+		if (prop->require_lock) {
+			dev_dbg(chip->dev, "Releasing lock\n");
+			mutex_unlock(&chip->max77818_dev->lock);
 		}
 	}
 	else if (ret == -EINVAL)
@@ -1043,7 +1065,7 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,learn-cfg", MAX17042_LearnCFG, regmap_write, true },
 
 	/* Verified and restored if required after reboot to ensure FGCC=1 */
-	{ "maxim,config", MAX17042_CONFIG, regmap_write},
+	{ "maxim,config", MAX17042_CONFIG, regmap_write, false, true},
 
 	{ "maxim,config2", MAX77818_Config2, regmap_write, true },
 	{ "maxim,full-soc-threshold", MAX17047_FullSOCThr, regmap_write, true },
