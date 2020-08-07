@@ -2039,13 +2039,8 @@
 	usb3_0: usb@32f10100 {
 		compatible = "fsl,imx8mp-dwc3";
 		reg = <0 0x32f10100 0 0x8>;
-		clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
-			 <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
-			 <&clk IMX8MP_CLK_USB_ROOT>;
-		clock-names = "hsio", "bus", "suspend";
-		assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>;
-		assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
-		assigned-clock-rates = <500000000>;
+		clocks = <&clk IMX8MP_CLK_HSIO_ROOT>;
+		clock-names = "hsio";
 		interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
 		power-domains = <&hsiomix_pd>;
 		#address-cells = <2>;
@@ -2056,6 +2051,13 @@
 		usb_dwc3_0: dwc3@38100000 {
 			compatible = "snps,dwc3";
 			reg = <0 0x38100000 0 0x10000>;
+			clocks = <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
+				 <&clk IMX8MP_CLK_USB_CORE_REF>,
+				 <&clk IMX8MP_CLK_USB_ROOT>;
+			clock-names = "bus_early", "ref", "suspend";
+			assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>;
+			assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
+			assigned-clock-rates = <500000000>;
 			interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
 			phys = <&usb3_phy0>, <&usb3_phy0>;
 			phy-names = "usb2-phy", "usb3-phy";
@@ -2082,13 +2084,8 @@
 	usb3_1: usb@32f10108 {
 		compatible = "fsl,imx8mp-dwc3";
 		reg = <0 0x32f10108 0 0x8>;
-		clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
-			 <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
-			 <&clk IMX8MP_CLK_USB_ROOT>;
-		clock-names = "hsio", "bus", "suspend";
-		assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>;
-		assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
-		assigned-clock-rates = <500000000>;
+		clocks = <&clk IMX8MP_CLK_HSIO_ROOT>;
+		clock-names = "hsio";
 		interrupts = <GIC_SPI 149 IRQ_TYPE_LEVEL_HIGH>;
 		power-domains = <&hsiomix_pd>;
 		#address-cells = <2>;
@@ -2099,6 +2096,13 @@
 		usb_dwc3_1: dwc3@38200000 {
 			compatible = "snps,dwc3";
 			reg = <0 0x38200000 0 0x10000>;
+			clocks = <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
+				 <&clk IMX8MP_CLK_USB_CORE_REF>,
+				 <&clk IMX8MP_CLK_USB_ROOT>;
+			clock-names = "bus_early", "ref", "suspend";
+			assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>;
+			assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
+			assigned-clock-rates = <500000000>;
 			interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
 			phys = <&usb3_phy1>, <&usb3_phy1>;
 			phy-names = "usb2-phy", "usb3-phy";
