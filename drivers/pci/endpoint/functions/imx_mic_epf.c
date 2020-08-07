@@ -50,6 +50,8 @@ static void imx_mic_epf_unbind(struct pci_epf *epf)
 
 	cancel_delayed_work(&imx_epf->bar0_handler);
 
+	imx_mic_remove();
+
 	pci_epc_stop(epc);
 
 	if (imx_epf->reg[BAR_0]) {
@@ -95,6 +97,12 @@ static int imx_mic_epf_set_outbound(struct imx_mic_epf *imx_epf,
 
 	dev_info(dev, "%s: rc map share region to ep (rc->ep: 0x%llx->0x%llx), size 0x%llx", __func__,
 		 imx_epf->aper.rc_shmem_pa, imx_epf->aper.pci_pa, imx_epf->aper.pci_len);
+
+	ret = imx_mic_probe(imx_epf);
+	if (ret) {
+		dev_err(dev, "Failed to probe i.MX MIC\n");
+		return ret;
+	}
 
 	return 0;
 }

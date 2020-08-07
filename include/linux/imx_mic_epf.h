@@ -27,4 +27,6 @@ struct imx_mic_epf {
 };
 
 void imx_mic_get_doorbell_info(u32 *doorbell_reg_base, u32 *doorbell_reg_size);
+int imx_mic_probe(struct imx_mic_epf *mic_epf);
+void imx_mic_remove(void);
 #endif
