@@ -311,6 +311,46 @@ static void dwc3_frame_length_adjustment(struct dwc3 *dwc)
 	u32 reg;
 	u32 dft;
 
+	/*
+	 * if GCTL.SOFITPSYNC is set to '1':
+	 * FLADJ_REF_CLK_FLADJ=
+	 * ((125000/ref_clk_period_integer)-(125000/ref_clk_period)) *
+	 * ref_clk_period
+	 * where
+	 * - the ref_clk_period_integer is the integer value of
+	 *   the ref_clk period got by truncating the decimal (fractional)
+	 *   value that is programmed in the GUCTL.REF_CLK_PERIOD field.
+	 * - the ref_clk_period is the ref_clk period including the fractional
+	 *   value.
+	 */
+	if (dwc->soft_itp_sync_quirk) {
+		u32 ref_clk_hz, ref_clk_period_integer;
+		u64 temp;
+
+		reg = dwc3_readl(dwc->regs, DWC3_GFLADJ);
+		ref_clk_hz = clk_get_rate(dwc->clks[0].clk);
+		if (ref_clk_hz == 0) {
+			dev_err(dwc->dev, "ref clk is 0, can't set fladj\n");
+			return;
+		}
+
+		/* nano seconds the period of ref_clk */
+		ref_clk_period_integer = 1000000000 / ref_clk_hz;
+		temp = 125000L * 1000000000L;
+		temp = temp / ref_clk_hz;
+		temp = temp / ref_clk_period_integer;
+		temp = temp - 125000;
+		temp = temp << GFLADJ_REFCLK_FLADJ_SHIFT;
+		reg &= ~GFLADJ_REFCLK_FLADJ_MASK;
+		reg |= temp;
+		dwc3_writel(dwc->regs, DWC3_GFLADJ, reg);
+
+		reg = dwc3_readl(dwc->regs, DWC3_GUCTL);
+		reg &= ~DWC3_GUCTL_REFCLKPER_MASK;
+		reg |= ref_clk_period_integer << DWC3_GUCTL_REFCLKPER_SHIFT;
+		dwc3_writel(dwc->regs, DWC3_GUCTL, reg);
+	}
+
 	if (dwc->revision < DWC3_REVISION_250A)
 		return;
 
