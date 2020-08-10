@@ -335,12 +335,7 @@ static int vpu_enc_v4l2_ioctl_querycap(struct file *file,
 	strlcpy(cap->driver, "vpu encoder", sizeof(cap->driver));
 	strlcpy(cap->card, "vpu encoder", sizeof(cap->card));
 	strlcpy(cap->bus_info, "platform:", sizeof(cap->bus_info));
-	cap->version = KERNEL_VERSION(0, 0, 1);
-	cap->device_caps = V4L2_CAP_VIDEO_M2M_MPLANE |
-				V4L2_CAP_STREAMING |
-				V4L2_CAP_VIDEO_CAPTURE_MPLANE |
-				V4L2_CAP_VIDEO_OUTPUT_MPLANE;
-	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
+
 	return 0;
 }
 
@@ -485,10 +480,13 @@ static int vpu_enc_v4l2_ioctl_g_fmt(struct file *file,
 	for (i = 0; i < pix_mp->num_planes; i++)
 		pix_mp->plane_fmt[i].sizeimage = q_data->sizeimage[i];
 
-	if (V4L2_TYPE_IS_OUTPUT(f->type))
-		pix_mp->colorspace = V4L2_COLORSPACE_REC709;
-	else
+	if (!V4L2_TYPE_IS_OUTPUT(f->type))
 		pix_mp->plane_fmt[0].bytesperline = q_data->width;
+
+	pix_mp->colorspace = ctx->colorspace;
+	pix_mp->xfer_func = ctx->xfer_func;
+	pix_mp->ycbcr_enc = ctx->ycbcr_enc;
+	pix_mp->quantization = ctx->quantization;
 
 	return 0;
 }
@@ -654,6 +652,209 @@ static char *cvrt_fourcc_to_str(u32 pixelformat)
 	return str;
 }
 
+static const u8 colorprimaries[] = {
+	0,
+	V4L2_COLORSPACE_REC709,        /*Rec. ITU-R BT.709-6*/
+	0,
+	0,
+	V4L2_COLORSPACE_470_SYSTEM_M, /*Rec. ITU-R BT.470-6 System M*/
+	V4L2_COLORSPACE_470_SYSTEM_BG,/*Rec. ITU-R BT.470-6 System B, G*/
+	V4L2_COLORSPACE_SMPTE170M,    /*SMPTE170M*/
+	V4L2_COLORSPACE_SMPTE240M,    /*SMPTE240M*/
+	V4L2_COLORSPACE_GENERIC_FILM, /*Generic film*/
+	V4L2_COLORSPACE_BT2020,       /*Rec. ITU-R BT.2020-2*/
+	V4L2_COLORSPACE_ST428         /*SMPTE ST 428-1*/
+};
+
+static const u8 colortransfers[] = {
+	0,
+	V4L2_XFER_FUNC_709,      /*Rec. ITU-R BT.709-6*/
+	0,
+	0,
+	V4L2_XFER_FUNC_GAMMA22,  /*Rec. ITU-R BT.470-6 System M*/
+	V4L2_XFER_FUNC_GAMMA28,  /*Rec. ITU-R BT.470-6 System B, G*/
+	V4L2_XFER_FUNC_709,      /*SMPTE170M*/
+	V4L2_XFER_FUNC_SMPTE240M,/*SMPTE240M*/
+	V4L2_XFER_FUNC_LINEAR,   /*Linear transfer characteristics*/
+	0,
+	0,
+	V4L2_XFER_FUNC_XVYCC,    /*IEC 61966-2-4*/
+	V4L2_XFER_FUNC_BT1361,   /*Rec. ITU-R BT.1361-0 extended colour gamut*/
+	V4L2_XFER_FUNC_SRGB,     /*IEC 61966-2-1 sRGB or sYCC*/
+	V4L2_XFER_FUNC_709,      /*Rec. ITU-R BT.2020-2 (10 bit system)*/
+	V4L2_XFER_FUNC_709,      /*Rec. ITU-R BT.2020-2 (12 bit system)*/
+	V4L2_XFER_FUNC_SMPTE2084,/*SMPTE ST 2084*/
+	V4L2_XFER_FUNC_ST428,    /*SMPTE ST 428-1*/
+	V4L2_XFER_FUNC_HLG       /*Rec. ITU-R BT.2100-0 hybrid log-gamma (HLG)*/
+};
+
+static const u8 colormatrixcoefs[] = {
+	0,
+	V4L2_YCBCR_ENC_709,             /*Rec. ITU-R BT.709-6*/
+	0,
+	0,
+	V4L2_YCBCR_ENC_BT470_6M,        /*Title 47 Code of Federal Regulations*/
+	V4L2_YCBCR_ENC_601,             /*Rec. ITU-R BT.601-7 625*/
+	V4L2_YCBCR_ENC_601,             /*Rec. ITU-R BT.601-7 525*/
+	V4L2_YCBCR_ENC_SMPTE240M,       /*SMPTE240M*/
+	0,
+	V4L2_YCBCR_ENC_BT2020,          /*Rec. ITU-R BT.2020-2*/
+	V4L2_YCBCR_ENC_BT2020_CONST_LUM /*Rec. ITU-R BT.2020-2 constant*/
+};
+
+static int vpu_enc_convert_color_v4l2_aspect_to_iso_aspect(struct vpu_ctx *ctx,
+		u32 *primaries, u32 *transfer, u32 *coeffs, u32 *fullrange)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(colorprimaries); i++) {
+		if (colorprimaries[i] == ctx->colorspace) {
+			if (primaries)
+				*primaries = i;
+			break;
+		}
+	}
+
+	for (i = 0; i < ARRAY_SIZE(colortransfers); i++) {
+		if (colortransfers[i] == ctx->xfer_func) {
+			if (transfer)
+				*transfer = i;
+			break;
+		}
+	}
+
+	for (i = 0; i < ARRAY_SIZE(colormatrixcoefs); i++) {
+		if (colormatrixcoefs[i] == ctx->ycbcr_enc) {
+			if (coeffs)
+				*coeffs = i;
+			break;
+		}
+	}
+
+	if (fullrange)
+		*fullrange = ctx->quantization == V4L2_QUANTIZATION_FULL_RANGE;
+
+	return 0;
+}
+
+static bool vpu_enc_check_colorspace(u8 colorspace)
+{
+	int i;
+
+	if (colorspace == V4L2_COLORSPACE_DEFAULT)
+		return FALSE;
+
+	for (i = 0; i < ARRAY_SIZE(colorprimaries); i++) {
+		if (colorprimaries[i] == colorspace)
+			return true;
+	}
+
+	return false;
+}
+
+static bool vpu_enc_check_xfer_func(u8 xfer_func)
+{
+	int i;
+
+	if (xfer_func == V4L2_XFER_FUNC_DEFAULT)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(colortransfers); i++) {
+		if (colortransfers[i] == xfer_func)
+			return true;
+	}
+
+	return false;
+}
+
+static bool vpu_enc_check_ycbcr_enc(u8 ycbcr_enc)
+{
+	int i;
+
+	if (ycbcr_enc == V4L2_YCBCR_ENC_DEFAULT)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(colormatrixcoefs); i++) {
+		if (ycbcr_enc == colormatrixcoefs[i])
+			return true;
+	}
+
+	return false;
+}
+
+static bool vpu_enc_check_quantization(u8 quantization)
+{
+	bool support = false;
+
+	switch (quantization) {
+	case V4L2_QUANTIZATION_FULL_RANGE:
+	case V4L2_QUANTIZATION_LIM_RANGE:
+		support = true;
+		break;
+	default:
+		break;
+	}
+
+	return support;
+}
+
+static int vpu_enc_set_default_color(struct vpu_ctx *ctx, u8 colorspace)
+{
+	ctx->colorspace = colorspace;
+
+	switch (colorspace) {
+	case V4L2_COLORSPACE_REC709:
+		ctx->xfer_func = V4L2_XFER_FUNC_709;
+		ctx->ycbcr_enc = V4L2_YCBCR_ENC_709;
+		ctx->quantization = V4L2_QUANTIZATION_LIM_RANGE;
+		break;
+	case V4L2_COLORSPACE_470_SYSTEM_M:
+	case V4L2_COLORSPACE_470_SYSTEM_BG:
+	case V4L2_COLORSPACE_SMPTE170M:
+		ctx->xfer_func = V4L2_XFER_FUNC_709;
+		ctx->ycbcr_enc = V4L2_YCBCR_ENC_601;
+		ctx->quantization = V4L2_QUANTIZATION_LIM_RANGE;
+		break;
+	case V4L2_COLORSPACE_SMPTE240M:
+		ctx->xfer_func = V4L2_XFER_FUNC_SMPTE240M;
+		ctx->ycbcr_enc = V4L2_YCBCR_ENC_SMPTE240M;
+		ctx->quantization = V4L2_QUANTIZATION_LIM_RANGE;
+		break;
+	case V4L2_COLORSPACE_BT2020:
+		ctx->xfer_func = V4L2_XFER_FUNC_709;
+		ctx->ycbcr_enc = V4L2_YCBCR_ENC_BT2020;
+		ctx->quantization = V4L2_QUANTIZATION_LIM_RANGE;
+		break;
+	default:
+		ctx->xfer_func = V4L2_XFER_FUNC_709;
+		ctx->ycbcr_enc = V4L2_YCBCR_ENC_709;
+		ctx->quantization = V4L2_QUANTIZATION_LIM_RANGE;
+		break;
+	}
+
+	return 0;
+}
+
+static int vpu_enc_set_color(struct vpu_ctx *ctx, struct v4l2_format *f)
+{
+	struct v4l2_pix_format_mplane *pix_mp;
+
+	if (!ctx || !f)
+		return -EINVAL;
+
+	pix_mp = &f->fmt.pix_mp;
+	if (vpu_enc_check_colorspace(pix_mp->colorspace))
+		vpu_enc_set_default_color(ctx, pix_mp->colorspace);
+	if (vpu_enc_check_xfer_func(pix_mp->xfer_func))
+		ctx->xfer_func = pix_mp->xfer_func;
+	if (vpu_enc_check_ycbcr_enc(pix_mp->ycbcr_enc))
+		ctx->ycbcr_enc = pix_mp->ycbcr_enc;
+	if (vpu_enc_check_quantization(pix_mp->quantization))
+		ctx->quantization = pix_mp->quantization;
+
+	return 0;
+}
+
 static int set_yuv_queue_fmt(struct queue_data *q_data, struct v4l2_format *f)
 {
 	struct vpu_v4l2_fmt *fmt = NULL;
@@ -684,6 +885,8 @@ static int set_yuv_queue_fmt(struct queue_data *q_data, struct v4l2_format *f)
 		pix_mp->plane_fmt[i].sizeimage = q_data->sizeimage[i];
 
 	q_data->current_fmt = fmt;
+
+	vpu_enc_set_color(q_data->ctx, f);
 
 	return 0;
 }
@@ -756,6 +959,11 @@ static int vpu_enc_v4l2_ioctl_s_fmt(struct file *file,
 	else
 		ret = set_enc_queue_fmt(q_data, f);
 	mutex_unlock(&ctx->instance_mutex);
+
+	f->fmt.pix_mp.colorspace = ctx->colorspace;
+	f->fmt.pix_mp.xfer_func = ctx->xfer_func;
+	f->fmt.pix_mp.ycbcr_enc = ctx->ycbcr_enc;
+	f->fmt.pix_mp.quantization = ctx->quantization;
 
 	vpu_dbg(LVL_FLOW, "[%d:%d] %s set fmt, %c%c%c%c %dx%d\n",
 			ctx->core_dev->id,
@@ -1316,7 +1524,26 @@ static int vpu_enc_v4l2_ioctl_try_fmt(struct file *file,
 	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
 		pix_mp->field = V4L2_FIELD_ANY;
 		pix_mp->colorspace = V4L2_COLORSPACE_REC709;
+		if (!vpu_enc_check_colorspace(pix_mp->colorspace)) {
+			pix_mp->colorspace = ctx->colorspace;
+			pix_mp->xfer_func = ctx->xfer_func;
+			pix_mp->ycbcr_enc = ctx->ycbcr_enc;
+			pix_mp->quantization = ctx->quantization;
+		} else {
+			if (!vpu_enc_check_xfer_func(pix_mp->xfer_func))
+				pix_mp->xfer_func = ctx->xfer_func;
+			if (!vpu_enc_check_ycbcr_enc(pix_mp->ycbcr_enc))
+				pix_mp->ycbcr_enc = ctx->ycbcr_enc;
+			if (!vpu_enc_check_quantization(pix_mp->quantization))
+				pix_mp->quantization = ctx->quantization;
+		}
+	} else {
+		pix_mp->colorspace = ctx->colorspace;
+		pix_mp->xfer_func = ctx->xfer_func;
+		pix_mp->ycbcr_enc = ctx->ycbcr_enc;
+		pix_mp->quantization = ctx->quantization;
 	}
+
 	if (!format_is_support(q_data->supported_fmts, q_data->fmt_count, f))
 		return -EINVAL;
 
@@ -2798,6 +3025,23 @@ static void vpu_enc_config_expert_mode_parm(struct vpu_ctx *ctx)
 		attr->h264_vui_sar_idc,
 		attr->h264_vui_sar_width,
 		attr->h264_vui_sar_height);
+
+	param->Config.h264_video_type_present = 1;
+	param->Config.h264_video_format = 5;
+	param->Config.h264_video_colour_descriptor = 1;
+	vpu_enc_convert_color_v4l2_aspect_to_iso_aspect(ctx,
+			&param->Config.h264_video_colour_primaries,
+			&param->Config.h264_video_transfer_char,
+			&param->Config.h264_video_matrix_coeff,
+			&param->Config.h264_video_full_range);
+
+	vpu_dbg(LVL_FLOW,
+		"[%d:%d] primaries=%d, transfer=%d, matrix=%d, fullrange =%d\n",
+		ctx->core_dev->id, ctx->str_index,
+		param->Config.h264_video_colour_primaries,
+		param->Config.h264_video_transfer_char,
+		param->Config.h264_video_matrix_coeff,
+		param->Config.h264_video_full_range);
 }
 
 static int handle_event_mem_request(struct vpu_ctx *ctx,
@@ -3863,6 +4107,7 @@ static int init_vpu_ctx(struct vpu_ctx *ctx)
 	init_ctx_msg_queue(ctx);
 
 	vpu_enc_init_queue_data(ctx);
+	vpu_enc_set_default_color(ctx, V4L2_COLORSPACE_REC709);
 	init_completion(&ctx->start_cmp);
 	init_completion(&ctx->stop_cmp);
 
@@ -5154,9 +5399,7 @@ static int create_vpu_video_device(struct vpu_dev *dev)
 	dev->pvpu_encoder_dev->vfl_dir = vpu_enc_v4l2_videodevice.vfl_dir;
 	dev->pvpu_encoder_dev->v4l2_dev = &dev->v4l2_dev;
 	dev->pvpu_encoder_dev->device_caps = V4L2_CAP_VIDEO_M2M_MPLANE |
-					     V4L2_CAP_STREAMING |
-					     V4L2_CAP_VIDEO_CAPTURE_MPLANE |
-					     V4L2_CAP_VIDEO_OUTPUT_MPLANE;
+					     V4L2_CAP_STREAMING;
 
 	video_set_drvdata(dev->pvpu_encoder_dev, dev);
 

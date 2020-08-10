@@ -473,6 +473,10 @@ struct vpu_ctx {
 	s64 timestams[VPU_ENC_SEQ_CAPACITY];
 	u32 cpb_size;
 	s64 timestamp;
+	u8 colorspace;
+	u8 xfer_func;
+	u8 ycbcr_enc;
+	u8 quantization;
 };
 
 #define LVL_ERR		(1 << 0)
