@@ -1717,7 +1717,7 @@ static int ci_udc_pullup(struct usb_gadget *_gadget, int is_on)
 	if (ci_otg_is_fsm_mode(ci) || ci->role == CI_ROLE_HOST)
 		return 0;
 
-	if (WARN_ON(ci->in_lpm))
+	if (ci->in_lpm)
 		return 0;
 
 	if (is_on)
