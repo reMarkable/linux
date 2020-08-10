@@ -670,9 +670,7 @@ static int v4l2_ioctl_querycap(struct file *file,
 	strlcpy(cap->driver, "vpu B0", sizeof(cap->driver));
 	strlcpy(cap->card, "vpu B0", sizeof(cap->card));
 	strlcpy(cap->bus_info, "platform:", sizeof(cap->bus_info));
-	cap->version = KERNEL_VERSION(0, 0, 1);
-	cap->device_caps = V4L2_CAP_VIDEO_M2M_MPLANE | V4L2_CAP_STREAMING;
-	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
+
 	return 0;
 }
 
@@ -818,6 +816,76 @@ static void calculate_frame_size(struct vpu_ctx *ctx)
 		q_data->field = V4L2_FIELD_INTERLACED;
 }
 
+static const u8 colorprimaries[] = {
+	0,
+	V4L2_COLORSPACE_REC709,        /*Rec. ITU-R BT.709-6*/
+	0,
+	0,
+	V4L2_COLORSPACE_470_SYSTEM_M, /*Rec. ITU-R BT.470-6 System M*/
+	V4L2_COLORSPACE_470_SYSTEM_BG,/*Rec. ITU-R BT.470-6 System B, G*/
+	V4L2_COLORSPACE_SMPTE170M,    /*SMPTE170M*/
+	V4L2_COLORSPACE_SMPTE240M,    /*SMPTE240M*/
+	V4L2_COLORSPACE_GENERIC_FILM, /*Generic film*/
+	V4L2_COLORSPACE_BT2020,       /*Rec. ITU-R BT.2020-2*/
+	V4L2_COLORSPACE_ST428         /*SMPTE ST 428-1*/
+};
+
+static const u8 colortransfers[] = {
+	0,
+	V4L2_XFER_FUNC_709,      /*Rec. ITU-R BT.709-6*/
+	0,
+	0,
+	V4L2_XFER_FUNC_GAMMA22,  /*Rec. ITU-R BT.470-6 System M*/
+	V4L2_XFER_FUNC_GAMMA28,  /*Rec. ITU-R BT.470-6 System B, G*/
+	V4L2_XFER_FUNC_709,      /*SMPTE170M*/
+	V4L2_XFER_FUNC_SMPTE240M,/*SMPTE240M*/
+	V4L2_XFER_FUNC_LINEAR,   /*Linear transfer characteristics*/
+	0,
+	0,
+	V4L2_XFER_FUNC_XVYCC,    /*IEC 61966-2-4*/
+	V4L2_XFER_FUNC_BT1361,   /*Rec. ITU-R BT.1361-0 extended colour gamut*/
+	V4L2_XFER_FUNC_SRGB,     /*IEC 61966-2-1 sRGB or sYCC*/
+	V4L2_XFER_FUNC_709,      /*Rec. ITU-R BT.2020-2 (10 bit system)*/
+	V4L2_XFER_FUNC_709,      /*Rec. ITU-R BT.2020-2 (12 bit system)*/
+	V4L2_XFER_FUNC_SMPTE2084,/*SMPTE ST 2084*/
+	V4L2_XFER_FUNC_ST428,    /*SMPTE ST 428-1*/
+	V4L2_XFER_FUNC_HLG       /*Rec. ITU-R BT.2100-0 hybrid log-gamma (HLG)*/
+};
+
+static const u8 colormatrixcoefs[] = {
+	0,
+	V4L2_YCBCR_ENC_709,             /*Rec. ITU-R BT.709-6*/
+	0,
+	0,
+	V4L2_YCBCR_ENC_BT470_6M,        /*Title 47 Code of Federal Regulations*/
+	V4L2_YCBCR_ENC_601,             /*Rec. ITU-R BT.601-7 625*/
+	V4L2_YCBCR_ENC_601,             /*Rec. ITU-R BT.601-7 525*/
+	V4L2_YCBCR_ENC_SMPTE240M,       /*SMPTE240M*/
+	0,
+	V4L2_YCBCR_ENC_BT2020,          /*Rec. ITU-R BT.2020-2*/
+	V4L2_YCBCR_ENC_BT2020_CONST_LUM /*Rec. ITU-R BT.2020-2 constant*/
+};
+
+static int vpu_dec_convert_color_iso_aspect_to_v4l2_aspect(struct vpu_ctx *ctx,
+		u32 primaries, u32 transfer, u32 coeffs, u32 fullrange)
+{
+	if (primaries < ARRAY_SIZE(colorprimaries))
+		ctx->colorspace = colorprimaries[primaries];
+
+	if (transfer < ARRAY_SIZE(colortransfers))
+		ctx->xfer_func = colortransfers[transfer];
+
+	if (coeffs < ARRAY_SIZE(colormatrixcoefs))
+		ctx->ycbcr_enc = colormatrixcoefs[coeffs];
+
+	if (fullrange)
+		ctx->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+	else
+		ctx->quantization = V4L2_QUANTIZATION_LIM_RANGE;
+
+	return 0;
+}
+
 static int v4l2_ioctl_g_fmt(struct file *file,
 		void *fh,
 		struct v4l2_format *f
@@ -842,7 +910,6 @@ static int v4l2_ioctl_g_fmt(struct file *file,
 		pix_mp->height = q_data->height;
 		pix_mp->field = q_data->field;
 		pix_mp->num_planes = 2;
-		pix_mp->colorspace = V4L2_COLORSPACE_REC709;
 		for (i = 0; i < pix_mp->num_planes; i++) {
 			pix_mp->plane_fmt[i].bytesperline = q_data->stride;
 			pix_mp->plane_fmt[i].sizeimage = q_data->sizeimage[i];
@@ -865,6 +932,12 @@ static int v4l2_ioctl_g_fmt(struct file *file,
 		up(&q_data->drv_q_lock);
 	} else
 		return -EINVAL;
+
+	pix_mp->colorspace = ctx->colorspace;
+	pix_mp->xfer_func = ctx->xfer_func;
+	pix_mp->ycbcr_enc = ctx->ycbcr_enc;
+	pix_mp->quantization = ctx->quantization;
+
 	vpu_dbg(LVL_BIT_FLOW, "%s g_fmt : %c%c%c%c %d x %d\n",
 		V4L2_TYPE_IS_OUTPUT(f->type) ? "OUTPUT" : "CAPTURE",
 		pix_mp->pixelformat & 0xff,
@@ -931,7 +1004,6 @@ static int v4l2_ioctl_s_fmt(struct file *file,
 		q_data = &ctx->q_data[V4L2_DST];
 		if (!set_video_standard(ctx, q_data, f, formats_yuv_dec, ARRAY_SIZE(formats_yuv_dec)))
 			return -EINVAL;
-		pix_mp->colorspace = V4L2_COLORSPACE_REC709;
 	} else if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
 		q_data = &ctx->q_data[V4L2_SRC];
 		if (!set_video_standard(ctx, q_data, f, formats_compressed_dec, ARRAY_SIZE(formats_compressed_dec)))
@@ -939,6 +1011,10 @@ static int v4l2_ioctl_s_fmt(struct file *file,
 	} else
 		return -EINVAL;
 
+	pix_mp->colorspace = ctx->colorspace;
+	pix_mp->xfer_func = ctx->xfer_func;
+	pix_mp->ycbcr_enc = ctx->ycbcr_enc;
+	pix_mp->quantization = ctx->quantization;
 	pix_mp->num_planes = q_data->num_planes;
 
 	down(&q_data->drv_q_lock);
@@ -4364,6 +4440,12 @@ static void vpu_api_event_handler(struct vpu_ctx *ctx, u_int32 uStrIdx, u_int32 
 			ctx->seqinfo.uMatrixCoeffs,
 			ctx->seqinfo.uVideoFullRangeFlag,
 			ctx->seqinfo.uVUIPresent);
+		vpu_dec_convert_color_iso_aspect_to_v4l2_aspect(ctx,
+				ctx->seqinfo.uColorDesc,
+				ctx->seqinfo.uTransferChars,
+				ctx->seqinfo.uMatrixCoeffs,
+				ctx->seqinfo.uVideoFullRangeFlag);
+
 		down(&ctx->q_data[V4L2_DST].drv_q_lock);
 		calculate_frame_size(ctx);
 		ctx->dcp_size = get_dcp_size(ctx);
@@ -6065,6 +6147,10 @@ static int v4l2_open(struct file *filp)
 	ctx->stream_input_mode = FRAME_LVL;
 	ctx->hang_status = false;
 	ctx->first_dump_data_flag = true;
+	ctx->colorspace = V4L2_COLORSPACE_REC709;
+	ctx->xfer_func = V4L2_XFER_FUNC_709;
+	ctx->ycbcr_enc = V4L2_YCBCR_ENC_709;
+	ctx->quantization = V4L2_QUANTIZATION_LIM_RANGE;
 	INIT_LIST_HEAD(&ctx->cmd_q);
 	INIT_LIST_HEAD(&ctx->perf_q);
 	ctx->tsm = createTSManager(tsm_buffer_size);

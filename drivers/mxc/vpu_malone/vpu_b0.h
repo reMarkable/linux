@@ -493,6 +493,11 @@ struct vpu_ctx {
 	struct mutex perf_lock;
 
 	struct mutex fw_flow_mutex;
+
+	u8 colorspace;
+	u8 xfer_func;
+	u8 ycbcr_enc;
+	u8 quantization;
 };
 
 #define LVL_WARN		(1 << 0)
