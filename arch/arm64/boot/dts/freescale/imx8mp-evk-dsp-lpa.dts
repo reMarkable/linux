@@ -7,6 +7,10 @@
 
 #include "imx8mp-evk-dsp.dts"
 
+&usdhc2 {
+	non-removable;
+};
+
 &i2c3 {
 	codec: wm8960@1a {
 		compatible = "wlf,wm8960,lpa";
