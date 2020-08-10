@@ -20,7 +20,7 @@
 #define INBUF_SIZE	4096
 /* ...buffer size of the buffer shared between A core and DSP. Use large */
 /* ...to let A core suspend longer time to save power.*/
-#define INBUF_SIZE_LPA	65536
+#define INBUF_SIZE_LPA	(128*1024)
 #define OUTBUF_SIZE	16384
 
 struct xaf_pipeline;
