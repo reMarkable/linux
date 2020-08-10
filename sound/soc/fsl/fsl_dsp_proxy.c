@@ -5,6 +5,7 @@
 // Copyright 2018 NXP
 // Copyright (C) 2017 Cadence Design Systems, Inc.
 
+#include <linux/suspend.h>
 #include "fsl_dsp_proxy.h"
 #include "fsl_dsp.h"
 
@@ -232,6 +233,9 @@ irqreturn_t fsl_dsp_mu_isr(int irq, void *dev_id)
 
 	MU_ReceiveMsg(dsp_priv->mu_base_virtaddr, 0, &reg);
 	msghdr = (union icm_header_t)reg;
+
+	if (dsp_priv->dsp_is_lpa)
+		pm_system_wakeup();
 
 	if (msghdr.intr == 1) {
 		dev_dbg(dev, "INTR: Received ICM intr, msg 0x%08x\n",
