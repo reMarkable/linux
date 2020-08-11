@@ -18,6 +18,7 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-noncoherent.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 
 #include "vop_main.h"
@@ -249,10 +250,13 @@ static void vop_del_vq(struct virtqueue *vq, int n)
 	struct _vop_vdev *vdev = to_vopvdev(vq->vdev);
 	struct vop_device *vpdev = vdev->vpdev;
 
-	dma_unmap_single(&vpdev->dev, vdev->used[n],
-			 vdev->used_size[n], DMA_BIDIRECTIONAL);
-	free_pages((unsigned long)vdev->used_virt[n],
-		   get_order(vdev->used_size[n]));
+	if (dev_is_dma_coherent(_vop_dev(vdev))) {
+		dma_unmap_single(&vpdev->dev, vdev->used[n],
+				 vdev->used_size[n], DMA_BIDIRECTIONAL);
+		free_pages((unsigned long)vdev->used_virt[n],
+			   get_order(vdev->used_size[n]));
+	}
+
 	vring_del_virtqueue(vq);
 	vpdev->hw_ops->unmap(vpdev, vdev->vr[n]);
 	vdev->vr[n] = NULL;
@@ -339,8 +343,14 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 	vdev->used_size[index] = PAGE_ALIGN(sizeof(__u16) * 3 +
 					     sizeof(struct vring_used_elem) *
 					     le16_to_cpu(config.num));
-	used = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO,
-					get_order(vdev->used_size[index]));
+	if (!dev_is_dma_coherent(_vop_dev(vdev)))
+		/* imx mic platform doesn't need allocate and reassign used ring  */
+		used = va + PAGE_ALIGN(sizeof(struct vring_desc) * le16_to_cpu(config.num) +
+				       sizeof(__u16) * (3 + le16_to_cpu(config.num)));
+	else
+		used = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO,
+						get_order(vdev->used_size[index]));
+
 	vdev->used_virt[index] = used;
 	if (!used) {
 		err = -ENOMEM;
@@ -357,14 +367,20 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 		goto free_used;
 	}
 
-	vdev->used[index] = dma_map_single(&vpdev->dev, used,
-					    vdev->used_size[index],
-					    DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(&vpdev->dev, vdev->used[index])) {
-		err = -ENOMEM;
-		dev_err(_vop_dev(vdev), "%s %d err %d\n",
-			__func__, __LINE__, err);
-		goto del_vq;
+	if (!dev_is_dma_coherent(_vop_dev(vdev)))
+		vdev->used[index] = config.address +
+				    PAGE_ALIGN(sizeof(struct vring_desc) * le16_to_cpu(config.num) +
+				    sizeof(__u16) * (3 + le16_to_cpu(config.num)));
+	else {
+		vdev->used[index] = dma_map_single(&vpdev->dev, used,
+						   vdev->used_size[index],
+						   DMA_BIDIRECTIONAL);
+		if (dma_mapping_error(&vpdev->dev, vdev->used[index])) {
+			err = -ENOMEM;
+			dev_err(_vop_dev(vdev), "%s %d err %d\n",
+				__func__, __LINE__, err);
+			goto del_vq;
+		}
 	}
 	writeq(vdev->used[index], &vqconfig->used_address);
 
@@ -373,8 +389,9 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 del_vq:
 	vring_del_virtqueue(vq);
 free_used:
-	free_pages((unsigned long)used,
-		   get_order(vdev->used_size[index]));
+	if (dev_is_dma_coherent(_vop_dev(vdev)))
+		free_pages((unsigned long)used,
+			   get_order(vdev->used_size[index]));
 unmap:
 	vpdev->hw_ops->unmap(vpdev, vdev->vr[index]);
 	return ERR_PTR(err);
