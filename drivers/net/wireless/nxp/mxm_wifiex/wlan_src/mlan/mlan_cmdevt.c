@@ -957,7 +957,7 @@ static t_u16 wlan_get_cmd_timeout(t_u16 cmd_id)
 		timeout = MRVDRV_TIMER_5S;
 		break;
 	default:
-		timeout = MRVDRV_TIMER_1S * 2;
+		timeout = MRVDRV_TIMER_1S * 10;
 		break;
 	}
 	LEAVE();

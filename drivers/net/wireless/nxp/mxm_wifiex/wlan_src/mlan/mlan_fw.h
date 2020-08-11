@@ -1681,7 +1681,7 @@ typedef enum _ENH_PS_MODES {
 
 /** Buffer Constants */
 /** Number of command buffers */
-#define MRVDRV_NUM_OF_CMD_BUFFER 30
+#define MRVDRV_NUM_OF_CMD_BUFFER 40
 /** Maximum number of BSS Descriptors */
 #define MRVDRV_MAX_BSSID_LIST 200
 

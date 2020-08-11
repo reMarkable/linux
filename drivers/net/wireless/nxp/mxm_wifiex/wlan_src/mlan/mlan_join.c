@@ -1108,7 +1108,7 @@ mlan_status wlan_cmd_802_11_associate(mlan_private *pmpriv,
 
 	wlan_cmd_append_generic_ie(pmpriv, &pos);
 
-	if (ft_akm && pbss_desc->pmd_ie)
+	if (pbss_desc->pmd_ie)
 		wlan_cmd_append_pass_through_ie(
 			pmpriv, (IEEEtypes_Generic_t *)pbss_desc->pmd_ie, &pos);
 	wlan_cmd_append_tsf_tlv(pmpriv, &pos, pbss_desc);
