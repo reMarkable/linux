@@ -829,7 +829,7 @@
 			ecspi1: spi@30820000 {
 				#address-cells = <1>;
 				#size-cells = <0>;
-				compatible = "fsl,imx8mq-ecspi", "fsl,imx6ul-ecspi";
+				compatible = "fsl,imx8mq-ecspi", "fsl,imx51-ecspi";
 				reg = <0x30820000 0x10000>;
 				interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clk IMX8MQ_CLK_ECSPI1_ROOT>,
@@ -841,7 +841,7 @@
 			ecspi2: spi@30830000 {
 				#address-cells = <1>;
 				#size-cells = <0>;
-				compatible = "fsl,imx8mq-ecspi", "fsl,imx6ul-ecspi";
+				compatible = "fsl,imx8mq-ecspi", "fsl,imx51-ecspi";
 				reg = <0x30830000 0x10000>;
 				interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clk IMX8MQ_CLK_ECSPI2_ROOT>,
@@ -853,7 +853,7 @@
 			ecspi3: spi@30840000 {
 				#address-cells = <1>;
 				#size-cells = <0>;
-				compatible = "fsl,imx8mq-ecspi", "fsl,imx6ul-ecspi";
+				compatible = "fsl,imx8mq-ecspi", "fsl,imx51-ecspi";
 				reg = <0x30840000 0x10000>;
 				interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clk IMX8MQ_CLK_ECSPI3_ROOT>,
