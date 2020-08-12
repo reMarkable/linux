@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2019 Vivante Corporation
+*    Copyright (c) 2014 - 2020 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2019 Vivante Corporation
+*    Copyright (C) 2014 - 2020 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -61,7 +61,7 @@
 #include <asm/atomic.h>
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
+#if defined(CONFIG_X86) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0))
 #include <asm/set_memory.h>
 #endif
 #include "gc_hal_kernel_platform.h"
@@ -367,11 +367,11 @@ _NonContiguous1MPagesAlloc(
     *NumPages = (numPages1M << gcd1M_PAGE_SHIFT) >> PAGE_SHIFT;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
-    if (*NumPages > totalram_pages())
+        if (*NumPages > totalram_pages())
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-    if (*NumPages > totalram_pages)
+        if (*NumPages > totalram_pages)
 #else
-    if (*NumPages > num_physpages)
+        if (*NumPages > num_physpages)
 #endif
     {
         return gcvSTATUS_INVALID_ARGUMENT;
@@ -401,6 +401,7 @@ _NonContiguous1MPagesAlloc(
             gcmkONERROR(gcvSTATUS_OUT_OF_MEMORY);
         }
     }
+    memset(MdlPriv->isExact, 0, size);
 
     size = *NumPages * sizeof(struct page *);
     pages = kmalloc(size, GFP_KERNEL | gcdNOWARN);
@@ -737,7 +738,7 @@ _GFPGetSGT(
 
     gcmkASSERT(Offset + Bytes <= Mdl->numPages << PAGE_SHIFT);
 
-    if (Mdl->contiguous)
+    if (mdlPriv->contiguous)
     {
         pages = tmpPages = kmalloc(sizeof(struct page*) * numPages, GFP_KERNEL | gcdNOWARN);
         if (!pages)
@@ -798,7 +799,7 @@ _GFPFree(
     int low  = 0;
     int high = 0;
 
-    if (Mdl->contiguous)
+    if (mdlPriv->contiguous)
     {
         dma_unmap_page(galcore_device, mdlPriv->dma_addr,
                 Mdl->numPages << PAGE_SHIFT, DMA_FROM_DEVICE);
@@ -818,7 +819,7 @@ _GFPFree(
 
     for (i = 0; i < Mdl->numPages; i++)
     {
-        if (Mdl->contiguous)
+        if (mdlPriv->contiguous)
         {
             page = nth_page(mdlPriv->contiguousPages, i);
         }
@@ -842,7 +843,7 @@ _GFPFree(
     atomic_sub(low, &priv->low);
     atomic_sub(high, &priv->high);
 
-    if (Mdl->contiguous)
+    if (mdlPriv->contiguous)
     {
 #if defined(CONFIG_X86)
         if (!PageHighMem(mdlPriv->contiguousPages))
@@ -1122,7 +1123,7 @@ _GFPMapKernel(
 
     numPages = ((Offset & ~PAGE_MASK) + Bytes + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
 
-    if (Mdl->contiguous)
+    if (mdlPriv->contiguous)
     {
         gctSIZE_T i;
 
@@ -1285,7 +1286,7 @@ _GFPPhysical(
     gctUINT32 offsetInPage = Offset & ~PAGE_MASK;
     gctUINT32 index = Offset / PAGE_SIZE;
 
-    if (Mdl->contiguous)
+    if (mdlPriv->contiguous)
     {
         *Physical = page_to_phys(nth_page(mdlPriv->contiguousPages, index));
     }
@@ -1365,7 +1366,7 @@ _GFPAlloctorInit(
                           | gcvALLOC_FLAG_MEMLIMIT
                           | gcvALLOC_FLAG_ALLOC_ON_FAULT
                           | gcvALLOC_FLAG_DMABUF_EXPORTABLE
-#if defined(CONFIG_ZONE_DMA32) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)
+#if (defined(CONFIG_ZONE_DMA32) || defined(CONFIG_ZONE_DMA)) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)
                           | gcvALLOC_FLAG_4GB_ADDR
 #endif
                           | gcvALLOC_FLAG_1M_PAGES

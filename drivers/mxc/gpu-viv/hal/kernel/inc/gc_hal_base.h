@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2019 Vivante Corporation
+*    Copyright (c) 2014 - 2020 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2019 Vivante Corporation
+*    Copyright (C) 2014 - 2020 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -135,10 +135,14 @@ typedef struct _gcsNN_FIXED_FEATURE
     gctUINT  uscBanks;
     gctUINT  nnLanesPerOutCycle;
     gctUINT  maxOTNumber;
+    gctUINT  physicalVipSramWidthInByte;
     gctUINT  equivalentVipsramWidthInByte;
     gctUINT  shaderCoreCount;
     gctUINT  latencyHidingAtFullAxiBw;
     gctUINT  axiBusWidth;
+    gctUINT  nnMaxKXSize;
+    gctUINT  nnMaxKYSize;
+    gctUINT  nnMaxKZSize;
 } gcsNN_FIXED_FEATURE;
 
 /* Features can be customized from outside */
@@ -163,6 +167,7 @@ typedef struct _gcsNN_CUSTOMIZED_FEATURE
     gctUINT  nnWriteWithoutUSC;
     gctUINT  depthWiseSupport;
     gctUINT  vipVectorPrune;
+    gctUINT  ddrKernelBurstSize;
 } gcsNN_CUSTOMIZED_FEATURE;
 
 /* Features are unified (hardcoded) for hardwares */
@@ -270,6 +275,7 @@ gcsSystemInfo;
     gcvNULL, /* VX context lock    */ \
     gcvPATCH_NOTINIT,/* global patchID     */ \
     gcvNULL, /* global fenceID*/ \
+    gcvNULL, /* mainThreadHandle */ \
     gcvFALSE, /* memory profile flag */ \
     gcvNULL, /* profileLock;        */ \
     0, /* allocCount;         */ \
@@ -480,6 +486,8 @@ gcoHAL_GetProductName(
 
 gceSTATUS
 gcoHAL_SetFscaleValue(
+    IN gcoHAL Hal,
+    IN gctUINT CoreIndex,
     IN gctUINT FscaleValue,
     IN gctUINT ShaderFscaleValue
     );
@@ -2160,6 +2168,13 @@ typedef struct _gcsFORMAT_CLASS_TYPE_DEPTH
 }
 gcsFORMAT_CLASS_TYPE_DEPTH;
 
+/* Intensity format class. */
+typedef struct _gcsFORMAT_CLASs_TYPE_INTENSITY
+{
+    gcsFORMAT_COMPONENT         value;
+}
+gcsFORMAT_CLASs_TYPE_INTENSITY;
+
 typedef union _gcuPIXEL_FORMAT_CLASS
 {
     gcsFORMAT_CLASS_TYPE_BUMP       bump;
@@ -2168,6 +2183,7 @@ typedef union _gcuPIXEL_FORMAT_CLASS
     gcsFORMAT_CLASS_TYPE_LUMINANCE  lum;
     gcsFORMAT_CLASS_TYPE_INDEX      index;
     gcsFORMAT_CLASS_TYPE_DEPTH      depth;
+    gcsFORMAT_CLASs_TYPE_INTENSITY  intensity;
 }
 gcuPIXEL_FORMAT_CLASS;
 
@@ -3717,9 +3733,8 @@ gcoOS_Print(
 #   define gcmkPRINT_VERSION()      _gcmPRINT_VERSION(gcmk)
 #   define _gcmPRINT_VERSION(prefix) \
         prefix##TRACE(gcvLEVEL_ERROR, \
-                      "Vivante HAL version %d.%d.%d build %d", \
-                      gcvVERSION_MAJOR, gcvVERSION_MINOR, \
-                      gcvVERSION_PATCH, gcvVERSION_BUILD)
+                      "Vivante HAL version %s", \
+                      gcvVERSION_STRING)
 #else
 #   define gcmPRINT_VERSION()       do { gcmSTACK_DUMP(); } while (gcvFALSE)
 #   define gcmkPRINT_VERSION()      do { } while (gcvFALSE)
@@ -5077,6 +5092,7 @@ gcoHAL_GetUserDebugOption(
 }
 
 /*----------------------------------------------------------------------------*/
+
 #define gcmSETSINGLESTATE_DUMMY(StateDelta, CommandBuffer, Memory, FixedPoint, \
                                 Address, Data) \
  { \

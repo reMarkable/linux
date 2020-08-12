@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2019 Vivante Corporation
+*    Copyright (c) 2014 - 2020 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2019 Vivante Corporation
+*    Copyright (C) 2014 - 2020 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -169,7 +169,15 @@ _CMAFSLAlloc(
     }
 #endif
 
+#if gcdENABLE_BUFFERABLE_VIDEO_MEMORY
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)
+    mdl_priv->kvaddr = dma_alloc_wc(&os->device->platform->device->dev,
+#else
     mdl_priv->kvaddr = dma_alloc_writecombine(&os->device->platform->device->dev,
+#endif
+#else
+    mdl_priv->kvaddr = dma_alloc_coherent(&os->device->platform->device->dev,
+#endif
             NumPages * PAGE_SIZE,
             &mdl_priv->physical,
             gfp);
@@ -276,11 +284,21 @@ _CMAFSLFree(
     gckOS os = Allocator->os;
     struct mdl_cma_priv *mdlPriv=(struct mdl_cma_priv *)Mdl->priv;
     gcsCMA_PRIV_PTR priv = (gcsCMA_PRIV_PTR)Allocator->privateData;
+
+#if gcdENABLE_BUFFERABLE_VIDEO_MEMORY
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)
+    dma_free_wc(&os->device->platform->device->dev,
+#else
     dma_free_writecombine(&os->device->platform->device->dev,
+#endif
+#else
+    dma_free_coherent(&os->device->platform->device->dev,
+#endif
             Mdl->numPages * PAGE_SIZE,
             mdlPriv->kvaddr,
             mdlPriv->physical);
-     gckOS_Free(os, mdlPriv);
+
+    gckOS_Free(os, mdlPriv);
     atomic_sub(Mdl->numPages, &priv->cmasize);
 }
 
@@ -305,12 +323,21 @@ _CMAFSLMmap(
     /* Now map all the vmalloc pages to this user address. */
     if (Mdl->contiguous)
     {
+#if gcdENABLE_BUFFERABLE_VIDEO_MEMORY
         /* map kernel memory to user space.. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)
+        if (dma_mmap_wc(&os->device->platform->device->dev,
+#else
         if (dma_mmap_writecombine(&os->device->platform->device->dev,
-                vma,
-                (gctINT8_PTR)mdlPriv->kvaddr + (skipPages << PAGE_SHIFT),
-                mdlPriv->physical + (skipPages << PAGE_SHIFT),
-                numPages << PAGE_SHIFT) < 0)
+#endif
+#else
+        if (dma_mmap_coherent(&os->device->platform->device->dev,
+#endif
+            vma,
+            (gctINT8_PTR)mdlPriv->kvaddr + (skipPages << PAGE_SHIFT),
+            mdlPriv->physical + (skipPages << PAGE_SHIFT),
+            numPages << PAGE_SHIFT) < 0)
+
         {
             gcmkTRACE_ZONE(
                 gcvLEVEL_WARNING, gcvZONE_OS,

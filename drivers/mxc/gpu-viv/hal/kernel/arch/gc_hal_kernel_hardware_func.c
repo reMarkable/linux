@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2019 Vivante Corporation
+*    Copyright (C) 2014 - 2020 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -3766,7 +3766,12 @@ _FuncInit_MMU(IN gcsFUNCTION_EXECUTION_PTR Execution)
     flags |= gcvALLOC_FLAG_CACHEABLE;
 #endif
 
+#if !gcdCAPTURE_ONLY_MODE
     pool = gcvPOOL_DEFAULT;
+#else
+    pool = gcvPOOL_VIRTUAL;
+#endif
+
     Execution->funcCmdCount = 1;
 
     /* Allocate the gcsFUNCTION_COMMAND buffer */
@@ -3814,11 +3819,20 @@ _FuncInit_MMU(IN gcsFUNCTION_EXECUTION_PTR Execution)
         &physical
         ));
 
-    if (!(flags & gcvALLOC_FLAG_4GB_ADDR) && (physical & 0xFFFFFFFF00000000ULL))
+    if (physical & 0xFFFFFFFF00000000ULL)
     {
         gcmkFATAL("%s(%d): Command buffer physical address (0x%llx) for MMU setup exceeds 32bits, "
-                  "please rebuild kernel with CONFIG_ZONE_DMA32=y.",
+                  "please rebuild kernel with CONFIG_ZONE_DMA32=y or CONFIG_ZONE_DMA=y or both.",
                   __FUNCTION__, __LINE__, physical);
+
+        gcmkFATAL("Some Archs, for ARM64, the setting is special:\n"
+                    "kernel version   ZONE_DMA   ZONE_DMA32\n"
+                    "3.7  - 3.14        no          yes\n"
+                    "3.15 - 4.15        yes         no\n"
+                    "4.16 - 5.4.5       no          yes\n"
+                    "5.5.rc1 -          yes         yes\n");
+
+        gcmkONERROR(gcvSTATUS_OUT_OF_MEMORY);
     }
 
     gcmkSAFECASTPHYSADDRT(Execution->funcCmd[0].address, physical);
@@ -4163,7 +4177,11 @@ _FuncInit_Flush(IN gcsFUNCTION_EXECUTION_PTR Execution)
     gckHARDWARE hardware = (gckHARDWARE)Execution->hardware;
     gctPOINTER pointer = gcvNULL;
 
+#if !gcdCAPTURE_ONLY_MODE
     pool = gcvPOOL_DEFAULT;
+#else
+    pool = gcvPOOL_VIRTUAL;
+#endif
 
 #if gcdENABLE_CACHEABLE_COMMAND_BUFFER
     allocFlag = gcvALLOC_FLAG_CACHEABLE;

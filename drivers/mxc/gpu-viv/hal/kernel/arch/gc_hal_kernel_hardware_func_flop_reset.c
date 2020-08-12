@@ -26,7 +26,7 @@
 *
 *    The GPL License (GPL)
 *
-*    Copyright (C) 2014 - 2019 Vivante Corporation
+*    Copyright (C) 2014 - 2020 Vivante Corporation
 *
 *    This program is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU General Public License
@@ -6442,7 +6442,7 @@ _ProgramTPKernel(
         gcvDUMP_BUFFER_KERNEL_COMMAND,
         bufferLogical,
         bufferAddress,
-        bytes
+        bufferBytes
         );
 #endif
 
