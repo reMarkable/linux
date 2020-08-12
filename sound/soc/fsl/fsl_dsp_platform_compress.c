@@ -33,6 +33,7 @@ void dsp_platform_process(struct work_struct *w)
 			return;
 		if (rmsg->opcode == XF_EMPTY_THIS_BUFFER) {
 			client->consume_bytes += rmsg->length;
+			atomic_inc(&client->buffer_cnt);
 			snd_compr_fragment_elapsed(client->cstream);
 
 			if (rmsg->buffer == NULL && rmsg->length == 0)
@@ -139,6 +140,7 @@ static int dsp_platform_compr_set_params(struct snd_compr_stream *cstream,
 	switch (params->codec.id) {
 	case SND_AUDIOCODEC_PCM:
 		drv->codec_type = CODEC_PCM_DEC;
+		atomic_set(&drv->client->buffer_cnt, 2);
 		break;
 	case SND_AUDIOCODEC_MP3:
 		drv->codec_type = CODEC_MP3_DEC;
@@ -212,6 +214,7 @@ static int dsp_platform_compr_set_params(struct snd_compr_stream *cstream,
 	drv->client->input_bytes = 0;
 	drv->client->consume_bytes = 0;
 	drv->client->offset = 0;
+	drv->client->ping_pong_offset = 0;
 
 	if (drv->codec_type == CODEC_PCM_DEC) {
 		s_param.id = XA_PCM_CONFIG_PARAM_IN_PCM_WIDTH;
@@ -323,6 +326,7 @@ static int dsp_platform_compr_trigger_stop(struct snd_compr_stream *cstream)
 	drv->client->input_bytes = 0;
 	drv->client->consume_bytes = 0;
 	drv->client->offset = 0;
+	drv->client->ping_pong_offset = 0;
 
 	if (!dsp_priv->dsp_is_lpa) {
 		ret = xaf_comp_delete(drv->client, &drv->component[0]);
@@ -438,7 +442,8 @@ static int dsp_platform_compr_pointer(struct snd_compr_stream *cstream,
 		goto out;
 	}
 
-	if (drv->client->input_bytes != drv->client->consume_bytes)
+	if ((drv->codec_type != CODEC_PCM_DEC && drv->client->input_bytes != drv->client->consume_bytes)
+			|| (drv->codec_type == CODEC_PCM_DEC && atomic_read(&drv->client->buffer_cnt) <= 0))
 		tstamp->copied_total = drv->client->input_bytes+drv->client->offset-4096;
 	else
 		tstamp->copied_total = drv->client->input_bytes+drv->client->offset;
@@ -492,6 +497,74 @@ static int dsp_platform_compr_copy(struct snd_compr_stream *cstream,
 	return copied;
 }
 
+static int dsp_platform_compr_lpa_pcm_copy(struct snd_compr_stream *cstream,
+					char __user *buf,
+					size_t count)
+{
+	struct snd_soc_pcm_runtime *rtd = cstream->private_data;
+	struct snd_soc_component *component = snd_soc_rtdcom_lookup(rtd, FSL_DSP_COMP_NAME);
+	struct fsl_dsp *dsp_priv = snd_soc_component_get_drvdata(component);
+	struct dsp_data *drv = &dsp_priv->dsp_data;
+	struct xaf_comp *p_comp = &drv->component[0];
+	int copied = 0;
+	int ret;
+
+	if (atomic_read(&drv->client->buffer_cnt) > 0) {
+		if (drv->client->offset+count >= (INBUF_SIZE_LPA_PCM>>1)-4096 || !buf) {
+			/* buf == NULL and count == 1 is for drain and */
+			/* suspend as tinycompress drain is blocking call */
+			copied = count;
+			if (!buf)
+				copied = 0;
+			if (buf) {
+				ret = copy_from_user(p_comp->inptr+drv->client->ping_pong_offset+drv->client->offset, buf, copied);
+				if (ret) {
+					dev_err(component->dev, "failed to get message from user space\n");
+					return -EFAULT;
+				}
+			}
+
+			if (cstream->runtime->state == SNDRV_PCM_STATE_RUNNING) {
+				ret = xaf_comp_process(drv->client, p_comp,
+						p_comp->inptr+drv->client->ping_pong_offset, drv->client->offset+copied,
+						XF_EMPTY_THIS_BUFFER);
+				if (!drv->client->input_bytes) {
+					ret = xaf_connect(drv->client,
+							&drv->component[0],
+							&drv->component[1],
+							1,
+							OUTBUF_SIZE);
+					if (ret) {
+						dev_err(component->dev, "Failed to connect component, err = %d\n", ret);
+						return ret;
+					}
+				}
+
+				schedule_work(&drv->client->work);
+				drv->client->input_bytes += drv->client->offset+copied;
+				drv->client->offset = 0;
+				atomic_dec(&drv->client->buffer_cnt);
+				if (drv->client->ping_pong_offset)
+					drv->client->ping_pong_offset = 0;
+				else
+					drv->client->ping_pong_offset = INBUF_SIZE_LPA_PCM>>1;
+			}
+			if (!buf)
+				copied = count;
+		} else {
+			ret = copy_from_user(p_comp->inptr+drv->client->ping_pong_offset+drv->client->offset, buf, count);
+			if (ret) {
+				dev_err(component->dev, "failed to get message from user space\n");
+				return -EFAULT;
+			}
+			copied = count;
+			drv->client->offset += copied;
+		}
+	}
+
+	return copied;
+}
+
 static int dsp_platform_compr_lpa_copy(struct snd_compr_stream *cstream,
 					char __user *buf,
 					size_t count)
@@ -503,6 +576,9 @@ static int dsp_platform_compr_lpa_copy(struct snd_compr_stream *cstream,
 	struct xaf_comp *p_comp = &drv->component[0];
 	int copied = 0;
 	int ret;
+
+	if (drv->codec_type == CODEC_PCM_DEC)
+		return dsp_platform_compr_lpa_pcm_copy(cstream, buf, count);
 
 	if (drv->client->input_bytes == drv->client->consume_bytes) {
 		if (drv->client->offset+count >= INBUF_SIZE_LPA-4096 || !buf) {

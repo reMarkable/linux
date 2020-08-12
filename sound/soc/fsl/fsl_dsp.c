@@ -1074,6 +1074,9 @@ static int fsl_dsp_mem_setup_lpa(struct fsl_dsp *dsp_priv)
 	dsp_priv->scratch_buf_virt = dsp_priv->ocram_vir_addr;
 	dsp_priv->scratch_buf_phys = dsp_priv->ocram_phys_addr;
 	dsp_priv->scratch_buf_size = dsp_priv->ocram_reserved_size;
+	dsp_priv->dram_reserved_vir_addr = dsp_priv->sdram_vir_addr;
+	dsp_priv->dram_reserved_phys_addr = dsp_priv->sdram_phys_addr;
+	dsp_priv->dram_reserved_size = dsp_priv->sdram_reserved_size;
 	dsp_priv->sdram_vir_addr = dsp_priv->regs + SYSRAM_OFFSET;
 	dsp_priv->sdram_phys_addr = dsp_priv->paddr + SYSRAM_OFFSET;
 	dsp_priv->sdram_reserved_size = SYSRAM_SIZE;

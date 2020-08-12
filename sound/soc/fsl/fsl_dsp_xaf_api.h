@@ -21,6 +21,8 @@
 /* ...buffer size of the buffer shared between A core and DSP. Use large */
 /* ...to let A core suspend longer time to save power.*/
 #define INBUF_SIZE_LPA	(128*1024)
+/* ...ping-pong buffer locate in DRAM for PCM LPA. */
+#define INBUF_SIZE_LPA_PCM	(8*1024*1024)
 #define OUTBUF_SIZE	16384
 
 struct xaf_pipeline;

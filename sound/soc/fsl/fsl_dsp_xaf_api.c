@@ -205,13 +205,18 @@ int xaf_comp_create(struct xf_client *client, struct xf_proxy *proxy,
 		p_comp->codec_lib.lib_type      = DSP_CODEC_LIB;
 	}
 
+	size = INBUF_SIZE;
 	switch (comp_type) {
 	case CODEC_PCM_DEC:
 		p_comp->dec_id = "audio-decoder/pcm";
+		if (dsp_priv->dsp_is_lpa)
+			size = INBUF_SIZE_LPA_PCM;
 		break;
 	case CODEC_MP3_DEC:
 		p_comp->dec_id = "audio-decoder/mp3";
 		strcat(lib_path, "lib_dsp_mp3_dec.so");
+		if (dsp_priv->dsp_is_lpa)
+			size = INBUF_SIZE_LPA;
 		break;
 	case CODEC_AAC_DEC:
 		p_comp->dec_id = "audio-decoder/aac";
@@ -258,10 +263,6 @@ int xaf_comp_create(struct xf_client *client, struct xf_proxy *proxy,
 
 	if (request_inbuf) {
 		/* ...allocate input buffer */
-		if (dsp_priv->dsp_is_lpa)
-			size = INBUF_SIZE_LPA;
-		else
-			size = INBUF_SIZE;
 		ret = xf_pool_alloc(client, proxy, 1, size,
 				    XF_POOL_INPUT, &p_comp->inpool);
 		if (ret) {

@@ -58,6 +58,8 @@ struct xf_client {
 	int input_bytes;
 	int consume_bytes;
 	int offset;
+	atomic_t buffer_cnt;
+	int ping_pong_offset;
 };
 
 union xf_client_link {
@@ -88,6 +90,9 @@ struct fsl_dsp {
 	void			        *sdram_vir_addr;
 	unsigned long			sdram_phys_addr;
 	int				sdram_reserved_size;
+	void			        *dram_reserved_vir_addr;
+	unsigned long			dram_reserved_phys_addr;
+	int				dram_reserved_size;
 	void			        *ocram_vir_addr;
 	unsigned long			ocram_phys_addr;
 	int				ocram_reserved_size;
