@@ -1139,7 +1139,9 @@ static int vop_mmap(struct file *f, struct vm_area_struct *vma)
 		}
 		err = remap_pfn_range(vma, vma->vm_start + offset,
 				      pa >> PAGE_SHIFT, size,
-				      vma->vm_page_prot);
+				      dev_is_dma_coherent(vop_dev(vdev)) ? vma->vm_page_prot :
+							  pgprot_noncached(vma->vm_page_prot));
+
 		if (err)
 			goto ret;
 		size_rem -= size;
