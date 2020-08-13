@@ -9,6 +9,7 @@
 #include <linux/sched.h>
 #include <linux/poll.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-noncoherent.h>
 
 #include <linux/mic_common.h>
 #include "../common/mic_dev.h"
@@ -67,11 +68,12 @@ static void vop_virtio_init_post(struct vop_vdev *vdev)
 			dev_warn(vop_dev(vdev), "used_address zero??\n");
 			continue;
 		}
-		vdev->vvr[i].vrh.vring.used =
-			(void __force *)vpdev->hw_ops->remap(
-			vpdev,
-			le64_to_cpu(vqconfig[i].used_address),
-			used_size);
+		if (dev_is_dma_coherent(vop_dev(vdev)))
+			vdev->vvr[i].vrh.vring.used =
+				(void __force *)vpdev->hw_ops->remap(
+				vpdev,
+				le64_to_cpu(vqconfig[i].used_address),
+				used_size);
 	}
 
 	vdev->dc->used_address_updated = 0;
@@ -298,9 +300,14 @@ static int vop_virtio_add_device(struct vop_vdev *vdev,
 		mutex_init(&vvr->vr_mutex);
 		vr_size = PAGE_ALIGN(round_up(vring_size(num, MIC_VIRTIO_RING_ALIGN), 4) +
 			sizeof(struct _mic_vring_info));
-		vr->va = (void *)
-			__get_free_pages(GFP_KERNEL | __GFP_ZERO,
-					 get_order(vr_size));
+
+		if (!dev_is_dma_coherent(vop_dev(vdev)))
+			vr->va = dma_alloc_coherent(vop_dev(vdev), vr_size,
+						    &vr_addr, GFP_KERNEL);
+		else
+			vr->va = (void *)
+				__get_free_pages(GFP_KERNEL | __GFP_ZERO,
+						 get_order(vr_size));
 		if (!vr->va) {
 			ret = -ENOMEM;
 			dev_err(vop_dev(vdev), "%s %d err %d\n",
@@ -310,14 +317,17 @@ static int vop_virtio_add_device(struct vop_vdev *vdev,
 		vr->len = vr_size;
 		vr->info = vr->va + round_up(vring_size(num, MIC_VIRTIO_RING_ALIGN), 4);
 		vr->info->magic = cpu_to_le32(MIC_MAGIC + vdev->virtio_id + i);
-		vr_addr = dma_map_single(&vpdev->dev, vr->va, vr_size,
-					 DMA_BIDIRECTIONAL);
-		if (dma_mapping_error(&vpdev->dev, vr_addr)) {
-			free_pages((unsigned long)vr->va, get_order(vr_size));
-			ret = -ENOMEM;
-			dev_err(vop_dev(vdev), "%s %d err %d\n",
-				__func__, __LINE__, ret);
-			goto err;
+
+		if (dev_is_dma_coherent(vop_dev(vdev))) {
+			vr_addr = dma_map_single(&vpdev->dev, vr->va, vr_size,
+						 DMA_BIDIRECTIONAL);
+			if (dma_mapping_error(&vpdev->dev, vr_addr)) {
+				free_pages((unsigned long)vr->va, get_order(vr_size));
+				ret = -ENOMEM;
+				dev_err(vop_dev(vdev), "%s %d err %d\n",
+						__func__, __LINE__, ret);
+				goto err;
+			}
 		}
 		vqconfig[i].address = cpu_to_le64(vr_addr);
 
@@ -339,11 +349,17 @@ static int vop_virtio_add_device(struct vop_vdev *vdev,
 		dev_dbg(&vpdev->dev,
 			"%s %d index %d va %p info %p vr_size 0x%x\n",
 			__func__, __LINE__, i, vr->va, vr->info, vr_size);
-		vvr->buf = (void *)__get_free_pages(GFP_KERNEL,
-					get_order(VOP_INT_DMA_BUF_SIZE));
-		vvr->buf_da = dma_map_single(&vpdev->dev,
-					  vvr->buf, VOP_INT_DMA_BUF_SIZE,
-					  DMA_BIDIRECTIONAL);
+
+		if (!dev_is_dma_coherent(vop_dev(vdev)))
+			vvr->buf = dma_alloc_coherent(vop_dev(vdev), VOP_INT_DMA_BUF_SIZE,
+						      &vvr->buf_da, GFP_KERNEL);
+		else {
+			vvr->buf = (void *)__get_free_pages(GFP_KERNEL,
+							    get_order(VOP_INT_DMA_BUF_SIZE));
+			vvr->buf_da = dma_map_single(&vpdev->dev,
+						     vvr->buf, VOP_INT_DMA_BUF_SIZE,
+						     DMA_BIDIRECTIONAL);
+		}
 	}
 
 	snprintf(irqname, sizeof(irqname), "vop%dvirtio%d", vpdev->index,
@@ -382,10 +398,15 @@ err:
 	for (j = 0; j < i; j++) {
 		struct vop_vringh *vvr = &vdev->vvr[j];
 
-		dma_unmap_single(&vpdev->dev, le64_to_cpu(vqconfig[j].address),
-				 vvr->vring.len, DMA_BIDIRECTIONAL);
-		free_pages((unsigned long)vvr->vring.va,
-			   get_order(vvr->vring.len));
+		if (!dev_is_dma_coherent(vop_dev(vdev)))
+			dma_free_coherent(vop_dev(vdev), vvr->vring.len, vvr->vring.va,
+					  le64_to_cpu(vqconfig[j].address));
+		else {
+			dma_unmap_single(&vpdev->dev, le64_to_cpu(vqconfig[j].address),
+					 vvr->vring.len, DMA_BIDIRECTIONAL);
+			free_pages((unsigned long)vvr->vring.va,
+				   get_order(vvr->vring.len));
+		}
 	}
 	return ret;
 }
@@ -433,17 +454,29 @@ skip_hot_remove:
 	for (i = 0; i < vdev->dd->num_vq; i++) {
 		struct vop_vringh *vvr = &vdev->vvr[i];
 
-		dma_unmap_single(&vpdev->dev,
-				 vvr->buf_da, VOP_INT_DMA_BUF_SIZE,
-				 DMA_BIDIRECTIONAL);
-		free_pages((unsigned long)vvr->buf,
-			   get_order(VOP_INT_DMA_BUF_SIZE));
+		if (!dev_is_dma_coherent(vop_dev(vdev)))
+			dma_free_coherent(vop_dev(vdev), VOP_INT_DMA_BUF_SIZE,
+					  vvr->buf, vvr->buf_da);
+		else {
+			dma_unmap_single(&vpdev->dev,
+					 vvr->buf_da, VOP_INT_DMA_BUF_SIZE,
+					 DMA_BIDIRECTIONAL);
+			free_pages((unsigned long)vvr->buf,
+				   get_order(VOP_INT_DMA_BUF_SIZE));
+		}
+
 		vringh_kiov_cleanup(&vvr->riov);
 		vringh_kiov_cleanup(&vvr->wiov);
-		dma_unmap_single(&vpdev->dev, le64_to_cpu(vqconfig[i].address),
-				 vvr->vring.len, DMA_BIDIRECTIONAL);
-		free_pages((unsigned long)vvr->vring.va,
-			   get_order(vvr->vring.len));
+
+		if (!dev_is_dma_coherent(vop_dev(vdev)))
+			dma_free_coherent(vop_dev(vdev), vvr->vring.len, vvr->vring.va,
+					  le64_to_cpu(vqconfig[i].address));
+		else {
+			dma_unmap_single(&vpdev->dev, le64_to_cpu(vqconfig[i].address),
+					 vvr->vring.len, DMA_BIDIRECTIONAL);
+			free_pages((unsigned long)vvr->vring.va,
+				   get_order(vvr->vring.len));
+		}
 	}
 	/*
 	 * Order the type update with previous stores. This write barrier
@@ -1039,6 +1072,7 @@ vop_query_offset(struct vop_vdev *vdev, unsigned long offset,
 		 unsigned long *size, unsigned long *pa)
 {
 	struct vop_device *vpdev = vdev->vpdev;
+	struct mic_vqconfig *vqconfig = mic_vq_config(vdev->dd);
 	unsigned long start = MIC_DP_SIZE;
 	int i;
 
@@ -1060,7 +1094,11 @@ vop_query_offset(struct vop_vdev *vdev, unsigned long offset,
 		struct vop_vringh *vvr = &vdev->vvr[i];
 
 		if (offset == start) {
-			*pa = virt_to_phys(vvr->vring.va);
+			if (!dev_is_dma_coherent(vop_dev(vdev)))
+				*pa = vqconfig[i].address;
+			else
+				*pa = virt_to_phys(vvr->vring.va);
+
 			*size = vvr->vring.len;
 			return 0;
 		}
