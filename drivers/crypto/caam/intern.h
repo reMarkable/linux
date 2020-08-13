@@ -252,6 +252,24 @@ static inline void caam_sm_shutdown(struct device *dev)
 
 #endif /* CONFIG_CRYPTO_DEV_FSL_CAAM_SM */
 
+#ifdef CONFIG_CRYPTO_DEV_FSL_CAAM_TK_API
+
+int caam_keygen_init(void);
+void caam_keygen_exit(void);
+
+#else
+
+static inline int caam_keygen_init(void)
+{
+	return 0;
+}
+
+static inline void caam_keygen_exit(void)
+{
+}
+
+#endif /* CONFIG_CRYPTO_DEV_FSL_CAAM_TK_API */
+
 #ifdef CONFIG_DEBUG_FS
 static int caam_debugfs_u64_get(void *data, u64 *val)
 {
