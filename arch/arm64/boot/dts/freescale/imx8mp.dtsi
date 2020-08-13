@@ -1835,6 +1835,13 @@
 					status = "disabled";
 				};
 
+				dewarp: dwe@32e30000 {
+					compatible = "fsl,imx8mp-dwe";
+					reg = <0x32e30000 0x10000>;
+					interrupts = <GIC_SPI 100 IRQ_TYPE_LEVEL_HIGH>;
+					status = "disabled";
+				};
+
 				mipi_csi_0: csi@32e40000 {
 					compatible = "fsl,imx8mp-mipi-csi", "fsl,imx8mn-mipi-csi";
 					reg = <0x32e40000 0x10000>;
