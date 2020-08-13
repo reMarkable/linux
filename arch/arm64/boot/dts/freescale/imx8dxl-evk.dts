@@ -556,7 +556,7 @@
 	ext_osc = <0>;
 	epdev_on-supply = <&epdev_on>;
 	reserved-region = <&rpmsg_reserved>;
-	status = "disabled";
+	status = "okay";
 };
 
 &pcieb_ep{
