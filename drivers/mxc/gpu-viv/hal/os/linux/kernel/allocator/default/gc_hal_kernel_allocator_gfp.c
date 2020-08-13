@@ -474,7 +474,8 @@ _GFPAlloc(
     gceSTATUS status;
     gctSIZE_T i = 0;
     gctBOOL contiguous = Flags & gcvALLOC_FLAG_CONTIGUOUS;
-    u32 gfp = (contiguous ? (__GFP_HIGH | __GFP_ATOMIC) : GFP_KERNEL) | __GFP_HIGHMEM | gcdNOWARN;
+    u32 normal_gfp = __GFP_HIGH | __GFP_ATOMIC | __GFP_NORETRY | gcdNOWARN;
+    u32 gfp = (contiguous ? normal_gfp : GFP_KERNEL) | __GFP_HIGHMEM | gcdNOWARN;
 
     struct gfp_alloc *priv = (struct gfp_alloc *)Allocator->privateData;
     struct gfp_mdl_priv *mdlPriv = gcvNULL;
@@ -582,7 +583,12 @@ _GFPAlloc(
         }
         else
         {
-            gcmkONERROR(_NonContiguousAlloc(mdlPriv, NumPages, gfp));
+            status = _NonContiguousAlloc(mdlPriv, NumPages, normal_gfp);
+
+            if (gcmIS_ERROR(status))
+            {
+                gcmkONERROR(_NonContiguousAlloc(mdlPriv, NumPages, gfp));
+            }
         }
 
 #if defined(CONFIG_X86)
