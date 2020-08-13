@@ -18,5 +18,7 @@
 #define MIC_INTR_MU_ACR_GIEn(x)		BIT(28 + (3 - (x)))
 /* General Interrupt Request Pending */
 #define MIC_INTR_MU_ASR_GIPn(x)		BIT(28 + (3 - (x)))
+/* General Purpose Interrupt Request */
+#define MIC_INTR_MU_BCR_GIRn(x)		BIT(16 + (3 - (x)))
 
 #endif
