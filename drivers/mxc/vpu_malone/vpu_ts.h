@@ -153,7 +153,7 @@ typedef struct _TSManager {
 	int tx_cnt;
 	int rx_cnt;
 	int cnt;
-	int valid_ts_received:1;
+	unsigned int valid_ts_received:1;
 	int big_cnt;
 
 	TSMRecivedCtl rctl;
