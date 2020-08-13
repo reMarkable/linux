@@ -4679,10 +4679,10 @@ static ssize_t show_memory_info(struct device *dev,
 		num += scnprintf(buf + num, PAGE_SIZE - num, "core[%d]\n", i);
 
 		for (j = 0; j < ARRAY_SIZE(core->attr); j++) {
-			struct vpu_attr *attr = &core->attr[j];
+			struct vpu_attr *attr_loc = &core->attr[j];
 			unsigned long size;
 
-			size = atomic64_read(&attr->total_dma_size);
+			size = atomic64_read(&attr_loc->total_dma_size);
 			total_dma_size += size;
 			num += scnprintf(buf + num, PAGE_SIZE - num,
 					"\t[%d] : %ld\n", j, size);
