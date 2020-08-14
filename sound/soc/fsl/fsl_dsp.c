@@ -1201,12 +1201,14 @@ static int fsl_dsp_probe(struct platform_device *pdev)
 
 	ret = of_property_read_u32(np, "fixup-offset", &dsp_priv->fixup_offset);
 
-	dsp_miscdev.fops = &dsp_fops,
-	dsp_miscdev.parent = &pdev->dev,
-	ret = misc_register(&dsp_miscdev);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register misc device %d\n", ret);
-		goto misc_register_fail;
+	if (!dsp_priv->dsp_is_lpa) {
+		dsp_miscdev.fops = &dsp_fops,
+			dsp_miscdev.parent = &pdev->dev,
+			ret = misc_register(&dsp_miscdev);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to register misc device %d\n", ret);
+			goto misc_register_fail;
+		}
 	}
 
 	reserved_node = of_parse_phandle(np, "memory-region", 0);
@@ -1370,7 +1372,8 @@ alloc_coherent_fail:
 		iounmap(dsp_priv->ocram_e_vir_addr);
 
 reserved_node_fail:
-	misc_deregister(&dsp_miscdev);
+	if (!dsp_priv->dsp_is_lpa)
+		misc_deregister(&dsp_miscdev);
 misc_register_fail:
 mu_init_fail:
 configure_fail:
@@ -1384,7 +1387,8 @@ static int fsl_dsp_remove(struct platform_device *pdev)
 	struct fsl_dsp *dsp_priv = platform_get_drvdata(pdev);
 	int size;
 
-	misc_deregister(&dsp_miscdev);
+	if (!dsp_priv->dsp_is_lpa)
+		misc_deregister(&dsp_miscdev);
 
 	size = MSG_BUF_SIZE + DSP_CONFIG_SIZE;
 	dma_free_coherent(&pdev->dev, size, dsp_priv->msg_buf_virt,
