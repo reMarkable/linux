@@ -4723,6 +4723,9 @@ static int tcpm_psy_set_prop(struct power_supply *psy,
 		else
 			ret = tcpm_pps_set_op_curr(port, val->intval / 1000);
 		break;
+	case POWER_SUPPLY_PROP_USB_TYPE:
+		port->usb_type = val->intval;
+		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -4745,6 +4748,10 @@ static int tcpm_psy_prop_writeable(struct power_supply *psy,
 }
 
 static enum power_supply_usb_type tcpm_psy_usb_types[] = {
+	POWER_SUPPLY_USB_TYPE_SDP,
+	POWER_SUPPLY_USB_TYPE_DCP,
+	POWER_SUPPLY_USB_TYPE_CDP,
+	POWER_SUPPLY_USB_TYPE_ACA,
 	POWER_SUPPLY_USB_TYPE_C,
 	POWER_SUPPLY_USB_TYPE_PD,
 	POWER_SUPPLY_USB_TYPE_PD_PPS,
