@@ -88,7 +88,7 @@
 	sound-ak5552 {
 		compatible = "fsl,imx-audio-ak5552";
 		model = "ak5552-audio";
-		audio-cpu = <&sai3>;
+		audio-cpu = <&sai6>;
 		audio-codec = <&ak5552>;
 	};
 
@@ -232,6 +232,15 @@
 			MX8MN_IOMUXC_SAI3_RXC_SAI3_RX_BCLK	0xd6
 			MX8MN_IOMUXC_SAI3_RXFS_SAI3_RX_SYNC	0xd6
 			MX8MN_IOMUXC_SAI3_RXD_SAI3_RX_DATA0	0xd6
+		>;
+	};
+
+	pinctrl_sai6: sai6grp {
+		fsl,pins = <
+			MX8MN_IOMUXC_ENET_TX_CTL_SAI6_MCLK      0xd6
+			MX8MN_IOMUXC_ENET_TD1_SAI6_RX_SYNC      0xd6
+			MX8MN_IOMUXC_ENET_TD0_SAI6_RX_BCLK      0xd6
+			MX8MN_IOMUXC_ENET_TD2_SAI6_RX_DATA0     0xd6
 		>;
 	};
 
@@ -788,6 +797,21 @@
 		<&clk IMX8MN_CLK_DUMMY>, <&clk IMX8MN_AUDIO_PLL1_OUT>,
 		<&clk IMX8MN_AUDIO_PLL2_OUT>;
 	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3", "pll8k", "pll11k";
+	status = "disabled";
+};
+
+&sai6 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai6>;
+	assigned-clocks = <&clk IMX8MN_CLK_SAI6>;
+	assigned-clock-parents = <&clk IMX8MN_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <0>, <24576000>;
+	clocks = <&clk IMX8MN_CLK_SAI6_IPG>, <&clk IMX8MN_CLK_DUMMY>,
+		<&clk IMX8MN_CLK_SAI6_ROOT>, <&clk IMX8MN_CLK_DUMMY>,
+		<&clk IMX8MN_CLK_DUMMY>, <&clk IMX8MN_AUDIO_PLL1_OUT>,
+		<&clk IMX8MN_AUDIO_PLL2_OUT>;
+	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3", "pll8k", "pll11k";
+	fsl,sai-asynchronous;
 	status = "okay";
 };
 
