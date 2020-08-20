@@ -374,9 +374,10 @@ int caam_blob_encap(struct device *dev, struct keyblob_info *info)
 	int ret = 0;
 	u32 *desc = NULL;
 	size_t black_key_real_len = 0;
+	size_t blob_req_len = 0;
 	u8 mem_type, color, key_enc, trusted_key;
 	dma_addr_t black_key_dma, key_mod_dma, blob_dma;
-	unsigned char *blob = info->blob + BLOB_HEADER_SIZE;
+	unsigned char *blob = info->blob;
 	u8 *tmp_black_key = NULL, *tmp_key_mod = NULL, *tmp_blob = NULL;
 
 	/* Validate device */
@@ -417,12 +418,14 @@ int caam_blob_encap(struct device *dev, struct keyblob_info *info)
 	/* Adapt the size of the black key */
 	black_key_real_len = info->black_key_len;
 
+	blob_req_len = CCM_BLACK_KEY_SIZE(info->key_len);
+
 	/* Check if the blob can be stored */
-	if (info->blob_len < (black_key_real_len + BLOB_OVERHEAD))
+	if (info->blob_len < (blob_req_len + BLOB_OVERHEAD))
 		return -EINVAL;
 
 	/* Update the blob length */
-	info->blob_len = black_key_real_len + BLOB_OVERHEAD;
+	info->blob_len = blob_req_len + BLOB_OVERHEAD;
 
 	dev_dbg(dev, "%s processing: [black_key: %p (%zu) cnstr: %zu",
 		__func__, info->black_key, info->black_key_len,
@@ -474,7 +477,7 @@ int caam_blob_encap(struct device *dev, struct keyblob_info *info)
 	}
 
 	/* Construct descriptor for blob encapsulation */
-	ret = cnstr_desc_blob_encap(&desc, black_key_dma, black_key_real_len,
+	ret = cnstr_desc_blob_encap(&desc, black_key_dma, info->key_len,
 				    color, key_enc, trusted_key, mem_type,
 				    key_mod_dma, info->key_mod_len,
 				    blob_dma, info->blob_len);
@@ -545,7 +548,7 @@ int caam_blob_decap(struct device *dev, struct keyblob_info *info)
 	u8 mem_type, color, key_enc, trusted_key;
 	size_t black_key_real_len;
 	dma_addr_t key_mod_dma, black_key_dma, blob_dma;
-	unsigned char *blob = info->blob + BLOB_HEADER_SIZE;
+	unsigned char *blob = info->blob + TAG_OVERHEAD_SIZE;
 	u8 *tmp_black_key = NULL, *tmp_key_mod = NULL, *tmp_blob = NULL;
 
 	/* Validate device */
@@ -596,6 +599,30 @@ int caam_blob_decap(struct device *dev, struct keyblob_info *info)
 	black_key_real_len = info->blob_len - BLOB_OVERHEAD;
 
 	/* Check if the black key has enough space to be stored */
+	if (info->black_key_len < black_key_real_len)
+		return -EINVAL;
+
+	/*
+	 * Based on key encryption type (ecb or ccm),
+	 * compute the black key size
+	 */
+	if (key_enc == KEY_COVER_ECB)
+		/*
+		 * ECB-Black Key will be padded with zeros to make it a
+		 * multiple of 16 bytes long before it is encrypted,
+		 * and the resulting Black Key will be this length.
+		 */
+		black_key_real_len = ECB_BLACK_KEY_SIZE(info->key_len);
+	else if (key_enc == KEY_COVER_CCM)
+		/*
+		 * CCM-Black Key will always be at least 12 bytes longer,
+		 * since the encapsulation uses a 6-byte nonce and adds
+		 * a 6-byte ICV. But first, the key is padded as necessary so
+		 * that CCM-Black Key is a multiple of 8 bytes long.
+		 */
+		black_key_real_len = CCM_BLACK_KEY_SIZE(info->key_len);
+
+	/* Check if there is enough space for black key */
 	if (info->black_key_len < black_key_real_len)
 		return -EINVAL;
 
@@ -652,7 +679,7 @@ int caam_blob_decap(struct device *dev, struct keyblob_info *info)
 
 	ret = cnstr_desc_blob_decap(&desc, blob_dma, info->blob_len,
 				    key_mod_dma, info->key_mod_len,
-				    black_key_dma, black_key_real_len,
+				    black_key_dma, info->key_len,
 				    color, key_enc, trusted_key, mem_type);
 	if (ret) {
 		dev_err(dev,

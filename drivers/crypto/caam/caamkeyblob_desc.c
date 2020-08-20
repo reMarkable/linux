@@ -247,7 +247,7 @@ EXPORT_SYMBOL(cnstr_desc_random_black_key);
  *                             format=normal
  */
 int cnstr_desc_blob_encap(u32 **desc, dma_addr_t black_key,
-			  size_t black_key_len, u8 keycolor, u8 key_enc,
+			  size_t key_len, u8 keycolor, u8 key_enc,
 			  u8 trusted_key, u8 mem_type, dma_addr_t key_mod,
 			  size_t key_mod_len, dma_addr_t blob, size_t blob_len)
 {
@@ -276,18 +276,19 @@ int cnstr_desc_blob_encap(u32 **desc, dma_addr_t black_key,
 				 | LDST_SRCDST_BYTE_KEY
 				 | (key_mod_len & LDST_LEN_MASK);
 
-	tmpdesc[idx++] = (u32)key_mod;
+	tmpdesc[idx++] = (uintptr_t)key_mod;
+
+	/* Input data, should be somewhere in secure memory */
+	tmpdesc[idx++] = CMD_SEQ_IN_PTR | key_len;
+	tmpdesc[idx++] = (uintptr_t)black_key;
 
 	/*
 	 * Encapsulation output must include space for blob key encryption
 	 * key and MAC tag
 	 */
-	tmpdesc[idx++] = CMD_SEQ_OUT_PTR | (black_key_len + BLOB_OVERHEAD);
-	tmpdesc[idx++] = (u32)blob;
-
-	/* Input data, should be somewhere in secure memory */
-	tmpdesc[idx++] = CMD_SEQ_IN_PTR | black_key_len;
-	tmpdesc[idx++] = (uintptr_t)black_key;
+	tmpdesc[idx++] = CMD_SEQ_OUT_PTR | (CCM_BLACK_KEY_SIZE(key_len) +
+					    BLOB_OVERHEAD);
+	tmpdesc[idx++] = (uintptr_t)blob;
 
 	/* Set blob encap, then color */
 	tmpdesc[idx] = CMD_OPERATION | OP_TYPE_ENCAP_PROTOCOL | OP_PCLID_BLOB;
@@ -387,7 +388,7 @@ EXPORT_SYMBOL(cnstr_desc_blob_encap);
  */
 int cnstr_desc_blob_decap(u32 **desc, dma_addr_t blob, size_t blob_len,
 			  dma_addr_t key_mod, size_t key_mod_len,
-			  dma_addr_t black_key, size_t black_key_len,
+			  dma_addr_t black_key, size_t plaintext_len,
 			  u8 keycolor, u8 key_enc, u8 trusted_key, u8 mem_type)
 {
 	u32 *tdesc, tmpdesc[INITIAL_DESCSZ];
@@ -412,12 +413,12 @@ int cnstr_desc_blob_decap(u32 **desc, dma_addr_t blob, size_t blob_len,
 				| LDST_SRCDST_BYTE_KEY
 				| (key_mod_len & LDST_LEN_MASK);
 
-	tmpdesc[idx++] = (u32)key_mod;
+	tmpdesc[idx++] = (uintptr_t)key_mod;
 
 	/* Compensate BKEK + MAC tag over size of encapsulated secret */
-	tmpdesc[idx++] = CMD_SEQ_IN_PTR | blob_len;
-	tmpdesc[idx++] = (u32)blob;
-	tmpdesc[idx++] = CMD_SEQ_OUT_PTR | black_key_len;
+	tmpdesc[idx++] = CMD_SEQ_IN_PTR | (plaintext_len + BLOB_OVERHEAD);
+	tmpdesc[idx++] = (uintptr_t)blob;
+	tmpdesc[idx++] = CMD_SEQ_OUT_PTR | plaintext_len;
 	tmpdesc[idx++] = (uintptr_t)black_key;
 
 	/* Decapsulate from secure memory partition to black blob */
