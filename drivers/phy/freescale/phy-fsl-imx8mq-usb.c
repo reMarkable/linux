@@ -298,33 +298,45 @@ static void imx8mq_phy_disable_chg_det(struct imx8mq_usb_phy *imx_phy)
 
 static int imx8mq_phy_charger_detect(struct imx8mq_usb_phy *imx_phy)
 {
+	struct device *dev = &imx_phy->phy->dev;
+	struct device_node *np = dev->parent->of_node;
 	union power_supply_propval propval;
 	u32 value;
-	int ret;
+	int ret = 0;
 
-	if (!imx_phy->vbus_power_supply || imx_phy->chg_type !=
-	    POWER_SUPPLY_USB_TYPE_UNKNOWN)
+	if (!np)
 		return 0;
+
+	imx_phy->vbus_power_supply = power_supply_get_by_phandle(np,
+						"vbus-power-supply");
+	if (IS_ERR_OR_NULL(imx_phy->vbus_power_supply))
+		return 0;
+
+	if (imx_phy->chg_type != POWER_SUPPLY_USB_TYPE_UNKNOWN)
+		goto put_psy;
 
 	ret = power_supply_get_property(imx_phy->vbus_power_supply,
 					POWER_SUPPLY_PROP_ONLINE,
 					&propval);
-	if (ret || propval.intval == 0)
-		return ret;
-
+	if (ret || propval.intval == 0) {
+		dev_err(dev, "failed to get psy online infor\n");
+		ret = -EINVAL;
+		goto put_psy;
+	}
 
 	/* Check if vbus is valid */
 	value = readl(imx_phy->base + PHY_STS0);
 	if (!(value & PHY_STS0_OTGSESSVLD)) {
 		dev_err(&imx_phy->phy->dev, "vbus is error\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto put_psy;
 	}
 
 	imx_phy->chg_type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 
 	ret = imx8mq_chg_data_contact_det(imx_phy);
 	if (ret)
-		return ret;
+		goto put_psy;
 
 	ret = imx8mq_chg_primary_detect(imx_phy);
 	if (!ret && imx_phy->chg_type != POWER_SUPPLY_USB_TYPE_SDP)
@@ -339,6 +351,9 @@ static int imx8mq_phy_charger_detect(struct imx8mq_usb_phy *imx_phy)
 					  &propval);
 	}
 
+put_psy:
+	power_supply_put(imx_phy->vbus_power_supply);
+
 	return ret;
 }
 
@@ -348,17 +363,19 @@ static int imx8mq_phy_usb_vbus_notify(struct notifier_block *nb,
 	struct imx8mq_usb_phy *imx_phy = container_of(nb, struct imx8mq_usb_phy,
 						      chg_det_nb);
 	struct device *dev = &imx_phy->phy->dev;
+	struct device_node *np = dev->parent->of_node;
 	union power_supply_propval propval;
 	struct power_supply *psy = v;
 	int ret;
 
-	if (!imx_phy->vbus_power_supply) {
-		imx_phy->vbus_power_supply = devm_power_supply_get_by_phandle(
-					     dev->parent, "vbus-power-supply");
-		if (IS_ERR(imx_phy->vbus_power_supply)) {
-			dev_err(dev, "failed to get power supply\n");
-			return NOTIFY_DONE;
-		}
+	if (!np)
+		return NOTIFY_DONE;
+
+	imx_phy->vbus_power_supply = power_supply_get_by_phandle(np,
+						"vbus-power-supply");
+	if (IS_ERR_OR_NULL(imx_phy->vbus_power_supply)) {
+		dev_err(dev, "failed to get power supply\n");
+		return NOTIFY_DONE;
 	}
 
 	if (val == PSY_EVENT_PROP_CHANGED && psy == imx_phy->vbus_power_supply) {
@@ -366,6 +383,7 @@ static int imx8mq_phy_usb_vbus_notify(struct notifier_block *nb,
 						POWER_SUPPLY_PROP_ONLINE,
 						&propval);
 		if (ret) {
+			power_supply_put(imx_phy->vbus_power_supply);
 			dev_err(dev, "failed to get psy online info\n");
 			return NOTIFY_DONE;
 		}
@@ -373,6 +391,7 @@ static int imx8mq_phy_usb_vbus_notify(struct notifier_block *nb,
 		if (propval.intval == 0)
 			imx_phy->chg_type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 	}
+	power_supply_put(imx_phy->vbus_power_supply);
 
 	return NOTIFY_OK;
 }
@@ -427,6 +446,7 @@ static int imx8mq_usb_phy_probe(struct platform_device *pdev)
 		return PTR_ERR(imx_phy->vbus);
 
 	phy_set_drvdata(imx_phy->phy, imx_phy);
+	platform_set_drvdata(pdev, imx_phy);
 
 	if (device_property_present(dev, "vbus-power-supply")) {
 		imx_phy->chg_det_nb.notifier_call = imx8mq_phy_usb_vbus_notify;
@@ -438,6 +458,16 @@ static int imx8mq_usb_phy_probe(struct platform_device *pdev)
 	return PTR_ERR_OR_ZERO(phy_provider);
 }
 
+static int imx8mq_usb_phy_remove(struct platform_device *pdev)
+{
+	struct imx8mq_usb_phy *imx_phy = platform_get_drvdata(pdev);
+
+	if (device_property_present(&pdev->dev, "vbus-power-supply"))
+		power_supply_unreg_notifier(&imx_phy->chg_det_nb);
+
+	return 0;
+}
+
 static const struct of_device_id imx8mq_usb_phy_of_match[] = {
 	{.compatible = "fsl,imx8mq-usb-phy",},
 	{.compatible = "fsl,imx8mp-usb-phy",},
@@ -447,6 +477,7 @@ MODULE_DEVICE_TABLE(of, imx8mq_usb_phy_of_match);
 
 static struct platform_driver imx8mq_usb_phy_driver = {
 	.probe	= imx8mq_usb_phy_probe,
+	.remove = imx8mq_usb_phy_remove,
 	.driver = {
 		.name	= "imx8mq-usb-phy",
 		.of_match_table	= imx8mq_usb_phy_of_match,
