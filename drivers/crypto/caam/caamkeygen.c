@@ -170,6 +170,18 @@ static int validate_input(struct caam_keygen_cmd *key_crt, unsigned long arg,
 	 */
 	if (create_key_op) {
 		/*
+		 * Validate arguments received from user.
+		 * These must be at least 1 since
+		 * they have null terminator.
+		 */
+		if (key_crt->key_enc_len < 1 || key_crt->key_mode_len < 1 ||
+		    key_crt->key_value_len < 1) {
+			msg = "Invalid arguments.\n";
+			send_err_msg(msg, u64_to_user_ptr(key_crt->blob),
+				     key_crt->blob_len);
+			return -EFAULT;
+		}
+		/*
 		 * Allocate memory for temporary buffer used to
 		 * get the user arguments from user-space
 		 */
