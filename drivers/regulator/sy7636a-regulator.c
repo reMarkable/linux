@@ -44,6 +44,18 @@ static int disable_regulator(struct regulator_dev *rdev)
 	return ret;
 }
 
+static int sy7636a_regulator_is_enabled(struct regulator_dev *rdev)
+{
+	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
+	int ret;
+
+	mutex_lock(&sy7636a->reglock);
+	ret = regulator_is_enabled_regmap(rdev);
+	mutex_unlock(&sy7636a->reglock);
+
+	return ret;
+}
+
 static int enable_regulator_pgood(struct regulator_dev *rdev)
 {
 	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
@@ -97,7 +109,7 @@ static const struct regulator_ops sy7636a_vcom_volt_ops = {
 	.get_voltage = get_vcom_voltage_op,
 	.enable = enable_regulator_pgood,
 	.disable = disable_regulator,
-	.is_enabled = regulator_is_enabled_regmap,
+	.is_enabled = sy7636a_regulator_is_enabled,
 };
 
 struct regulator_desc desc = {
