@@ -219,8 +219,8 @@ static void lpi2c_imx_stop(struct lpi2c_imx_struct *lpi2c_imx)
    CLKHI = I2C_CLK_RATIO * clk_cycle */
 static int lpi2c_imx_config(struct lpi2c_imx_struct *lpi2c_imx)
 {
-	u8 prescale, filt, sethold, clkhi, clklo, datavd;
-	unsigned int clk_rate, clk_cycle;
+	u8 prescale, filt, sethold, datavd;
+	unsigned int clk_rate, clk_cycle, clkhi, clklo;
 	enum lpi2c_imx_pincfg pincfg;
 	unsigned int temp;
 
