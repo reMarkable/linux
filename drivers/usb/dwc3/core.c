@@ -1769,6 +1769,11 @@ static int dwc3_suspend_common(struct dwc3 *dwc, pm_message_t msg)
 	u32 reg;
 
 	switch (dwc->current_dr_role) {
+	case DWC3_GCTL_PRTCAP_NONE:
+		if (pm_runtime_suspended(dwc->dev))
+			break;
+		dwc3_core_exit(dwc);
+		break;
 	case DWC3_GCTL_PRTCAP_DEVICE:
 		if (pm_runtime_suspended(dwc->dev))
 			break;
@@ -1829,6 +1834,14 @@ static int dwc3_resume_common(struct dwc3 *dwc, pm_message_t msg)
 	u32		reg;
 
 	switch (dwc->current_dr_role) {
+	case DWC3_GCTL_PRTCAP_NONE:
+		if (dwc->core_inited)
+			break;
+
+		ret = dwc3_core_init_for_resume(dwc);
+		if (ret)
+			return ret;
+		break;
 	case DWC3_GCTL_PRTCAP_DEVICE:
 		/*
 		 * system resume may come after runtime resume
