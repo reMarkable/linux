@@ -259,6 +259,13 @@
 			>;
 		};
 
+		pinctrl_i2c4: i2c4grp {
+			fsl,pins = <
+				MX8MN_IOMUXC_I2C4_SCL_I2C4_SCL			0x400001c3
+				MX8MN_IOMUXC_I2C4_SDA_I2C4_SDA			0x400001c3
+			>;
+		};
+
 		pinctrl_i2c1_gpio: i2c1grp-gpio {
 			fsl,pins = <
 				MX8MN_IOMUXC_I2C1_SCL_GPIO5_IO14		0x1c3
@@ -277,6 +284,13 @@
 			fsl,pins = <
 				MX8MN_IOMUXC_I2C3_SCL_GPIO5_IO18		0x1c3
 				MX8MN_IOMUXC_I2C3_SDA_GPIO5_IO19		0x1c3
+			>;
+		};
+
+		pinctrl_i2c4_gpio: i2c4grp-gpio {
+			fsl,pins = <
+				MX8MN_IOMUXC_I2C4_SCL_GPIO5_IO20		0x1c3
+				MX8MN_IOMUXC_I2C4_SDA_GPIO5_IO21		0x1c3
 			>;
 		};
 
@@ -724,6 +738,16 @@
 		AVDD-supply = <&reg_adc_avdd_5v0>;
 		DVDD-supply = <&reg_adc_dvdd_3v3>;
 	};
+};
+
+&i2c4 {
+	clock-frequency = <400000>;
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&pinctrl_i2c4>;
+	pinctrl-1 = <&pinctrl_i2c4_gpio>;
+	scl-gpios = <&gpio5 20 GPIO_ACTIVE_HIGH>;
+	sda-gpios = <&gpio5 21 GPIO_ACTIVE_HIGH>;
+	status = "disabled";
 };
 
 &fec1 {
