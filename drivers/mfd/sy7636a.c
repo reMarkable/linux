@@ -109,7 +109,7 @@ static ssize_t state_show(struct device *dev, struct device_attribute *attr,
 
 	val = val >> 1;
 
-	if (val > 0xf) {
+	if (val >= ARRAY_SIZE(states)) {
 		dev_err(sy7636a->dev, "Unexpected value read from device: %u\n", val);
 		return -EINVAL;
 	}
