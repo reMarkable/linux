@@ -732,18 +732,26 @@ static void max77818_external_power_changed(struct power_supply *psy)
 	power_supply_changed(psy);
 }
 
-static int max77818_write_verify_reg(struct regmap *map, unsigned int reg, unsigned int value)
+static int max77818_write_and_verify_reg(struct regmap *map, unsigned int reg, unsigned int value)
 {
 	int retries = 8;
 	u32 read_value;
 	int ret;
 
 	do {
+		retries--;
 		ret = regmap_write(map, reg, value);
-		regmap_read(map, reg, &read_value);
+		if (ret) {
+			continue;
+		}
+
+		ret = regmap_read(map, reg, &read_value);
+		if (ret) {
+			continue;
+		}
+
 		if (read_value != value) {
 			ret = -EIO;
-			retries--;
 		}
 	} while (retries && read_value != value);
 
@@ -753,55 +761,73 @@ static int max77818_write_verify_reg(struct regmap *map, unsigned int reg, unsig
 	return ret;
 }
 
-static inline void max10742_unlock_model(struct max77818_chip *chip)
+static inline int max77818_unlock_model(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
+	int ret;
 
-	regmap_write(map, MAX17042_MLOCKReg1, MODEL_UNLOCK1);
-	regmap_write(map, MAX17042_MLOCKReg2, MODEL_UNLOCK2);
+	ret = regmap_write(map, MAX17042_MLOCKReg1, MODEL_UNLOCK1);
+	if (ret)
+		return ret;
+
+	return regmap_write(map, MAX17042_MLOCKReg2, MODEL_UNLOCK2);
 }
 
-static inline void max10742_lock_model(struct max77818_chip *chip)
+static inline int max77818_lock_model(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
+	int ret;
 
-	regmap_write(map, MAX17042_MLOCKReg1, MODEL_LOCK1);
-	regmap_write(map, MAX17042_MLOCKReg2, MODEL_LOCK2);
+	ret = regmap_write(map, MAX17042_MLOCKReg1, MODEL_LOCK1);
+	if (ret)
+		return ret;
+
+	return regmap_write(map, MAX17042_MLOCKReg2, MODEL_LOCK2);
 }
 
-static inline void max77818_write_model_data(struct max77818_chip *chip,
+static inline int max77818_write_model_data(struct max77818_chip *chip,
 					     u16 *data, int count)
 {
 	struct regmap *map = chip->regmap;
-	int i;
+	int i, ret;
 
-	for (i = 0; i < count; i++)
-		regmap_write(map, MAX17042_MODELChrTbl + i, data[i]);
+	for (i = 0; i < count; i++) {
+		ret = regmap_write(map, MAX17042_MODELChrTbl + i, data[i]);
+		if (ret)
+			return ret;
+	}
+	return 0;
 }
 
-static inline void max77818_read_model_data(struct max77818_chip *chip,
+static inline int max77818_read_model_data(struct max77818_chip *chip,
 					    u16 *data, int count)
 {
 	struct regmap *map = chip->regmap;
 	u32 tmp;
-	int i;
+	int ret, i;
 
 	for (i = 0; i < count; i++) {
-		regmap_read(map, MAX17042_MODELChrTbl + i, &tmp);
+		ret = regmap_read(map, MAX17042_MODELChrTbl + i, &tmp);
+		if (ret)
+			return ret;
 		data[i] = (u16)tmp;
 	}
+	return 0;
 }
 
 static inline int max77818_model_data_compare(struct max77818_chip *chip,
-					u16 *data1, u16 *data2, int size)
+					u16 *expected, u16 *compareto, int size)
 {
 	int i;
 
-	if (memcmp(data1, data2, size)) {
+	if (memcmp(expected, compareto, size)) {
 		dev_err(chip->dev, "%s compare failed\n", __func__);
 		for (i = 0; i < size; i++)
-			dev_info(chip->dev, "0x%x, 0x%x", data1[i], data2[i]);
-		dev_info(chip->dev, "\n");
+			dev_info(chip->dev,
+					"%03d: Expected: 0x%x, read: 0x%x\n",
+					i,
+					expected[i],
+					compareto[i]);
 		return -EINVAL;
 	}
 	return 0;
@@ -837,15 +863,31 @@ static int max77818_init_model(struct max77818_chip *chip)
 		goto free_data;
 	}
 
-	max10742_unlock_model(chip);
-	max77818_write_model_data(chip, data, count);
-	max77818_read_model_data(chip, rdata, count);
+	ret = max77818_unlock_model(chip);
+	if (ret) {
+		dev_err(chip->dev, "unable to unlock model data: %d\n", ret);
+		goto free_rdata;
+	}
+
+	ret = max77818_write_model_data(chip, data, count);
+	if (ret) {
+		dev_err(chip->dev, "unable to write model data: %d\n", ret);
+		goto lock_model;
+	}
+
+	ret = max77818_read_model_data(chip, rdata, count);
+	if (ret) {
+		dev_err(chip->dev, "unable to read model data: %d\n", ret);
+		goto lock_model;
+	}
 
 	ret = max77818_model_data_compare(chip, data, rdata, count);
 	if (ret)
 		dev_err(chip->dev, "model data compare failed: %d\n", ret);
 
-	max10742_lock_model(chip);
+lock_model:
+	max77818_lock_model(chip);
+free_rdata:
 	kfree(rdata);
 free_data:
 	kfree(data);
@@ -863,15 +905,18 @@ static int max77818_verify_model_lock(struct max77818_chip *chip)
 	if (!data)
 		return -ENOMEM;
 
-	max77818_read_model_data(chip, data, count);
+	ret = max77818_read_model_data(chip, data, count);
+	if (ret)
+		goto done;
 
 	for (i = 0; i < count; i++) {
 		if (data[i]) {
 			ret = -EINVAL;
-			break;
+			goto done;
 		}
 	}
 
+done:
 	kfree(data);
 	return ret;
 }
@@ -881,26 +926,36 @@ static int max77818_model_loading(struct max77818_chip *chip)
 	unsigned long timeout = jiffies + msecs_to_jiffies(400);
 	struct regmap *map = chip->regmap;
 	u32 config2;
+	int ret;
 
 	/* Setting LdMdl bit */
-	regmap_read(map, MAX77818_Config2, &config2);
-	regmap_write(map, MAX77818_Config2, config2 | CONFIG2_LDMDL);
+	ret = regmap_read(map, MAX77818_Config2, &config2);
+	if (ret)
+		return ret;
+
+	ret = regmap_write(map, MAX77818_Config2, config2 | CONFIG2_LDMDL);
+	if (ret)
+		return ret;
 
 	/* Poll LdMdl bit to be 0 under 400ms */
 	do {
-		regmap_read(map, MAX77818_Config2, &config2);
+		ret = regmap_read(map, MAX77818_Config2, &config2);
+		if (ret)
+			break;
 		if ((config2 & CONFIG2_LDMDL) == 0)
 			break;
 		if (time_after(jiffies, timeout))
 			break;
 	} while (1);
 
-	regmap_read(map, MAX77818_Config2, &config2);
+	ret = regmap_read(map, MAX77818_Config2, &config2);
+	if (ret)
+		return ret;
 
 	return (config2 & CONFIG2_LDMDL) ? -ETIMEDOUT : 0;
 }
 
-static inline int max77818_read_param(struct max77818_chip *chip,
+static inline int max77818_read_of_property(struct max77818_chip *chip,
 				      const char *param,
 				      u16 *value)
 {
@@ -916,15 +971,15 @@ static inline int max77818_read_param(struct max77818_chip *chip,
 	return ret;
 }
 
-static int  max77818_read_param_and_verify(struct max77818_chip *chip,
+static int max77818_write_of_param_if_mismatch(struct max77818_chip *chip,
 					   struct max77818_of_property *prop)
 {
 	u16 read_param = 0;
 	int read_cur_value = 0;
-	bool write_read_param = false;
+	bool param_mismatch = false;
 	int ret;
 
-	ret = max77818_read_param(chip, prop->property_name, &read_param);
+	ret = max77818_read_of_property(chip, prop->property_name, &read_param);
 	if(!ret) {
 		dev_dbg(chip->dev, "Verifying '%s' (reg 0x%02x) = 0x%04x\n",
 			prop->property_name,
@@ -944,10 +999,10 @@ static int  max77818_read_param_and_verify(struct max77818_chip *chip,
 				 "Failed to read '%s' from reg 0x%02x)\n",
 				 prop->property_name,
 				 prop->register_addr);
-			write_read_param = true;
+			param_mismatch = true;
 		}
 
-		if ((read_param != read_cur_value) || write_read_param) {
+		if ((read_param != read_cur_value) || param_mismatch) {
 			dev_dbg(chip->dev,
 				"Read '%s' (reg 0x%02x) = 0x%04x from device, "
 				"expected 0x%04x\n",
@@ -955,10 +1010,10 @@ static int  max77818_read_param_and_verify(struct max77818_chip *chip,
 				prop->register_addr,
 				read_cur_value,
 				read_param);
-			write_read_param = true;
+			param_mismatch = true;
 		}
 
-		if (write_read_param) {
+		if (param_mismatch) {
 			dev_dbg(chip->dev, "Writing '%s' (reg 0x%02x): 0x%04x\n",
 				prop->property_name,
 				prop->register_addr,
@@ -966,6 +1021,13 @@ static int  max77818_read_param_and_verify(struct max77818_chip *chip,
 			ret = prop->reg_write_op(chip->regmap,
 						 prop->register_addr,
 						 read_param);
+			if (ret) {
+				dev_err(chip->dev,
+						"Failed to write '%s' (reg 0x%02x): 0x%04x\n",
+						prop->property_name,
+						prop->register_addr,
+						read_param);
+			}
 		}
 
 		if (prop->require_lock) {
@@ -985,14 +1047,14 @@ static int  max77818_read_param_and_verify(struct max77818_chip *chip,
 	return ret;
 }
 
-static int  max77818_read_param_and_write(struct max77818_chip *chip,
+static int  max77818_read_of_param_and_write(struct max77818_chip *chip,
 					  struct max77818_of_property *prop)
 {
 	u16 read_param;
 	int ret;
 
-	ret = max77818_read_param(chip, prop->property_name, &read_param);
-	if(!ret) {
+	ret = max77818_read_of_property(chip, prop->property_name, &read_param);
+	if (!ret) {
 		dev_dbg(chip->dev, "Writing '%s' (reg 0x%02x): 0x%04x\n",
 			prop->property_name,
 			prop->register_addr,
@@ -1006,7 +1068,7 @@ static int  max77818_read_param_and_write(struct max77818_chip *chip,
 		ret = prop->reg_write_op(chip->regmap,
 					 prop->register_addr,
 					 read_param);
-		if(ret) {
+		if (ret) {
 			dev_warn(chip->dev,
 				 "Failed to write '%s' property read from DT\n",
 				 prop->property_name);
@@ -1029,25 +1091,29 @@ static int  max77818_read_param_and_write(struct max77818_chip *chip,
 	return ret;
 }
 
-static void max77818_unlock_extra_config_registers(struct max77818_chip *chip)
+static int max77818_unlock_extra_config_registers(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
 	u32 value;
 	int ret;
 
 	ret = regmap_write(map, MAX17042_VFSOC0Enable, VFSOC0_UNLOCK);
-	if (ret)
+	if (ret) {
 		dev_warn(chip->dev,
 			 "Failed to write VFSOC0Enable to unlock: %d\n", ret);
+		return ret;
+	}
 
 	ret = regmap_read(map, MAX17042_VFSOC, &value);
-	if (ret)
+	if (ret) {
 		dev_warn(chip->dev, "Failed to read VFSOC: %d\n", ret);
+		return ret;
+	}
 
-	max77818_write_verify_reg(map, MAX17042_VFSOC0, value);
+	return max77818_write_and_verify_reg(map, MAX17042_VFSOC0, value);
 }
 
-static void max77818_lock_extra_config_registers(struct max77818_chip *chip)
+static int max77818_lock_extra_config_registers(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
 	int ret;
@@ -1056,6 +1122,8 @@ static void max77818_lock_extra_config_registers(struct max77818_chip *chip)
 	if (ret)
 		dev_warn(chip->dev,
 			 "Failed to write VFSOC0Enable to lock: %d\n", ret);
+
+	return ret;
 }
 
 static struct max77818_of_property max77818_relax_cfg =
@@ -1072,26 +1140,26 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,full-soc-threshold", MAX17047_FullSOCThr, regmap_write, true, false },
 
 	/* learned value, skipped during verify/write operation at boot */
-	{ "maxim,fullcaprep", MAX17042_FullCAP0, max77818_write_verify_reg, true, false },
+	{ "maxim,fullcaprep", MAX17042_FullCAP0, max77818_write_and_verify_reg, true, false },
 
 	{ "maxim,design-cap", MAX17042_DesignCap, regmap_write, true, false },
 
 	/* learned values, skipped during verify/write operation at boot */
-	{ "maxim,dpacc", MAX17042_dPacc, max77818_write_verify_reg, true, false },
-	{ "maxim,dqacc", MAX17042_dQacc, max77818_write_verify_reg, true, false },
-	{ "maxim,fullcapnom", MAX17042_FullCAPNom, max77818_write_verify_reg, true, false },
+	{ "maxim,dpacc", MAX17042_dPacc, max77818_write_and_verify_reg, true, false },
+	{ "maxim,dqacc", MAX17042_dQacc, max77818_write_and_verify_reg, true, false },
+	{ "maxim,fullcapnom", MAX17042_FullCAPNom, max77818_write_and_verify_reg, true, false },
 
 	{ "maxim,misc-cfg", MAX17042_MiscCFG, regmap_write, true, false },
 	{ "maxim,v-empty", MAX17047_V_empty, regmap_write, true, false },
-	{ "maxim,qresidual00", MAX17047_QRTbl00, max77818_write_verify_reg, true, false },
-	{ "maxim,qresidual10", MAX17047_QRTbl10, max77818_write_verify_reg, true, false },
-	{ "maxim,qresidual20", MAX17047_QRTbl20, max77818_write_verify_reg, true, false },
-	{ "maxim,qresidual30", MAX17047_QRTbl30, max77818_write_verify_reg, true, false },
+	{ "maxim,qresidual00", MAX17047_QRTbl00, max77818_write_and_verify_reg, true, false },
+	{ "maxim,qresidual10", MAX17047_QRTbl10, max77818_write_and_verify_reg, true, false },
+	{ "maxim,qresidual20", MAX17047_QRTbl20, max77818_write_and_verify_reg, true, false },
+	{ "maxim,qresidual30", MAX17047_QRTbl30, max77818_write_and_verify_reg, true, false },
 
 	/* learned value, skipped during verify/write operation at boot */
-	{ "maxim,rcomp0", MAX17042_RCOMP0, max77818_write_verify_reg, true, false },
+	{ "maxim,rcomp0", MAX17042_RCOMP0, max77818_write_and_verify_reg, true, false },
 
-	{ "maxim,tempco", MAX17042_TempCo, max77818_write_verify_reg, true, false },
+	{ "maxim,tempco", MAX17042_TempCo, max77818_write_and_verify_reg, true, false },
 	{ "maxim,ichg-term", MAX17042_ICHGTerm, regmap_write, true, false },
 	{ "maxim,filter-cfg", MAX17042_FilterCFG, regmap_write, true, false },
 
@@ -1120,9 +1188,11 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	{ "maxim,convgcfg", MAX77818_ConvgCfg, regmap_write, true, false },
 };
 
-static void max77818_verify_custom_params(struct max77818_chip *chip)
+static bool max77818_write_mismatched_custom_params(struct max77818_chip *chip)
 {
 	int i;
+	int ret;
+	bool is_success = true;
 
 	dev_dbg(chip->dev, "Verifying custom params\n");
 
@@ -1132,10 +1202,14 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 			max77818_relax_cfg.property_name);
 	}
 	else {
-		max77818_read_param_and_verify(chip, &max77818_relax_cfg);
+		ret = max77818_write_of_param_if_mismatch(chip, &max77818_relax_cfg);
+		if (ret)
+			is_success = false;
 	}
 
-	max77818_unlock_extra_config_registers(chip);
+	ret = max77818_unlock_extra_config_registers(chip);
+	if (ret)
+		is_success = false;
 
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
 		if (max77818_custom_param_list[i].skip_verify) {
@@ -1145,40 +1219,56 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 			continue;
 		}
 
-		max77818_read_param_and_verify(chip,
+		ret = max77818_write_of_param_if_mismatch(chip,
 					       &max77818_custom_param_list[i]);
+		if (ret)
+			is_success = false;
 	}
 
 	max77818_lock_extra_config_registers(chip);
+
+	return is_success;
 }
 
-static void max77818_write_custom_params(struct max77818_chip *chip)
+static bool max77818_write_all_custom_params(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
 	int ret, i;
+	bool is_success = true;
 
 	dev_dbg(chip->dev, "Writing custom params\n");
 
 	ret = regmap_write(map, MAX17042_RepCap, 0);
-	if (ret)
+	if (ret) {
 		dev_warn(chip->dev, "Failed to write RepCap: %d\n", ret);
+		is_success = false;
+	}
 
-	max77818_read_param_and_write(chip, &max77818_relax_cfg);
+	ret = max77818_read_of_param_and_write(chip, &max77818_relax_cfg);
+	if (ret)
+		is_success = false;
 
-	max77818_unlock_extra_config_registers(chip);
+	ret = max77818_unlock_extra_config_registers(chip);
+	if (ret)
+		is_success = false;
 
 	for(i = 0; i < ARRAY_SIZE(max77818_custom_param_list); i++) {
-		max77818_read_param_and_write(chip,
+		ret = max77818_read_of_param_and_write(chip,
 					      &max77818_custom_param_list[i]);
+		if (ret)
+			is_success = false;
 	}
 
 	max77818_lock_extra_config_registers(chip);
+
+	return is_success;
 }
 
 static int max77818_init_chip(struct max77818_chip *chip)
 {
 	struct regmap *map = chip->regmap;
 	int ret;
+	bool is_success;
 
 	/* Write cell characterization data */
 	ret = max77818_init_model(chip);
@@ -1193,8 +1283,8 @@ static int max77818_init_chip(struct max77818_chip *chip)
 		return ret;
 	}
 
-	/* Write custom parameters from devcie tree */
-	max77818_write_custom_params(chip);
+	/* Write custom parameters from device tree */
+	is_success = max77818_write_all_custom_params(chip);
 
 	/* Initiate model loading for MAX77818 */
 	ret = max77818_model_loading(chip);
@@ -1206,8 +1296,9 @@ static int max77818_init_chip(struct max77818_chip *chip)
 	/* Wait 500 ms for SOC to be calculated from the new parameters */
 	msleep(500);
 
-	/* Init complete, Clear the POR bit */
-	regmap_update_bits(map, MAX17042_STATUS, STATUS_POR_BIT, 0x0);
+	/* Init complete, Clear the POR bit if successful */
+	if (is_success)
+		regmap_update_bits(map, MAX17042_STATUS, STATUS_POR_BIT, 0x0);
 
 	return 0;
 }
@@ -1224,7 +1315,7 @@ static void max77818_do_initial_charger_sync_worker(struct work_struct *work)
 	/* Wait for other initiation to be completed before running these
 	 * final steps */
 	dev_dbg(dev, "Waiting for other initiation to complete before doing "
-		     "final charger driver sync. steps (max 5 seconds)\n");
+		     "final charger driver sync. steps \n");
 	ret = wait_for_completion_interruptible_timeout(&chip->init_completion,
 							10 * HZ);
 	if (ret == 0) {
@@ -1344,7 +1435,6 @@ static void max77818_init_worker(struct work_struct *work)
 	ret = max77818_init_chip(chip);
 	if (ret) {
 		dev_err(chip->dev, "failed to init chip: %d\n", ret);
-		return;
 	}
 
 	max77818_do_init_completion(chip);
@@ -1848,10 +1938,10 @@ static int max77818_probe(struct platform_device *pdev)
 		INIT_WORK(&chip->init_work, max77818_init_worker);
 		schedule_work(&chip->init_work);
 	} else if (max77818_do_partial_update(chip)) {
-		max77818_write_custom_params(chip);
+		max77818_write_all_custom_params(chip);
 		max77818_do_init_completion(chip);
 	} else if (max77818_do_param_verification(chip)) {
-		max77818_verify_custom_params(chip);
+		max77818_write_mismatched_custom_params(chip);
 		max77818_do_init_completion(chip);
 	}
 	else {
