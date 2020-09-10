@@ -784,3 +784,7 @@
 &pwm_lvds0 {
 	status = "disabled";
 };
+
+&uart0_lpcg {
+	status = "disabled";
+};
