@@ -235,5 +235,8 @@ int main(void)
 	DEVID_FIELD(vop_device_id, device);
 	DEVID_FIELD(vop_device_id, vendor);
 
+	DEVID(cosm_device_id);
+	DEVID_FIELD(cosm_device_id, name);
+
 	return 0;
 }

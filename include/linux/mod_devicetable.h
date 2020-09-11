@@ -834,4 +834,12 @@ struct vop_device_id {
 };
 #define VOP_DEV_ANY_ID	0xffffffff
 
+/* cosm */
+#define COSM_NAME_SIZE			32
+#define COSM_MODULE_PREFIX	"cosm:"
+
+struct cosm_device_id {
+	char name[COSM_NAME_SIZE];
+};
+
 #endif /* LINUX_MOD_DEVICETABLE_H */
