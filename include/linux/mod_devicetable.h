@@ -827,4 +827,11 @@ struct wmi_device_id {
 	const void *context;
 };
 
+/* vop */
+struct vop_device_id {
+	__u32 device;
+	__u32 vendor;
+};
+#define VOP_DEV_ANY_ID	0xffffffff
+
 #endif /* LINUX_MOD_DEVICETABLE_H */

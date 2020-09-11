@@ -14,16 +14,11 @@
  */
 #include <linux/dmaengine.h>
 #include <linux/interrupt.h>
+#include <linux/mod_devicetable.h>
 
 #include "../common/mic_dev.h"
 
-struct vop_device_id {
-	u32 device;
-	u32 vendor;
-};
-
 #define VOP_DEV_TRNSP 1
-#define VOP_DEV_ANY_ID 0xffffffff
 /*
  * Size of the internal buffer used during DMA's as an intermediate buffer
  * for copy to/from user. Must be an integral number of pages.
