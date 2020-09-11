@@ -56,7 +56,7 @@ static struct mic_info mic_list;
 
 #define READ_ONCE(x) (*(volatile typeof(x) *)&(x))
 
-#define GSO_ENABLED		1
+#define GSO_ENABLED		0
 #define MAX_GSO_SIZE		(64 * 1024)
 #define ETH_H_LEN		14
 #define MAX_NET_PKT_SIZE	(_ALIGN_UP(MAX_GSO_SIZE + ETH_H_LEN, 64))
@@ -65,6 +65,8 @@ static struct mic_info mic_list;
 #ifndef VIRTIO_NET_HDR_F_DATA_VALID
 #define VIRTIO_NET_HDR_F_DATA_VALID	2	/* Csum is valid */
 #endif
+
+#define VIRTCONS_SUPPORT	0
 
 static struct {
 	struct mic_device_desc dd;
@@ -1665,13 +1667,17 @@ retry:
 	mic->pid = fork();
 	switch (mic->pid) {
 	case 0:
+#if VIRTCONS_SUPPORT
 		add_virtio_device(mic, &virtcons_dev_page.dd);
+#endif
 		add_virtio_device(mic, &virtnet_dev_page.dd);
+#if VIRTCONS_SUPPORT
 		err = pthread_create(&mic->mic_console.console_thread, NULL,
 			virtio_console, mic);
 		if (err)
 			mpsslog("%s virtcons pthread_create failed %s\n",
 				mic->name, strerror(err));
+#endif
 		err = pthread_create(&mic->mic_net.net_thread, NULL,
 			virtio_net, mic);
 		if (err)
