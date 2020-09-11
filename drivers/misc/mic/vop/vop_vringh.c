@@ -1085,7 +1085,14 @@ vop_query_offset(struct vop_vdev *vdev, unsigned long offset,
 	 * ....
 	 */
 	if (!offset) {
-		*pa = virt_to_phys(vpdev->hw_ops->get_dp(vpdev));
+		if (vpdev->hw_ops->get_dp_dma)
+			*pa = vpdev->hw_ops->get_dp_dma(vpdev);
+		else {
+			dev_err(vop_dev(vdev), "can't get device page physical address\n");
+			WARN_ON(1);
+			return -1;
+		}
+
 		*size = MIC_DP_SIZE;
 		return 0;
 	}

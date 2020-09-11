@@ -80,6 +80,13 @@ static void *imx_mic_get_dp(struct vop_device *vpdev)
 	return mdev->dp;
 }
 
+static dma_addr_t imx_mic_get_dp_dma(struct vop_device *vpdev)
+{
+	struct imx_mic_device *mdev = vpdev_to_mdev(&vpdev->dev);
+
+	return mdev->dp_dma_addr;
+}
+
 static void __iomem *imx_mic_get_remote_dp(struct vop_device *vpdev)
 {
 	return NULL;
@@ -121,6 +128,7 @@ static struct vop_hw_ops vop_hw_ops = {
 	.ack_interrupt = imx_mic_ack_interrupt,
 	.next_db = imx_mic_next_db,
 	.get_dp = imx_mic_get_dp,
+	.get_dp_dma = imx_mic_get_dp_dma,
 	.get_remote_dp = imx_mic_get_remote_dp,
 	.send_intr = imx_mic_send_intr,
 	.remap = imx_mic_ioremap,
