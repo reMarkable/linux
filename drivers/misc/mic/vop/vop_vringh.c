@@ -635,6 +635,7 @@ static int vop_virtio_copy_from_user(struct vop_vdev *vdev, void __user *ubuf,
 	size_t partlen;
 	bool dma = VOP_USE_DMA && vi->dma_ch;
 	int err = 0;
+	void *temp = NULL;
 
 	if (dma) {
 		dma_alignment = 1 << vi->dma_ch->device->copy_align;
@@ -688,12 +689,15 @@ memcpy:
 	 * We are copying to IO below and should ideally use something
 	 * like copy_from_user_toio(..) if it existed.
 	 */
-	if (copy_from_user((void __force *)dbuf, ubuf, len)) {
+	temp = kmalloc(len, GFP_KERNEL);
+	if (copy_from_user(temp, ubuf, len)) {
 		err = -EFAULT;
 		dev_err(vop_dev(vdev), "%s %d err %d\n",
 			__func__, __LINE__, err);
 		goto err;
 	}
+	memcpy_toio((void __force *)dbuf, temp, len);
+	kfree(temp);
 	vdev->out_bytes += len;
 	err = 0;
 err:
