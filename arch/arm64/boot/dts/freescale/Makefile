@@ -152,6 +152,6 @@ dtb-$(CONFIG_ARCH_MXC) += imx8dxl-evk.dtb imx8dxl-evk-rpmsg.dtb \
 			  imx8dxl-evk-lpspi-slave.dtb \
 			  imx8dxl-evk-pcie-ep.dtb \
 			  imx8dxl-evk-lcdif.dtb \
-			  imx8dxl-ddr3-val.dtb imx8dxl-evk-root.dtb imx8dxl-evk-inmate.dtb
+			  imx8dxl-ddr3-evk.dtb imx8dxl-evk-root.dtb imx8dxl-evk-inmate.dtb
 dtb-$(CONFIG_ARCH_S32) += s32v234-evb.dtb \
 			  s32v234-sbc.dtb
