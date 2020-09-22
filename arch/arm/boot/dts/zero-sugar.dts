@@ -556,7 +556,6 @@
 			compatible = "silergy,sy7636a-regulator";
 			reg_epdpmic: vcom {
 				regulator-name = "vcom";
-				regulator-boot-on;
 			};
 		};
 	};
