@@ -18,57 +18,35 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/thermal.h>
+#include <linux/regulator/consumer.h>
 
 #include <linux/mfd/sy7636a.h>
 
 struct sy7636a_data {
 	struct sy7636a *sy7636a;
 	struct thermal_zone_device *thermal_zone_dev;
+	struct regulator *regulator;
 };
 
 static int sy7636a_get_temp(void *arg, int *res)
 {
-	unsigned int reg_val, mode_ctr;
+	unsigned int reg_val;
 	int ret;
 	struct sy7636a_data *data = arg;
-	bool isVoltageActive;
 
-	mutex_lock(&data->sy7636a->reglock);
-
-	ret = regmap_read(data->sy7636a->regmap,
-			SY7636A_REG_OPERATION_MODE_CRL, &mode_ctr);
+	ret = regulator_enable(data->regulator);
 	if (ret)
-		goto done;
-
-	isVoltageActive = mode_ctr & SY7636A_OPERATION_MODE_CRL_ONOFF;
-
-	if (!isVoltageActive) {
-		ret = regmap_write(data->sy7636a->regmap,
-				SY7636A_REG_OPERATION_MODE_CRL,
-				mode_ctr | SY7636A_OPERATION_MODE_CRL_ONOFF);
-		if (ret)
-			goto done;
-		usleep_range(1000, 1500);
-	}
+		return ret;
 
 	ret = regmap_read(data->sy7636a->regmap,
 			SY7636A_REG_TERMISTOR_READOUT, &reg_val);
-	if (ret)
-		goto done;
 
-	if (!isVoltageActive) {
-		ret = regmap_write(data->sy7636a->regmap,
-				SY7636A_REG_OPERATION_MODE_CRL,
-				mode_ctr);
-		if (ret)
-			goto done;
+	if (!ret) {
+		*res = *((signed char*)&reg_val);
+		*res *= 1000;
 	}
 
-	*res = *((signed char*)&reg_val);
-	*res *= 1000;
-
-	done:
-	mutex_unlock(&data->sy7636a->reglock);
+	regulator_disable(data->regulator);
 
 	return ret;
 }
@@ -90,6 +68,14 @@ static int sy7636a_thermal_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	platform_set_drvdata(pdev, data);
+
+	data->regulator = devm_regulator_get(&pdev->dev, "vcom");
+	if (IS_ERR(data->regulator)) {
+		dev_err(&pdev->dev,
+				"Unable to get vcom regulator, returned %ld\n",
+				PTR_ERR(data->regulator));
+		return PTR_ERR(data->regulator);
+	}
 
 	data->sy7636a = sy7636a;
 	data->thermal_zone_dev = devm_thermal_zone_of_sensor_register(
