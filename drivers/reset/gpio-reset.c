@@ -58,7 +58,6 @@ static int gpio_reset(struct reset_controller_dev *rcdev, unsigned long id)
 static int gpio_reset_assert(struct reset_controller_dev *rcdev,
 		unsigned long id)
 {
-    printk("[---- SBA ----] gpio_reset_assert (module %s)\n", rcdev->owner->name);
 	gpio_reset_set(rcdev, 1);
 
 	return 0;
@@ -67,7 +66,6 @@ static int gpio_reset_assert(struct reset_controller_dev *rcdev,
 static int gpio_reset_deassert(struct reset_controller_dev *rcdev,
 		unsigned long id)
 {
-    printk("[---- SBA ----] gpio_reset_deassert (module %s)..\n", rcdev->owner->name);
 	gpio_reset_set(rcdev, 0);
 
 	return 0;
