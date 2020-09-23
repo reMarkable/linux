@@ -5,6 +5,12 @@
  * Copyright (C) 2011 Samsung Electronics
  * MyungJoo Ham <myungjoo.ham@samsung.com>
  *
+ * Copyright (C) 2019 reMarkable AS - http://www.remarkable.com/
+ *
+ * Author: Steinar Bakkemo <steinar.bakkemo@remarkable.com>
+ * Author: Shawn Guo  <shawn.guo@linaro.org>
+ * Author: Lars Ivar Miljeteig <lars.ivar.miljeteig@remarkable.com>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
