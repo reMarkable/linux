@@ -3,13 +3,23 @@
  *
  * Copyright (C) 2014 Maxim Integrated Product
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Copyright (C) 2019 reMarkable AS - http://www.remarkable.com/
+ *
+ * Author: Steinar Bakkemo <steinar.bakkemo@remarkable.com>
+ * Author: Shawn Guo  <shawn.guo@linaro.org>
+ * Author: Lars Ivar Miljeteig <lars.ivar.miljeteig@remarkable.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation version 2.
+ *
+ * This program is distributed "as is" WITHOUT ANY WARRANTY of any
+ * kind, whether express or implied; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
  * This driver is based on max77843.c
  */
-
 
 #include <linux/kernel.h>
 #include <linux/version.h>
@@ -363,4 +373,4 @@ static struct i2c_driver max77818_i2c_driver = {
 module_i2c_driver(max77818_i2c_driver);
 
 MODULE_DESCRIPTION("MAX77818 MFD Driver");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
