@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for reMarkable OTG Control
+#
+
 config RM_OTGCONTROL
 	tristate "reMarkable OTG control"
 	help
