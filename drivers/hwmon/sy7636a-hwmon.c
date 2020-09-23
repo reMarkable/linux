@@ -15,7 +15,6 @@
  * GNU General Public License for more details.
  */
 
-
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/slab.h>
@@ -101,6 +100,6 @@ static struct platform_driver sy7636a_sensor_driver = {
 };
 module_platform_driver(sy7636a_sensor_driver);
 
-MODULE_DESCRIPTION("SY7636A sensor driver");
-MODULE_LICENSE("GPL");
-
+MODULE_AUTHOR("Lars Ivar Miljeteig <lars.ivar.miljeteig@remarkable.com>");
+MODULE_DESCRIPTION("Silergy SY7636A Sensor Driver");
+MODULE_LICENSE("GPL v2");
