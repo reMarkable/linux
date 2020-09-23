@@ -801,7 +801,6 @@ static int brcmf_sdio_htclk(struct brcmf_sdio *bus, bool on, bool pendok)
 		clkreq =
 		    bus->alp_only ? SBSDIO_ALP_AVAIL_REQ : SBSDIO_HT_AVAIL_REQ;
 
-        printk("[---- SBA ----] Sending SBSDIO_FUNC1_CHIPCLKCSR/SBSDIO_HT_AVAIL_REQ ..\n");
 		brcmf_sdiod_regwb(bus->sdiodev, SBSDIO_FUNC1_CHIPCLKCSR,
 				  clkreq, &err);
 		if (err) {
