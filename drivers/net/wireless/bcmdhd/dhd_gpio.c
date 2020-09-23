@@ -113,7 +113,6 @@ static int dhd_wlan_set_carddetect(int present)
 #if defined(BCMSDIO)
 		printf("======== Card detection to detect SDIO card! ========\n");
 #ifdef CUSTOMER_HW_PLATFORM
-		printk("[---- SBA ----] Calling wifi_card_detect(1) ..\n");
 		wifi_card_detect(1);
 #endif /* CUSTOMER_HW_PLATFORM */
 #elif defined(BCMPCIE)
@@ -123,7 +122,6 @@ static int dhd_wlan_set_carddetect(int present)
 #if defined(BCMSDIO)
 		printf("======== Card detection to remove SDIO card! ========\n");
 #ifdef CUSTOMER_HW_PLATFORM
-		printk("[---- SBA ----] Calling wifi_card_detect(0) ..\n");
 		wifi_card_detect(0);
 #endif /* CUSTOMER_HW_PLATFORM */
 #elif defined(BCMPCIE)

@@ -114,9 +114,7 @@ static int sdioh_probe(struct sdio_func *func)
 	osl_t *osh = NULL;
 	sdioh_info_t *sdioh = NULL;
 
-	printk("[---- SBA ----] sdioh_probe Enter\n");
     /*if(!wifi_mmc_host_initiated()) {
-        printk("[---- SBA ----] Wifi MMC host is not initiated, deferring probe/initiation until later..\n");
         return -EPROBE_DEFER;
     }*/
 
@@ -189,8 +187,6 @@ static int bcmsdh_sdmmc_probe(struct sdio_func *func,
 	if (func == NULL)
 		return -EINVAL;
 
-	printk("[---- SBA ----] bcmsdh_sdmmc_probe Enter\n");
-    
 	sd_err(("%s: Enter num=%d\n", __FUNCTION__, func->num));
 	sd_info(("sdio_bcmsdh: func->class=%x\n", func->class));
 	sd_info(("sdio_vendor: 0x%04x\n", func->vendor));
