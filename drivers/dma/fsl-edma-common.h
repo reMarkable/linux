@@ -58,6 +58,8 @@
 
 #define DMAMUX_NR	2
 
+#define EDMA_MINOR_LOOP_TIMEOUT		500 /* us */
+
 #define FSL_EDMA_BUSWIDTHS	(BIT(DMA_SLAVE_BUSWIDTH_1_BYTE) | \
 				 BIT(DMA_SLAVE_BUSWIDTH_2_BYTES) | \
 				 BIT(DMA_SLAVE_BUSWIDTH_4_BYTES) | \
@@ -181,6 +183,14 @@ static inline u32 edma_readl(struct fsl_edma_engine *edma, void __iomem *addr)
 		return ioread32be(addr);
 	else
 		return ioread32(addr);
+}
+
+static inline u32 edma_readw(struct fsl_edma_engine *edma, void __iomem *addr)
+{
+	if (edma->big_endian)
+		return ioread16be(addr);
+	else
+		return ioread16(addr);
 }
 
 static inline void edma_writeb(struct fsl_edma_engine *edma,

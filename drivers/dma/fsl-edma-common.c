@@ -4,6 +4,7 @@
 // Copyright (c) 2017 Sysam, Angelo Dureghello  <angelo@sysam.it>
 
 #include <linux/dmapool.h>
+#include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/dma-mapping.h>
@@ -160,11 +161,24 @@ EXPORT_SYMBOL_GPL(fsl_edma_free_desc);
 int fsl_edma_terminate_all(struct dma_chan *chan)
 {
 	struct fsl_edma_chan *fsl_chan = to_fsl_edma_chan(chan);
+	struct edma_regs *regs = &fsl_chan->edma->regs;
+	u32 ch = fsl_chan->vchan.chan.chan_id;
 	unsigned long flags;
+	int count = 0;
 	LIST_HEAD(head);
 
-	spin_lock_irqsave(&fsl_chan->vchan.lock, flags);
 	fsl_edma_disable_request(fsl_chan);
+
+	/*
+	 * Checking ACTIVE to ensure minor loop stop indeed to prevent the
+	 * potential illegal memory write if channel not stopped with buffer
+	 * freed.
+	 */
+	while (count++ < EDMA_MINOR_LOOP_TIMEOUT && (EDMA_TCD_CSR_ACTIVE &
+		edma_readw(fsl_chan->edma, &regs->tcd[ch].csr)))
+		udelay(1);
+
+	spin_lock_irqsave(&fsl_chan->vchan.lock, flags);
 	fsl_chan->edesc = NULL;
 	fsl_chan->idle = true;
 	vchan_get_all_descriptors(&fsl_chan->vchan, &head);
