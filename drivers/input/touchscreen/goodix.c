@@ -817,6 +817,9 @@ static int goodix_configure_dev(struct goodix_ts_data *ts)
 		return error;
 	}
 
+	if (device_property_read_bool(ts->input_dev->dev.parent, "edge-failling-trigger"))
+		ts->int_trigger_type = GOODIX_INT_TRIGGER;
+
 	ts->irq_flags = goodix_irq_flags[ts->int_trigger_type] | IRQF_ONESHOT;
 	error = goodix_request_irq(ts);
 	if (error) {
