@@ -502,7 +502,10 @@ int imx8_dsp_suspend(struct snd_sof_dev *sdev)
 
 static struct snd_soc_dai_driver imx8_dai[] = {
 {
-	.name = "esai-port",
+	.name = "esai0",
+},
+{
+	.name = "sai1",
 },
 };
 
@@ -535,7 +538,7 @@ struct snd_sof_dsp_ops sof_imx8_ops = {
 
 	/* DAI drivers */
 	.drv = imx8_dai,
-	.num_drv = 1, /* we have only 1 ESAI interface on i.MX8 */
+	.num_drv = 2, /* we use ESAI0 / SAI1 i.MX8 */
 
 	/* PM */
 	.suspend		= imx8_dsp_suspend,
@@ -581,7 +584,7 @@ struct snd_sof_dsp_ops sof_imx8x_ops = {
 
 	/* DAI drivers */
 	.drv = imx8_dai,
-	.num_drv = 1, /* we have only 1 ESAI interface on i.MX8 */
+	.num_drv = 2, /* we use ESAI0 / SAI1 on i.MX8X*/
 
 	/* PM */
 	.suspend		= imx8_dsp_suspend,
