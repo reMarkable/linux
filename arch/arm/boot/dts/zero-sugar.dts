@@ -322,7 +322,7 @@
     max77818@66 {
         compatible = "maxim,max77818";
         #address-cells = <0>;
-		int-gpio = <&gpio6 22 GPIO_ACTIVE_HIGH>;
+		max77818,int-gpio = <&gpio6 22 GPIO_ACTIVE_HIGH>;
         interrupt-parent = <&gpio6>;
         interrupts = <22 2>;
         interrupt-controller;
