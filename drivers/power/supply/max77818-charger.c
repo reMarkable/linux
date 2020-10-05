@@ -90,6 +90,8 @@
 #define BIT_MODE_BUCK				BIT (2)
 #define BIT_MODE_OTG				BIT (1)
 #define BIT_MODE_CHARGER			BIT (0)
+#define MODE_OTG_BUCK_BOOST			0x0E
+#define MODE_CHARGER_BUCK   	    0x05
 
 #define REG_CHG_CNFG_01				0xB8
 #define BIT_PQEN					BIT (7)
@@ -216,6 +218,8 @@ struct max77818_charger_data {
 	int 					status;
 	int 					charge_type;
 
+	int						charger_mode; /* OTG SUPPLY/CHARGER */
+
 	struct max77818_charger_platform_data *pdata;
 };
 
@@ -259,6 +263,7 @@ static enum power_supply_property max77818_charger_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
+	POWER_SUPPLY_PROP_CHARGER_MODE
 };
 
 #define GET_TO_ITH(X)	(X < 4 ? (X*25+100) : (X*50))	/* mA */
@@ -504,7 +509,23 @@ static int max77818_charger_set_topoff_current(struct max77818_charger_data *cha
 
 static int max77818_charger_set_enable (struct max77818_charger_data *charger, int en)
 {
-	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, BIT_MODE_CHARGER, !!en);
+	/* If enable = 0, just shut off charging/otg power */
+	if (!en)
+		return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, 0, BIT_MODE);
+
+	/* Depending on configured mode, turn on charging or OTG power - if input power is not present on CHGIN */
+	if (charger->charger_mode == POWER_SUPPLY_MODE_CHARGER) {
+		return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, MODE_CHARGER_BUCK, BIT_MODE);
+	}
+	else if (charger->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY) {
+		if (!max77818_charger_present_input(charger))
+			return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, MODE_OTG_BUCK_BOOST, BIT_MODE);
+		else
+			return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, 0, BIT_MODE);
+	}
+	else {
+		return -EINVAL;
+	}
 }
 
 
@@ -760,6 +781,9 @@ static int max77818_charger_get_property (struct power_supply *psy,
 		val->intval = max77818_charger_get_input_current(charger);
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		val->intval = charger->charger_mode;
+
 	default:
 		rc = -EINVAL;
 		goto out;
@@ -808,6 +832,18 @@ static int max77818_charger_set_property (struct power_supply *psy,
 			goto out;
 		}
 		charger->pdata->input_current_limit_chgin = val->intval/1000;	/* mA */
+		break;
+
+	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		if (val->intval == POWER_SUPPLY_MODE_CHARGER)
+			charger->charger_mode = val->intval;
+		else if (val->intval == POWER_SUPPLY_MODE_OTG_SUPPLY)
+			charger->charger_mode = val->intval;
+		else {
+			rc = -EINVAL;
+			goto out;
+		}
+		rc = max77818_charger_set_enable(charger, 0);
 		break;
 
 	default:
