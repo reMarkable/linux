@@ -310,11 +310,11 @@
 		interrupt-parent = <&gpio1>;
 		interrupts = <7 IRQ_TYPE_EDGE_FALLING>;
 		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&pinctrl_max77818>;
-		pinctrl-1 = <&pinctrl_max77818>;
+		pinctrl-0 = <&pinctrl_max77818 &pinctrl_chg_stat>;
+		pinctrl-1 = <&pinctrl_max77818 &pinctrl_chg_stat>;
 		reg = <0x66>;
 
-		regulators {
+		/* regulators {
 			compatible = "maxim,max77818-regulator";
 
 			reg_safeout1: SAFEOUT1 {
@@ -324,16 +324,18 @@
 			SAFEOUT2 {
 				regulator-name = "SAFEOUT2";
 			};
-		};
+		};*/
 
 		max77818_chg: charger {
 			compatible = "maxim,max77818-charger";
 			fast_charge_current = <1500>; /* mA */
-			charge_termination_voltage = <4300>; /* mV */
+			charge_termination_voltage = <4400>; /* mV */
 			vsys_min = <3400>; /* mV */
 			input_current_limit_chgin = <1500>; /* mA */
 			input_current_limit_wcin = <1260>; /* mA */
 			topoff_current = <100>; /* mA */
+			chgin-stat-gpios = <&gpio6 19 GPIO_ACTIVE_LOW>;
+			wcin-stat-gpios = <&gpio6 20 GPIO_ACTIVE_LOW>;
 		};
 
 		fuelgauge {
@@ -345,12 +347,12 @@
 			maxim,dead-volt = <3000>;
 			maxim,at-rate = /bits/ 16 <0x1900>;
 			maxim,design-cap = /bits/ 16 <0x1816>;
-			/* maxim,config = /bits/ 16 <0x0a14>; /* FGCC Enabled */
-			maxim,config = /bits/ 16 <0x0214>; /* FGCC disabled */
+			maxim,config = /bits/ 16 <0x0a14>; /* FGCC Enabled */
+			/* maxim,config = /bits/ 16 <0x0214>; /* FGCC disabled */
 			maxim,config2 = /bits/ 16 <0x0050>;
 			maxim,convgcfg = /bits/ 16 <0x2241>;
-			maxim,dpacc = /bits/ 16 <0x3200>;
-			maxim,dqacc = /bits/ 16 <0x0605>;
+			maxim,dpacc = /bits/ 16 <0x3200>; /* 0x334e ? */
+			maxim,dqacc = /bits/ 16 <0x0605>; /* 0x016c ? */
 			maxim,filter-cfg = /bits/ 16 <0xcea4>;
 			maxim,fullcapnom = /bits/ 16 <0x1816>;
 			maxim,fullcaprep = /bits/ 16 <0x1816>;
@@ -365,24 +367,24 @@
 			maxim,qresidual30 = /bits/ 16 <0x0480>;
 			maxim,rcomp0 = /bits/ 16 <0x003a>;
 			maxim,relax-cfg = /bits/ 16 <0x043c>;
-			maxim,smart-chg-cfg = /bits/ 16 <0x0012>; /* SmartChg Enabled */
+			maxim,smart-chg-cfg = /bits/ 16 <0x0013>; /* SmartChg Enabled, SmartFull enabled */
 			maxim,tempco = /bits/ 16 <0x1728>;
 			maxim,v-empty = /bits/ 16 <0x9157>;
 			maxim,tgain = /bits/ 16 <0xee56>;
 			maxim,toff = /bits/ 16 <0x1da4>;
-			maxim,tcurve = /bits/ 16 <0x0025>;
-			maxim,talrt-th = /bits/ 16 <0x280a>; /* T2 = 10 deg/T2 = 40 deg */
-			maxim,talrt-th2 = /bits/ 16 <0x3200>; /* T1 = 0 deg/T4 = 50 deg */
-			maxim,jeita-curr = /bits/ 16 <0x4350>; /* 50%/100%/81.2% */
-			maxim,jeita-volt = /bits/ 16 <0xa516>; /* 4.15V/4.2V/4.15V */
-			/* maxim,chargestate0 = /bits/ 16 <0x0a>; */
-			/* maxim,chargestate1 = /bits/ 16 <0x0a>; */
-			/* maxim,chargestate2 = /bits/ 16 <0x0a>; */
-			/* maxim,chargestate3 = /bits/ 16 <0x0a>; */
-			/* maxim,chargestate4 = /bits/ 16 <0x0a>; */
-			/* maxim,chargestate5 = /bits/ 16 <0x0a>; */
-			/* maxim,chargestate6 = /bits/ 16 <0x0a>; */
-			/* maxim,chargestate7 = /bits/ 16 <0x0a>; */
+			maxim,tcurve = /bits/ 16 <0x0025>; 
+			maxim,talrt-th = /bits/ 16 <0x2d0a>; /* T2 = 10 deg/T2 = 45 deg */
+			maxim,talrt-th2 = /bits/ 16 <0x3700>; /* T1 = 0 deg/T4 = 55 deg */
+			maxim,jeita-curr = /bits/ 16 <0x18d0>; /* 19%/100%/19% */
+			maxim,jeita-volt = /bits/ 16 <0xfc9f>; /* 4.4V/4.4V/4.1V */
+			maxim,chargestate0 = /bits/ 16 <0x101e>;
+			maxim,chargestate1 = /bits/ 16 <0x0c1e>;
+			maxim,chargestate2 = /bits/ 16 <0x0c1e>;
+			maxim,chargestate3 = /bits/ 16 <0x0c1e>;
+			maxim,chargestate4 = /bits/ 16 <0x0c1e>;
+			maxim,chargestate5 = /bits/ 16 <0x0c1e>;
+			maxim,chargestate6 = /bits/ 16 <0x0c1e>;
+			maxim,chargestate7 = /bits/ 16 <0x0c1e>;
 			maxim,cell-model-data = /bits/ 16 <
 				0x9d10 0xab90 0xb710 0xb8f0
 				0xba90 0xbc10 0xbd10 0xbe00
@@ -869,6 +871,17 @@
 		fsl,pins = <
 			/* TOUCH_PWR_EN */
 			MX7D_PAD_GPIO1_IO11__GPIO1_IO11		0x14
+		>;
+	};
+
+	pinctrl_chg_stat: chg_stat_grp {
+		fsl,pins = <
+			/* WCIN (USB-C) OK/CONNECTED */
+			MX7D_PAD_SAI2_TX_SYNC__GPIO6_IO19          0x00000074
+
+			/* CHGIN (POGO) OK/CONNECTEED */
+			MX7D_PAD_SAI2_TX_BCLK__GPIO6_IO20          0x00000074
+
 		>;
 	};
 };
