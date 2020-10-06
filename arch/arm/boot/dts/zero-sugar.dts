@@ -364,6 +364,7 @@
 			power-supplies = <&max77818_chg>;
 			usb-phy1 = <&usbphynop1>;
 			usb-phy2 = <&usbphynop2>;
+			usb_safe_max_current = <500>; /* mA */
 			maxim,over-heat-temp = <600>; /* tenths of degree Celsius */
 			maxim,cold-temp = <(-200)>;
 			maxim,over-volt = <4400>; /* mV */
