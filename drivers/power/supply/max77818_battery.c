@@ -744,6 +744,30 @@ static void max77818_write_custom_params(struct max77818_chip *chip)
 		     max77818_read_param(chip, "maxim,toff"));
 	regmap_write(map, MAX77818_TCURVE,
 		     max77818_read_param(chip, "maxim,tcurve"));
+	regmap_write(map, MAX17042_TALRT_Th,
+		     max77818_read_param(chip, "maxim,talrt-th"));
+	regmap_write(map, MAX77818_TALRT_Th2,
+		     max77818_read_param(chip, "maxim,talrt-th2"));
+	regmap_write(map, MAX77818_JEITA_Curr,
+		     max77818_read_param(chip, "maxim,jeita-curr"));
+	regmap_write(map, MAX77818_JEITA_Volt,
+		     max77818_read_param(chip, "maxim,jeita-volt"));
+	regmap_write(map, MAX77818_ChargeState0,
+		     max77818_read_param(chip, "maxim,chargestate0"));
+	regmap_write(map, MAX77818_ChargeState1,
+		     max77818_read_param(chip, "maxim,chargestate1"));
+	regmap_write(map, MAX77818_ChargeState2,
+		     max77818_read_param(chip, "maxim,chargestate2"));
+	regmap_write(map, MAX77818_ChargeState3,
+		     max77818_read_param(chip, "maxim,chargestate3"));
+	regmap_write(map, MAX77818_ChargeState4,
+		     max77818_read_param(chip, "maxim,chargestate4"));
+	regmap_write(map, MAX77818_ChargeState5,
+		     max77818_read_param(chip, "maxim,chargestate5"));
+	regmap_write(map, MAX77818_ChargeState6,
+		     max77818_read_param(chip, "maxim,chargestate6"));
+	regmap_write(map, MAX77818_ChargeState7,
+		     max77818_read_param(chip, "maxim,chargestate7"));
 
 	/* The order of the following ones should be respected */
 	regmap_write(map, MAX17042_AtRate,
