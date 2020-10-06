@@ -351,8 +351,8 @@
 			/* maxim,config = /bits/ 16 <0x0214>; /* FGCC disabled */
 			maxim,config2 = /bits/ 16 <0x0050>;
 			maxim,convgcfg = /bits/ 16 <0x2241>;
-			maxim,dpacc = /bits/ 16 <0x3200>; /* 0x334e ? */
-			maxim,dqacc = /bits/ 16 <0x0605>; /* 0x016c ? */
+			maxim,dpacc = /bits/ 16 <0x3200>;
+			maxim,dqacc = /bits/ 16 <0x0605>;
 			maxim,filter-cfg = /bits/ 16 <0xcea4>;
 			maxim,fullcapnom = /bits/ 16 <0x1816>;
 			maxim,fullcaprep = /bits/ 16 <0x1816>;
