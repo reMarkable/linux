@@ -90,6 +90,13 @@ enum {
 	POWER_SUPPLY_MODE_ALL_OFF,
 };
 
+enum {
+	POWER_SUPPLY_STATUS_EX_NOT_CONNECTED = 0,
+	POWER_SUPPLY_STATUS_EX_POGO_CONNECTED,
+	POWER_SUPPLY_STATUS_EX_USB_C_CONNECTED,
+	POWER_SUPPLY_STATUS_EX_BOTH_CONNECTED
+};
+
 enum power_supply_property {
 	/* Properties of type `int' */
 	POWER_SUPPLY_PROP_STATUS = 0,
@@ -162,6 +169,11 @@ enum power_supply_property {
 
 	/* MAX77818 specific mode of operation (OTG supply/charger) */
 	POWER_SUPPLY_PROP_CHARGER_MODE,
+
+	/* MAX77818-charger specific property to get extended charger status indicating
+	 * which of the two charger inputs are connected
+	 */
+	POWER_SUPPLY_PROP_STATUS_EX,
 };
 
 enum power_supply_type {
