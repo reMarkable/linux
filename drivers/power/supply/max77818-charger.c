@@ -206,6 +206,7 @@ static enum power_supply_property max77818_charger_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_CHARGER_MODE,
+	POWER_SUPPLY_PROP_STATUS_EX,
 };
 
 static bool max77818_charger_chgin_present(struct max77818_charger *chg)
@@ -595,6 +596,10 @@ static int max77818_charger_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		val->intval = chg->charger_mode;
+		break;
+	case POWER_SUPPLY_PROP_STATUS_EX:
+		val->intval = (max77818_charger_chgin_present(chg) |
+			      (max77818_charger_wcin_present(chg) << 1));
 		break;
 	default:
 		ret = -EINVAL;
