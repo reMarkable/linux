@@ -207,6 +207,7 @@ struct max77818_charger {
 	int restart_threshold;
 	int termination_voltage;
 	int vsys_min;
+	int default_current_limit;
 	int input_current_limit_chgin;
 	int input_current_limit_wcin;
 
@@ -428,8 +429,8 @@ max77818_charger_set_wcin_current_limit(struct max77818_charger *chg,
 	if (input_current) {
 		if (input_current < 60)
 			input_current = 60;
-		else if (input_current > 1260)
-			input_current = 1260;
+		else if (input_current > chg->input_current_limit_wcin)
+			input_current = chg->input_current_limit_wcin;
 
 		val = DIV_ROUND_UP(input_current - 60, 20) + 3;
 	}
@@ -542,17 +543,18 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 		return ret;
 	}
 
-	/* input current limit (mA) for chgin */
-	ret = max77818_charger_set_chgin_current_limit(chg,
-					chg->input_current_limit_chgin);
+	/* default max input current limited to safe value */
+	ret = max77818_charger_set_chgin_current_limit(
+				chg,
+				chg->default_current_limit);
 	if (ret) {
 		dev_err(dev, "failed to set chgin input current: %d\n", ret);
 		return ret;
 	}
 
-	/* input current limit (mA) for wcin */
-	ret = max77818_charger_set_wcin_current_limit(chg,
-					chg->input_current_limit_wcin);
+	ret = max77818_charger_set_wcin_current_limit(
+				chg,
+				chg->default_current_limit);
 	if (ret) {
 		dev_err(dev, "failed to set wcin input current: %d\n", ret);
 		return ret;
@@ -830,7 +832,7 @@ static int max77818_charger_set_property(struct power_supply *psy,
 			max77818_charger_set_enable(chg, 1);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
-		current_max = min(val->intval, 1500);
+		current_max = min(val->intval, chg->input_current_limit_chgin);
 		dev_dbg(chg->dev,
 			"Setting new current max for chgin interface: %d\n",
 			current_max);
@@ -845,7 +847,7 @@ static int max77818_charger_set_property(struct power_supply *psy,
 		}
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX2:
-		current_max = min(val->intval, 1260);
+		current_max = min(val->intval, chg->input_current_limit_wcin);
 		dev_dbg(chg->dev,
 			"Setting new current max for wcin interface: %d\n",
 			current_max);
@@ -916,13 +918,17 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 				 &chg->restart_threshold))
 		chg->restart_threshold = 150; // 150mV
 
+	if (of_property_read_u32(np, "default_current_limit",
+				 &chg->default_current_limit))
+		chg->default_current_limit = 500; // 500mA
+
 	if (of_property_read_u32(np, "input_current_limit_chgin",
 				 &chg->input_current_limit_chgin))
-		chg->input_current_limit_chgin = 500; // 500mA
+		chg->input_current_limit_chgin = chg->default_current_limit;
 
 	if (of_property_read_u32(np, "input_current_limit_wcin",
 				 &chg->input_current_limit_wcin))
-		chg->input_current_limit_wcin = 500; // 500mA
+		chg->input_current_limit_wcin = chg->default_current_limit;
 
 	gdp = devm_gpiod_get(chg->dev, "chgin-stat", GPIOD_IN);
 	if (IS_ERR(gdp)) {
