@@ -138,6 +138,7 @@ struct max77818_chip {
 	struct notifier_block charger_detection_nb[2];
 	struct work_struct charger_detection_work[2];
 	int status_ex;
+	int usb_safe_max_current;
 	struct mutex lock;
 };
 
@@ -1273,6 +1274,26 @@ max77818_get_pdata(struct max77818_chip *chip)
 	return pdata;
 }
 
+static void max77818_get_driver_config(struct max77818_chip *chip)
+{
+	struct device_node *np = chip->dev->of_node;
+	int read_value;
+	int ret;
+
+	ret = of_property_read_u32(np, "usb_safe_max_current", &read_value);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to read usb_safe_max_current from DT\n");
+		chip->usb_safe_max_current = 100;
+	}
+	else {
+		dev_dbg(chip->dev,
+			"Read usb_safe_max_current: %d\n",
+			read_value);
+		chip->usb_safe_max_current = read_value;
+	}
+}
+
 static const struct regmap_config max77818_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 16,
@@ -1310,7 +1331,7 @@ static void max77818_charger_detection_worker_usb1(struct work_struct *work)
 	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
 	usb_phy_get_charger_current(chip->usb_phy[0], &min_current, &max_current);
 	if (max_current == 0)
-		val.intval = 500;
+		val.intval = chip->usb_safe_max_current;
 	else
 		val.intval = max_current;
 
@@ -1417,6 +1438,9 @@ static int max77818_probe(struct platform_device *pdev)
 		dev_err(dev, "no platform data provided\n");
 		return -EINVAL;
 	}
+
+	/* Get non device related driver config from DT */
+	max77818_get_driver_config(chip);
 
 	platform_set_drvdata(pdev, chip);
 	psy_cfg.drv_data = chip;
