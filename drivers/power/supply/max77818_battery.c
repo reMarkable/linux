@@ -249,29 +249,16 @@ static int max77818_set_fgcc_mode(struct max77818_chip *chip, bool enabled, bool
 		*cur_mode = (read_data & CONFIG_FGCC_BIT);
 	}
 
-	if (enabled) {
-		dev_dbg(chip->dev, "Turning on FGCC\n");
-		ret = regmap_update_bits(chip->regmap,
-					 MAX17042_CONFIG,
-					 CONFIG_FGCC_BIT,
-					 CONFIG_FGCC_BIT);
-		if (ret) {
-			dev_err(chip->dev,
-				"Failed to set FGCC bit in CONFIG register\n");
-			return ret;
-		}
-	}
-	else {
-		dev_dbg(chip->dev, "Turning off FGCC\n");
-		ret = regmap_update_bits(chip->regmap,
-					 MAX17042_CONFIG,
-					 CONFIG_FGCC_BIT,
-					 0x0000);
-		if (ret) {
-			dev_err(chip->dev,
-				"Failed to clear FGCC bit in CONFIG register\n");
-			return ret;
-		}
+	dev_dbg(chip->dev, "Turning %s FGCC\n", enabled ? "on" : "off");
+	ret = regmap_update_bits(chip->regmap,
+				 MAX17042_CONFIG,
+				 CONFIG_FGCC_BIT,
+				 enabled ? : CONFIG_FGCC_BIT : 0x0000);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to %s FGCC bit in CONFIG register\n",
+			enabled ? "set" : "clear");
+		return ret;
 	}
 
 	return 0;
