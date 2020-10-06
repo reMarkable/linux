@@ -960,10 +960,6 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 
 	gdp = devm_gpiod_get(chg->dev, "chgin-stat", GPIOD_IN);
 	if (IS_ERR(gdp)) {
-		dev_warn(chg->dev,
-			 "Failed: %ld\n",
-			 PTR_ERR(gdp));
-
 		if (PTR_ERR(gdp) != -ENOENT)
 			dev_warn(chg->dev,
 				"chgin-stat GPIO not given in DT, "
@@ -983,10 +979,6 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 
 	gdp = devm_gpiod_get(chg->dev, "wcin-stat", GPIOD_IN);
 	if (IS_ERR(gdp)) {
-		dev_warn(chg->dev,
-			 "Failed: %ld\n",
-			 PTR_ERR(gdp));
-
 		if (PTR_ERR(gdp) != -ENOENT)
 			dev_warn(chg->dev,
 				"wcin-stat GPIO not given in DT, "
@@ -1022,8 +1014,8 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
 	struct power_supply_config psy_cfg = {};
 	struct max77818_charger *chg;
-	int ret, init_ok;
-
+	int ret;
+	bool init_ok;
 
 	if (IS_ERR_OR_NULL(max77818->regmap_chg)) {
 		dev_warn(dev,
@@ -1047,8 +1039,8 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	psy_cfg.drv_data = chg;
 	psy_cfg.of_node = dev->of_node;
 
-	init_ok = max77818_charger_initialize(chg);
-	if (init_ok) {
+	init_ok = !max77818_charger_initialize(chg);
+	if (!init_ok) {
 		dev_warn(dev, "failed to init charger: %d\n", init_ok);
 	}
 
@@ -1059,7 +1051,7 @@ static int max77818_charger_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	if (init_ok) {
+	if (!init_ok) {
 		dev_warn(dev, "skipping IRQ initialization, "
 			      "due to failed charger init\n");
 		return 0;
