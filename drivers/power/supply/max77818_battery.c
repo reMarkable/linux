@@ -731,6 +731,12 @@ static void max77818_write_custom_params(struct max77818_chip *chip)
 		     max77818_read_param(chip, "maxim,filter-cfg"));
 	regmap_write(map, MAX17042_LAvg_empty,
 		     max77818_read_param(chip, "maxim,iavg-empty"));
+	regmap_write(map, MAX17042_TGAIN,
+		     max77818_read_param(chip, "maxim,tgain"));
+	regmap_write(map, MAx17042_TOFF,
+		     max77818_read_param(chip, "maxim,toff"));
+	regmap_write(map, MAX77818_TCURVE,
+		     max77818_read_param(chip, "maxim,tcurve"));
 
 	/* The order of the following ones should be respected */
 	regmap_write(map, MAX17042_AtRate,

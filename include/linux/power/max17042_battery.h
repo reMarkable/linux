@@ -138,6 +138,7 @@ enum max77818_register {
 	MAX77818_TTF		= 0x20,
 	MAX77818_ConvgCfg	= 0x49,
 	MAX77818_Config2	= 0xBB,
+	MAX77818_TCURVE		= 0xB9,
 	MAX77818_SmartChgCfg	= 0xDB,
 };
 
