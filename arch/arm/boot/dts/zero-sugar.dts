@@ -345,7 +345,8 @@
 			maxim,dead-volt = <3000>;
 			maxim,at-rate = /bits/ 16 <0x1900>;
 			maxim,design-cap = /bits/ 16 <0x1816>;
-			maxim,config = /bits/ 16 <0x0A14>; /* FGCC Enabled */
+			/* maxim,config = /bits/ 16 <0x0a14>; /* FGCC Enabled */
+			maxim,config = /bits/ 16 <0x0214>; /* FGCC disabled */
 			maxim,config2 = /bits/ 16 <0x0050>;
 			maxim,convgcfg = /bits/ 16 <0x2241>;
 			maxim,dpacc = /bits/ 16 <0x3200>;
@@ -370,10 +371,10 @@
 			maxim,tgain = /bits/ 16 <0xee56>;
 			maxim,toff = /bits/ 16 <0x1da4>;
 			maxim,tcurve = /bits/ 16 <0x0025>;
-			maxim,maxim,talrt-th = /bits/ 16 <0x280a>; /* T2 = 10 deg/T2 = 40 deg */
-			maxim,maxim,talrt-th2 = /bits/ 16 <0x3280>; /* T1 = disabled/T4 = 50 deg */
-			maxim,maxim,jeita-curr = /bits/ 16 <0x4350>; /* 50%/100%/81.2% */
-			maxim,maxim,jeita-volt = /bits/ 16 <0xa516>; /* 4.15V/4.2V/4.15V */
+			maxim,talrt-th = /bits/ 16 <0x280a>; /* T2 = 10 deg/T2 = 40 deg */
+			maxim,talrt-th2 = /bits/ 16 <0x3200>; /* T1 = 0 deg/T4 = 50 deg */
+			maxim,jeita-curr = /bits/ 16 <0x4350>; /* 50%/100%/81.2% */
+			maxim,jeita-volt = /bits/ 16 <0xa516>; /* 4.15V/4.2V/4.15V */
 			/* maxim,maxim,chargestate0 = /bits/ 16 <0x0a>; */
 			/* maxim,maxim,chargestate1 = /bits/ 16 <0x0a>; */
 			/* maxim,maxim,chargestate2 = /bits/ 16 <0x0a>; */
