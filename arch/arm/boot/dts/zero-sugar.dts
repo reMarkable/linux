@@ -352,6 +352,7 @@
 			fast_charge_current = <1500>; /* mA */
 			charge_termination_voltage = <4400>; /* mV */
 			vsys_min = <3400>; /* mV */
+			default_current_limit = <500>; /* mA */
 			input_current_limit_chgin = <1500>; /* mA */
 			input_current_limit_wcin = <1260>; /* mA */
 			topoff_current = <100>; /* mA */
