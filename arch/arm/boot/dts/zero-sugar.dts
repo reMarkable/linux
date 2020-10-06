@@ -359,6 +359,9 @@
 			maxim,smart-chg-cfg = /bits/ 16 <0x0010>;
 			maxim,tempco = /bits/ 16 <0x1728>;
 			maxim,v-empty = /bits/ 16 <0x9157>;
+			maxim,tgain = /bits/ 16 <0xee56>;
+			maxim,toff = /bits/ 16 <0x1da4>;
+			maxim,tcurve = /bits/ 16 <0x0025>;
 			maxim,cell-model-data = /bits/ 16 <
 				0x9d10 0xab90 0xb710 0xb8f0
 				0xba90 0xbc10 0xbd10 0xbe00
