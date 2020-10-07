@@ -103,6 +103,8 @@
 
 #define BRCMF_VIF_EVENT_TIMEOUT		msecs_to_jiffies(1500)
 
+#define BRCMF_PM_WAIT_MAXRETRY			100
+
 /* cfg80211 wowlan definitions */
 #define WL_WOWLAN_MAX_PATTERNS			8
 #define WL_WOWLAN_MIN_PATTERN_LEN		1
@@ -142,7 +144,8 @@ struct brcmf_cfg80211_security {
 enum brcmf_profile_fwsup {
 	BRCMF_PROFILE_FWSUP_NONE,
 	BRCMF_PROFILE_FWSUP_PSK,
-	BRCMF_PROFILE_FWSUP_1X
+	BRCMF_PROFILE_FWSUP_1X,
+	BRCMF_PROFILE_FWSUP_SAE
 };
 
 /**
@@ -157,6 +160,7 @@ struct brcmf_cfg80211_profile {
 	struct brcmf_cfg80211_security sec;
 	struct brcmf_wsec_key key[BRCMF_MAX_DEFAULT_KEYS];
 	enum brcmf_profile_fwsup use_fwsup;
+	bool is_ft;
 };
 
 /**
@@ -180,25 +184,36 @@ enum brcmf_vif_status {
 	BRCMF_VIF_STATUS_ASSOC_SUCCESS,
 };
 
+enum brcmf_cfg80211_pm_state {
+	BRCMF_CFG80211_PM_STATE_RESUMED,
+	BRCMF_CFG80211_PM_STATE_RESUMING,
+	BRCMF_CFG80211_PM_STATE_SUSPENDED,
+	BRCMF_CFG80211_PM_STATE_SUSPENDING,
+};
+
 /**
  * struct vif_saved_ie - holds saved IEs for a virtual interface.
  *
  * @probe_req_ie: IE info for probe request.
  * @probe_res_ie: IE info for probe response.
  * @beacon_ie: IE info for beacon frame.
+ * @assoc_res_ie: IE info for association response frame.
  * @probe_req_ie_len: IE info length for probe request.
  * @probe_res_ie_len: IE info length for probe response.
  * @beacon_ie_len: IE info length for beacon frame.
+ * @assoc_res_ie_len: IE info length for association response frame.
  */
 struct vif_saved_ie {
 	u8  probe_req_ie[IE_MAX_LEN];
 	u8  probe_res_ie[IE_MAX_LEN];
 	u8  beacon_ie[IE_MAX_LEN];
 	u8  assoc_req_ie[IE_MAX_LEN];
+	u8  assoc_res_ie[IE_MAX_LEN];
 	u32 probe_req_ie_len;
 	u32 probe_res_ie_len;
 	u32 beacon_ie_len;
 	u32 assoc_req_ie_len;
+	u32 assoc_res_ie_len;
 };
 
 /**
@@ -366,6 +381,7 @@ struct brcmf_cfg80211_info {
 	struct brcmf_cfg80211_wowl wowl;
 	struct brcmf_pno_info *pno;
 	u8 ac_priority[MAX_8021D_PRIO];
+	u8 pm_state;
 };
 
 /**

@@ -232,6 +232,15 @@
  */
 
 /**
+ * DOC: SAE authentication offload
+ *
+ * By setting @NL80211_EXT_FEATURE_SAE_OFFLOAD flag drivers can indicate they
+ * support offloading SAE authentication for WPA3-Personal networks. In
+ * %NL80211_CMD_CONNECT the password for SAE should be specified using
+ * %NL80211_ATTR_SAE_PASSWORD.
+ */
+
+/**
  * enum nl80211_commands - supported nl80211 commands
  *
  * @NL80211_CMD_UNSPEC: unspecified command to catch errors
@@ -569,13 +578,14 @@
  *	authentication/association or not receiving a response from the AP.
  *	Non-zero %NL80211_ATTR_STATUS_CODE value is indicated in that case as
  *	well to remain backwards compatible.
- * @NL80211_CMD_ROAM: notifcation indicating the card/driver roamed by itself.
- *	When the driver roamed in a network that requires 802.1X authentication,
- *	%NL80211_ATTR_PORT_AUTHORIZED should be set if the 802.1X authentication
- *	was done by the driver or if roaming was done using Fast Transition
- *	protocol (in which case 802.1X authentication is not needed). If
- *	%NL80211_ATTR_PORT_AUTHORIZED is not set, user space is responsible for
- *	the 802.1X authentication.
+ *	When establishing a security association, drivers that support 4 way
+ *	handshake offload should send %NL80211_CMD_PORT_AUTHORIZED event when
+ *	the 4 way handshake is completed successfully.
+ * @NL80211_CMD_ROAM: Notification indicating the card/driver roamed by itself.
+ *	When a security association was established with the new AP (e.g. if
+ *	the FT protocol was used for roaming or the driver completed the 4 way
+ *	handshake), this event should be followed by an
+ *	%NL80211_CMD_PORT_AUTHORIZED event.
  * @NL80211_CMD_DISCONNECT: drop a given connection; also used to notify
  *	userspace that a connection was dropped by the AP or due to other
  *	reasons, for this the %NL80211_ATTR_DISCONNECTED_BY_AP and
@@ -982,6 +992,12 @@
  * @NL80211_CMD_DEL_PMK: For offloaded 4-Way handshake, delete the previously
  *	configured PMK for the authenticator address identified by
  *	&NL80211_ATTR_MAC.
+ * @NL80211_CMD_PORT_AUTHORIZED: An event that indicates that the 4 way
+ *	handshake was completed successfully by the driver. The BSSID is
+ *	specified with &NL80211_ATTR_MAC. Drivers that support 4 way handshake
+ *	offload should send this event after indicating 802.11 association with
+ *	&NL80211_CMD_CONNECT or &NL80211_CMD_ROAM. If the 4 way handshake failed
+ *	&NL80211_CMD_DISCONNECT should be indicated instead.
  *
  * @NL80211_CMD_MAX: highest used command number
  * @__NL80211_CMD_AFTER_LAST: internal use
@@ -1184,6 +1200,8 @@ enum nl80211_commands {
 
 	NL80211_CMD_SET_PMK,
 	NL80211_CMD_DEL_PMK,
+
+	NL80211_CMD_PORT_AUTHORIZED,
 
 	/* add new commands above here */
 
@@ -2139,6 +2157,36 @@ enum nl80211_commands {
  *	the driver or is not needed (because roaming used the Fast Transition
  *	protocol).
  *
+ * @NL80211_ATTR_EXTERNAL_AUTH_ACTION: Identify the requested external
+ *	authentication operation (u32 attribute with an
+ *	&enum nl80211_external_auth_action value). This is used with the
+ *	%NL80211_CMD_EXTERNAL_AUTH request event.
+ * @NL80211_ATTR_EXTERNAL_AUTH_SUPPORT: Flag attribute indicating that the user
+ *	space supports external authentication. This attribute shall be used
+ *	only with %NL80211_CMD_CONNECT request. The driver may offload
+ *	authentication processing to user space if this capability is indicated
+ *	in NL80211_CMD_CONNECT requests from the user space.
+ *
+ * @NL80211_ATTR_NSS: Station's New/updated  RX_NSS value notified using this
+ *	u8 attribute. This is used with %NL80211_CMD_STA_OPMODE_CHANGED.
+ *
+ * @NL80211_ATTR_TXQ_STATS: TXQ statistics (nested attribute, see &enum
+ *	nl80211_txq_stats)
+ * @NL80211_ATTR_TXQ_LIMIT: Total packet limit for the TXQ queues for this phy.
+ *	The smaller of this and the memory limit is enforced.
+ * @NL80211_ATTR_TXQ_MEMORY_LIMIT: Total memory memory limit (in bytes) for the
+ *	TXQ queues for this phy. The smaller of this and the packet limit is
+ *	enforced.
+ * @NL80211_ATTR_TXQ_QUANTUM: TXQ scheduler quantum (bytes). Number of bytes
+ *	a flow is assigned on each round of the DRR scheduler.
+ * @NL80211_ATTR_HE_CAPABILITY: HE Capability information element (from
+ *	association request when used with NL80211_CMD_NEW_STATION). Can be set
+ *	only if %NL80211_STA_FLAG_WME is set.
+ *
+ * @NL80211_ATTR_SAE_PASSWORD: attribute for passing SAE password material. It
+ *	is used with %NL80211_CMD_CONNECT to provide password for offloading
+ *	SAE authentication for WPA3-Personal networks.
+ *
  * @NUM_NL80211_ATTR: total number of nl80211_attrs available
  * @NL80211_ATTR_MAX: highest attribute number currently defined
  * @__NL80211_ATTR_AFTER_LAST: internal use
@@ -2564,6 +2612,23 @@ enum nl80211_attrs {
 	NL80211_ATTR_WANT_1X_4WAY_HS,
 	NL80211_ATTR_PMKR0_NAME,
 	NL80211_ATTR_PORT_AUTHORIZED,
+
+	NL80211_ATTR_EXTERNAL_AUTH_ACTION,
+	NL80211_ATTR_EXTERNAL_AUTH_SUPPORT,
+
+	NL80211_ATTR_NSS,
+	NL80211_ATTR_ACK_SIGNAL,
+
+	NL80211_ATTR_CONTROL_PORT_OVER_NL80211,
+
+	NL80211_ATTR_TXQ_STATS,
+	NL80211_ATTR_TXQ_LIMIT,
+	NL80211_ATTR_TXQ_MEMORY_LIMIT,
+	NL80211_ATTR_TXQ_QUANTUM,
+
+	NL80211_ATTR_HE_CAPABILITY,
+
+	NL80211_ATTR_SAE_PASSWORD,
 
 	/* add attributes here, update the policy in nl80211.c */
 
@@ -3958,6 +4023,7 @@ enum nl80211_mfp {
 enum nl80211_wpa_versions {
 	NL80211_WPA_VERSION_1 = 1 << 0,
 	NL80211_WPA_VERSION_2 = 1 << 1,
+	NL80211_WPA_VERSION_3 = 1 << 2,
 };
 
 /**
@@ -4916,6 +4982,40 @@ enum nl80211_feature_flags {
  *	handshake with 802.1X in station mode (will pass EAP frames to the host
  *	and accept the set_pmk/del_pmk commands), doing it in the host might not
  *	be supported.
+ * @NL80211_EXT_FEATURE_FILS_MAX_CHANNEL_TIME: Driver is capable of overriding
+ *	the max channel attribute in the FILS request params IE with the
+ *	actual dwell time.
+ * @NL80211_EXT_FEATURE_ACCEPT_BCAST_PROBE_RESP: Driver accepts broadcast probe
+ *	response
+ * @NL80211_EXT_FEATURE_OCE_PROBE_REQ_HIGH_TX_RATE: Driver supports sending
+ *	the first probe request in each channel at rate of at least 5.5Mbps.
+ * @NL80211_EXT_FEATURE_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION: Driver supports
+ *	probe request tx deferral and suppression
+ * @NL80211_EXT_FEATURE_MFP_OPTIONAL: Driver supports the %NL80211_MFP_OPTIONAL
+ *	value in %NL80211_ATTR_USE_MFP.
+ * @NL80211_EXT_FEATURE_LOW_SPAN_SCAN: Driver supports low span scan.
+ * @NL80211_EXT_FEATURE_LOW_POWER_SCAN: Driver supports low power scan.
+ * @NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN: Driver supports high accuracy scan.
+ * @NL80211_EXT_FEATURE_DFS_OFFLOAD: HW/driver will offload DFS actions.
+ *	Device or driver will do all DFS-related actions by itself,
+ *	informing user-space about CAC progress, radar detection event,
+ *	channel change triggered by radar detection event.
+ *	No need to start CAC from user-space, no need to react to
+ *	"radar detected" event.
+ * @NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211: Driver supports sending and
+ *	receiving control port frames over nl80211 instead of the netdevice.
+ * @NL80211_EXT_FEATURE_DATA_ACK_SIGNAL_SUPPORT: This Driver support data ack
+ *	rssi if firmware support, this flag is to intimate about ack rssi
+ *	support to nl80211.
+ * @NL80211_EXT_FEATURE_TXQS: Driver supports FQ-CoDel-enabled intermediate
+ *	TXQs.
+ * @NL80211_EXT_FEATURE_SCAN_RANDOM_SN: Driver/device supports randomizing the
+ *	SN in probe request frames if requested by %NL80211_SCAN_FLAG_RANDOM_SN.
+ * @NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT: Driver/device can omit all data
+ *	except for supported rates from the probe request content if requested
+ *	by the %NL80211_SCAN_FLAG_MIN_PREQ_CONTENT flag.
+ * @NL80211_EXT_FEATURE_SAE_OFFLOAD: Device wants to do SAE authentication in
+ *	station mode (SAE password is passed as part of the connect command).
  *
  * @NUM_NL80211_EXT_FEATURES: number of extended features.
  * @MAX_NL80211_EXT_FEATURES: highest extended feature index.
@@ -4938,6 +5038,21 @@ enum nl80211_ext_feature_index {
 	NL80211_EXT_FEATURE_FILS_SK_OFFLOAD,
 	NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_PSK,
 	NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_1X,
+	NL80211_EXT_FEATURE_FILS_MAX_CHANNEL_TIME,
+	NL80211_EXT_FEATURE_ACCEPT_BCAST_PROBE_RESP,
+	NL80211_EXT_FEATURE_OCE_PROBE_REQ_HIGH_TX_RATE,
+	NL80211_EXT_FEATURE_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION,
+	NL80211_EXT_FEATURE_MFP_OPTIONAL,
+	NL80211_EXT_FEATURE_LOW_SPAN_SCAN,
+	NL80211_EXT_FEATURE_LOW_POWER_SCAN,
+	NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN,
+	NL80211_EXT_FEATURE_DFS_OFFLOAD,
+	NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211,
+	NL80211_EXT_FEATURE_DATA_ACK_SIGNAL_SUPPORT,
+	NL80211_EXT_FEATURE_TXQS,
+	NL80211_EXT_FEATURE_SCAN_RANDOM_SN,
+	NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT,
+	NL80211_EXT_FEATURE_SAE_OFFLOAD,
 
 	/* add new features before the definition below */
 	NUM_NL80211_EXT_FEATURES,

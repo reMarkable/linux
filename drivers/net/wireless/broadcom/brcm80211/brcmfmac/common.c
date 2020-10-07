@@ -30,6 +30,9 @@
 #include "common.h"
 #include "of.h"
 #include "firmware.h"
+#include "fweh.h"
+#include <brcm_hw_ids.h>
+#include "defs.h"
 
 MODULE_AUTHOR("Broadcom Corporation");
 MODULE_DESCRIPTION("Broadcom 802.11 wireless LAN fullmac driver.");
@@ -50,7 +53,8 @@ module_param_named(txglomsz, brcmf_sdiod_txglomsz, int, 0);
 MODULE_PARM_DESC(txglomsz, "Maximum tx packet chain size [SDIO]");
 
 /* Debug level configuration. See debug.h for bits, sysfs modifiable */
-int brcmf_msg_level = 0x0fffffff;
+int brcmf_msg_level = BRCMF_DATA_VAL | BRCMF_CTL_VAL | BRCMF_HDRS_VAL | BRCMF_BYTES_VAL | BRCMF_GLOM_VAL | BRCMF_EVENT_VAL | BRCMF_FIL_VAL | BRCMF_FWCON_VAL | BRCMF_SCAN_VAL;
+
 module_param_named(debug, brcmf_msg_level, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(debug, "Level of debug output");
 
@@ -82,6 +86,14 @@ MODULE_PARM_DESC(eap_restrict, "Block non-802.1X frames until auth finished");
 static int brcmf_sdio_wq_highpri;
 module_param_named(sdio_wq_highpri, brcmf_sdio_wq_highpri, int, 0);
 MODULE_PARM_DESC(sdio_wq_highpri, "SDIO workqueue is set to high priority");
+
+static int brcmf_frameburst;
+module_param_named(frameburst, brcmf_frameburst, int, 0);
+MODULE_PARM_DESC(frameburst, "Enable firmware frameburst feature");
+
+static int brcmf_max_pm;
+module_param_named(max_pm, brcmf_max_pm, int, 0);
+MODULE_PARM_DESC(max_pm, "Use max power management mode by default");
 
 #ifdef DEBUG
 /* always succeed brcmf_bus_started() */
@@ -247,6 +259,9 @@ int brcmf_c_preinit_dcmds(struct brcmf_if *ifp)
 	char *clmver;
 	char *ptr;
 	s32 err;
+	struct eventmsgs_ext *eventmask_msg = NULL;
+	u8 msglen;
+	struct brcmf_bus *bus = ifp->drvr->bus_if;
 
 	/* retrieve mac addresses */
 	err = brcmf_fil_iovar_data_get(ifp, "cur_etheraddr", ifp->mac_addr,
@@ -353,6 +368,41 @@ int brcmf_c_preinit_dcmds(struct brcmf_if *ifp)
 		goto done;
 	}
 
+	/* Enable event_msg_ext specific to 43012 chip */
+	if (bus->chip == CY_CC_43012_CHIP_ID) {
+		/* Program event_msg_ext to support event larger than 128 */
+		msglen = (roundup(BRCMF_E_LAST, NBBY) / NBBY) +
+				  EVENTMSGS_EXT_STRUCT_SIZE;
+		/* Allocate buffer for eventmask_msg */
+		eventmask_msg = kzalloc(msglen, GFP_KERNEL);
+		if (!eventmask_msg) {
+			err = -ENOMEM;
+			goto done;
+		}
+
+		/* Read the current programmed event_msgs_ext */
+		eventmask_msg->ver = EVENTMSGS_VER;
+		eventmask_msg->len = roundup(BRCMF_E_LAST, NBBY) / NBBY;
+		err = brcmf_fil_iovar_data_get(ifp, "event_msgs_ext",
+					       eventmask_msg,
+					       msglen);
+
+		/* Enable ULP event */
+		brcmf_dbg(EVENT, "enable event ULP\n");
+		setbit(eventmask_msg->mask, BRCMF_E_ULP);
+
+		/* Write updated Event mask */
+		eventmask_msg->ver = EVENTMSGS_VER;
+		eventmask_msg->command = EVENTMSGS_SET_MASK;
+		eventmask_msg->len = (roundup(BRCMF_E_LAST, NBBY) / NBBY);
+
+		err = brcmf_fil_iovar_data_set(ifp, "event_msgs_ext",
+					       eventmask_msg, msglen);
+		if (err) {
+			brcmf_err("Set event_msgs_ext error (%d)\n", err);
+			goto done;
+		}
+	}
 	/* Setup default scan channel time */
 	err = brcmf_fil_cmd_int_set(ifp, BRCMF_C_SET_SCAN_CHANNEL_TIME,
 				    BRCMF_DEFAULT_SCAN_CHANNEL_TIME);
@@ -457,6 +507,8 @@ struct brcmf_mp_device *brcmf_get_module_param(struct device *dev,
 	settings->roamoff = !!brcmf_roamoff;
 	settings->eap_restrict = !!brcmf_eap_restrict;
 	settings->sdio_wq_highpri = !!brcmf_sdio_wq_highpri;
+	settings->frameburst = !!brcmf_frameburst;
+	settings->default_pm = !!brcmf_max_pm ? PM_MAX : PM_FAST;
 #ifdef DEBUG
 	settings->ignore_probe_fail = !!brcmf_ignore_probe_fail;
 #endif

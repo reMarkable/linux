@@ -51,6 +51,8 @@ extern struct brcmf_mp_global_t brcmf_mp_global;
  * @roamoff: Firmware roaming off?
  * @eap_restrict: Not allow data tx/rx until 802.1X auth succeeds
  * @sdio_wq_highpri: Tasks submitted to SDIO workqueue will run immediately.
+ * @frameburst: Firmware frame burst mode.
+ * @default_pm: default power management (PM) mode.
  * @ignore_probe_fail: Ignore probe failure.
  * @country_codes: If available, pointer to struct for translating country codes
  * @bus: Bus specific platform data. Only SDIO at the mmoment.
@@ -63,6 +65,8 @@ struct brcmf_mp_device {
 	bool		eap_restrict;
 	int		sdio_dpc_prio;
 	bool		sdio_wq_highpri;
+	bool		frameburst;
+	int		default_pm;
 	bool		ignore_probe_fail;
 	struct brcmfmac_pd_cc *country_codes;
 	union {
