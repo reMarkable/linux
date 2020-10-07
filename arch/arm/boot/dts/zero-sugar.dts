@@ -480,8 +480,7 @@
 };
 
 &usbotg1 {
-	flip-extcon-order;
-	extcon = <&otgcontrol>;
+	extcon = <0 &otgcontrol>;
 	srp-disable;
 	hnp-disable;
 	dp-disable;
