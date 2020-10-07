@@ -729,7 +729,7 @@
 				/* WiFi Host Wake */
 				MX7D_PAD_GPIO1_IO08__GPIO1_IO8		0x00000014
 				/* WiFi Sleep 32k */
-				MX7D_PAD_SD1_WP__GPIO5_IO1		0x00000014
+				MX7D_PAD_SD1_WP__CCM_CLKO2          0x00000014
 			>;
 		};
 	};
