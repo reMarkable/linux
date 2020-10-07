@@ -223,10 +223,6 @@ struct max77818_charger_data {
 	struct max77818_charger_platform_data *pdata;
 };
 
-static char *supply_interface[] = {
-	"main_battery"
-};
-
 static inline struct power_supply *get_power_supply_by_name(char *name)
 {
 	if (!name)
@@ -355,6 +351,7 @@ static int max77818_charger_get_input_current(struct max77818_charger_data *char
 		/* When the wireless charging input is the only one currently active,
 		the configured max input current for the wireless charging input is returned */
 		max77818_read(charger->regmap, REG_CHG_CNFG_10, &reg_data);
+		printk("[---- SBA ----] %s: read WCIN max input current: 0x%02X\n", __func__, reg_data);
 
 		if (reg_data <= 3)
 			get_current = 60;
@@ -371,6 +368,7 @@ static int max77818_charger_get_input_current(struct max77818_charger_data *char
 		printk("[---- SBA ----] %s: Enter\n", __func__);
 
 		max77818_read(charger->regmap, REG_CHG_CNFG_09, &reg_data);
+		printk("[---- SBA ----] %s: read CHGIN max input current: 0x%02X\n", __func__, reg_data);
 
 		quotient = reg_data / 3;
 		remainder = reg_data % 3;
@@ -436,8 +434,8 @@ static int max77818_charger_set_input_current_wcin(struct max77818_charger_data 
 	pr_info("%s: reg_data(0x%02x), charging current(%d)\n",
 		__func__, reg_data, input_current);
 
-	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_09,
-								BIT_CHGIN_ILIM, reg_data);
+	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_10,
+								BIT_WCIN_ILIM, reg_data);
 }
 
 static int max77818_charger_get_charge_current(struct max77818_charger_data *charger)
@@ -510,20 +508,33 @@ static int max77818_charger_set_topoff_current(struct max77818_charger_data *cha
 static int max77818_charger_set_enable (struct max77818_charger_data *charger, int en)
 {
 	/* If enable = 0, just shut off charging/otg power */
-	if (!en)
-		return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, 0, BIT_MODE);
+	if (!en) {
+		printk("[---- SBA ----] %s: Current charger-mode: %s (%d), disabling\n",
+			__func__, 
+			(charger->charger_mode == POWER_SUPPLY_MODE_CHARGER) ? "CHARGER" :
+			(charger->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY) ? "OTG SUPPLY" : "INVALID",
+			charger->charger_mode);
+
+		return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, BIT_MODE, 0);
+	}
 
 	/* Depending on configured mode, turn on charging or OTG power - if input power is not present on CHGIN */
 	if (charger->charger_mode == POWER_SUPPLY_MODE_CHARGER) {
-		return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, MODE_CHARGER_BUCK, BIT_MODE);
+		printk("[---- SBA ----] %s: Setting charger mode 'CHARGER + BUCK'\n", __func__);
+		return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, BIT_MODE, MODE_CHARGER_BUCK);
 	}
 	else if (charger->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY) {
-		if (!max77818_charger_present_input(charger))
-			return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, MODE_OTG_BUCK_BOOST, BIT_MODE);
-		else
-			return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, 0, BIT_MODE);
+		if (!max77818_charger_present_input(charger)) {
+			printk("[---- SBA ----] %s: Setting charger mode 'OTG + BUCK + BOOST'\n", __func__);
+			return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, BIT_MODE, MODE_OTG_BUCK_BOOST);
+		}
+		else {
+			printk("[---- SBA ----] %s: Input voltage present, disabling charger mode'\n", __func__);
+			return regmap_update_bits(charger->regmap, REG_CHG_CNFG_00, BIT_MODE, 0);
+		}
 	}
 	else {
+		printk("[---- SBA ----] %s: Invalid configured charger-mode: %d, returning with failuer\n", __func__, charger->charger_mode);
 		return -EINVAL;
 	}
 }
@@ -751,8 +762,12 @@ static int max77818_charger_get_property (struct power_supply *psy,
 
 	__lock(charger);
 
+	printk("[---- SBA ----] %s: Calling max77818_charger_update\n", __func__);
 	rc = max77818_charger_update(charger);
+	printk("[---- SBA ----] %s: max77818_charger_update returned with returncode %d\n", __func__, rc);
+
 	if (unlikely(IS_ERR_VALUE(rc))) {
+		printk("[---- SBA ----] %s: Unexpected return code\n", __func__);
 		goto out;
 	}
 
@@ -783,6 +798,7 @@ static int max77818_charger_get_property (struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		val->intval = charger->charger_mode;
+		break;
 
 	default:
 		rc = -EINVAL;
@@ -835,6 +851,7 @@ static int max77818_charger_set_property (struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		printk("[---- SBA ----] %s: Prop = POWER_SUPPLY_PROP_CHARGER_MODE\n", __func__);
 		if (val->intval == POWER_SUPPLY_MODE_CHARGER)
 			charger->charger_mode = val->intval;
 		else if (val->intval == POWER_SUPPLY_MODE_OTG_SUPPLY)
@@ -861,13 +878,19 @@ out:
 static int max77818_charger_property_is_writeable(struct power_supply *psy,
 								enum power_supply_property psp)
 {
-	bool probe_is_done;
-
 	printk("[---- SBA ----] %s.property_is_writable called (property %u) !\n", __func__, psp);
 
-	probe_is_done = __sync_get(probe_done, probe_done_lock);
-	printk("[---- SBA ----] probe_done: %s", (probe_is_done ? "TRUE" : "FALSE"));
-	return probe_is_done;
+	switch (psp) {
+    case POWER_SUPPLY_PROP_ONLINE:
+    case POWER_SUPPLY_PROP_CURRENT_NOW:
+    case POWER_SUPPLY_PROP_CURRENT_MAX:
+    case POWER_SUPPLY_PROP_CHARGER_MODE:
+		return 1;
+		break;
+
+    default:
+		return 0;
+    }
 }
 
 /* callback to be called when external power has changed */
@@ -1060,9 +1083,9 @@ static int max77818_charger_parse_dt(struct max77818_charger_data *charger, stru
 	struct device *dev = charger->dev;
 	struct device_node *np = of_find_node_by_name(NULL, "charger");
 	struct max77818_charger_platform_data *pdata;
+	int ret = 0;
 
 	*of_node = np;
-	int ret = 0;
 
 	printk("[---- SBA ----] %s: Enter\n", __func__);
 
@@ -1123,9 +1146,10 @@ static const struct power_supply_desc psy_chg_desc = {
     .properties = max77818_charger_props,
     .num_properties = ARRAY_SIZE(max77818_charger_props),
     .get_property = max77818_charger_get_property,
-    .set_property = max77818_charger_set_property
+    .set_property = max77818_charger_set_property,
+	.property_is_writeable = max77818_charger_property_is_writeable,
 
-	/*psy_chg_desc.property_is_writeable = max77818_charger_property_is_writeable;
+	/*
     psy_chg_desc.external_power_changed = max77818_charger_external_power_changed;
     psy_chg_desc.set_charged = max77818_charger_set_charged;
     psy_chg_desc.no_thermal = true;
@@ -1143,8 +1167,6 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	u8 val = 0;
 
 	printk("[---- SBA ----] %s Enter:\n", __func__);
-
-	__sync_clear(probe_done, probe_done_lock);
 
 	pr_info("%s: Max77818 Charger Driver Loading\n", __func__);
 
@@ -1224,8 +1246,6 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	pr_info("%s: Max77818 Charger CHG_INT_MASK=%Xh\n", __func__, val);
 
 	pr_info("%s: Max77818 Charger Driver Loaded\n", __func__);
-
-	__sync_set(probe_done, probe_done_lock);
 	return 0;
 
 err_aicl_irq:
