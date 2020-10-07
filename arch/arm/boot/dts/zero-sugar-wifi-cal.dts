@@ -495,7 +495,7 @@
 &usdhc2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	pinctrl-names = "default";
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
 	pinctrl-0 = <&pinctrl_usdhc2>;
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
 	pinctrl-2 = <&pinctrl_usdhc2_200mhz>;
@@ -526,13 +526,12 @@
 	status = "okay";
 };
 
-/*
+
 &wdog1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_wdog>;
 	fsl,ext-reset-output;
 };
-*/
 
 &iomuxc {
 	pinctrl-names = "default";
@@ -714,6 +713,12 @@
 				MX7D_PAD_GPIO1_IO08__GPIO1_IO8		0x00000014
 				/* WiFi Sleep 32k */
 				MX7D_PAD_SD1_WP__CCM_CLKO2          0x00000014
+			>;
+		};
+
+		pinctrl_wdog: wdoggrp {
+			fsl,pins = <
+				MX7D_PAD_ENET1_COL__WDOG1_WDOG_ANY      0x74
 			>;
 		};
 	};
