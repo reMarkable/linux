@@ -69,9 +69,9 @@ enum {
 	MAX77818_CHG_IRQ_CHG_I,
 	MAX77818_CHG_IRQ_WCIN_I,
 	MAX77818_CHG_IRQ_CHGIN_I,
-	MAX77818_CHG_IRQ_AICL_I, 
+	MAX77818_CHG_IRQ_AICL_I,
 
-    MAX77818_NUM_OF_INTS,
+	MAX77818_NUM_OF_INTS,
 };
 
 enum{
@@ -86,7 +86,7 @@ enum{
 	CHG_IRQ_CHG_I,
 	CHG_IRQ_WCIN_I,
 	CHG_IRQ_CHGIN_I,
-	CHG_IRQ_AICL_I,	
+	CHG_IRQ_AICL_I,
 
 	FG_IRQ_ALERT = 0,
 };
@@ -99,59 +99,59 @@ enum{
 
 #undef  __CONST_FFS
 #define __CONST_FFS(_x) \
-        ((_x) & 0x0F ? ((_x) & 0x03 ? ((_x) & 0x01 ? 0 : 1) :\
-                                      ((_x) & 0x04 ? 2 : 3)) :\
-                       ((_x) & 0x30 ? ((_x) & 0x10 ? 4 : 5) :\
-                                      ((_x) & 0x40 ? 6 : 7)))
+		((_x) & 0x0F ? ((_x) & 0x03 ? ((_x) & 0x01 ? 0 : 1) :\
+									  ((_x) & 0x04 ? 2 : 3)) :\
+					   ((_x) & 0x30 ? ((_x) & 0x10 ? 4 : 5) :\
+									  ((_x) & 0x40 ? 6 : 7)))
 
 #undef  FFS
 #define FFS(_x) \
-        ((_x) ? __CONST_FFS(_x) : 0)
+		((_x) ? __CONST_FFS(_x) : 0)
 
 #undef  BIT_RSVD
 #define BIT_RSVD  0
 
 #undef  BITS
 #define BITS(_end, _start) \
-        ((BIT(_end) - BIT(_start)) + BIT(_end))
+		((BIT(_end) - BIT(_start)) + BIT(_end))
 
 #undef  __BITS_GET
 #define __BITS_GET(_word, _mask, _shift) \
-        (((_word) & (_mask)) >> (_shift))
+		(((_word) & (_mask)) >> (_shift))
 
 #undef  BITS_GET
 #define BITS_GET(_word, _bit) \
-        __BITS_GET(_word, _bit, FFS(_bit))
+		__BITS_GET(_word, _bit, FFS(_bit))
 
 #undef  __BITS_SET
 #define __BITS_SET(_word, _mask, _shift, _val) \
-        (((_word) & ~(_mask)) | (((_val) << (_shift)) & (_mask)))
+		(((_word) & ~(_mask)) | (((_val) << (_shift)) & (_mask)))
 
 #undef  BITS_SET
 #define BITS_SET(_word, _bit, _val) \
-        __BITS_SET(_word, _bit, FFS(_bit), _val)
+		__BITS_SET(_word, _bit, FFS(_bit), _val)
 
 #undef  BITS_MATCH
 #define BITS_MATCH(_word, _bit) \
-        (((_word) & (_bit)) == (_bit))
+		(((_word) & (_bit)) == (_bit))
 
 /*******************************************************************************
  * Sub Modules Support
  ******************************************************************************/
 enum {
-    MAX77818_DEV_REGULATOR = 0,
-    MAX77818_DEV_CHARGER,
-    MAX77818_DEV_FUELGAUGE,
-    /***/
-    MAX77818_DEV_NUM_OF_DEVICES,
+	MAX77818_DEV_REGULATOR = 0,
+	MAX77818_DEV_CHARGER,
+	MAX77818_DEV_FUELGAUGE,
+	/***/
+	MAX77818_DEV_NUM_OF_DEVICES,
 };
 
- 
+
 struct max77818_dev {
 	void						*pdata;
 	struct mutex				lock;
 	struct device				*dev;
-	
+
 	int 						irq;
 	int 						irq_gpio;
 
@@ -162,7 +162,7 @@ struct max77818_dev {
 	struct i2c_client			*pmic;	/* 0xCC , CLOGIC/SAFELDOS */
 	struct i2c_client			*chg;	/* 0xD2, CHARGER */
 	struct i2c_client			*fuel;	/* 0x6C, FUEL GAUGE */
-	
+
 	struct regmap				*regmap_pmic;	/* CLOGIC/SAFELDOS */
 	struct regmap				*regmap_chg;	/* CHARGER */
 	struct regmap				*regmap_fuel;	/* FUEL GAUGE */
@@ -173,7 +173,7 @@ struct max77818_dev {
  ******************************************************************************/
 
 struct max77818_pmic_platform_data {
-    int irq; /* system interrupt number for PMIC */
+	int irq; /* system interrupt number for PMIC */
 };
 
 
@@ -202,27 +202,27 @@ int max77818_map_irq(struct max77818_dev *max77818, int irq);
 
 #undef  log_fmt
 #define log_fmt(format) \
-        DRIVER_NAME ": " format
+		DRIVER_NAME ": " format
 #undef  log_err
 #define log_err(format, ...) \
-        printk(KERN_ERR log_fmt(format), ##__VA_ARGS__)
+		printk(KERN_ERR log_fmt(format), ##__VA_ARGS__)
 #undef  log_warn
 #define log_warn(format, ...) \
-        printk(KERN_WARNING log_fmt(format), ##__VA_ARGS__)
+		printk(KERN_WARNING log_fmt(format), ##__VA_ARGS__)
 #undef  log_info
 #define log_info(format, ...) \
-        if (likely(log_level >= 0)) {\
-            printk(KERN_INFO log_fmt(format), ##__VA_ARGS__);\
-        }
+		if (likely(log_level >= 0)) {\
+			printk(KERN_INFO log_fmt(format), ##__VA_ARGS__);\
+		}
 #undef  log_dbg
 #define log_dbg(format, ...) \
-        if (likely(log_level >= 1)) {\
-            printk(KERN_DEFAULT log_fmt(format), ##__VA_ARGS__);\
-        }
+		if (likely(log_level >= 1)) {\
+			printk(KERN_DEFAULT log_fmt(format), ##__VA_ARGS__);\
+		}
 #undef  log_vdbg
 #define log_vdbg(format, ...) \
-        if (likely(log_level >= 2)) {\
-            printk(KERN_DEFAULT log_fmt(format), ##__VA_ARGS__);\
-        }
+		if (likely(log_level >= 2)) {\
+			printk(KERN_DEFAULT log_fmt(format), ##__VA_ARGS__);\
+		}
 #endif /* !__MAX77818_MFD_H__ */
 

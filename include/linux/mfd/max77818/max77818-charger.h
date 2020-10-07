@@ -28,7 +28,9 @@ struct max77818_charger_platform_data {
 	int topoff_timer;
 	int restart_threshold;
 	int termination_voltage;
-	int input_current_limit;
+	int vsys_min;
+	int input_current_limit_chgin;
+	int input_current_limit_wcin;
 };
 
 #endif /* !__MAX77818_CHARGER_H__ */

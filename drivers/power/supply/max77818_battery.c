@@ -71,17 +71,17 @@ static volatile bool probeDone = false;
 struct mutex probeDoneLock;
 
 struct max77818_chip {
-    struct device           *dev;
-    struct max77818_dev     *max77818;
+	struct device           *dev;
+	struct max77818_dev     *max77818;
 	struct regmap			*regmap;
 
 	int 					fg_irq;
 	struct delayed_work		work;
-    struct power_supply		*battery;
+	struct power_supply		*battery;
 
 	/* alert */
 	int alert_threshold;
-	
+
 	/* State Of Connect */
 	int ac_online;
 	int usb_online;
@@ -104,10 +104,10 @@ struct max77818_chip {
 };
 
 static int max77818_fg_get_property(struct power_supply *psy,
-			    enum power_supply_property psp,
-			    union power_supply_propval *val)
+				enum power_supply_property psp,
+				union power_supply_propval *val)
 {
-    struct max77818_chip *chip = (struct max77818_chip*) psy->drv_data;
+	struct max77818_chip *chip = (struct max77818_chip*) psy->drv_data;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -201,8 +201,8 @@ static bool max77818_fg_check_status(struct max77818_chip *max77818_fg)
 	if (data & BIT_dSOCi) {
 		max77818_fg_get_vcell(max77818_fg);
 		max77818_fg_get_soc(max77818_fg);
-        power_supply_changed(max77818_fg->battery);
-		pr_info("%s: 1% soc changed, SOC=%d, VCELL=%d\n", 
+		power_supply_changed(max77818_fg->battery);
+		pr_info("%s: 1% soc changed, SOC=%d, VCELL=%d\n",
 			__func__, max77818_fg->soc, max77818_fg->vcell);
 	}
 
@@ -218,24 +218,24 @@ static bool max77818_fg_check_status(struct max77818_chip *max77818_fg)
 
 /* callback to be called during power supply registration to check if the probe routine has finished */
 static int max77818_fg_property_is_writeable(struct power_supply *psy,
-                                enum power_supply_property psp)
+								enum power_supply_property psp)
 {
-    printk("[---- SBA ----] max77818-battery.property_is_writable called !\n");
+	printk("[---- SBA ----] max77818-battery.property_is_writable called !\n");
 
-    int probeIsDone = __sync_get(probeDone, probeDoneLock);
-    printk("[---- SBA ----] probeDone: %s", (probeIsDone ? "TRUE" : "FALSE"));
+	int probeIsDone = __sync_get(probeDone, probeDoneLock);
+	printk("[---- SBA ----] probeDone: %s", (probeIsDone ? "TRUE" : "FALSE"));
 }
 
 /* callback to be called when external power has changed */
 static void max77818_fg_external_power_changed(struct power_supply *psy)
 {
-    printk("[---- SBA ----] max77818-battery.external_power_changed called !\n");
+	printk("[---- SBA ----] max77818-battery.external_power_changed called !\n");
 }
 
 /* callbask to be called to set charged state */
 static void max77818_fg_set_charged(struct power_supply *psy)
 {
-    printk("[---- SBA ----] max77818-battery.set_charged called !\n");
+	printk("[---- SBA ----] max77818-battery.set_charged called !\n");
 }
 
 //static void max77818_fg_work(struct work_struct *work)
@@ -346,7 +346,7 @@ static int max77818_fg_parse_dt(struct max77818_chip *fuelgauge, struct device_n
 	struct device_node *np = of_find_node_by_name(NULL, "fuelgauge");
 	struct max77818_fg_platform_data *pdata = fuelgauge->pdata;
 
-    *of_node = np;
+	*of_node = np;
 	int ret;
 
 	/* reset, irq gpio info */
@@ -371,14 +371,14 @@ static int max77818_fg_probe(struct platform_device *pdev)
 	struct max77818_fg_platform_data *pdata = dev_get_platdata(max77818->dev);
 	struct max77818_chip *chip;
 
-    struct power_supply_desc psy_chg_desc;
-    struct power_supply_config psy_chg_config;
+	struct power_supply_desc psy_chg_desc;
+	struct power_supply_config psy_chg_config;
 
 	uint16_t version;
 	int ret = 0;
 	u8 val;
 
-    printk("[---- SBA ----] %s Enter:\n", __func__);
+	printk("[---- SBA ----] %s Enter:\n", __func__);
 
 	pr_info("%s: MAX77818 Fuelgauge Driver Loading\n", __func__);
 
@@ -391,7 +391,7 @@ static int max77818_fg_probe(struct platform_device *pdev)
 	chip->regmap = max77818->regmap_fuel;
 
 #if defined(CONFIG_OF)
-    ret = max77818_fg_parse_dt(chip, &psy_chg_config.of_node);
+	ret = max77818_fg_parse_dt(chip, &psy_chg_config.of_node);
 	if (ret < 0) {
 		pr_err("%s not found charger dt! ret[%d]\n",
 			   __func__, ret);
@@ -405,25 +405,25 @@ static int max77818_fg_probe(struct platform_device *pdev)
 		goto error;
 	}
 
-    platform_set_drvdata(pdev, chip);
+	platform_set_drvdata(pdev, chip);
 
-    psy_chg_config.drv_data = chip;
-    /* psy_chg_config.supplied_to ?? */
-    /* psy_chg_config.num_supplicants */
+	psy_chg_config.drv_data = chip;
+	/* psy_chg_config.supplied_to ?? */
+	/* psy_chg_config.num_supplicants */
 
-    psy_chg_desc.name = "max77818-battery";
-    psy_chg_desc.type = POWER_SUPPLY_TYPE_BATTERY;
-    psy_chg_desc.properties = max77818_fg_battery_props;
-    psy_chg_desc.num_properties = ARRAY_SIZE(max77818_fg_battery_props);
-    psy_chg_desc.get_property = max77818_fg_get_property;
-    /* psy_chg_desc.set_property = ?;*/
-    psy_chg_desc.property_is_writeable = max77818_fg_property_is_writeable;
-    psy_chg_desc.external_power_changed = max77818_fg_external_power_changed;
-    psy_chg_desc.set_charged = max77818_fg_set_charged;
-    psy_chg_desc.no_thermal = true;
-    psy_chg_desc.use_for_apm = false;
+	psy_chg_desc.name = "max77818-battery";
+	psy_chg_desc.type = POWER_SUPPLY_TYPE_BATTERY;
+	psy_chg_desc.properties = max77818_fg_battery_props;
+	psy_chg_desc.num_properties = ARRAY_SIZE(max77818_fg_battery_props);
+	psy_chg_desc.get_property = max77818_fg_get_property;
+	/* psy_chg_desc.set_property = ?;*/
+	psy_chg_desc.property_is_writeable = max77818_fg_property_is_writeable;
+	psy_chg_desc.external_power_changed = max77818_fg_external_power_changed;
+	psy_chg_desc.set_charged = max77818_fg_set_charged;
+	psy_chg_desc.no_thermal = true;
+	psy_chg_desc.use_for_apm = false;
 
-    chip->battery = power_supply_register(&pdev->dev, &psy_chg_desc, &psy_chg_config);
+	chip->battery = power_supply_register(&pdev->dev, &psy_chg_desc, &psy_chg_config);
 	if (ret) {
 		dev_err(&pdev->dev, "failed: power supply register\n");
 		goto error;
@@ -435,7 +435,7 @@ static int max77818_fg_probe(struct platform_device *pdev)
 	if (chip->fg_irq > 0) {
 //		INIT_DELAYED_WORK(&chip->work, max77818_fg_work);
 		ret = request_threaded_irq(chip->fg_irq, NULL, max77818_fg_irq_thread,
-			        IRQF_TRIGGER_FALLING, "fuelgauge-irq", chip);
+					IRQF_TRIGGER_FALLING, "fuelgauge-irq", chip);
 		if (ret) {
 			pr_err("%s: Failed to Reqeust IRQ\n", __func__);
 			goto error1;
@@ -457,7 +457,7 @@ error2:
 	if (chip->fg_irq)
 		free_irq(chip->fg_irq, chip);
 error1:
-    power_supply_unregister(chip->battery);
+	power_supply_unregister(chip->battery);
 error:
 	kfree(chip);
 	return ret;
@@ -467,7 +467,7 @@ static int max77818_fg_remove(struct platform_device *pdev)
 {
 	struct max77818_chip *chip = platform_get_drvdata(pdev);
 
-    power_supply_unregister(chip->battery);
+	power_supply_unregister(chip->battery);
 	cancel_delayed_work(&chip->work);
 	kfree(chip);
 	return 0;

@@ -50,15 +50,15 @@
 
 
 static const struct regmap_config max77818_regmap_config = {
-    .reg_bits   = 8,
-    .val_bits   = 8,
-    .cache_type = REGCACHE_NONE,
+	.reg_bits   = 8,
+	.val_bits   = 8,
+	.cache_type = REGCACHE_NONE,
 };
 
 static const struct regmap_config max77818_regmap_config_fuelgauge = {
-    .reg_bits   = 8,
-    .val_bits   = 16,
-    .cache_type = REGCACHE_NONE,
+	.reg_bits   = 8,
+	.val_bits   = 16,
+	.cache_type = REGCACHE_NONE,
 	.val_format_endian = REGMAP_ENDIAN_NATIVE,
 };
 
@@ -68,51 +68,51 @@ static const struct regmap_config max77818_regmap_config_fuelgauge = {
  ******************************************************************************/
 int max77818_read (struct regmap *regmap, u8 addr, u8 *val)
 {
-    unsigned int buf = 0;
-    int rc = regmap_read(regmap, (unsigned int)addr, &buf);
+	unsigned int buf = 0;
+	int rc = regmap_read(regmap, (unsigned int)addr, &buf);
 
-    if (likely(!IS_ERR_VALUE(rc))) {
-        *val = (u8)buf;
-    }
-    return rc;
+	if (likely(!IS_ERR_VALUE(rc))) {
+		*val = (u8)buf;
+	}
+	return rc;
 }
 EXPORT_SYMBOL(max77818_read);
 
 int max77818_write (struct regmap *regmap, u8 addr, u8 val)
 {
-    unsigned int buf = (unsigned int)val;
-    return regmap_write(regmap, (unsigned int)addr, buf);
+	unsigned int buf = (unsigned int)val;
+	return regmap_write(regmap, (unsigned int)addr, buf);
 }
 EXPORT_SYMBOL(max77818_write);
 
 int max77818_fg_read (struct regmap *regmap, u8 addr, u16 *val)
 {
-    unsigned int buf = 0;
-    int rc = regmap_read(regmap, (unsigned int)addr, &buf);
+	unsigned int buf = 0;
+	int rc = regmap_read(regmap, (unsigned int)addr, &buf);
 
-    if (likely(!IS_ERR_VALUE(rc))) {
-        *val = buf;
-    }
-    return rc;
+	if (likely(!IS_ERR_VALUE(rc))) {
+		*val = buf;
+	}
+	return rc;
 }
 EXPORT_SYMBOL(max77818_fg_read);
 
 int max77818_fg_write (struct regmap *regmap, u8 addr, u16 val)
 {
-    unsigned int buf = (unsigned int)val;
-    return regmap_write(regmap, (unsigned int)addr, buf);
+	unsigned int buf = (unsigned int)val;
+	return regmap_write(regmap, (unsigned int)addr, buf);
 }
 EXPORT_SYMBOL(max77818_fg_write);
 
 int max77818_bulk_read (struct regmap *regmap, u8 addr, u8 *dst, u16 len)
 {
-    return regmap_bulk_read(regmap, (unsigned int)addr, dst, (size_t)len);
+	return regmap_bulk_read(regmap, (unsigned int)addr, dst, (size_t)len);
 }
 EXPORT_SYMBOL(max77818_bulk_read);
 
 int max77818_bulk_write (struct regmap *regmap, u8 addr, const u8 *src, u16 len)
 {
-    return regmap_bulk_write(regmap, (unsigned int)addr, src, (size_t)len);
+	return regmap_bulk_write(regmap, (unsigned int)addr, src, (size_t)len);
 }
 EXPORT_SYMBOL(max77818_bulk_write);
 
@@ -120,20 +120,20 @@ EXPORT_SYMBOL(max77818_bulk_write);
  *  device
  ******************************************************************************/
 static int max77818_add_devices (struct max77818_dev *me,
-    struct mfd_cell *cells, int n_devs)
+	struct mfd_cell *cells, int n_devs)
 {
-    struct device *dev = me->dev;
-    int rc;
+	struct device *dev = me->dev;
+	int rc;
 
 	printk("[---- SBA ----] max77818_add_devices Enter:\n");
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)
-    rc = mfd_add_devices(dev, -1, cells, n_devs, NULL, 0);
+	rc = mfd_add_devices(dev, -1, cells, n_devs, NULL, 0);
 #else /* LINUX_VERSION_CODE ... */
-    rc = mfd_add_devices(dev, -1, cells, n_devs, NULL, 0, NULL);
+	rc = mfd_add_devices(dev, -1, cells, n_devs, NULL, 0, NULL);
 #endif /* LINUX_VERSION_CODE ... */
 
-    return rc;
+	return rc;
 }
 
 /*******************************************************************************
@@ -149,7 +149,7 @@ static int max77818_add_devices (struct max77818_dev *me,
 /* Declare Interrupt */
 static const struct regmap_irq max77818_intsrc_irqs[] = {
 	{ .reg_offset = 0, .mask = BIT_CHGR_INT,	},	// CHGR_INT
-	{ .reg_offset = 0, .mask = BIT_FG_INT,		},	// FG_INT	
+	{ .reg_offset = 0, .mask = BIT_FG_INT,		},	// FG_INT
 	{ .reg_offset = 0, .mask = BIT_SYS_INT, 	},	// SYS_INT
 };
 
@@ -166,7 +166,7 @@ static const struct regmap_irq max77818_sys_irqs[] = {
 	{ .reg_offset = 0, .mask = BIT_SYSUVLO_INT, },	// SYSUVLO_INT
 	{ .reg_offset = 0, .mask = BIT_SYSOVLO_INT, },	// SYSOVLO_INT
 	{ .reg_offset = 0, .mask = BIT_TSHDN_INT, 	},	// TSHDN_INT
-	{ .reg_offset = 0, .mask = BIT_TM_INT,		},	// TM_INT	
+	{ .reg_offset = 0, .mask = BIT_TM_INT,		},	// TM_INT
 };
 
 static const struct regmap_irq_chip max77818_sys_irq_chip = {
@@ -218,8 +218,8 @@ EXPORT_SYMBOL_GPL(max77818_map_chg_irq);
 
 static int max77818_pmic_irq_int(struct max77818_dev *me)
 {
-    struct device *dev = me->dev;
-    struct i2c_client *client = to_i2c_client(dev);
+	struct device *dev = me->dev;
+	struct i2c_client *client = to_i2c_client(dev);
 	int rc = 0;
 
 	printk("[---- SBA ----] max77818_pmic_irq_int Enter:\n");
@@ -274,83 +274,91 @@ out:
 static void *max77818_pmic_get_platdata (struct max77818_dev *pmic)
 {
 #ifdef CONFIG_OF
-    struct device *dev = pmic->dev;
-    struct device_node *np = dev->of_node;
-    struct i2c_client *client = to_i2c_client(dev);
-    struct max77818_pmic_platform_data *pdata;
-    int rc;
+	struct device *dev = pmic->dev;
+	struct device_node *np = dev->of_node;
+	struct i2c_client *client = to_i2c_client(dev);
+	struct max77818_pmic_platform_data *pdata;
+	int rc;
 
-	printk("[---- SBA ----] max77818_pmic_get_platdata Enter (CONFIG_OF):\n");
+	printk("[---- SBA ----] %s: Enter (CONFIG_OF):\n", __func__);
 
-    pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
-    if (unlikely(!pdata)) {
-       	pr_err("<%s> out of memory (%uB requested)\n", client->name,
-            (unsigned int) sizeof(*pdata));
-        pdata = ERR_PTR(-ENOMEM);
-        goto out;
-    }
+	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
+	if (unlikely(!pdata)) {
+		pr_err("<%s> out of memory (%uB requested)\n", client->name,
+			(unsigned int) sizeof(*pdata));
+		pdata = ERR_PTR(-ENOMEM);
+		goto out;
+	}
 
-    pmic->irq_gpio = of_get_named_gpio(np, "max77818,int-gpio", 0);
+	printk("[---- SBA ----] %s: Trying to read int-gpio property (if present)\n", __func__);
+	pmic->irq_gpio = of_get_named_gpio(np, "max77818,int-gpio", 0);
 
-    if (pmic->irq_gpio < 0) {
-        pdata->irq = irq_of_parse_and_map(np, 0);
-    } else {
-        unsigned gpio = (unsigned)pmic->irq_gpio;
+	if (pmic->irq_gpio < 0) {
+		printk("[---- SBA ----] %s: int-gpio not given or not configured, trying to parse standard irqparent/interrupts pattern\n", __func__);
+		pdata->irq = irq_of_parse_and_map(np, 0);
 
-        rc = gpio_request(gpio, DRIVER_NAME"-irq");
-        if (unlikely(IS_ERR_VALUE(rc))) {
-            pr_err("<%s> failed to request gpio %u [%d]\n", client->name, gpio,
-                rc);
-            pmic->irq_gpio = -1;
-            pdata = ERR_PTR(rc);
-            goto out;
-        }
+		printk("[---- SBA ----] %s: read interrupt gpio %d\n", __func__, pdata->irq);
+	} else {
+		printk("[---- SBA ----] %s: Read gpio num %d\n", __func__, (unsigned)pmic->irq_gpio);
+		unsigned gpio = (unsigned)pmic->irq_gpio;
 
-        gpio_direction_input(gpio);
-        pr_info("<%s> INTGPIO %u assigned\n", client->name, gpio);
+		printk("[---- SBA ----] %s: Trying to request given gpio\n", __func__);
+		rc = gpio_request(gpio, DRIVER_NAME"-irq");
+		if (unlikely(IS_ERR_VALUE(rc))) {
+			pr_err("<%s> failed to request gpio %u [%d]\n", client->name, gpio, rc);
+			pmic->irq_gpio = -1;
+			pdata = ERR_PTR(rc);
+			goto out;
+		}
 
-        /* override pdata irq */
-        pdata->irq = gpio_to_irq(gpio);
-    }
+		printk("[---- SBA ----] %s: Configuring given gpio as input\n", __func__);
+		gpio_direction_input(gpio);
+		pr_info("<%s> INTGPIO %u assigned\n", client->name, gpio);
 
-    pr_info("<%s> property:INTGPIO %d\n", client->name, pmic->irq_gpio);
-    pr_info("<%s> property:IRQ     %d\n", client->name, pdata->irq);
+		/* override pdata irq */
+		pdata->irq = gpio_to_irq(gpio);
+	}
+
+	pr_info("<%s> property:INTGPIO %d\n", client->name, pmic->irq_gpio);
+	pr_info("<%s> property:IRQ     %d\n", client->name, pdata->irq);
 
 out:
-    return pdata;
+	return pdata;
 #else /* CONFIG_OF */
 	printk("[---- SBA ----] max77818_pmic_get_platdata Enter (CONFIG_OF NOT DEFINED):\n");
 
-    return dev_get_platdata(pmic->dev) ?
-        dev_get_platdata(pmic->dev) : ERR_PTR(-EINVAL);
+	return dev_get_platdata(pmic->dev) ?
+		dev_get_platdata(pmic->dev) : ERR_PTR(-EINVAL);
 #endif /* CONFIG_OF */
 }
 
 static struct mfd_cell max77818_devices[] = {
-    { .name = MAX77818_REGULATOR_NAME,		},
+	{ .name = MAX77818_REGULATOR_NAME,		},
 	{ .name = MAX77818_CHARGER_NAME,		},
 	{ .name = MAX77818_FUELGAUGE_NAME,		},
 };
 
 static int max77818_pmic_setup (struct max77818_dev *me)
 {
-    struct device *dev = me->dev;
-    struct i2c_client *client = to_i2c_client(dev);
-    struct max77818_pmic_platform_data *pdata;
-    int rc = 0;
-    u8 chip_id, chip_rev, val;
+	struct device *dev = me->dev;
+	struct i2c_client *client = to_i2c_client(dev);
+	struct max77818_pmic_platform_data *pdata;
+	int rc = 0;
+	u8 chip_id, chip_rev, val;
 
-	printk("[---- SBA ----] max77818_pmic_setup Enter:\n");
+	printk("[---- SBA ----] %s: Enter:\n", __func__);
 
-    me->pdata = max77818_pmic_get_platdata(me);
-    if (unlikely(IS_ERR(me->pdata))) {
-        rc = PTR_ERR(me->pdata);
-        me->pdata = NULL;
-        pr_err("<%s> platform data is missing [%d]\n", client->name, rc);
-        goto out;
-    }
+	printk("[---- SBA ----] %s: Getting platform data\n", __func__);
+	me->pdata = max77818_pmic_get_platdata(me);
+	if (unlikely(IS_ERR(me->pdata))) {
+		rc = PTR_ERR(me->pdata);
+		me->pdata = NULL;
+		pr_err("<%s> platform data is missing [%d]\n", client->name, rc);
+		goto out;
+	}
 
 	// IRQ init //
+	printk("[---- SBA ----] %s: Initiating IRQs\n", __func__);
 	pdata = me->pdata;
 	me->irq = pdata->irq;
 	rc = max77818_pmic_irq_int(me);
@@ -361,28 +369,28 @@ static int max77818_pmic_setup (struct max77818_dev *me)
 
 	enable_irq(me->irq);
 
-    rc = max77818_add_devices(me, max77818_devices,
-            ARRAY_SIZE(max77818_devices));
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        pr_err("<%s> failed to add sub-devices [%d]\n", client->name, rc);
-        goto err_add_devices;
-    }
+	rc = max77818_add_devices(me, max77818_devices,
+			ARRAY_SIZE(max77818_devices));
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		pr_err("<%s> failed to add sub-devices [%d]\n", client->name, rc);
+		goto err_add_devices;
+	}
 
-    /* set device able to wake up system */
-    device_init_wakeup(dev, true);
-    if (likely(me->irq > 0)) {
-        enable_irq_wake((unsigned int)me->irq);
-    }
+	/* set device able to wake up system */
+	device_init_wakeup(dev, true);
+	if (likely(me->irq > 0)) {
+		enable_irq_wake((unsigned int)me->irq);
+	}
 
-    pr_info("<%s> driver core "DRIVER_VERSION" installed\n", client->name);
+	pr_info("<%s> driver core "DRIVER_VERSION" installed\n", client->name);
 
-    chip_id = 0;
-    chip_rev = 0;
+	chip_id = 0;
+	chip_rev = 0;
 
-    max77818_read(me->regmap_pmic, REG_PMICID,  &chip_id );
-    max77818_read(me->regmap_pmic, REG_PMICREV, &chip_rev);
+	max77818_read(me->regmap_pmic, REG_PMICID,  &chip_id );
+	max77818_read(me->regmap_pmic, REG_PMICREV, &chip_rev);
 
-    pr_info("<%s> CHIP ID %Xh REV %Xh\n", client->name, chip_id, chip_rev);
+	pr_info("<%s> CHIP ID %Xh REV %Xh\n", client->name, chip_id, chip_rev);
 
 	/* clear IRQ */
 	max77818_read(me->regmap_pmic, REG_INTSRC, &val);
@@ -406,23 +414,23 @@ out:
 
 static __always_inline void max77818_destroy (struct max77818_dev *me)
 {
-    struct device *dev = me->dev;
+	struct device *dev = me->dev;
 
 	printk("[---- SBA ----] max77818_destroy Enter:\n");
 
 	mfd_remove_devices(me->dev);
 
-    if (likely(me->irq > 0)) {
-        regmap_del_irq_chip(me->irq, me->irqc_intsrc);
-    }
+	if (likely(me->irq > 0)) {
+		regmap_del_irq_chip(me->irq, me->irqc_intsrc);
+	}
 
-    if (likely(me->irq_gpio >= 0)) {
-        gpio_free((unsigned)me->irq_gpio);
-    }
+	if (likely(me->irq_gpio >= 0)) {
+		gpio_free((unsigned)me->irq_gpio);
+	}
 
-    if (likely(me->regmap_pmic)) {
-        regmap_exit(me->regmap_pmic);
-    }
+	if (likely(me->regmap_pmic)) {
+		regmap_exit(me->regmap_pmic);
+	}
 
 	if (likely(me->regmap_chg)) {
 		regmap_exit(me->regmap_chg);
@@ -433,131 +441,144 @@ static __always_inline void max77818_destroy (struct max77818_dev *me)
 	}
 
 #ifdef CONFIG_OF
-    if (likely(me->pdata)) {
-        devm_kfree(dev, me->pdata);
-    }
+	if (likely(me->pdata)) {
+		devm_kfree(dev, me->pdata);
+	}
 #endif /* CONFIG_OF */
 
-    mutex_destroy(&me->lock);
-    devm_kfree(dev, me);
+	mutex_destroy(&me->lock);
+	devm_kfree(dev, me);
 }
 
 static int max77818_i2c_probe (struct i2c_client *client,
-    const struct i2c_device_id *id)
+	const struct i2c_device_id *id)
 {
-    struct max77818_dev *me;
-    int rc;
+	struct max77818_dev *me;
+	int rc;
 
-    printk("[---- SBA ----] max77818_i2c_probe Enter:\n");
+	printk("[---- SBA ----] %s: Enter:\n", __func__);
 
-    pr_info("<%s> attached\n", client->name);
+	pr_info("<%s> attached\n", client->name);
 
-    me = devm_kzalloc(&client->dev, sizeof(*me), GFP_KERNEL);
-    if (unlikely(!me)) {
-        pr_err("<%s> out of memory (%uB requested)\n", client->name,
-            (unsigned int) sizeof(*me));
-        return -ENOMEM;
-    }
+	me = devm_kzalloc(&client->dev, sizeof(*me), GFP_KERNEL);
+	if (unlikely(!me)) {
+		pr_err("<%s> out of memory (%uB requested)\n", client->name,
+			(unsigned int) sizeof(*me));
+		return -ENOMEM;
+	}
 
-    i2c_set_clientdata(client, me);
+	i2c_set_clientdata(client, me);
 
-    mutex_init(&me->lock);
-    me->dev      = &client->dev;
-    me->irq      = -1;
-    me->irq_gpio = -1;
+	mutex_init(&me->lock);
+	me->dev      = &client->dev;
+	me->irq      = -1;
+	me->irq_gpio = -1;
+
+	printk("[---- SBA ----] %s: initiating i2c regmap:\n", __func__);
 
 	me->pmic = client;
 	me->regmap_pmic = devm_regmap_init_i2c(client, &max77818_regmap_config);
-    if (unlikely(IS_ERR(me->regmap_pmic))) {
-        rc = PTR_ERR(me->regmap_pmic);
-        me->regmap_pmic = NULL;
-        pr_err("<%s> failed to initialize i2c regmap pmic [%d]\n", client->name,
-            rc);
-        goto abort;
-    }
+	if (unlikely(IS_ERR(me->regmap_pmic))) {
+		rc = PTR_ERR(me->regmap_pmic);
+		me->regmap_pmic = NULL;
+		pr_err("<%s> failed to initialize i2c regmap pmic [%d]\n", client->name,
+			rc);
+		goto abort;
+	}
+
+	printk("[---- SBA ----] %s: Creating dummy temporary 'placeholder' for the charger in dev structure:\n", __func__);
 
 	me->chg = i2c_new_dummy(client->adapter, I2C_ADDR_CHARGER);
 	if (!me->chg) {
 		rc = -ENOMEM;
 		goto abort;
-	}	
+	}
 	i2c_set_clientdata(me->chg, me);
+
+	printk("[---- SBA ----] %s: Initiating i2c regmap for dummy temporary 'placeholder' for the charger in dev structure:\n", __func__);
+
 	me->regmap_chg = devm_regmap_init_i2c(me->chg, &max77818_regmap_config);
-    if (unlikely(IS_ERR(me->regmap_chg))) {
-        rc = PTR_ERR(me->regmap_chg);
-        me->regmap_chg = NULL;
-        pr_err("<%s> failed to initialize i2c regmap chg [%d]\n", client->name,
-            rc);
-        goto abort;
-    }
+	if (unlikely(IS_ERR(me->regmap_chg))) {
+		rc = PTR_ERR(me->regmap_chg);
+		me->regmap_chg = NULL;
+		pr_err("<%s> failed to initialize i2c regmap chg [%d]\n", client->name,
+			rc);
+		goto abort;
+	}
+
+	printk("[---- SBA ----] %s: Creating dummy temporary 'placeholder' for the fuelgauge in dev structure:\n", __func__);
 
 	me->fuel= i2c_new_dummy(client->adapter, I2C_ADDR_FUEL_GAUGE);
 	if (!me->fuel) {
 		rc = -ENOMEM;
 		goto abort;
-	}	
+	}
 	i2c_set_clientdata(me->fuel, me);
-	me->regmap_fuel= devm_regmap_init_i2c(me->fuel, &max77818_regmap_config_fuelgauge);
-    if (unlikely(IS_ERR(me->regmap_fuel))) {
-        rc = PTR_ERR(me->regmap_fuel);
-        me->regmap_fuel = NULL;
-        pr_err("<%s> failed to initialize i2c regmap fuelgauge [%d]\n", client->name,
-            rc);
-        goto abort;
-    }
 
+	printk("[---- SBA ----] %s: Initiating i2c regmap for dummy temporary 'placeholder' for the fulegauge in dev structure:\n", __func__);
+
+	me->regmap_fuel= devm_regmap_init_i2c(me->fuel, &max77818_regmap_config_fuelgauge);
+	if (unlikely(IS_ERR(me->regmap_fuel))) {
+		rc = PTR_ERR(me->regmap_fuel);
+		me->regmap_fuel = NULL;
+		pr_err("<%s> failed to initialize i2c regmap fuelgauge [%d]\n", client->name,
+			rc);
+		goto abort;
+	}
+
+	printk("[---- SBA ----] %s: Setting up IRQ regmaps and adding sub-devices\n", __func__);
 	rc = max77818_pmic_setup(me);
 	if (rc != 0) {
 		pr_err("<%s> failed to set up interrupt and add sub-device [%d]\n", client->name,
-            rc);
-        goto abort;
-    }
+			rc);
+		goto abort;
+	}
 
-    return 0;
+	return 0;
 
 abort:
-    i2c_set_clientdata(client, NULL);
-    max77818_destroy(me);
-    return rc;
+	i2c_set_clientdata(client, NULL);
+	max77818_destroy(me);
+	return rc;
 }
 
 static int max77818_i2c_remove (struct i2c_client *client)
 {
-    struct max77818_dev *me = i2c_get_clientdata(client);
+	struct max77818_dev *me = i2c_get_clientdata(client);
 
-    printk("[---- SBA ----] max77818_i2c_remove Enter:\n");
+	printk("[---- SBA ----] max77818_i2c_remove Enter:\n");
 
-    i2c_set_clientdata(client, NULL);
-    max77818_destroy(me);
+	i2c_set_clientdata(client, NULL);
+	max77818_destroy(me);
 
-    return 0;
+	return 0;
 }
 
 #ifdef CONFIG_PM_SLEEP
 static int max77818_suspend (struct device *dev)
 {
-    struct max77818_dev *me = dev_get_drvdata(dev);
-    struct i2c_client *client = to_i2c_client(dev);
+	struct max77818_dev *me = dev_get_drvdata(dev);
+	struct i2c_client *client = to_i2c_client(dev);
 
-    __lock(me);
+	__lock(me);
 
-    pr_info("<%s> suspending\n", client->name);
+	pr_info("<%s> suspending\n", client->name);
 
-    __unlock(me);
-    return 0;
+	__unlock(me);
+	return 0;
 }
 
 static int max77818_resume (struct device *dev)
 {
-    struct max77818_dev *me = dev_get_drvdata(dev);
-    struct i2c_client *client = to_i2c_client(dev);
+	struct max77818_dev *me = dev_get_drvdata(dev);
+	struct i2c_client *client = to_i2c_client(dev);
 
-    __lock(me);
+	__lock(me);
 
-    pr_info("<%s> resuming\n", client->name);
+	pr_info("<%s> resuming\n", client->name);
 
-    __unlock(me);
-    return 0;
+	__unlock(me);
+	return 0;
 }
 #endif /* CONFIG_PM_SLEEP */
 
@@ -565,28 +586,28 @@ static SIMPLE_DEV_PM_OPS(max77818_pm, max77818_suspend, max77818_resume);
 
 #ifdef CONFIG_OF
 static struct of_device_id max77818_of_id[] = {
-    { .compatible = "maxim,"MAX77818_NAME      },
-    { },
+	{ .compatible = "maxim,"MAX77818_NAME      },
+	{ },
 };
 MODULE_DEVICE_TABLE(of, max77818_of_id);
 #endif /* CONFIG_OF */
 
 static const struct i2c_device_id max77818_i2c_id[] = {
-    { MAX77818_NAME, 0 },
-    { },
+	{ MAX77818_NAME, 0 },
+	{ },
 };
 MODULE_DEVICE_TABLE(i2c, max77818_i2c_id);
 
 static struct i2c_driver max77818_i2c_driver = {
-    .driver.name            = DRIVER_NAME,
-    .driver.owner           = THIS_MODULE,
-    .driver.pm              = &max77818_pm,
+	.driver.name            = DRIVER_NAME,
+	.driver.owner           = THIS_MODULE,
+	.driver.pm              = &max77818_pm,
 #ifdef CONFIG_OF
-    .driver.of_match_table  = max77818_of_id,
+	.driver.of_match_table  = max77818_of_id,
 #endif /* CONFIG_OF */
-    .id_table               = max77818_i2c_id,
-    .probe                  = max77818_i2c_probe,
-    .remove                 = max77818_i2c_remove,
+	.id_table               = max77818_i2c_id,
+	.probe                  = max77818_i2c_probe,
+	.remove                 = max77818_i2c_remove,
 };
 
 static __init int max77818_init (void)
@@ -595,7 +616,7 @@ static __init int max77818_init (void)
 
 	printk("[---- SBA ----] max77818_init Enter:\n");
 
-    rc = i2c_add_driver(&max77818_i2c_driver);
+	rc = i2c_add_driver(&max77818_i2c_driver);
 	if (rc != 0)
 		pr_err("Failed to register I2C driver: %d\n", rc);
 
@@ -608,7 +629,7 @@ static __exit void max77818_exit (void)
 
 	printk("[---- SBA ----] max77818_exit Enter:\n");
 
-    i2c_del_driver(&max77818_i2c_driver);
+	i2c_del_driver(&max77818_i2c_driver);
 }
 module_exit(max77818_exit);
 
