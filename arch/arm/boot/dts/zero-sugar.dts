@@ -498,11 +498,11 @@
 	cap-power-off-card;
 	status = "okay";
 
-	brcmf: bcrmf@0 {
-		reg = <0>;
+	brcmf: bcrmf@1 {
+		reg = <1>;
 		compatible = "brcm,bcm4329-fmac";
 		interrupt-parent = <&gpio1>;
-		interrupts = <8 IRQ_TYPE_NONE>;
+		interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "host-wake";
 		/*resets = <&wifi_reset>;*/
 	};
