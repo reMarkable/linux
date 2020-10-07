@@ -88,6 +88,11 @@ enum {
 	POWER_SUPPLY_SCOPE_DEVICE,
 };
 
+enum {
+	POWER_SUPPLY_MODE_CHARGER = 0,
+	POWER_SUPPLY_MODE_OTG_SUPPLY
+};
+
 enum power_supply_property {
 	/* Properties of type `int' */
 	POWER_SUPPLY_PROP_STATUS = 0,
@@ -162,6 +167,9 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_MODEL_NAME,
 	POWER_SUPPLY_PROP_MANUFACTURER,
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
+
+	/* MAX77818 specific mode of operation (OTG supply/charger) */
+	POWER_SUPPLY_PROP_CHARGER_MODE,
 };
 
 enum power_supply_type {

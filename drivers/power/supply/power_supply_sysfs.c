@@ -77,6 +77,10 @@ static const char * const power_supply_scope_text[] = {
 	"Unknown", "System", "Device"
 };
 
+static const char * const power_supply_charger_mode_text[] = {
+	"Charger", "OTG Supply"
+};
+
 static ssize_t power_supply_show_usb_type(struct device *dev,
 					  enum power_supply_usb_type *usb_types,
 					  ssize_t num_usb_types,
@@ -171,6 +175,10 @@ static ssize_t power_supply_show_property(struct device *dev,
 		ret = sprintf(buf, "%s\n",
 			      power_supply_scope_text[value.intval]);
 		break;
+	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		ret = sprintf(buf, "%s\n",
+			      power_supply_charger_mode_text[value.intval]);
+		break;
 	case POWER_SUPPLY_PROP_MODEL_NAME ... POWER_SUPPLY_PROP_SERIAL_NUMBER:
 		ret = sprintf(buf, "%s\n", value.strval);
 		break;
@@ -208,6 +216,10 @@ static ssize_t power_supply_store_property(struct device *dev,
 	case POWER_SUPPLY_PROP_SCOPE:
 		ret = sysfs_match_string(power_supply_scope_text, buf);
 		break;
+	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		ret = sysfs_match_string(power_supply_charger_mode_text, buf);
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -310,6 +322,9 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
 	POWER_SUPPLY_ATTR(serial_number),
+
+	/* MAX77818-charger specific property to switch between OTG Supply (host mode) and charging (device mode) */
+	POWER_SUPPLY_ATTR(charger_mode),
 };
 
 static struct attribute *
