@@ -607,6 +607,7 @@ static int ci_get_platdata(struct device *dev,
 	struct extcon_dev *ext_vbus, *ext_id;
 	struct ci_hdrc_cable *cable;
 	int ret;
+	int extcon_id_index, extcon_vbus_index;
 
 	if (!platdata->phy_mode)
 		platdata->phy_mode = of_usb_get_phy_mode(dev->of_node);
@@ -706,20 +707,33 @@ static int ci_get_platdata(struct device *dev,
 		printk("[---- SBA ----] extcon reference read from USB OTG config\n");
 
 		/* Each one of them is not mandatory */
-		/* SBA: Had to reorder VBUS/VID in order to read only VID and not VBUS */
-		ext_id = extcon_get_edev_by_phandle(dev, 0);
-		printk("[---- SBA ----] extcon id handle given: %s\n",
-			(PTR_ERR(ext_id) != -ENODEV) ? "YES" : "NO");
 
-		if (IS_ERR(ext_id) && PTR_ERR(ext_id) != -ENODEV)
-			return PTR_ERR(ext_id);
+		/* SBA: Had to reorder VBUS/VID in order to read only VID and not VBUS 
+		   But - this is an option in order to maintain compatibility for other systems */
+		if (of_property_read_bool(dev->of_node, "flip-extcon-order")) {
+			dev_dbg(dev, "Flipping extcon id/vbus order (id vbus)");
+			extcon_id_index = 0;
+			extcon_vbus_index = 1;
+		}
+		else {
+			dev_dbg(dev, "Keeping original id/vbus order (vbus id)");
+			extcon_id_index = 1;
+			extcon_vbus_index = 0;
+		}
 
-		ext_vbus = extcon_get_edev_by_phandle(dev, 1);
+		ext_vbus = extcon_get_edev_by_phandle(dev, extcon_vbus_index);
 		printk("[---- SBA ----] extcon vbus handle given: %s\n",
 			(PTR_ERR(ext_vbus) != -ENODEV) ? "YES" : "NO");
 
 		if (IS_ERR(ext_vbus) && PTR_ERR(ext_vbus) != -ENODEV)
 			return PTR_ERR(ext_vbus);
+
+		ext_id = extcon_get_edev_by_phandle(dev, extcon_id_index);
+		printk("[---- SBA ----] extcon id handle given: %s\n",
+			(PTR_ERR(ext_id) != -ENODEV) ? "YES" : "NO");
+
+		if (IS_ERR(ext_id) && PTR_ERR(ext_id) != -ENODEV)
+			return PTR_ERR(ext_id);
 	}
 
 	cable = &platdata->vbus_extcon;
