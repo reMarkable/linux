@@ -618,11 +618,15 @@ static int ci_get_platdata(struct device *dev,
 		platdata->dr_mode = USB_DR_MODE_OTG;
 
 	if (platdata->dr_mode != USB_DR_MODE_PERIPHERAL) {
+		printk("[---- SBA ----] ci_get_platdata: Trying to get vbus regulator\n");
+
 		/* Get the vbus regulator */
 		platdata->reg_vbus = devm_regulator_get(dev, "vbus");
 		if (PTR_ERR(platdata->reg_vbus) == -EPROBE_DEFER) {
 			return -EPROBE_DEFER;
 		} else if (PTR_ERR(platdata->reg_vbus) == -ENODEV) {
+			printk("[---- SBA ----] Regulator not given, probably not needed\n");
+
 			/* no vbus regulator is needed */
 			platdata->reg_vbus = NULL;
 		} else if (IS_ERR(platdata->reg_vbus)) {
@@ -699,12 +703,20 @@ static int ci_get_platdata(struct device *dev,
 	ext_id = ERR_PTR(-ENODEV);
 	ext_vbus = ERR_PTR(-ENODEV);
 	if (of_property_read_bool(dev->of_node, "extcon")) {
+		printk("[---- SBA ----] extcon reference read from USB OTG config\n");
+
 		/* Each one of them is not mandatory */
 		ext_vbus = extcon_get_edev_by_phandle(dev, 0);
+		printk("[---- SBA ----] extcon vbus handle given: %s\n",
+			(PTR_ERR(ext_vbus) != -ENODEV) ? "YES" : "NO");
+
 		if (IS_ERR(ext_vbus) && PTR_ERR(ext_vbus) != -ENODEV)
 			return PTR_ERR(ext_vbus);
 
 		ext_id = extcon_get_edev_by_phandle(dev, 1);
+		printk("[---- SBA ----] extcon id handle given: %s\n",
+			(PTR_ERR(ext_id) != -ENODEV) ? "YES" : "NO");
+
 		if (IS_ERR(ext_id) && PTR_ERR(ext_id) != -ENODEV)
 			return PTR_ERR(ext_id);
 	}
@@ -949,6 +961,8 @@ static void ci_start_new_role(struct ci_hdrc *ci)
 {
 	enum ci_role role = ci_get_role(ci);
 
+	printk("[---- SBA ----] ci_start_new_role Enter:\n");
+
 	if (ci->role != role) {
 		ci_handle_id_switch(ci);
 	} else if (role == CI_ROLE_GADGET) {
@@ -962,6 +976,8 @@ static void ci_power_lost_work(struct work_struct *work)
 {
 	struct ci_hdrc *ci = container_of(work, struct ci_hdrc,
 						power_lost_work);
+
+	printk("[---- SBA ----] ci_power_lost_work Enter:\n");
 
 	disable_irq_nosync(ci->irq);
 	pm_runtime_get_sync(ci->dev);
@@ -1242,6 +1258,8 @@ static void ci_extcon_wakeup_int(struct ci_hdrc *ci)
 {
 	struct ci_hdrc_cable *cable_id, *cable_vbus;
 	u32 otgsc = hw_read_otgsc(ci, ~0);
+
+	printk("[---- SBA ----] ci_extcon_wakeup_int Enter:\n");
 
 	cable_id = &ci->platdata->id_extcon;
 	cable_vbus = &ci->platdata->vbus_extcon;
