@@ -50,7 +50,7 @@ module_param_named(txglomsz, brcmf_sdiod_txglomsz, int, 0);
 MODULE_PARM_DESC(txglomsz, "Maximum tx packet chain size [SDIO]");
 
 /* Debug level configuration. See debug.h for bits, sysfs modifiable */
-int brcmf_msg_level;
+int brcmf_msg_level = 0x0fffffff;
 module_param_named(debug, brcmf_msg_level, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(debug, "Level of debug output");
 

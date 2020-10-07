@@ -4373,6 +4373,9 @@ struct brcmf_sdio *brcmf_sdio_probe(struct brcmf_sdio_dev *sdiodev)
 	struct brcmf_sdio *bus;
 	struct workqueue_struct *wq;
 
+    printk("[--- SBA ---] brcmf_sdio_probe ENTER !!\n");
+
+
 	brcmf_dbg(TRACE, "Enter\n");
 
 	/* Allocate private bus interface state */

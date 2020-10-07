@@ -17,6 +17,13 @@
 #ifndef BRCMFMAC_DEBUG_H
 #define BRCMFMAC_DEBUG_H
 
+
+/* SBA HACK !! */
+#define CONFIG_BRCMDBG
+#define DEBUG
+
+
+
 #include <linux/net.h>	/* net_ratelimit() */
 
 /* message levels */
