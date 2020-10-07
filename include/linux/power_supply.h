@@ -160,7 +160,7 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
 
 	/* MAX77818 specific mode of operation (OTG supply/charger) */
-	POWER_SUPPLY_PROP_CHARGER_MODE
+	POWER_SUPPLY_PROP_CHARGER_MODE,
 };
 
 enum power_supply_type {
