@@ -607,7 +607,6 @@ static int ci_get_platdata(struct device *dev,
 	struct extcon_dev *ext_vbus, *ext_id;
 	struct ci_hdrc_cable *cable;
 	int ret;
-	int extcon_id_index, extcon_vbus_index;
 
 	if (!platdata->phy_mode)
 		platdata->phy_mode = of_usb_get_phy_mode(dev->of_node);
@@ -619,15 +618,11 @@ static int ci_get_platdata(struct device *dev,
 		platdata->dr_mode = USB_DR_MODE_OTG;
 
 	if (platdata->dr_mode != USB_DR_MODE_PERIPHERAL) {
-		dev_dbg(dev, "%s: trying to get vbus regulator\n", __func__);
-
 		/* Get the vbus regulator */
 		platdata->reg_vbus = devm_regulator_get(dev, "vbus");
 		if (PTR_ERR(platdata->reg_vbus) == -EPROBE_DEFER) {
 			return -EPROBE_DEFER;
 		} else if (PTR_ERR(platdata->reg_vbus) == -ENODEV) {
-			dev_dbg(dev, "%s: regulator not given, probably not needed\n", __func__);
-
 			/* no vbus regulator is needed */
 			platdata->reg_vbus = NULL;
 		} else if (IS_ERR(platdata->reg_vbus)) {
@@ -704,36 +699,12 @@ static int ci_get_platdata(struct device *dev,
 	ext_id = ERR_PTR(-ENODEV);
 	ext_vbus = ERR_PTR(-ENODEV);
 	if (of_property_read_bool(dev->of_node, "extcon")) {
-		dev_dbg(dev, "%s: extcon reference read from USB OTG config\n", __func__);
-
 		/* Each one of them is not mandatory */
-
-		/* SBA: Had to reorder VBUS/VID in order to read only VID and not VBUS
-		   But - this is an option in order to maintain compatibility for other systems */
-		if (of_property_read_bool(dev->of_node, "flip-extcon-order")) {
-			dev_dbg(dev, "%s: flipping extcon id/vbus order (id vbus)\n", __func__);
-			extcon_id_index = 0;
-			extcon_vbus_index = 1;
-		}
-		else {
-			dev_dbg(dev, "%s: keeping original id/vbus order (vbus id)\n", __func__);
-			extcon_id_index = 1;
-			extcon_vbus_index = 0;
-		}
-
-		ext_vbus = extcon_get_edev_by_phandle(dev, extcon_vbus_index);
-		dev_dbg(dev, "%s: extcon vbus handle given: %s\n",
-			(PTR_ERR(ext_vbus) != -ENODEV) ? "YES" : "NO",
-			__func__);
-
+		ext_vbus = extcon_get_edev_by_phandle(dev, 0);
 		if (IS_ERR(ext_vbus) && PTR_ERR(ext_vbus) != -ENODEV)
 			return PTR_ERR(ext_vbus);
 
-		ext_id = extcon_get_edev_by_phandle(dev, extcon_id_index);
-		dev_dbg(dev, "%s: extcon id handle given: %s\n",
-			(PTR_ERR(ext_id) != -ENODEV) ? "YES" : "NO",
-			__func__);
-
+		ext_id = extcon_get_edev_by_phandle(dev, 1);
 		if (IS_ERR(ext_id) && PTR_ERR(ext_id) != -ENODEV)
 			return PTR_ERR(ext_id);
 	}
@@ -978,8 +949,6 @@ static void ci_start_new_role(struct ci_hdrc *ci)
 {
 	enum ci_role role = ci_get_role(ci);
 
-	dev_dbg(ci->dev, "%s: ci_start_new_role Enter:\n", __func__);
-
 	if (ci->role != role) {
 		ci_handle_id_switch(ci);
 	} else if (role == CI_ROLE_GADGET) {
@@ -993,8 +962,6 @@ static void ci_power_lost_work(struct work_struct *work)
 {
 	struct ci_hdrc *ci = container_of(work, struct ci_hdrc,
 						power_lost_work);
-
-	dev_dbg(ci->dev, "%s: ci_power_lost_work Enter:\n", __func__);
 
 	disable_irq_nosync(ci->irq);
 	pm_runtime_get_sync(ci->dev);
@@ -1275,8 +1242,6 @@ static void ci_extcon_wakeup_int(struct ci_hdrc *ci)
 {
 	struct ci_hdrc_cable *cable_id, *cable_vbus;
 	u32 otgsc = hw_read_otgsc(ci, ~0);
-
-	dev_dbg(ci->dev, "%s: enter:\n", __func__);
 
 	cable_id = &ci->platdata->id_extcon;
 	cable_vbus = &ci->platdata->vbus_extcon;
