@@ -350,7 +350,7 @@ const static struct regulator_desc max77818_safeout_desc[] =
 };
 
 #ifdef CONFIG_OF
-static struct max77818_regulator_platform_data 
+static struct max77818_regulator_platform_data
 	*max77818_regulator_parse_dt(struct device *dev)
 {
 	struct device_node *np = of_find_node_by_name(NULL, "regulator");
@@ -375,6 +375,7 @@ static struct max77818_regulator_platform_data
 		pdata->num_regulators = of_get_child_count(np);
 	}
 
+	printk("[---- SBA ----] %s: Allocating array of %d rdata structures\n", __func__, pdata->num_regulators);
 	rdata = devm_kzalloc(dev, sizeof(*rdata) *
 				pdata->num_regulators, GFP_KERNEL);
 
@@ -412,12 +413,12 @@ out:
 
 static int max77818_regulator_probe(struct platform_device *pdev)
 {
-	struct max77818_dev *iodev = dev_get_drvdata(pdev->dev.parent);	
+	struct max77818_dev *iodev = dev_get_drvdata(pdev->dev.parent);
 	struct max77818_regulator_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	struct regulator_dev **rdev;
 	struct max77818_data *max77818;
 	struct regmap *regmap;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3,6,0)	
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,6,0)
 	struct regulator_config config;
 #endif
 	int i, ret, size;

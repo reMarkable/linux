@@ -1,14 +1,14 @@
 /*
- * Maxim MAX77818 Charger Driver
- *
- * Copyright (C) 2014 Maxim Integrated Product
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This driver is based on max77843-charger.c
- */
+* Maxim MAX77818 Charger Driver
+*
+* Copyright (C) 2014 Maxim Integrated Product
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License version 2 as
+* published by the Free Software Foundation.
+*
+* This driver is based on max77843-charger.c
+*/
 
 #define DEBUG
 
@@ -137,9 +137,9 @@
 #define __unlock(_me)  mutex_unlock(&(_me)->lock)
 
 /* Local flag indicating if probe has finished
-   Checked in property_is_writable(..) callback which is expected to be called during power supply registration */
-static volatile bool probeDone = false;
-struct mutex probeDoneLock;
+Checked in property_is_writable(..) callback which is expected to be called during power supply registration */
+static volatile bool probe_done = false;
+struct mutex probe_done_lock;
 
 /* detail register bit description */
 enum {
@@ -189,24 +189,24 @@ enum {
 #define IRQ_WORK_DELAY              0
 
 struct max77818_charger_data {
-    struct device           *dev;
-    struct max77818_dev     *max77818;
+	struct device           *dev;
+	struct max77818_dev     *max77818;
 	struct regmap 			*regmap;
 
-    struct power_supply		*psy_chg;
+	struct power_supply		*psy_chg;
 
 	int						byp_irq;
 	int						chgin_irq;
 	int						wcin_irq;
 	int						aicl_irq;
 
-    int                    	irq;
+	int                    	irq;
 	int						irq_mask;
 	int						details_0;
 	int						details_1;
 	int						details_2;
-    spinlock_t              irq_lock;
-    struct delayed_work		irq_work;
+	spinlock_t              irq_lock;
+	struct delayed_work		irq_work;
 
 	/* mutex */
 	struct mutex 			lock;
@@ -217,6 +217,10 @@ struct max77818_charger_data {
 	int 					charge_type;
 
 	struct max77818_charger_platform_data *pdata;
+};
+
+static char *supply_interface[] = {
+	"main_battery"
 };
 
 static inline struct power_supply *get_power_supply_by_name(char *name)
@@ -260,8 +264,8 @@ static enum power_supply_property max77818_charger_props[] = {
 #define GET_TO_ITH(X)	(X < 4 ? (X*25+100) : (X*50))	/* mA */
 
 #define SET_TO_ITH(X)	(X < 100 ? 0x00 : 	\
-						 X < 200 ? (X-100)/25 :	\
-						 X < 350 ? (X/50) : 0x07)	/* mA */
+						X < 200 ? (X-100)/25 :	\
+						X < 350 ? (X/50) : 0x07)	/* mA */
 
 static void max77818_charger_initialize(struct max77818_charger_data *charger);
 
@@ -284,13 +288,15 @@ out:
 
 static bool max77818_charger_present_input (struct max77818_charger_data *charger)
 {
-    u8 chg_int_ok = 0;
-    int rc;
+	u8 chg_int_ok = 0;
+	int rc;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	rc = max77818_read(charger->regmap, REG_CHG_INT_OK, &chg_int_ok);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        return false;
-    }
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		return false;
+	}
 
 	if ((chg_int_ok & BIT_CHGIN_OK) == BIT_CHGIN_OK) {
 		return true;
@@ -308,13 +314,15 @@ static bool max77818_charger_present_input (struct max77818_charger_data *charge
 
 static bool max77818_wcharger_present_input (struct max77818_charger_data *charger)
 {
-    u8 chg_int_ok = 0;
-    int rc;
+	u8 chg_int_ok = 0;
+	int rc;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	rc = max77818_read(charger->regmap, REG_CHG_INT_OK, &chg_int_ok);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        return false;
-    }
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		return false;
+	}
 
 	if ((chg_int_ok & BIT_WCIN_OK) == BIT_WCIN_OK) {
 		return true;
@@ -333,51 +341,53 @@ static bool max77818_wcharger_present_input (struct max77818_charger_data *charg
 static int max77818_charger_get_input_current(struct max77818_charger_data *charger)
 {
 	u8 reg_data = 0;
-	int steps[3] = { 0, 33, 67 }; 	/* mA */
+	int steps[3] = { 0, 33, 67 };   /* mA */
 	int get_current, quotient, remainder;
 
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
-	if (max77818_charger_present_input(charger) == true) {
-		max77818_read(charger->regmap, REG_CHG_CNFG_09, &reg_data);
-
-		quotient = reg_data / 3;
-		remainder = reg_data % 3;
-
-		if ((reg_data & BIT_CHGIN_ILIM) < 3)
-			get_current = 100; 	/* 100mA */
-		else if ((reg_data & BIT_CHGIN_ILIM) > 0x78)
-			get_current = 4000;	/* 4000mA */
-		else
-			get_current = quotient*100 + steps[remainder];
-	} else if (max77818_wcharger_present_input(charger)) {
+	if (!max77818_charger_present_input(charger) && max77818_wcharger_present_input(charger)) {
+		/* When the wireless charging input is the only one currently active,
+		the configured max input current for the wireless charging input is returned */
 		max77818_read(charger->regmap, REG_CHG_CNFG_10, &reg_data);
 
 		if (reg_data <= 3)
 			get_current = 60;
 		else
 			get_current = 60 + (reg_data - 3) * 20;
-	} else {
-		/* default TA input current */
+
+		return get_current;
+	}
+	else {
+		/* Just return the max wired charging input current in all cases where the wireless charging
+		input is not the only current active charging input */
+		max77818_read(charger->regmap, REG_CHG_CNFG_09, &reg_data);
+
+		printk("[---- SBA ----] %s: Enter\n", __func__);
+
 		max77818_read(charger->regmap, REG_CHG_CNFG_09, &reg_data);
 
 		quotient = reg_data / 3;
 		remainder = reg_data % 3;
 
 		if ((reg_data & BIT_CHGIN_ILIM) < 3)
-			get_current = 100; 	/* 100mA */
+			get_current = 100;  /* 100mA */
 		else if ((reg_data & BIT_CHGIN_ILIM) > 0x78)
-			get_current = 4000;	/* 4000mA */
+			get_current = 4000; /* 4000mA */
 		else
 			get_current = quotient*100 + steps[remainder];
+
+		return get_current;
 	}
-	return get_current;
 }
 
-static int max77818_charger_set_input_current(struct max77818_charger_data *charger,
-				       int input_current)
+static int max77818_charger_set_input_current_chgin(struct max77818_charger_data *charger,
+					int input_current)
 {
 	int quotient, remainder;
 	u8 reg_data = 0;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	/* unit mA */
 	if (!input_current) {
@@ -396,7 +406,32 @@ static int max77818_charger_set_input_current(struct max77818_charger_data *char
 	pr_info("%s: reg_data(0x%02x), charging current(%d)\n",
 		__func__, reg_data, input_current);
 
-	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_09, 
+	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_09,
+								BIT_CHGIN_ILIM, reg_data);
+}
+
+static int max77818_charger_set_input_current_wcin(struct max77818_charger_data *charger,
+					int input_current)
+{
+	u8 reg_data = 0;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
+
+	/* unit mA */
+	if (!input_current) {
+		reg_data = 0;
+	} else {
+		if (input_current < 60)
+			input_current = 60;
+		else if (input_current > 1260)
+			input_current = 1260;
+
+		reg_data = (int)DIV_ROUND_UP(input_current - 60, 20) + 3;
+	}
+	pr_info("%s: reg_data(0x%02x), charging current(%d)\n",
+		__func__, reg_data, input_current);
+
+	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_09,
 								BIT_CHGIN_ILIM, reg_data);
 }
 
@@ -404,6 +439,8 @@ static int max77818_charger_get_charge_current(struct max77818_charger_data *cha
 {
 	u8 reg_data = 0;
 	int get_current;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	max77818_read(charger->regmap, REG_CHG_CNFG_02, &reg_data);
 
@@ -424,14 +461,16 @@ static int max77818_charger_set_charge_current(struct max77818_charger_data *cha
 	u8 reg_data = 0;
 	int rc;
 
+	printk("[---- SBA ----] %s: Enter\n", __func__);
+
 	/* unit mA */
 	if (!fast_charging_current) {
-		rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_02, 
+		rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_02,
 							BIT_CHG_CC, 0);
 
 	} else {
 		reg_data = (fast_charging_current / curr_step);
-		rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_02, 
+		rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_02,
 							BIT_CHG_CC, reg_data);
 	}
 	pr_info("%s: reg_data(0x%02x), charging current(%d)\n",
@@ -447,6 +486,8 @@ static int max77818_charger_set_topoff_current(struct max77818_charger_data *cha
 {
 	u8 reg_data;
 
+	printk("[---- SBA ----] %s: Enter\n", __func__);
+
 	/* termination_current (mA) */
 	reg_data = SET_TO_ITH(termination_current);
 
@@ -456,7 +497,7 @@ static int max77818_charger_set_topoff_current(struct max77818_charger_data *cha
 	pr_info("%s: reg_data(0x%02x), topoff(%d), time(%d)\n",
 		__func__, reg_data, termination_current,
 		termination_time);
-	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_09, 
+	return regmap_update_bits(charger->regmap, REG_CHG_CNFG_09,
 						BIT_TO_ITH | BIT_TO_TIME, reg_data);
 
 }
@@ -469,139 +510,159 @@ static int max77818_charger_set_enable (struct max77818_charger_data *charger, i
 
 static int max77818_charger_exit_dev (struct max77818_charger_data *charger)
 {
-    struct max77818_charger_platform_data *pdata = charger->pdata;
+	struct max77818_charger_platform_data *pdata = charger->pdata;
 	int rc;
-    rc = max77818_charger_set_enable(charger, false);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        log_err("CHG_CNFG_00 write error [%d]\n", rc);
-        return rc;
-    }
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
+
+	rc = max77818_charger_set_enable(charger, false);
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		log_err("CHG_CNFG_00 write error [%d]\n", rc);
+		return rc;
+	}
 
 	rc = max77818_charger_set_charge_current(charger, pdata->fast_charge_current);
 
-    return rc;
+	return rc;
 }
 
 static int max77818_charger_init_dev (struct max77818_charger_data *charger)
 {
-    int rc;
+	int rc;
 
-    /* charger enable */
-    rc = max77818_charger_set_enable(charger, true);
+	printk("[---- SBA ----] %s: Enter\n", __func__);
+
+	/* charger enable */
+	rc = max77818_charger_set_enable(charger, true);
 
 	return rc;
 }
 
 static void max77818_charger_initialize(struct max77818_charger_data *charger)
 {
-    struct max77818_charger_platform_data *pdata = charger->pdata;
-    int rc;
+	struct max77818_charger_platform_data *pdata = charger->pdata;
+	int rc;
 	u8 val, temp_val;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	pr_info("%s\n", __func__);
 
 	/* interrupt mask - if you want to enable some bits, you should clear them */
-    val  = 0;
+	val  = 0;
 	val |= BIT_AICL;
-    val |= BIT_CHGIN;
-    val |= BIT_WCIN;
-    val |= BIT_CHG;
+	val |= BIT_CHGIN;
+	val |= BIT_WCIN;
+	val |= BIT_CHG;
 	val |= BIT_BAT;
-    val |= BIT_BATP;
+	val |= BIT_BATP;
 	val |= BIT(1);
 	val |= BIT_BYP;
 
-    rc = max77818_write(charger->regmap, REG_CHG_INT_MASK, val);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        log_err("CHG_INT_MASK write error [%d]\n", rc);
-        goto out;
-    }
+	rc = max77818_write(charger->regmap, REG_CHG_INT_MASK, val);
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		log_err("CHG_INT_MASK write error [%d]\n", rc);
+		goto out;
+	}
 
 	/* unlock charger register */
 	rc = max77818_charger_unlock(charger);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        goto out;
-    }
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		goto out;
+	}
 
-    /* charge current (mA) */
-    rc = max77818_charger_set_charge_current(charger, pdata->fast_charge_current);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        goto out;
-    }
+	/* charge current (mA) */
+	rc = max77818_charger_set_charge_current(charger, pdata->fast_charge_current);
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		goto out;
+	}
 
-	/* input current limit (mA) */
-	rc = max77818_charger_set_input_current(charger, pdata->input_current_limit);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        goto out;
-    }
+	/* input current limit (mA) for chgin */
+	rc = max77818_charger_set_input_current_chgin(charger, pdata->input_current_limit_chgin);
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		goto out;
+	}
 
-    /* topoff current(mA) and topoff timer(min) */
+	/* input current limit (mA) for wcin */
+	rc = max77818_charger_set_input_current_wcin(charger, pdata->input_current_limit_wcin);
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		goto out;
+	}
+
+	/* topoff current(mA) and topoff timer(min) */
 	rc = max77818_charger_set_topoff_current(charger, pdata->topoff_current, pdata->topoff_timer);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        goto out;
-    }
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		goto out;
+	}
 
-    /* charge restart threshold(mV) and fast-charge timer(hr) */
-    val = pdata->restart_threshold < 200 ?
-    		(int)(pdata->restart_threshold - 100)/50 : 0x03;
+	/* charge restart threshold(mV) and fast-charge timer(hr) */
+	val = pdata->restart_threshold < 200 ?
+			(int)(pdata->restart_threshold - 100)/50 : 0x03;
 
-    temp_val = pdata->fast_charge_timer == 0 ? 0x00 :
-    	  	   pdata->fast_charge_timer < 4 ? 0x01 :
-          	   pdata->fast_charge_timer < 16 ?
-               (int)DIV_ROUND_UP(pdata->fast_charge_timer - 4, 2) + 1 : 0x00;
+	temp_val = pdata->fast_charge_timer == 0 ? 0x00 :
+			pdata->fast_charge_timer < 4 ? 0x01 :
+			pdata->fast_charge_timer < 16 ?
+			(int)DIV_ROUND_UP(pdata->fast_charge_timer - 4, 2) + 1 : 0x00;
 
 	val = val<<M2SH(BIT_CHG_RSTRT) | temp_val<<M2SH(BIT_FCHGTIME);
 
 	rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_01,
 							(BIT_CHG_RSTRT | BIT_FCHGTIME), val);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        goto out;
-    }
-
-    /* charge termination voltage (mV) */
-    val = pdata->termination_voltage < 3650 ? 0x00 :
-    	  pdata->termination_voltage <= 4325 ?
-        	(int)DIV_ROUND_UP(pdata->termination_voltage - 3650, 25) :
-          pdata->termination_voltage <= 4340 ? 0x1C :
-          pdata->termination_voltage <= 4700 ?
-		  	(int)DIV_ROUND_UP(pdata->termination_voltage - 3650, 25) + 1 : 0x2B;
-	rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_04, BIT_CHG_CV_PRM,
-						  	val << M2SH(BIT_CHG_CV_PRM));
 	if (unlikely(IS_ERR_VALUE(rc))) {
-	  goto out;
+		goto out;
 	}
+
+	/* charge termination voltage (mV) */
+	val = pdata->termination_voltage < 3650 ? 0x00 :
+		pdata->termination_voltage <= 4325 ?
+			(int)DIV_ROUND_UP(pdata->termination_voltage - 3650, 25) :
+		pdata->termination_voltage <= 4340 ? 0x1C :
+		pdata->termination_voltage <= 4700 ?
+			(int)DIV_ROUND_UP(pdata->termination_voltage - 3650, 25) + 1 : 0x2B;
+	rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_04, BIT_CHG_CV_PRM,
+							val << M2SH(BIT_CHG_CV_PRM));
+	if (unlikely(IS_ERR_VALUE(rc))) {
+	goto out;
+	}
+
+	/* vsys min voltage */
+	val = (pdata->vsys_min < 3400) ? 0x00 :
+			(pdata->vsys_min <= 3700) ? (int)DIV_ROUND_UP(pdata->vsys_min - 3400, 100) :
+				0x03;
+	rc = regmap_update_bits(charger->regmap, REG_CHG_CNFG_04, BIT_MINVSYS,
+							val << M2SH(BIT_MINVSYS));
 
 out:
 	return;
 }
 
 struct max77818_charger_status_map {
-    int health, status, charge_type;
+	int health, status, charge_type;
 };
 
 static struct max77818_charger_status_map max77818_charger_status_map[] = {
-    #define STATUS_MAP(_chg_dtls, _health, _status, _charge_type) \
-            [CHG_DTLS_##_chg_dtls] = {\
-                .health = POWER_SUPPLY_HEALTH_##_health,\
-                .status = POWER_SUPPLY_STATUS_##_status,\
-                .charge_type = POWER_SUPPLY_CHARGE_TYPE_##_charge_type,\
-            }
-    //                 chg_details_xx          	health               			status        		charge_type
-    STATUS_MAP(PREQUAL,     		GOOD,					CHARGING, 		TRICKLE),
-    STATUS_MAP(FASTCHARGE_CC,    	GOOD,       			CHARGING,     	FAST),
-    STATUS_MAP(FASTCHARGE_CV,    	GOOD,					CHARGING,     	FAST),
-    STATUS_MAP(TOPOFF,           	GOOD,       			CHARGING,     	FAST),
-    STATUS_MAP(DONE,             	GOOD,       			FULL,         	NONE),
+	#define STATUS_MAP(_chg_dtls, _health, _status, _charge_type) \
+			[CHG_DTLS_##_chg_dtls] = {\
+				.health = POWER_SUPPLY_HEALTH_##_health,\
+				.status = POWER_SUPPLY_STATUS_##_status,\
+				.charge_type = POWER_SUPPLY_CHARGE_TYPE_##_charge_type,\
+			}
+	//                 chg_details_xx          	health               			status        		charge_type
+	STATUS_MAP(PREQUAL,     		GOOD,					CHARGING, 		TRICKLE),
+	STATUS_MAP(FASTCHARGE_CC,    	GOOD,       			CHARGING,     	FAST),
+	STATUS_MAP(FASTCHARGE_CV,    	GOOD,					CHARGING,     	FAST),
+	STATUS_MAP(TOPOFF,           	GOOD,       			CHARGING,     	FAST),
+	STATUS_MAP(DONE,             	GOOD,       			FULL,         	NONE),
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
-    STATUS_MAP(OFF_TIMER_FAULT,		SAFETY_TIMER_EXPIRE,	NOT_CHARGING, 	NONE),
+	STATUS_MAP(OFF_TIMER_FAULT,		SAFETY_TIMER_EXPIRE,	NOT_CHARGING, 	NONE),
 #else /* LINUX_VERSION_CODE ... */
-    STATUS_MAP(OFF_TIMER_FAULT,     UNKNOWN,             	NOT_CHARGING, 	NONE),
+	STATUS_MAP(OFF_TIMER_FAULT,     UNKNOWN,             	NOT_CHARGING, 	NONE),
 #endif /* LINUX_VERSION_CODE ... */
-    STATUS_MAP(OFF_SUSPEND,  		UNKNOWN,             	NOT_CHARGING, 	NONE),
-    STATUS_MAP(OFF_INPUT_INVALID,   UNKNOWN,             	NOT_CHARGING,   NONE),
-    STATUS_MAP(OFF_JUCTION_TEMP,    UNKNOWN,             	NOT_CHARGING, 	UNKNOWN),
+	STATUS_MAP(OFF_SUSPEND,  		UNKNOWN,             	NOT_CHARGING, 	NONE),
+	STATUS_MAP(OFF_INPUT_INVALID,   UNKNOWN,             	NOT_CHARGING,   NONE),
+	STATUS_MAP(OFF_JUCTION_TEMP,    UNKNOWN,             	NOT_CHARGING, 	UNKNOWN),
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
-    STATUS_MAP(OFF_WDT_EXPIRED, 	WATCHDOG_TIMER_EXPIRE,  NOT_CHARGING, 	UNKNOWN),
+	STATUS_MAP(OFF_WDT_EXPIRED, 	WATCHDOG_TIMER_EXPIRE,  NOT_CHARGING, 	UNKNOWN),
 #else /* LINUX_VERSION_CODE ... */
 	STATUS_MAP(OFF_WDT_EXPIRED, 	UNKNOWN,				NOT_CHARGING,	UNKNOWN),
 #endif /* LINUX_VERSION_CODE ... */
@@ -609,171 +670,180 @@ static struct max77818_charger_status_map max77818_charger_status_map[] = {
 
 static int max77818_charger_update (struct max77818_charger_data *charger)
 {
-    int rc;
+	int rc;
 	u8 chg_details[3];
 	u8 chg_dtls;
 
-    charger->health      = POWER_SUPPLY_HEALTH_UNKNOWN;
-    charger->status      = POWER_SUPPLY_STATUS_UNKNOWN;
-    charger->charge_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
-    rc = max77818_bulk_read(charger->regmap, REG_CHG_DTLS_00, chg_details, 3);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        log_err("CHG_DETAILS read error [%d]\n", rc);
-        goto out;
-    }
+	charger->health      = POWER_SUPPLY_HEALTH_UNKNOWN;
+	charger->status      = POWER_SUPPLY_STATUS_UNKNOWN;
+	charger->charge_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+
+	rc = max77818_bulk_read(charger->regmap, REG_CHG_DTLS_00, chg_details, 3);
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		log_err("CHG_DETAILS read error [%d]\n", rc);
+		goto out;
+	}
 
 	pr_info("%s: chg_details 00=0x%x, 01=0x%x, 02=0x%x\n",
 				__func__, chg_details[0], chg_details[1], chg_details[2]);
 
-    charger->present = (max77818_charger_present_input(charger) ||
+	charger->present = (max77818_charger_present_input(charger) ||
 						max77818_wcharger_present_input(charger));
-    if (unlikely(!charger->present)) {
-        /* no charger present */
-        charger->health      = POWER_SUPPLY_HEALTH_UNKNOWN;
-        charger->status      = POWER_SUPPLY_STATUS_DISCHARGING;
-        charger->charge_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
-        goto out;
-    }
+	if (unlikely(!charger->present)) {
+		/* no charger present */
+		charger->health      = POWER_SUPPLY_HEALTH_UNKNOWN;
+		charger->status      = POWER_SUPPLY_STATUS_DISCHARGING;
+		charger->charge_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+		goto out;
+	}
 
 	chg_dtls = chg_details[1] & BIT_CHG_DTLS;
 
-    charger->health      = max77818_charger_status_map[chg_dtls].health;
-    charger->status      = max77818_charger_status_map[chg_dtls].status;
-    charger->charge_type = max77818_charger_status_map[chg_dtls].charge_type;
+	charger->health      = max77818_charger_status_map[chg_dtls].health;
+	charger->status      = max77818_charger_status_map[chg_dtls].status;
+	charger->charge_type = max77818_charger_status_map[chg_dtls].charge_type;
 
-    if (likely(charger->health != POWER_SUPPLY_HEALTH_UNKNOWN)) {
-        goto out;
-    }
+	if (likely(charger->health != POWER_SUPPLY_HEALTH_UNKNOWN)) {
+		goto out;
+	}
 
-    /* override health by TREG */
+	/* override health by TREG */
 	if ((chg_details[1] & BIT_TREG) != 0)
 		charger->health = POWER_SUPPLY_HEALTH_OVERHEAT;
 
 out:
 	pr_info("%s: PRESENT %d HEALTH %d STATUS %d CHARGE_TYPE %d\n", __func__,
 			charger->present, charger->health, charger->status, charger->charge_type);
-    return rc;
+	return rc;
 }
 
 static int max77818_charger_get_property (struct power_supply *psy,
-        enum power_supply_property psp, union power_supply_propval *val)
+		enum power_supply_property psp, union power_supply_propval *val)
 {
-    struct max77818_charger_data *charger = (struct max77818_charger_data*) psy->drv_data;
-
-    int rc = 0;
-
-    __lock(charger);
-
-    rc = max77818_charger_update(charger);
-    if (unlikely(IS_ERR_VALUE(rc))) {
-        goto out;
-    }
-
-    switch (psp) {
-    case POWER_SUPPLY_PROP_ONLINE:
-        val->intval = charger->present;
-        break;
-
-    case POWER_SUPPLY_PROP_HEALTH:
-        val->intval = charger->health;
-        break;
-
-    case POWER_SUPPLY_PROP_STATUS:
-        val->intval = charger->status;
-        break;
-
-    case POWER_SUPPLY_PROP_CHARGE_TYPE:
-        val->intval = charger->charge_type;
-        break;
-
-    case POWER_SUPPLY_PROP_CURRENT_NOW:
-        val->intval = max77818_charger_get_charge_current(charger);
-        break;
-
-    case POWER_SUPPLY_PROP_CURRENT_MAX:
-        val->intval = max77818_charger_get_input_current(charger);
-        break;
-
-    default:
-        rc = -EINVAL;
-        goto out;
-    }
-
-out:
-    pr_info("%s: <get_property> psp %d val %d [%d]\n", __func__, psp, val->intval, rc);
-    __unlock(charger);
-    return rc;
-}
-
-static int max77818_charger_set_property (struct power_supply *psy,
-        enum power_supply_property psp, const union power_supply_propval *val)
-{
-    struct max77818_charger_data *charger = (struct max77818_charger_data*) psy->drv_data;
+	struct max77818_charger_data *charger = (struct max77818_charger_data*) psy->drv_data;
 
 	int rc = 0;
 
-    __lock(charger);
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
-    switch (psp) {
-    case POWER_SUPPLY_PROP_ONLINE:
-        rc = max77818_charger_set_enable(charger, val->intval);
-        if (unlikely(IS_ERR_VALUE(rc))) {
-            goto out;
-        }
+	__lock(charger);
 
-        /* apply charge current */
-        rc = max77818_charger_set_charge_current(charger, charger->pdata->fast_charge_current);
-        break;
+	rc = max77818_charger_update(charger);
+	if (unlikely(IS_ERR_VALUE(rc))) {
+		goto out;
+	}
 
-    case POWER_SUPPLY_PROP_CURRENT_NOW:
-        /* val->intval - uA */
-        rc = max77818_charger_set_charge_current(charger, val->intval/1000); /* mA */
-        if (unlikely(IS_ERR_VALUE(rc))) {
-            goto out;
-        }
-		charger->pdata->fast_charge_current = val->intval/1000;	/* mA */
-        break;
+	switch (psp) {
+	case POWER_SUPPLY_PROP_ONLINE:
+		val->intval = charger->present;
+		break;
 
-    case POWER_SUPPLY_PROP_CURRENT_MAX:
-        rc = max77818_charger_set_input_current(charger, val->intval/1000);	/* mA */
-        if (unlikely(IS_ERR_VALUE(rc))) {
-            goto out;
-        }
-		charger->pdata->input_current_limit = val->intval/1000;	/* mA */
-        break;
+	case POWER_SUPPLY_PROP_HEALTH:
+		val->intval = charger->health;
+		break;
 
-    default:
-        rc = -EINVAL;
-        goto out;
-    }
+	case POWER_SUPPLY_PROP_STATUS:
+		val->intval = charger->status;
+		break;
+
+	case POWER_SUPPLY_PROP_CHARGE_TYPE:
+		val->intval = charger->charge_type;
+		break;
+
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		val->intval = max77818_charger_get_charge_current(charger);
+		break;
+
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
+		val->intval = max77818_charger_get_input_current(charger);
+		break;
+
+	default:
+		rc = -EINVAL;
+		goto out;
+	}
 
 out:
-    pr_info("%s: <set_property> psp %d val %d [%d]\n", __func__, psp, val->intval, rc);
-    __unlock(charger);
-    return rc;
+	pr_info("%s: <get_property> psp %d val %d [%d]\n", __func__, psp, val->intval, rc);
+	__unlock(charger);
+	return rc;
+}
+
+static int max77818_charger_set_property (struct power_supply *psy,
+		enum power_supply_property psp, const union power_supply_propval *val)
+{
+	struct max77818_charger_data *charger = (struct max77818_charger_data*) psy->drv_data;
+
+	int rc = 0;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
+
+	__lock(charger);
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_ONLINE:
+		rc = max77818_charger_set_enable(charger, val->intval);
+		if (unlikely(IS_ERR_VALUE(rc))) {
+			goto out;
+		}
+
+		/* apply charge current */
+		rc = max77818_charger_set_charge_current(charger, charger->pdata->fast_charge_current);
+		break;
+
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		/* val->intval - uA */
+		rc = max77818_charger_set_charge_current(charger, val->intval/1000); /* mA */
+		if (unlikely(IS_ERR_VALUE(rc))) {
+			goto out;
+		}
+		charger->pdata->fast_charge_current = val->intval/1000;	/* mA */
+		break;
+
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
+		rc = max77818_charger_set_input_current_chgin(charger, val->intval/1000);	/* mA */
+		if (unlikely(IS_ERR_VALUE(rc))) {
+			goto out;
+		}
+		charger->pdata->input_current_limit_chgin = val->intval/1000;	/* mA */
+		break;
+
+	default:
+		rc = -EINVAL;
+		goto out;
+	}
+
+out:
+	pr_info("%s: <set_property> psp %d val %d [%d]\n", __func__, psp, val->intval, rc);
+	__unlock(charger);
+	return rc;
 }
 
 /* callback to be called during power supply registration to check if the probe routine has finished */
 static int max77818_charger_property_is_writeable(struct power_supply *psy,
-                                enum power_supply_property psp)
+								enum power_supply_property psp)
 {
-    printk("[---- SBA ----] max77818-charger.property_is_writable called !\n");
+	bool probe_is_done;
 
-    int probeIsDone = __sync_get(probeDone, probeDoneLock);
-    printk("[---- SBA ----] probeDone: %s", (probeIsDone ? "TRUE" : "FALSE"));
+	printk("[---- SBA ----] %s.property_is_writable called (property %u) !\n", __func__, psp);
+
+	probe_is_done = __sync_get(probe_done, probe_done_lock);
+	printk("[---- SBA ----] probe_done: %s", (probe_is_done ? "TRUE" : "FALSE"));
+	return probe_is_done;
 }
 
 /* callback to be called when external power has changed */
 static void max77818_charger_external_power_changed(struct power_supply *psy)
 {
-    printk("[---- SBA ----] max77818-charger.external_power_changed called !\n");
+	printk("[---- SBA ----] , %s.external_power_changed called !\n", __func__);
 }
 
 /* callbask to be called to set charged state */
 static void max77818_charger_set_charged(struct power_supply *psy)
 {
-    printk("[---- SBA ----] max77818-charger.set_charged called !\n");
+	printk("[---- SBA ----] %s.set_charged called !\n", __func__);
 }
 
 /* interrupt handler and workqueu*/
@@ -782,6 +852,8 @@ static void max77818_do_irq(struct max77818_charger_data *charger, int irq)
 
 	u8 val, chg_details[3];
 	bool aicl_mode, chg_input, wc_input;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	chg_details[0] = charger->details_0;
 	chg_details[1] = charger->details_1;
@@ -843,7 +915,7 @@ static void max77818_do_irq(struct max77818_charger_data *charger, int irq)
 		case CHG_INT_BATP_I:
 			/* do insert code here */
 			val = (chg_details[0] & BIT_BATP)>>FFS(BIT_BATP);
-			log_dbg("CHG_INT_BATP: battery %s\n", 
+			log_dbg("CHG_INT_BATP: battery %s\n",
 					val ? "no presence" : "presence");
 			break;
 
@@ -858,95 +930,105 @@ static void max77818_do_irq(struct max77818_charger_data *charger, int irq)
 	}
 
 	/* notify psy changed */
-    power_supply_changed(charger->psy_chg);
+	power_supply_changed(charger->psy_chg);
 
-    return;
+	return;
 }
 
 static void max77818_charger_irq_work (struct work_struct *work)
 {
-    struct max77818_charger_data *me =
-        container_of(work, struct max77818_charger_data, irq_work.work);
-    u8 irq;
+	struct max77818_charger_data *me =
+		container_of(work, struct max77818_charger_data, irq_work.work);
+	u8 irq;
 
-    __lock(me);
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
-    irq = me->irq - me->byp_irq;
+	__lock(me);
+
+	irq = me->irq - me->byp_irq;
 
 	max77818_do_irq(me, irq);
 
-    __unlock(me);
-    return;
+	__unlock(me);
+	return;
 }
 
 static irqreturn_t max77818_charger_chgin_isr (int irq, void *data)
 {
-    struct max77818_charger_data *me = data;
+	struct max77818_charger_data *me = data;
 	u8 reg_details[3];
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	me->irq = irq;
 
 	max77818_bulk_read(me->regmap, REG_CHG_DTLS_00, reg_details, 3);
-    pr_info("%s: chg_dtls[0]=0x%x, [1]=0x%x, [2]=0x%x\n", 
+	pr_info("%s: chg_dtls[0]=0x%x, [1]=0x%x, [2]=0x%x\n",
 		__func__, reg_details[0], reg_details[1], reg_details[2]);
 
 	me->details_0 = reg_details[0];
 	me->details_1 = reg_details[1];
 	me->details_2 = reg_details[2];
 
-    schedule_delayed_work(&me->irq_work, IRQ_WORK_DELAY);
-    return IRQ_HANDLED;
+	schedule_delayed_work(&me->irq_work, IRQ_WORK_DELAY);
+	return IRQ_HANDLED;
 }
 
 
 static irqreturn_t max77818_charger_wcin_isr (int irq, void *data)
 {
-    struct max77818_charger_data *me = data;
+	struct max77818_charger_data *me = data;
 	u8 reg_details[3];
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	me->irq = irq;
 
 	max77818_bulk_read(me->regmap, REG_CHG_DTLS_00, reg_details, 3);
-    pr_info("%s: chg_dtls[0]=0x%x, [1]=0x%x, [2]=0x%x\n", 
+	pr_info("%s: chg_dtls[0]=0x%x, [1]=0x%x, [2]=0x%x\n",
 		__func__, reg_details[0], reg_details[1], reg_details[2]);
 
 	me->details_0 = reg_details[0];
 	me->details_1 = reg_details[1];
 	me->details_2 = reg_details[2];
 
-    schedule_delayed_work(&me->irq_work, IRQ_WORK_DELAY);
-    return IRQ_HANDLED;
+	schedule_delayed_work(&me->irq_work, IRQ_WORK_DELAY);
+	return IRQ_HANDLED;
 }
 
 
 static irqreturn_t max77818_charger_aicl_isr (int irq, void *data)
 {
-    struct max77818_charger_data *me = data;
+	struct max77818_charger_data *me = data;
 	u8 reg_details[3];
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	me->irq = irq;
 
 	max77818_bulk_read(me->regmap, REG_CHG_DTLS_00, reg_details, 3);
-    pr_info("%s: chg_dtls[0]=0x%x, [1]=0x%x, [2]=0x%x\n", 
+	pr_info("%s: chg_dtls[0]=0x%x, [1]=0x%x, [2]=0x%x\n",
 		__func__, reg_details[0], reg_details[1], reg_details[2]);
 
 	me->details_0 = reg_details[0];
 	me->details_1 = reg_details[1];
 	me->details_2 = reg_details[2];
 
-    schedule_delayed_work(&me->irq_work, IRQ_WORK_DELAY);
-    return IRQ_HANDLED;
+	schedule_delayed_work(&me->irq_work, IRQ_WORK_DELAY);
+	return IRQ_HANDLED;
 }
 
 #ifdef CONFIG_OF
 static int max77818_charger_parse_dt(struct max77818_charger_data *charger, struct device_node **of_node)
 {
-    struct device *dev = charger->dev;
+	struct device *dev = charger->dev;
 	struct device_node *np = of_find_node_by_name(NULL, "charger");
 	struct max77818_charger_platform_data *pdata;
 
-    *of_node = np;
+	*of_node = np;
 	int ret = 0;
+
+	printk("[---- SBA ----] %s: Enter\n", __func__);
 
 	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
 	if (unlikely(pdata == NULL))
@@ -981,10 +1063,15 @@ static int max77818_charger_parse_dt(struct max77818_charger_data *charger, stru
 		&pdata->restart_threshold);
 	log_dbg("property:CHG_RSTRT 	   %umV\n", pdata->restart_threshold);
 
-	pdata->input_current_limit = 500; // 500mA
-	ret |= of_property_read_u32(np, "input_current_limit",
-		&pdata->input_current_limit);
-	log_dbg("property:INPUT_CURRENT_LIMIT %umA\n", pdata->input_current_limit);
+	pdata->input_current_limit_chgin = 500; // 500mA
+	ret |= of_property_read_u32(np, "input_current_limit_chgin",
+		&pdata->input_current_limit_chgin);
+	log_dbg("property:INPUT_CURRENT_LIMIT CHGIN %umA\n", pdata->input_current_limit_chgin);
+
+	pdata->input_current_limit_wcin = 500; // 500mA
+	ret |= of_property_read_u32(np, "input_current_limit_wcin",
+		&pdata->input_current_limit_wcin);
+	log_dbg("property:INPUT_CURRENT_LIMIT WCIN %umA\n", pdata->input_current_limit_wcin);
 
 	if (ret < 0)
 		return ret;
@@ -994,21 +1081,34 @@ static int max77818_charger_parse_dt(struct max77818_charger_data *charger, stru
 }
 #endif
 
+static const struct power_supply_desc psy_chg_desc = {
+	.name = "max77818-charger",
+    .type = POWER_SUPPLY_TYPE_USB,
+    .properties = max77818_charger_props,
+    .num_properties = ARRAY_SIZE(max77818_charger_props),
+    .get_property = max77818_charger_get_property,
+    .set_property = max77818_charger_set_property
+
+	/*psy_chg_desc.property_is_writeable = max77818_charger_property_is_writeable;
+    psy_chg_desc.external_power_changed = max77818_charger_external_power_changed;
+    psy_chg_desc.set_charged = max77818_charger_set_charged;
+    psy_chg_desc.no_thermal = true;
+    psy_chg_desc.use_for_apm = false;*/
+};
+
 static int max77818_charger_probe(struct platform_device *pdev)
 {
 	struct max77818_dev *max77818 = dev_get_drvdata(pdev->dev.parent);
 	struct max77818_charger_platform_data *pdata;
 	struct max77818_charger_data *charger;
-
-    struct power_supply_desc psy_chg_desc;
-    struct power_supply_config psy_chg_config;
-
-    __sync_clear(probeDone, probeDoneLock);
+	struct power_supply_config psy_chg_config = {};
 
 	int ret = 0;
 	u8 val = 0;
 
-    printk("[---- SBA ----] %s Enter:\n", __func__);
+	printk("[---- SBA ----] %s Enter:\n", __func__);
+
+	__sync_clear(probe_done, probe_done_lock);
 
 	pr_info("%s: Max77818 Charger Driver Loading\n", __func__);
 
@@ -1016,12 +1116,12 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	if (!charger)
 		return -ENOMEM;
 
-    pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
-    if (unlikely(!pdata)) {
-        pr_err("%s: out of memory\n", __func__);
-        pdata = ERR_PTR(-ENOMEM);
-        return -ENOMEM;
-    }
+	pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
+	if (unlikely(!pdata)) {
+		pr_err("%s: out of memory\n", __func__);
+		pdata = ERR_PTR(-ENOMEM);
+		return -ENOMEM;
+	}
 
 	mutex_init(&charger->lock);
 
@@ -1030,10 +1130,10 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	charger->pdata = pdata;
 
 #if defined(CONFIG_OF)
-    ret = max77818_charger_parse_dt(charger, &psy_chg_config.of_node);
+	ret = max77818_charger_parse_dt(charger, &psy_chg_config.of_node);
 	if (ret < 0) {
 		pr_err("%s not found charger dt! ret[%d]\n",
-		       __func__, ret);
+			__func__, ret);
 	}
 #else
 	pdata = dev_get_platdata(&pdev->dev);
@@ -1041,26 +1141,14 @@ static int max77818_charger_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, charger);
 
-    psy_chg_config.drv_data = charger;
-    /* psy_chg_config.supplied_to ?? */
-    /* psy_chg_config.num_supplicants */
-
-    psy_chg_desc.name = "max77818-charger";
-    psy_chg_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
-    psy_chg_desc.properties = max77818_charger_props;
-    psy_chg_desc.num_properties = ARRAY_SIZE(max77818_charger_props);
-    psy_chg_desc.get_property = max77818_charger_get_property;
-    psy_chg_desc.set_property = max77818_charger_set_property;
-    psy_chg_desc.property_is_writeable = max77818_charger_property_is_writeable;
-    psy_chg_desc.external_power_changed = max77818_charger_external_power_changed;
-    psy_chg_desc.set_charged = max77818_charger_set_charged;
-    psy_chg_desc.no_thermal = true;
-    psy_chg_desc.use_for_apm = false;
+	psy_chg_config.drv_data = charger;
+	psy_chg_config.supplied_to = NULL;
+	psy_chg_config.num_supplicants = 0;
 
 	max77818_charger_initialize(charger);
 
-    charger->psy_chg = power_supply_register(&pdev->dev, &psy_chg_desc, &psy_chg_config);
-	if (ret) {
+	charger->psy_chg = power_supply_register(&pdev->dev, &psy_chg_desc, &psy_chg_config);
+	if (IS_ERR(charger->psy_chg)) {
 		pr_err("%s: Failed to Register psy_chg\n", __func__);
 		goto err_power_supply_register;
 	}
@@ -1079,14 +1167,14 @@ static int max77818_charger_probe(struct platform_device *pdev)
 		goto err_chgin_irq;
 	}
 
-	ret = request_threaded_irq(charger->wcin_irq, NULL, max77818_charger_wcin_isr, 
+	ret = request_threaded_irq(charger->wcin_irq, NULL, max77818_charger_wcin_isr,
 				IRQF_TRIGGER_FALLING, "charger-wcin", charger);
 	if (ret) {
 		pr_err("%s: Failed to Reqeust WCIN IRQ\n", __func__);
 		goto err_wcin_irq;
 	}
 
-	ret = request_threaded_irq(charger->aicl_irq, NULL,	max77818_charger_aicl_isr, 
+	ret = request_threaded_irq(charger->aicl_irq, NULL,	max77818_charger_aicl_isr,
 				IRQF_TRIGGER_FALLING, "charger-aicl", charger);
 	if (ret) {
 		pr_err("%s: Failed to Reqeust AICL IRQ\n", __func__);
@@ -1101,7 +1189,7 @@ static int max77818_charger_probe(struct platform_device *pdev)
 
 	pr_info("%s: Max77818 Charger Driver Loaded\n", __func__);
 
-    __sync_set(probeDone, probeDoneLock);
+	__sync_set(probe_done, probe_done_lock);
 	return 0;
 
 err_aicl_irq:
@@ -1109,7 +1197,7 @@ err_aicl_irq:
 err_wcin_irq:
 	free_irq(charger->chgin_irq, NULL);
 err_chgin_irq:
-    power_supply_unregister(charger->psy_chg);
+	power_supply_unregister(charger->psy_chg);
 err_power_supply_register:
 	kfree(charger);
 
@@ -1121,10 +1209,12 @@ static int max77818_charger_remove(struct platform_device *pdev)
 	struct max77818_charger_data *charger =
 		platform_get_drvdata(pdev);
 
+	printk("[---- SBA ----] %s Enter:\n", __func__);
+
 	free_irq(charger->chgin_irq, NULL);
 	free_irq(charger->wcin_irq, NULL);
 	free_irq(charger->aicl_irq, NULL);
-    power_supply_unregister(charger->psy_chg);
+	power_supply_unregister(charger->psy_chg);
 	kfree(charger);
 
 	return 0;
@@ -1133,11 +1223,15 @@ static int max77818_charger_remove(struct platform_device *pdev)
 #if defined CONFIG_PM
 static int max77818_charger_suspend(struct device *dev)
 {
+	printk("[---- SBA ----] %s Enter:\n", __func__);
+
 	return 0;
 }
 
 static int max77818_charger_resume(struct device *dev)
 {
+	printk("[---- SBA ----] %s Enter:\n", __func__);
+
 	return 0;
 }
 #else
@@ -1154,7 +1248,7 @@ MODULE_DEVICE_TABLE(of, max77818_charger_dt_ids);
 #endif
 
 static SIMPLE_DEV_PM_OPS(max77818_charger_pm_ops, max77818_charger_suspend,
-			 max77818_charger_resume);
+			max77818_charger_resume);
 
 static struct platform_driver max77818_charger_driver = {
 	.driver = {
@@ -1185,7 +1279,7 @@ static void __exit max77818_charger_exit(void)
 module_init(max77818_charger_init);
 module_exit(max77818_charger_exit);
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_VERSION(DRIVER_VERSION);
