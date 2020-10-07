@@ -939,8 +939,8 @@
 				clocks = <&clks IMX7D_UART6_ROOT_CLK>,
 					<&clks IMX7D_UART6_ROOT_CLK>;
 				clock-names = "ipg", "per";
-				dmas = <&sdma 32 4 0>, <&sdma 33 4 0>;
-				dma-names = "rx", "tx";
+				/*dmas = <&sdma 32 4 0>, <&sdma 33 4 0>;*/
+				/*dma-names = "rx", "tx";*/
 				status = "disabled";
 			};
 
