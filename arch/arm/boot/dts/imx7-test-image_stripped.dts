@@ -328,7 +328,8 @@
         reg = <0x09>;
         interrupt-parent = <&gpio6>;
         interrupts = <13 2>;
-        resets = <&wacom_reset>;
+        /* resets = <&wacom_reset>;*/
+        reset-gpio = <&gpio6 12 1>;
     };
 };
 
