@@ -11,7 +11,7 @@
  * as published by the Free Software Foundation; either version
  * 2 of the License, or (at your option) any later version.
  */
-#define DEBUG
+//#define DEBUG
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/init.h>
