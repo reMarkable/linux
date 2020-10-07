@@ -14,8 +14,11 @@
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
 #include <linux/of.h>
+#include <linux/of_gpio.h>
 #include <asm/unaligned.h>
 #include <linux/kernel.h>
+#include <linux/reset.h>
+#include <linux/delay.h>
 
 #define WACOM_CMD_QUERY0	0x04
 #define WACOM_CMD_QUERY1	0x00
@@ -73,6 +76,15 @@ static int wacom_query_device(struct i2c_client *client,
 		},
 	};
 
+    printk("[---- SBA ----] Asserting/deasserting WACOM reset ..\n");
+    struct reset_control *rstc = devm_reset_control_get_optional_exclusive(&client->dev, NULL);
+    if (IS_ERR(rstc)) {
+        printk("[---- SBA ----] Failed to get reset control while trying to reset WACOM device before init !\n");
+    }
+    else {
+        reset_control_reset(rstc);
+    }
+
 	printk("[---- SBA ----] Sending cmd1, cmd2 and data over I2C ..\n");
 	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
 	if (ret < 0) {
@@ -80,7 +92,7 @@ static int wacom_query_device(struct i2c_client *client,
 		return ret;
 	}
 	if (ret != ARRAY_SIZE(msgs)) {
-		printk("[---- SBA ----] i2c_transfer returned with unexpected return value %2\n", msgs);
+		printk("[---- SBA ----] i2c_transfer returned with unexpected return value %d\n", ret);
 		return -EIO;
 	}
 
@@ -193,6 +205,34 @@ static int wacom_i2c_probe(struct i2c_client *client,
 		dev_err(&client->dev, "i2c_check_functionality error\n");
 		return -EIO;
 	}
+
+	printk("[---- SBA ----] Reading reset-gpio config if present..\n");
+    struct device_node *np = client->dev.of_node;
+    unsigned int flags;
+	unsigned int reset_gpio = of_get_named_gpio_flags(np, "reset-gpio", 0, &flags);
+    if (reset_gpio == -EPROBE_DEFER) {
+        printk("[---- SBA ----] of_get_named_gpio_flags returned EPROBE_DEFER, ignoring reset-gpio..\n");
+    } else if (!gpio_is_valid(reset_gpio)) {
+        printk("[---- SBA ----] reset-gpio found: %d\n", reset_gpio);
+        printk("[---- SBA ----] Invalid reset gpio: %d\n", reset_gpio);
+    }
+
+    printk("[---- SBA ----] Requesting gpio %d ..\n", reset_gpio);
+    unsigned int ret = devm_gpio_request_one(&client->dev, reset_gpio, flags, NULL);
+    if (ret < 0) {
+        printk("[---- SBA ----] Failed to request gpio %d: %d\n", reset_gpio, ret);
+    }
+
+    printk("[---- SBA ----] Setting requested GPIO as output ..\n");
+    gpio_direction_output(reset_gpio, 1);
+    printk("[---- SBA ----] Trying to pull reset GPIO low ..\n");
+    gpio_set_value(reset_gpio, 0);
+    printk("[---- SBA ----] Waiting 500 us..\n");
+    udelay(500);
+    printk("[---- SBA ----] Trying to pull reset GPIO high ..\n");
+    gpio_set_value(reset_gpio, 1);
+    printk("[---- SBA ----] Waiting 500 us..\n");
+    udelay(500);
 
     printk("[---- SBA ----] Querying device ..\n");
 	error = wacom_query_device(client, &features);
