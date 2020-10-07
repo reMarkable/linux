@@ -84,13 +84,20 @@
     wifi_pwrseq: wifi_pwrseq {
         compatible = "mmc-pwrseq-simple";
         reset-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
-        /*clocks = <&clks IMX6SL_CLK_OSC>;
-        clock-names = "ext_clock";*/
+        clocks = <&clks IMX7D_CLKO2_ROOT_DIV>;
+		clock-names = "32K_ext_wifi_clk";
     };
 };
 
 &cpu0 {
 	arm-supply = <&buck1_reg>;
+};
+
+&clks {
+    assigned-clocks = <&clks IMX7D_CLKO2_ROOT_SRC>,
+                      <&clks IMX7D_CLKO2_ROOT_DIV>;
+    assigned-clock-parents = <&clks IMX7D_CKIL>;
+    assigned-clock-rates = <0>, <32768>;
 };
 
 &i2c1 {
@@ -487,6 +494,7 @@
 	pinctrl-names = "default", "state_100mhz";/*, "state_200mhz";*/
 	pinctrl-0 = <&pinctrl_usdhc2 &pinctrl_wifi>;
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz &pinctrl_wifi>;
+
 	/*pinctrl-2 = <&pinctrl_usdhc2_200mhz &pinctrl_wifi>;*/
 	mmc-pwrseq = <&wifi_pwrseq>;
 	bus-width = <4>;
@@ -504,6 +512,8 @@
 		interrupt-parent = <&gpio1>;
 		interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "host-wake";
+		/*clocks = <&clks IMX7D_CLKO2_ROOT_DIV>;
+		clock-names = "32K_ext_wifi_clk";*/
 		/*resets = <&wifi_reset>;*/
 	};
 };
@@ -718,7 +728,7 @@
 				/* WiFi Host Wake */
 				MX7D_PAD_GPIO1_IO08__GPIO1_IO8		0x00000014
 				/* WiFi Sleep 32k */
-				/*MX7D_PAD_SD1_WP__CCM_CLKO2          0x00000014*/
+				MX7D_PAD_SD1_WP__CCM_CLKO2          0x00000014
 			>;
 		};
 	};
