@@ -44,13 +44,17 @@
 #define IMX8M_DAP_PWRCTL	(0x4000 + 0x3020)
 #define IMX8M_PWRCTL_CORERESET		BIT(16)
 
-#define IMX8M_DSP_CLK_NUM	5
+#define IMX8M_DSP_CLK_NUM	9
 static const char *imx8m_dsp_clks[IMX8M_DSP_CLK_NUM] = {
 	"ocram",
 	"core",
 	"debug",
 	"sdma3",
-	"sai3_ipg",
+	"sai3_bus",
+	"sai3_mclk0",
+	"sai3_mclk1",
+	"sai3_mclk2",
+	"sai3_mclk3",
 };
 
 struct imx8m_priv {
