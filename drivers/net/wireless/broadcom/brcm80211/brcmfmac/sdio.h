@@ -19,6 +19,7 @@
 
 #include <linux/skbuff.h>
 #include <linux/firmware.h>
+#include <linux/clk.h>
 #include "firmware.h"
 
 #define SDIO_FUNC_0		0

@@ -59,6 +59,8 @@ static void mmc_pwrseq_simple_pre_power_on(struct mmc_host *host)
 {
 	struct mmc_pwrseq_simple *pwrseq = to_pwrseq_simple(host->pwrseq);
 
+    printk("[---- SBA ----] mmc_pwrseq_simple_pre_power_on: Enter\n");
+    
 	if (!IS_ERR(pwrseq->ext_clk) && !pwrseq->clk_enabled) {
 		clk_prepare_enable(pwrseq->ext_clk);
 		pwrseq->clk_enabled = true;
@@ -71,6 +73,8 @@ static void mmc_pwrseq_simple_post_power_on(struct mmc_host *host)
 {
 	struct mmc_pwrseq_simple *pwrseq = to_pwrseq_simple(host->pwrseq);
 
+    printk("[---- SBA ----] mmc_pwrseq_simple_post_power_on: Enter\n");
+
 	mmc_pwrseq_simple_set_gpios_value(pwrseq, 0);
 
 	if (pwrseq->post_power_on_delay_ms)
@@ -81,6 +85,8 @@ static void mmc_pwrseq_simple_power_off(struct mmc_host *host)
 {
 	struct mmc_pwrseq_simple *pwrseq = to_pwrseq_simple(host->pwrseq);
 
+    printk("[---- SBA ----] mmc_pwrseq_simple_power_off: Enter\n");
+    
 	mmc_pwrseq_simple_set_gpios_value(pwrseq, 1);
 
 	if (pwrseq->power_off_delay_us)
@@ -135,6 +141,23 @@ static int mmc_pwrseq_simple_probe(struct platform_device *pdev)
 	pwrseq->pwrseq.ops = &mmc_pwrseq_simple_ops;
 	pwrseq->pwrseq.owner = THIS_MODULE;
 	platform_set_drvdata(pdev, pwrseq);
+
+    printk("[---- SBA ----] Trying to find 32K clock..\n");
+    struct clk *ext_32K_clk = devm_clk_get(dev, "32K_ext_wifi_clk");
+    if(IS_ERR_OR_NULL(ext_32K_clk)) {
+        printk("[---- SBA ----] Failed to get 32K clock: %ld !\n", PTR_ERR(ext_32K_clk));
+    }
+    else {
+        printk("[---- SBA ----] Trying to enable 32K clock..\n");
+        int ret = clk_prepare_enable(ext_32K_clk);
+        if(ret) {
+            printk("[---- SBA ----] Failed to enable clock: %d\n", ret);
+        }
+        else {
+            printk("[---- SBA ----] 32K clock enabled, waiting a slight moment..\n");
+            udelay(1000);
+        }
+    }
 
 	return mmc_pwrseq_register(&pwrseq->pwrseq);
 }
