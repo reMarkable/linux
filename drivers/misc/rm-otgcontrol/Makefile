@@ -5,3 +5,5 @@ otgcontrol-objs += otgcontrol_fsm.o
 otgcontrol-objs += otgcontrol_onewire.o
 otgcontrol-objs += otgcontrol_charging_ctrl.o
 otgcontrol-objs += otgcontrol_dr_mode.o
+
+ccflags-$(CONFIG_RM_OTGCONTROL) += -DDEBUG
