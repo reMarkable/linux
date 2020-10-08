@@ -231,6 +231,8 @@ static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 	u32 chg_int_ok = 0;
 	int ret;
 
+	return 0;
+
 	/* Try to read from the device first, but if the charger device
 	 * is offline, try to read the chg status gpios */
 	if(!IS_ERR_OR_NULL(chg->regmap)) {
