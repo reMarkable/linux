@@ -2,6 +2,7 @@
 #include "otgcontrol_fsm.h"
 #include "otgcontrol_dr_mode.h"
 #include "otgcontrol_charging_ctrl.h"
+#include "otgcontrol_onewire.h"
 
 #include <linux/kernel.h>
 #include <linux/printk.h>
@@ -78,6 +79,11 @@ static ssize_t attribute_store(struct kobject *kobj, struct kobj_attribute *attr
         printk("%s: Setting new otg1 controllermode (%d)\n", __func__, var);
         ret = otgcontrol_handleInput(otgc_data, OTG1_EVENT__MODE_CHANGE_REQUESTED, (void*)&var);
     }
+    else if (strcmp(attr->attr.name, "otg1_pinctrlstate") == 0) {
+        otgc_data = to_otgcontrol_data(attr, otg1_pinctrlstate_attribute);
+        printk("%s: Setting new pinctrlstate (%d)\n", __func__, var);
+        ret = otgcontrol_switch_one_wire_mux_state(otgc_data, var);
+    }
     else {
         return -EINVAL;
     }
@@ -123,10 +129,18 @@ int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
                                     attribute_show,
                                     attribute_store);
 
+    otgcontrol_create_kobj_property(&otgc_data->otg1_pinctrlstate_attribute,
+                                    "otg1_pinctrlstate",
+                                    S_IRUGO | S_IWUSR,
+                                    attribute_show,
+                                    attribute_store);
+
+
     struct attribute *control_attrs[] = {
         &otgc_data->otg1_dr_mode_attribute.attr,
         &otgc_data->otg1_chargermode_attribute.attr,
         &otgc_data->otg1_controllermode_attribute.attr,
+        &otgc_data->otg1_pinctrlstate_attribute.attr,
         NULL,	/* need to NULL terminate the list of attributes */
     };
 
@@ -172,7 +186,7 @@ void otgcontrol_uninit_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 {
     printk("%s: Enter\n", __func__);
     printk("%s: Decrementing kobject refcount\n", __func__);
-    if(!IS_ERR(otgc_data->kobject)) {
+    if((otgc_data->kobject != NULL) && !IS_ERR(otgc_data->kobject)) {
         kobject_put(otgc_data->kobject);
         otgc_data->kobject = NULL;
     }

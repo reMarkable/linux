@@ -5,6 +5,7 @@
 
 static const unsigned int usb_extcon_cable[] = {
     EXTCON_USB_HOST,
+    EXTCON_NONE,
 };
 
 int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data)
@@ -22,6 +23,7 @@ int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data)
     ret = devm_extcon_dev_register(otgc_data->dev, otgc_data->extcon_dev);
     if (ret < 0) {
         dev_err(otgc_data->dev, "%s: Failed to register extcon device\n", __func__);
+        printk("%s: De-allocating extcon device\n", __func__);
         kfree(otgc_data->extcon_dev);
         otgc_data->extcon_dev = NULL;
         return ret;
@@ -32,7 +34,7 @@ int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data)
 
 void otgcontrol_uninit_extcon(struct rm_otgcontrol_data *otgc_data)
 {
-    if (!IS_ERR(otgc_data->extcon_dev)) {
+    if ((otgc_data->extcon_dev != NULL) && !IS_ERR(otgc_data->extcon_dev)) {
         devm_extcon_dev_unregister(otgc_data->dev, otgc_data->extcon_dev);
         kfree(otgc_data->extcon_dev);
         otgc_data->extcon_dev = NULL;
