@@ -1308,6 +1308,13 @@ static int otgcontrol_do_set_controlmode(
 		otgc_data->otg1_controllermode = OTG_MODE__ONEWIRE_AUTH;
 
 		otgcontrol_deactivate_gpio_irq(otgc_data);
+
+		/* Also do a disconnect procedure, setting the charger back
+		 * to charger mode and the OTG USB device back to device mode
+		 * until proper authenticated device connection has been
+		 * implemented
+		 */
+		otgcontrol_do_device_disconnected_procedure(otgc_data);
 		break;
 
 	case OTG_MODE__USB_NO_AUTH:
@@ -1318,6 +1325,13 @@ static int otgcontrol_do_set_controlmode(
 				"(DEVICE CONNECTED)\n",
 				__func__);
 
+			/* Due to the fact that this mode is intended for the
+			 * test-application requiring un-authenticated USB
+			 * equipment to be connected, just enable OTG mode
+			 * since the device is already connected when switching
+			 * to this mode, to prevent need for unplug and replug
+			 */
+			otgcontrol_do_device_connected_procedure(otgc_data, false);
 			otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_DEVICE_CONNECTED;
 		}
 		else {
@@ -1326,6 +1340,12 @@ static int otgcontrol_do_set_controlmode(
 				"(DEVICE NOT CONNECTED)\n",
 				__func__);
 
+			/* Due to the fact that this device disconnection could
+			 * not be detected in other modes, just disable OTG mode
+			 * to make sure the charger mode is enabled since the
+			 * device is not connected - just to be sure
+			 */
+			otgcontrol_do_device_disconnected_procedure(otgc_data);
 			otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_NOT_CONNECTED;
 		}
 		otgc_data->otg1_controllermode = OTG_MODE__USB_NO_AUTH;
@@ -1507,13 +1527,14 @@ static int otgcontrol_do_device_disconnected_procedure(
 		return ret;
 	}
 
-	dev_dbg(otgc_data->dev,
-		"%s: Activating one-wire GPIO IRQ\n",
-		__func__);
-
 	/* otgcontrol_activate_gpio_irq(otgc_data);*/
-	if (otgc_data->otg1_controllermode == OTG_MODE__USB_NO_AUTH)
+	if (otgc_data->otg1_controllermode == OTG_MODE__USB_NO_AUTH) {
+		dev_dbg(otgc_data->dev,
+			"%s: Activating one-wire GPIO IRQ\n",
+			__func__);
+
 		otgcontrol_activate_gpio_irq(otgc_data);
+	}
 	return 0;
 }
 
