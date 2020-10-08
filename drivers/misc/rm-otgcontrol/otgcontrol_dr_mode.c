@@ -12,18 +12,34 @@ int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data)
 {
 	int ret;
 
-	printk("%s: Allocating extcon device\n", __func__);
-	otgc_data->extcon_dev = devm_extcon_dev_allocate(otgc_data->dev, usb_extcon_cable);
+	dev_dbg(otgc_data->dev,
+		"%s: Allocating extcon device\n",
+		__func__);
+
+	otgc_data->extcon_dev = devm_extcon_dev_allocate(otgc_data->dev,
+							 usb_extcon_cable);
 	if (IS_ERR(otgc_data->extcon_dev)) {
-		dev_err(otgc_data->dev, "%s: failed to allocate extcon device\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: failed to allocate extcon device\n",
+			__func__);
+
 		return -ENOMEM;
 	}
 
-	printk("%s: Registering extcon device\n", __func__);
+	dev_dbg(otgc_data->dev,
+		"%s: Registering extcon device\n",
+		__func__);
+
 	ret = devm_extcon_dev_register(otgc_data->dev, otgc_data->extcon_dev);
 	if (ret < 0) {
-		dev_err(otgc_data->dev, "%s: Failed to register extcon device\n", __func__);
-		printk("%s: De-allocating extcon device\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: Failed to register extcon device\n",
+			__func__);
+
+		dev_dbg(otgc_data->dev,
+			"%s: De-allocating extcon device\n",
+			__func__);
+
 		kfree(otgc_data->extcon_dev);
 		otgc_data->extcon_dev = NULL;
 		return ret;
@@ -46,17 +62,33 @@ int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_data, int mode)
 	switch(mode)
 	{
 	case OTG1_DR_MODE__DEVICE:
-		printk("%s: Switching OTG1 DR mode -> DEVICE\n", __func__);
-		return extcon_set_state_sync(otgc_data->extcon_dev, EXTCON_USB_HOST, false);
+		dev_dbg(otgc_data->dev,
+			"%s: Switching OTG1 DR mode -> DEVICE\n",
+			__func__);
+
+		return extcon_set_state_sync(otgc_data->extcon_dev,
+					     EXTCON_USB_HOST,
+					     false);
+
 		break;
 
 	case OTG1_DR_MODE__HOST:
-		printk("%s: Switching OTG1 DR mode -> HOST\n", __func__);
-		return extcon_set_state_sync(otgc_data->extcon_dev, EXTCON_USB_HOST, true);
+		dev_dbg(otgc_data->dev,
+			"%s: Switching OTG1 DR mode -> HOST\n",
+			__func__);
+
+		return extcon_set_state_sync(otgc_data->extcon_dev,
+					     EXTCON_USB_HOST,
+					     true);
+
 		break;
 
 	default:
-		printk("%s: unable to switch OTG1 DR mode (unknown mode %d)\n", __func__, mode);
+		dev_dbg(otgc_data->dev,
+			"%s: unable to switch OTG1 DR mode (unknown mode %d)\n",
+			__func__,
+			mode);
+
 		return -EINVAL;
 	}
 	return 0;

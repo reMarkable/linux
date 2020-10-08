@@ -3,8 +3,8 @@
 
 #include <linux/rm-otgcontrol.h>
 
-#define OTG1_DR_MODE__DEVICE                            0
-#define OTG1_DR_MODE__HOST                              1
+#define OTG1_DR_MODE__DEVICE	0
+#define OTG1_DR_MODE__HOST	1
 
 int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data);
 void otgcontrol_uninit_extcon(struct rm_otgcontrol_data *otgc_data);

@@ -2,7 +2,6 @@
 #include "otgcontrol_fsm.h"
 
 #include <linux/export.h>
-#include <linux/printk.h>
 #include <linux/errno.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/irq.h>
@@ -11,47 +10,78 @@
 #include <linux/gpio/consumer.h>
 #include <linux/fs.h>
 #include <asm/uaccess.h>
+#include <linux/mutex.h>
 
-#define DEBUG
-
-#define ONE_WIRE_GPIO_DEBOUNCE_MS							500	/* ms */
+#define ONE_WIRE_GPIO_DEBOUNCE_MS	500	/* ms */
 
 int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 {
 	int ret;
 
-	pr_info("%s: Initiating one-wire pinctrl states\n", __func__);
+	dev_dbg(otgc_data->dev,
+		"%s: Initiating one-wire pinctrl states\n",
+		__func__);
+
 	otgc_data->one_wire_pinctrl = devm_pinctrl_get(otgc_data->dev);
 	if (IS_ERR(otgc_data->one_wire_pinctrl)) {
-		dev_err(otgc_data->dev, "%s: Failed to get pinctrl\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: Failed to get pinctrl\n",
+			__func__);
+
 		return PTR_ERR(otgc_data->one_wire_pinctrl);
 	}
 
-	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO] = pinctrl_lookup_state(otgc_data->one_wire_pinctrl, "default");
+	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO] =
+			pinctrl_lookup_state(otgc_data->one_wire_pinctrl,
+					     "default");
+
 	if (IS_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO])) {
-		dev_err(otgc_data->dev, "%s: Failed to configure one-wire-gpio state\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: Failed to configure one-wire-gpio state\n",
+			__func__);
+
 		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
 		return PTR_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO]);
 	}
 
-	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX] = pinctrl_lookup_state(otgc_data->one_wire_pinctrl, "one_wire_uart_tx");
+	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX] =
+			pinctrl_lookup_state(otgc_data->one_wire_pinctrl,
+					     "one_wire_uart_tx");
+
 	if (IS_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX])) {
-		dev_err(otgc_data->dev, "%s: Failed to configure one-wire-uart-tx state\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: Failed to configure one-wire-uart-tx state\n",
+			__func__);
+
 		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
 		return PTR_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX]);
 	}
 
-	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX] = pinctrl_lookup_state(otgc_data->one_wire_pinctrl, "one_wire_uart_rx");
+	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX] =
+			pinctrl_lookup_state(otgc_data->one_wire_pinctrl,
+					     "one_wire_uart_rx");
+
 	if (IS_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX])) {
-		dev_err(otgc_data->dev, "%s: Failed to configure one-wire-uart-rx\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: Failed to configure one-wire-uart-rx\n",
+			__func__);
+
 		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
 		return PTR_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX]);
 	}
 
-	pr_info("%s: Setting default state (GPIO)\n", __func__);
-	ret = pinctrl_select_state(otgc_data->one_wire_pinctrl, otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO]);
+	dev_dbg(otgc_data->dev,
+		"%s: Setting default state (GPIO)\n",
+		__func__);
+
+	ret = pinctrl_select_state(
+		otgc_data->one_wire_pinctrl,
+		otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO]);
 	if (ret < 0) {
-		dev_err(otgc_data->dev, "%s: Failed to set default state (GPIO)\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: Failed to set default state (GPIO)\n",
+			__func__);
+
 		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
 		return ret;
 	}
@@ -60,47 +90,72 @@ int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 
 void otgcontrol_uninit_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 {
-	if ((otgc_data->one_wire_pinctrl != NULL) && !IS_ERR(otgc_data->one_wire_pinctrl)) {
+	if ((otgc_data->one_wire_pinctrl != NULL) &&
+	     !IS_ERR(otgc_data->one_wire_pinctrl)) {
 		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
 		otgc_data->one_wire_pinctrl = NULL;
 	}
 }
 
-int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data, int state)
+int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
+					 int state)
 {
 	int ret;
 
 	switch(state)
 	{
 	case OTG1_ONEWIRE_STATE__GPIO:
-		pr_info("%s: Switching onewire state -> GPIO\n", __func__);
-		ret = pinctrl_select_state(otgc_data->one_wire_pinctrl, otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO]);
+		dev_dbg(otgc_data->dev,
+			"%s: Switching onewire state -> GPIO\n",
+			__func__);
+
+		ret = pinctrl_select_state(
+			otgc_data->one_wire_pinctrl,
+			otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO]);
 		if (ret < 0) {
-			dev_err(otgc_data->dev, "%s: Failed to set pinctrl state\n", __func__);
+			dev_err(otgc_data->dev,
+				"%s: Failed to set pinctrl state\n",
+				__func__);
 			return ret;
 		}
 		break;
 
 	case OTG1_ONEWIRE_STATE__UART_RX:
-		pr_info("%s: Switching onewire state -> UART RX\n", __func__);
-		ret = pinctrl_select_state(otgc_data->one_wire_pinctrl, otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX]);
+		dev_dbg(otgc_data->dev,
+			"%s: Switching onewire state -> UART RX\n",
+			__func__);
+
+		ret = pinctrl_select_state(
+			otgc_data->one_wire_pinctrl,
+			otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX]);
 		if (ret < 0) {
-			dev_err(otgc_data->dev, "%s: Failed to set pinctrl state\n", __func__);
+			dev_err(otgc_data->dev,
+				"%s: Failed to set pinctrl state\n",
+				__func__);
 			return ret;
 		}
 		break;
 
 	case OTG1_ONEWIRE_STATE__UART_TX:
-		pr_info("%s: switching onewire state -> UART TX\n", __func__);
-		ret = pinctrl_select_state(otgc_data->one_wire_pinctrl, otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX]);
+		dev_dbg(otgc_data->dev,
+			"%s: switching onewire state -> UART TX\n",
+			__func__);
+
+		ret = pinctrl_select_state(
+			otgc_data->one_wire_pinctrl,
+			otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX]);
 		if (ret < 0) {
-			dev_err(otgc_data->dev, "%s: Failed to set pinctrl state\n", __func__);
+			dev_err(otgc_data->dev,
+				"%s: Failed to set pinctrl state\n",
+				__func__);
 			return ret;
 		}
 		break;
 
 	default:
-		dev_err(otgc_data->dev, "%s: unable to switch onewire state (unknown state %d)\n", __func__, state);
+		dev_err(otgc_data->dev,
+			"%s: unable to switch onewire state (unknown state %d)\n",
+			__func__, state);
 		return -EINVAL;
 	}
 
@@ -131,50 +186,85 @@ int otgcontrol_init_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 {
 	int ret;
 
-	pr_info("%s: Setting local gpio debounce jiffies\n", __func__);
-	otgc_data->one_wire_gpio_debounce_jiffies = msecs_to_jiffies(ONE_WIRE_GPIO_DEBOUNCE_MS);
+	dev_dbg(otgc_data->dev,
+		"%s: Setting local gpio debounce jiffies\n",
+		__func__);
 
-	pr_info("%s: Initiating irq worker\n", __func__);
-	INIT_DELAYED_WORK(&otgc_data->one_wire_gpio_irq_work_queue, otgcontrol_gpio_irq_work);
+	otgc_data->one_wire_gpio_debounce_jiffies =
+			msecs_to_jiffies(ONE_WIRE_GPIO_DEBOUNCE_MS);
 
-	pr_info("%s: Getting IRQ from given gpio (%d)\n",
+	dev_dbg(otgc_data->dev,
+		"%s: Initiating irq worker\n",
+		__func__);
+
+	INIT_DELAYED_WORK(&otgc_data->one_wire_gpio_irq_work_queue,
+			  otgcontrol_gpio_irq_work);
+
+	dev_dbg(otgc_data->dev,
+		"%s: Getting IRQ from given gpio (%d)\n",
 		   __func__,
 		   desc_to_gpio(otgc_data->one_wire_gpio));
+
 	otgc_data->one_wire_gpio_irq = gpiod_to_irq(otgc_data->one_wire_gpio);
 	if (otgc_data->one_wire_gpio_irq < 0) {
-		dev_err(otgc_data->dev, "%s: Failed to get irq for given gpio (%d)\n",
-				__func__,
-				desc_to_gpio(otgc_data->one_wire_gpio));
+		dev_err(otgc_data->dev,
+			"%s: Failed to get irq for given gpio (%d)\n",
+			__func__,
+			desc_to_gpio(otgc_data->one_wire_gpio));
 		return otgc_data->one_wire_gpio_irq;
 	}
 
-	otgc_data->one_wire_gpio_state = otgcontrol_get_current_gpio_state(otgc_data);
-	pr_info("%s: Current GPIO state: %s\n", __func__, otgcontrol_gpio_state_name(otgc_data->one_wire_gpio_state));
+	otgc_data->one_wire_gpio_state =
+			otgcontrol_get_current_gpio_state(otgc_data);
 
-	pr_info("%s: Clearing is-handling flag\n", __func__);
+	dev_dbg(otgc_data->dev,
+		"%s: Current GPIO state: %s\n",
+		__func__,
+		otgcontrol_gpio_state_name(otgc_data->one_wire_gpio_state));
+
+	dev_dbg(otgc_data->dev,
+		"%s: Clearing is-handling flag\n",
+		__func__);
+
 	otgc_data->one_wire_gpio_irq_is_handling = false;
 
-	pr_info("%s: Requesting threaded irq\n", __func__);
-	ret = devm_request_threaded_irq(otgc_data->dev, otgc_data->one_wire_gpio_irq, NULL,
-					otgcontrol_gpio_irq_handler,
-					IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-					"one_wire_gpio_irq", otgc_data);
+	dev_dbg(otgc_data->dev,
+		"%s: Requesting threaded irq\n",
+		__func__);
+
+	ret = devm_request_threaded_irq(
+		otgc_data->dev,
+		otgc_data->one_wire_gpio_irq,
+		NULL,
+		otgcontrol_gpio_irq_handler,
+		IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+		"one_wire_gpio_irq",
+		otgc_data);
 	if (ret < 0) {
-		dev_err(otgc_data->dev, "%s: Failed to request handler for IRQ (%d) given for GPIO (%d)\n",
-				__func__,
-				otgc_data->one_wire_gpio_irq,
-				desc_to_gpio(otgc_data->one_wire_gpio));
+		dev_err(otgc_data->dev,
+			"%s: Failed to request handler for IRQ (%d) "
+			"given for GPIO (%d)\n",
+			__func__,
+			otgc_data->one_wire_gpio_irq,
+			desc_to_gpio(otgc_data->one_wire_gpio));
 		return ret;
 	}
+	mutex_lock(&otgc_data->lock);
 	otgc_data->one_wire_gpio_irq_is_active = true;
+	mutex_unlock(&otgc_data->lock);
 
 	return 0;
 }
 
 void otgcontrol_uninit_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 {
-	printk("%s: Freeing irq\n", __func__);
-	devm_free_irq(otgc_data->dev, otgc_data->one_wire_gpio_irq, otgc_data);
+	dev_dbg(otgc_data->dev,
+		"%s: Freeing irq\n",
+		__func__);
+
+	devm_free_irq(otgc_data->dev,
+		      otgc_data->one_wire_gpio_irq,
+		      otgc_data);
 }
 
 void otgcontrol_activate_gpio_irq(struct rm_otgcontrol_data *otgc_data)
@@ -198,13 +288,22 @@ static irqreturn_t otgcontrol_gpio_irq_handler(int irq, void *data)
 	struct rm_otgcontrol_data *otgc_data = (struct rm_otgcontrol_data*)data;
 
 	if (otgc_data->one_wire_gpio_irq_is_handling) {
-		pr_info("%s: Is already handling irq, ignoring this\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Is already handling irq, ignoring this\n",
+			__func__);
 		return IRQ_HANDLED;
 	}
 	else {
-		pr_info("%s: Queueing IRQ handling for execution in %d ms\n", __func__, ONE_WIRE_GPIO_DEBOUNCE_MS);
+		dev_dbg(otgc_data->dev,
+			"%s: Queueing IRQ handling for execution in %d ms\n",
+			__func__,
+			ONE_WIRE_GPIO_DEBOUNCE_MS);
+
 		otgc_data->one_wire_gpio_irq_is_handling = true;
-		queue_delayed_work(system_power_efficient_wq, &otgc_data->one_wire_gpio_irq_work_queue, otgc_data->one_wire_gpio_debounce_jiffies);
+
+		queue_delayed_work(system_power_efficient_wq,
+				   &otgc_data->one_wire_gpio_irq_work_queue,
+				   otgc_data->one_wire_gpio_debounce_jiffies);
 	}
 
 	return IRQ_HANDLED;
@@ -214,26 +313,50 @@ static void otgcontrol_gpio_irq_work(struct work_struct *work)
 {
 	int cur_gpio_state;
 
-	struct delayed_work *delayed_work = container_of(work, struct delayed_work, work);
-	struct rm_otgcontrol_data *otgc_data = container_of(delayed_work, struct rm_otgcontrol_data, one_wire_gpio_irq_work_queue);
+	struct delayed_work *delayed_work =
+			container_of(work,
+				     struct delayed_work,
+				     work);
 
-	pr_info("%s: Checking current gpio state\n", __func__);
+	struct rm_otgcontrol_data *otgc_data =
+			container_of(delayed_work,
+				     struct rm_otgcontrol_data,
+				     one_wire_gpio_irq_work_queue);
+
+	dev_dbg(otgc_data->dev,
+		"%s: Checking current gpio state\n",
+		__func__);
+
 	cur_gpio_state = otgcontrol_get_current_gpio_state(otgc_data);
 	if (cur_gpio_state != otgc_data->one_wire_gpio_state) {
-		pr_info("%s: GPIO state changed -> %s\n", __func__, otgcontrol_gpio_state_name(cur_gpio_state));
+		dev_dbg(otgc_data->dev,
+			"%s: GPIO state changed -> %s\n",
+			__func__,
+			otgcontrol_gpio_state_name(cur_gpio_state));
+
 		otgc_data->one_wire_gpio_state = cur_gpio_state;
 
-		if (otgc_data->one_wire_gpio_state == OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED)
-			otgcontrol_handleInput(otgc_data, OTG1_EVENT__DEVICE_CONNECTED, NULL);
+		if (otgc_data->one_wire_gpio_state ==
+				OTG1_ONEWIRE_GPIO_STATE__DEVICE_CONNECTED)
+			otgcontrol_handleInput(otgc_data,
+					       OTG1_EVENT__DEVICE_CONNECTED,
+					       NULL);
 		else
-			otgcontrol_handleInput(otgc_data, OTG1_EVENT__DEVICE_DISCONNECTED, NULL);
+			otgcontrol_handleInput(otgc_data,
+					       OTG1_EVENT__DEVICE_DISCONNECTED,
+					       NULL);
 	}
 
-	pr_info("%s: Resetting is-handling flag\n", __func__);
+	dev_dbg(otgc_data->dev,
+		"%s: Resetting is-handling flag\n",
+		__func__);
+
 	otgc_data->one_wire_gpio_irq_is_handling = false;
 }
 
-int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data, char *device_name, char *text_to_send)
+int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data,
+				 char *device_name,
+				 char *text_to_send)
 {
 	// Create variables
 	struct file *f;
@@ -245,31 +368,55 @@ int otgcontrol_onewire_write_tty(struct rm_otgcontrol_data *otgc_data, char *dev
 	for(i = 0;i < 128;i++)
 		buf[i] = 0;
 
-	pr_info("%s: Trying to open %s\n", __func__, device_name);
+	dev_dbg(otgc_data->dev, "%s: Trying to open %s\n",
+		__func__,
+		device_name);
+
 	f = filp_open(device_name, O_RDWR, 0);
 	if(f == NULL) {
-		dev_err(otgc_data->dev, "%s: filp_open error!!.\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: filp_open error!!.\n",
+			__func__);
 		return -1;
 	}
 	else {
 		// Get current segment descriptor
-		pr_info("%s: Getting current segment descriptor\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Getting current segment descriptor\n",
+			__func__);
+
 		fs = get_fs();
 
 		// Set segment descriptor associated to kernel space
-		pr_info("%s: Setting segment descriptor\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Setting segment descriptor\n",
+			__func__);
+
 		set_fs(get_ds());
 
 		//Write to the file
-		pr_info("%s: Writing '%s' to file\n", __func__, text_to_send);
-		kernel_write(f, text_to_send, strlen(text_to_send), &f->f_pos);
+		dev_dbg(otgc_data->dev,
+			"%s: Writing '%s' to file\n",
+			__func__,
+			text_to_send);
+
+		kernel_write(f,
+			     text_to_send,
+			     strlen(text_to_send),
+			     &f->f_pos);
 //        f->f_op->write(f, text_to_send, strlen(text_to_send), &f->f_pos);
 
 		// Restore segment descriptor
-		pr_info("%s: Restoring segment descriptor\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Restoring segment descriptor\n",
+			__func__);
+
 		set_fs(fs);
 
-		pr_info("%s: Closing file\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Closing file\n",
+			__func__);
+
 		filp_close(f,NULL);
 		return 0;
 	}
@@ -285,33 +432,54 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 
 	f = filp_open(device_name, O_RDONLY, 0);
 	if(f == NULL) {
-		dev_err(otgc_data->dev, "%s: filp_open error!!.\n", __func__);
+		dev_err(otgc_data->dev,
+			"%s: filp_open error!!.\n",
+			__func__);
 		return -1;
 	}
 	else {
 
 		// Get current segment descriptor
-		pr_info("%s: Getting current segment descriptor\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Getting current segment descriptor\n",
+			__func__);
+
 		fs = get_fs();
 
 		// Set segment descriptor associated to kernel space
-		pr_info("%s: Setting segment descriptor\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Setting segment descriptor\n",
+			__func__);
+
 		set_fs(get_ds());
 
 		pos = 0;
 		int state = 0;
-		pr_info("%s: Starting read loop\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Starting read loop\n",
+			__func__);
 		do {
 			// Read the file
 //            f->f_op->read(f, &newchar, 1, &f->f_pos);
-			kernel_read(f, &newchar, 1, &f->f_pos);
-			pr_info("%s: <-%c (0x%02x)\n", __func__, newchar, newchar);
+			kernel_read(f,
+				    &newchar,
+				    1,
+				    &f->f_pos);
+
+			dev_dbg(otgc_data->dev,
+				"%s: <-%c (0x%02x)\n",
+				__func__,
+				newchar, newchar);
+
 			switch(state)
 			{
 			case 0:
 				// Wait :
 				if (newchar == ':') {
-					pr_info("%s: SOF\n", __func__);
+					dev_dbg(otgc_data->dev,
+						"%s: SOF\n",
+						__func__);
+
 					state = 1;
 				}
 				break;
@@ -322,16 +490,29 @@ int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data, char 
 				}
 			}
 		}while((newchar != '#') && (pos < maxlen));
-		pr_info("%s: Done\n", __func__);
+
+		dev_dbg(otgc_data->dev,
+			"%s: Done\n",
+			__func__);
 
 		// Restore segment descriptor
-		pr_info("%s: Restoring segment descriptor\n", __func__);
+		dev_dbg(otgc_data->dev,
+			"%s: Restoring segment descriptor\n",
+			__func__);
+
 		set_fs(fs);
 
-		pr_info("%s: Closing file\n", __func__);
-		filp_close(f,NULL);
+		dev_dbg(otgc_data->dev,
+			"%s: Closing file\n",
+			__func__);
 
-		pr_info("%s: Returning %d bytes read\n", __func__, pos);
+		filp_close(f, NULL);
+
+		dev_dbg(otgc_data->dev,
+			"%s: Returning %d bytes read\n",
+			__func__,
+			pos);
+
 		return pos;
 	}
 }
