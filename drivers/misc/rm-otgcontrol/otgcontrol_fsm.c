@@ -827,7 +827,7 @@ static int otgcontrol_do_device_connected_procedure(struct rm_otgcontrol_data *o
 		printk("%s: Sending authentication challenge\n", __func__);
 		char tty_device_name[50], buf[100];
 		sprintf(tty_device_name, "/dev/%s", otgc_data->one_wire_tty_name);
-		ret = otgcontrol_onewire_write_tty("/dev/ttymxc5", ":0001ff#");
+		ret = otgcontrol_onewire_write_tty(otgc_data, "/dev/ttymxc5", ":0001ff#");
 		if (ret < 0)
 		{
 			printk("%s: Failed to send authentication challenge to connected device\n", __func__);
@@ -848,7 +848,7 @@ static int otgcontrol_do_device_connected_procedure(struct rm_otgcontrol_data *o
 		/* Wait for response or timeout */
 		printk("%s: Waiting for response from connected device\n", __func__);
 		/* For now, just block here until response has been received */
-		int count = otgcontrol_onewire_read_until_cr("/dev/ttymxc5", buf, 100);
+		int count = otgcontrol_onewire_read_until_cr(otgc_data, "/dev/ttymxc5", buf, 100);
 		buf[count] = 0;
 		printk("%s: Read '%s'", __func__, buf);
 
@@ -867,7 +867,7 @@ static int otgcontrol_do_device_connected_procedure(struct rm_otgcontrol_data *o
 	else
 	{
 		printk("%s: Authentication not required, activating USB connection (i.e. enabling host mode)\n", __func__);
-		otgcontrol_do_set_controlmode(otgc_data, OTG1_DR_MODE__HOST);
+		otgcontrol_set_dr_mode(otgc_data, OTG1_DR_MODE__HOST);
 		otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_DEVICE_CONNECTED;
 		return 0;
 	}
@@ -883,7 +883,7 @@ static int otgcontrol_do_device_disconnected_procedure(struct rm_otgcontrol_data
 		return ret;
 	}
 
-	ret = otgcontrol_do_set_controlmode(otgc_data, OTG1_DR_MODE__DEVICE);
+	ret = otgcontrol_set_dr_mode(otgc_data, OTG1_DR_MODE__DEVICE);
 	if (ret < 0) {
 		printk("%s: Unable to set USB OTG device mode\n", __func__);
 		return ret;

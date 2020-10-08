@@ -210,6 +210,8 @@ error_2:
 error_3:
 	otgcontrol_uninit_sysfs_nodes(otgc_data);
 	otgcontrol_uninit_extcon(otgc_data);
+	otgcontrol_uninit_one_wire_mux_state(otgc_data);
+	otgcontrol_uninit_gpio_irq(otgc_data);
 	kfree(pdata);
 	kfree(otgc_data);
 	return ret;
