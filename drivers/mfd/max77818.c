@@ -151,12 +151,13 @@ static int max77818_i2c_probe(struct i2c_client *client,
 
 	me->chg = i2c_new_dummy(client->adapter, I2C_ADDR_CHARGER);
 	if (!me->chg) {
-		dev_err(me->dev, "failed to allocate I2C device for CHG\n");
-		return -ENODEV;
+		dev_warn(me->dev, "failed to allocate I2C device for CHG\n");
 	}
-	i2c_set_clientdata(me->chg, me);
+	else {
+		i2c_set_clientdata(me->chg, me);
+	}
 
-	me->fg= i2c_new_dummy(client->adapter, I2C_ADDR_FUEL_GAUGE);
+	me->fg = i2c_new_dummy(client->adapter, I2C_ADDR_FUEL_GAUGE);
 	if (!me->fg) {
 		dev_err(me->dev, "failed to allocate I2C device for FG\n");
 		goto unreg_chg;
@@ -166,8 +167,7 @@ static int max77818_i2c_probe(struct i2c_client *client,
 	me->regmap_chg = devm_regmap_init_i2c(me->chg, &max77818_regmap_config);
 	if (IS_ERR(me->regmap_chg)) {
 		ret = PTR_ERR(me->regmap_chg);
-		dev_err(me->dev, "failed to initialize CHG regmap: %d\n", ret);
-		goto unreg_fg;
+		dev_warn(me->dev, "failed to initialize CHG regmap: %d\n", ret);
 	}
 
 	me->regmap_fg= devm_regmap_init_i2c(me->fg, &max77818_regmap_config_fg);
@@ -200,8 +200,7 @@ static int max77818_i2c_probe(struct i2c_client *client,
 				  IRQF_ONESHOT | IRQF_SHARED, 0,
 				  &max77818_chg_irq_chip, &me->irqc_chg);
 	if (ret) {
-		dev_err(me->dev, "failed to add chg irq chip: %d\n", ret);
-		goto del_irqc_sys;
+		dev_warn(me->dev, "failed to add chg irq chip: %d\n", ret);
 	}
 
 	pm_runtime_set_active(me->dev);
@@ -227,6 +226,7 @@ unreg_fg:
 	i2c_unregister_device(me->fg);
 unreg_chg:
 	i2c_unregister_device(me->chg);
+
 	return ret;
 }
 
@@ -241,7 +241,10 @@ static int max77818_i2c_remove(struct i2c_client *client)
 	regmap_del_irq_chip(me->irq, me->irqc_intsrc);
 
 	i2c_unregister_device(me->fg);
-	i2c_unregister_device(me->chg);
+
+	if (me->chg) {
+		i2c_unregister_device(me->chg);
+	}
 
 	return 0;
 }
