@@ -6,9 +6,9 @@
 #include <linux/workqueue.h>
 #include <linux/interrupt.h>
 
-#define OTG1_ONEWIRE_STATE__GPIO        0
-#define OTG1_ONEWIRE_STATE__UART_TX     1
-#define OTG1_ONEWIRE_STATE__UART_RX     2
+#define OTG1_ONEWIRE_STATE__GPIO							0
+#define OTG1_ONEWIRE_STATE__UART_TX							1
+#define OTG1_ONEWIRE_STATE__UART_RX							2
 
 int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data);
 void otgcontrol_uninit_onw_wire_mux_state(struct rm_otgcontrol_data *otgc_data);
@@ -20,5 +20,7 @@ void otgcontrol_activate_gpio_irq(struct rm_otgcontrol_data *otgc_data);
 void otgcontrol_deactivate_gpio_irq(struct rm_otgcontrol_data *otgc_data);
 static irqreturn_t otgcontrol_gpio_irq_handler(int irq, void *data);
 static void otgcontrol_gpio_irq_work(struct work_struct *work);
+int otgcontrol_onewire_read_until_cr(char *device_name, char *buf, int maxlen);
+int otgcontrol_onewire_write_tty(char *device_name, char *text_to_send);
 
 #endif /* __OTGCONTROL_ONE_WIRE_H__ */
