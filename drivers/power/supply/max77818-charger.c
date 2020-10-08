@@ -268,7 +268,7 @@ static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 	}
 	else {
 		dev_warn(chg->dev,
-			"chgin-stat-gpio not configured, connection "
+			"chgin-stat-gpio not configured, chgin connection "
 			"status not available\n");
 		return false;
 	}
@@ -318,7 +318,7 @@ static bool max77818_charger_wcin_present(struct max77818_charger *chg)
 	}
 	else {
 		dev_warn(chg->dev,
-			"wcin-stat-gpio not configured, connection "
+			"wcin-stat-gpio not configured, wcin connection "
 			"status not available\n");
 		return false;
 	}
@@ -1025,8 +1025,8 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 	if (IS_ERR(gdp)) {
 		if (PTR_ERR(gdp) != -ENOENT)
 			dev_warn(chg->dev,
-				"chgin-stat GPIO not given in DT, "
-				"chgin connection status not available\n");
+				 "chgin-stat GPIO not given in DT, "
+				 "chgin connection status not available\n");
 
 		if (PTR_ERR(gdp) != -ENOSYS)
 			dev_warn(chg->dev,
@@ -1044,13 +1044,13 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 	if (IS_ERR(gdp)) {
 		if (PTR_ERR(gdp) != -ENOENT)
 			dev_warn(chg->dev,
-				"wcin-stat GPIO not given in DT, "
-				"wcin connection status not available\n");
+				 "wcin-stat GPIO not given in DT, "
+				 "wcin connection status not available\n");
 
 		if (PTR_ERR(gdp) != -ENOSYS)
 			dev_warn(chg->dev,
-				"wcin-stat GPIO given is not valid, "
-				"wcin connection status not available\n");
+				 "wcin-stat GPIO given is not valid, "
+				 "wcin connection status not available\n");
 	}
 	else {
 		chg->wcin_stat_gpio = gdp;

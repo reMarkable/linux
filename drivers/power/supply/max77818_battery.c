@@ -1308,7 +1308,6 @@ static void max77818_charger_detection_worker_usb1(struct work_struct *work)
 	struct max77818_chip *chip = container_of(work,
 						  struct max77818_chip,
 						  charger_detection_work[0]);
-	bool restore_state;
 	unsigned int min_current, max_current;
 	union power_supply_propval val;
 	int ret;
@@ -1376,12 +1375,11 @@ static void max77818_charger_detection_worker_usb2(struct work_struct *work)
 	struct max77818_chip *chip = container_of(work,
 						  struct max77818_chip,
 						  charger_detection_work[1]);
-	bool restore_state;
 	unsigned int min_current, max_current;
 	union power_supply_propval val;
 	int ret;
 
-	dev_dbg(chip->dev, "Doing charger notification work for USB-C interface..\n");
+	dev_dbg(chip->dev, "Doing charger notification work for wcin interface..\n");
 
 	if (!chip->charger) {
 		dev_err(chip->dev,
@@ -1463,7 +1461,7 @@ static int max77818_charger_detection_notifier_call_usb2(struct notifier_block *
 						  charger_detection_nb[1]);
 
 	dev_dbg(chip->dev,
-		"Handling charger detection notification from USB-C interface "
+		"Handling charger detection notification from wcin interface "
 		"(max current: %lu)\n", val);
 
 	schedule_work(&chip->charger_detection_work[1]);
@@ -1532,7 +1530,7 @@ static int max77818_probe(struct platform_device *pdev)
 
 	dev_dbg(dev,
 		"Trying to reference usb-phy2 (for receiving charger "
-		"detection notifications for USB-C interface\n");
+		"detection notifications for wcin interface\n");
 	chip->usb_phy[1]= devm_usb_get_phy_by_phandle(dev, "usb-phy2", 0);
 	if (IS_ERR(chip->usb_phy[1])) {
 		ret = PTR_ERR(chip->usb_phy[1]);
@@ -1556,7 +1554,7 @@ static int max77818_probe(struct platform_device *pdev)
 
 	dev_dbg(dev,
 		"Trying to register notification handler (worker) for "
-		"USB-C interface charger detection notifications \n");
+		"wcin interface charger detection notifications \n");
 	INIT_WORK(&chip->charger_detection_work[1],
 		  max77818_charger_detection_worker_usb2);
 	chip->charger_detection_nb[1].notifier_call =
