@@ -391,13 +391,25 @@ max77818_charger_set_chgin_current_limit(struct max77818_charger *chg,
 {
 	int quotient, remainder;
 	u8 val = 0;
+	int ret;
 
 	if(IS_ERR_OR_NULL(chg->regmap)) {
 		dev_warn(chg->dev, "unable to read from charger device\n");
 		return -ENODEV;
 	}
 
-	if (input_current) {
+	if (input_current == 0) {
+		ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_12,
+					 BIT_CHGINSEL, 0);
+		if (ret)
+			dev_warn(chg->dev, "Failed to clear CHGINSEL\n");
+	}
+	else {
+		ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_12,
+					 BIT_CHGINSEL, BIT_CHGINSEL);
+		if (ret)
+			dev_warn(chg->dev, "Failed to set CHGINSEL\n");
+
 		quotient = input_current / 100;
 		remainder = input_current % 100;
 

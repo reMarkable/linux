@@ -1335,7 +1335,7 @@ static void max77818_charger_detection_worker_chgin(struct work_struct *work)
 //	else
 //		val.intval = max_current;
 
-	val.intval = 100;
+	val.intval = 0;
 
 	ret = MAX77818_DO_NON_FGCC_OP(
 			chip->max77818_dev,
