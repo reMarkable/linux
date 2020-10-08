@@ -167,7 +167,7 @@ static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
 
 		ret = of_property_read_string(np,
 					      "one-wire-tty-name",
-					      &otgc_data->one_wire_tty_name);
+					      &otgc_data->pdata->one_wire_tty_name);
 		if (ret) {
 			dev_err(otgc_data->dev,
 				"%s: Failed to read property one-wire-tty-name "
@@ -188,16 +188,16 @@ static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
 			"%s: Found one-wire-gpio property, trying to read it\n",
 			__func__);
 
-		otgc_data->one_wire_gpio = devm_gpiod_get(otgc_data->dev,
+		otgc_data->pdata->one_wire_gpio = devm_gpiod_get(otgc_data->dev,
 							  "one-wire",
 							  GPIOD_IN);
-		if (IS_ERR(otgc_data->one_wire_gpio)) {
+		if (IS_ERR(otgc_data->pdata->one_wire_gpio)) {
 			dev_err(otgc_data->dev,
 				"%s: Failed to read property one-wire-gpio "
 				"(code %ld)\n",
 				__func__,
-				PTR_ERR(otgc_data->one_wire_gpio));
-			return PTR_ERR(otgc_data->one_wire_gpio);
+				PTR_ERR(otgc_data->pdata->one_wire_gpio));
+			return PTR_ERR(otgc_data->pdata->one_wire_gpio);
 		}
 	}
 	else {
