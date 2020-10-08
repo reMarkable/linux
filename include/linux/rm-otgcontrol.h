@@ -7,7 +7,13 @@
 #include <linux/extcon.h>
 
 struct rm_otgcontrol_platform_data {
+	/* Reference to charger driver for OTG power control */
 	struct power_supply		*vbus_supply;
+
+	/* One-wire tty device and gpio config */
+	const char				*one_wire_tty_name;
+	struct gpio_desc			*one_wire_gpio;
+	int					one_wire_gpio_irq;
 };
 
 struct rm_otgcontrol_data {
@@ -18,9 +24,6 @@ struct rm_otgcontrol_data {
 
 	struct extcon_dev			*extcon_dev;
 
-	const char				*one_wire_tty_name;
-	struct gpio_desc			*one_wire_gpio;
-	int					one_wire_gpio_irq;
 	unsigned long				one_wire_gpio_debounce_jiffies;
 	struct delayed_work			one_wire_gpio_irq_work_queue;
 	bool					one_wire_gpio_irq_is_active;

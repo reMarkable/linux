@@ -164,7 +164,7 @@ int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
 
 int otgcontrol_get_current_gpio_state(struct rm_otgcontrol_data *otgc_data)
 {
-	return gpiod_get_raw_value(otgc_data->one_wire_gpio);
+	return gpiod_get_raw_value(otgc_data->pdata->one_wire_gpio);
 }
 
 const char *otgcontrol_gpio_state_name(int state)
@@ -203,15 +203,15 @@ int otgcontrol_init_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 	dev_dbg(otgc_data->dev,
 		"%s: Getting IRQ from given gpio (%d)\n",
 		   __func__,
-		   desc_to_gpio(otgc_data->one_wire_gpio));
+		   desc_to_gpio(otgc_data->pdata->one_wire_gpio));
 
-	otgc_data->one_wire_gpio_irq = gpiod_to_irq(otgc_data->one_wire_gpio);
-	if (otgc_data->one_wire_gpio_irq < 0) {
+	otgc_data->pdata->one_wire_gpio_irq = gpiod_to_irq(otgc_data->pdata->one_wire_gpio);
+	if (otgc_data->pdata->one_wire_gpio_irq < 0) {
 		dev_err(otgc_data->dev,
 			"%s: Failed to get irq for given gpio (%d)\n",
 			__func__,
-			desc_to_gpio(otgc_data->one_wire_gpio));
-		return otgc_data->one_wire_gpio_irq;
+			desc_to_gpio(otgc_data->pdata->one_wire_gpio));
+		return otgc_data->pdata->one_wire_gpio_irq;
 	}
 
 	otgc_data->one_wire_gpio_state =
@@ -234,7 +234,7 @@ int otgcontrol_init_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 
 	ret = devm_request_threaded_irq(
 		otgc_data->dev,
-		otgc_data->one_wire_gpio_irq,
+		otgc_data->pdata->one_wire_gpio_irq,
 		NULL,
 		otgcontrol_gpio_irq_handler,
 		IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING | IRQF_ONESHOT,
@@ -245,8 +245,8 @@ int otgcontrol_init_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 			"%s: Failed to request handler for IRQ (%d) "
 			"given for GPIO (%d)\n",
 			__func__,
-			otgc_data->one_wire_gpio_irq,
-			desc_to_gpio(otgc_data->one_wire_gpio));
+			otgc_data->pdata->one_wire_gpio_irq,
+			desc_to_gpio(otgc_data->pdata->one_wire_gpio));
 		return ret;
 	}
 	mutex_lock(&otgc_data->lock);
@@ -263,14 +263,14 @@ void otgcontrol_uninit_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 		__func__);
 
 	devm_free_irq(otgc_data->dev,
-		      otgc_data->one_wire_gpio_irq,
+		      otgc_data->pdata->one_wire_gpio_irq,
 		      otgc_data);
 }
 
 void otgcontrol_activate_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 {
 	if (!otgc_data->one_wire_gpio_irq_is_active) {
-		enable_irq(otgc_data->one_wire_gpio_irq);
+		enable_irq(otgc_data->pdata->one_wire_gpio_irq);
 		otgc_data->one_wire_gpio_irq_is_active = true;
 	}
 }
@@ -278,7 +278,7 @@ void otgcontrol_activate_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 void otgcontrol_deactivate_gpio_irq(struct rm_otgcontrol_data *otgc_data)
 {
 	if (otgc_data->one_wire_gpio_irq_is_active) {
-		disable_irq(otgc_data->one_wire_gpio_irq);
+		disable_irq(otgc_data->pdata->one_wire_gpio_irq);
 		otgc_data->one_wire_gpio_irq_is_active = false;
 	}
 }
