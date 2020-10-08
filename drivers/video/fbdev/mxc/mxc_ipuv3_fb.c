@@ -34,6 +34,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
 #include <linux/fb.h>
+#include <linux/fbcon.h>
 #include <linux/fsl_devices.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -2021,9 +2022,9 @@ static int mxcfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 			fmt.var.activate = (fbi->var.activate & ~FB_ACTIVATE_MASK) |
 						FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
 			console_lock();
-			fbi->flags |= FBINFO_MISC_USEREVENT;
 			retval = fb_set_var(fbi, &fmt.var);
-			fbi->flags &= ~FBINFO_MISC_USEREVENT;
+			if (!retval)
+				fbcon_update_vcs(fbi, fbi->var.activate & FB_ACTIVATE_ALL);
 			console_unlock();
 			break;
 		}
@@ -3196,9 +3197,9 @@ static int mxcfb_register(struct fb_info *fbi)
 	if (!mxcfbi->late_init) {
 		fbi->var.activate |= FB_ACTIVATE_FORCE;
 		console_lock();
-		fbi->flags |= FBINFO_MISC_USEREVENT;
 		ret = fb_set_var(fbi, &fbi->var);
-		fbi->flags &= ~FBINFO_MISC_USEREVENT;
+		if (!ret)
+			fbcon_update_vcs(fbi, fbi->var.activate & FB_ACTIVATE_ALL);
 		console_unlock();
 		if (ret < 0) {
 			dev_err(fbi->device, "Error fb_set_var ret:%d\n", ret);
