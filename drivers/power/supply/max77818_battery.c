@@ -275,13 +275,10 @@ static int max77818_get_status(struct max77818_chip *chip, int *status)
 	return 0;
 }
 
-static int max77818_get_status_ex(struct max77818_chip *chip, int *status_ex)
+static void max77818_update_status_ex(struct max77818_chip *chip)
 {
 	union power_supply_propval val;
-	//bool restore_state;
 	int ret = 0;
-
-	mutex_lock(&chip->lock);
 
 	ret = MAX77818_DO_NON_FGCC_OP(
 			chip->max77818_dev,
@@ -289,23 +286,29 @@ static int max77818_get_status_ex(struct max77818_chip *chip, int *status_ex)
 						  POWER_SUPPLY_PROP_STATUS_EX,
 						  &val),
 			"Requesting status_ex from charger");
+
 	if (ret) {
 		dev_err(chip->dev,
-			"Changing status_ex -> UNKNOWN\n");
-		*status_ex = POWER_SUPPLY_STATUS_EX_UNKNOWN;
+			"Failed to read status_ex from charger, setting "
+			"status_ex = UNKNOWN\n");
+		chip->status_ex = POWER_SUPPLY_STATUS_EX_UNKNOWN;
 	}
 	else {
-		dev_dbg(chip->dev, "Changing status_ex -> %s\n",
-			max77818_status_ex_text[val.intval]);
-		*status_ex = val.intval;
+		if (val.intval < (sizeof(max77818_status_ex_text)/
+				  sizeof(max77818_status_ex_text[0])))
+			dev_dbg(chip->dev,
+				"Setting status_ex = %s\n",
+				max77818_status_ex_text[val.intval]);
+		else
+			dev_dbg(chip->dev,
+				"Unknown status_ex (%d) returned\n",
+				val.intval);
+
+		chip->status_ex = val.intval;
 	}
+
 	dev_dbg(chip->dev, "Sending status_ex change notification\n");
 	sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
-
-	power_supply_changed(chip->charger);
-
-	mutex_unlock(&chip->lock);
-	return 0;
 }
 
 static int max77818_get_battery_health(struct max77818_chip *chip, int *health)
@@ -1193,7 +1196,6 @@ static void max77818_charger_isr_work(struct work_struct *work)
 {
 	struct max77818_chip *chip =
 		container_of(work, struct max77818_chip, chg_isr_work);
-	int ret;
 
 	dev_dbg(chip->dev, "Changing status_ex -> CHANGING\n");
 	chip->status_ex = POWER_SUPPLY_STATUS_EX_CHANGING;
@@ -1202,15 +1204,7 @@ static void max77818_charger_isr_work(struct work_struct *work)
 	sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
 
 	dev_dbg(chip->dev, "Reading updated connection state from charger\n");
-	ret = max77818_get_status_ex(chip, &chip->status_ex);
-	if (ret) {
-		dev_err(chip->dev, "failed to read status_ex from charger\n");
-		chip->status_ex = POWER_SUPPLY_STATUS_EX_UNKNOWN;
-		sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
-	}
-
-	dev_dbg(chip->dev, "Sending status_ex change notification\n");
-	sysfs_notify(&chip->battery->dev.kobj, NULL, "status_ex");
+	max77818_update_status_ex(chip);
 }
 
 static irqreturn_t max77818_charger_connection_change_isr(int irq, void *data)
@@ -1316,7 +1310,10 @@ static void max77818_charger_detection_worker_chgin(struct work_struct *work)
 	struct max77818_chip *chip = container_of(work,
 						  struct max77818_chip,
 						  charger_detection_work[0]);
+	/*
 	unsigned int min_current, max_current;
+	*/
+
 	union power_supply_propval val;
 	int ret;
 
@@ -1328,12 +1325,14 @@ static void max77818_charger_detection_worker_chgin(struct work_struct *work)
 		return;
 	}
 
-//	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
-//	usb_phy_get_charger_current(chip->usb_phy[0], &min_current, &max_current);
-//	if (max_current == 0)
-//		val.intval = chip->usb_safe_max_current;
-//	else
-//		val.intval = max_current;
+	/*
+	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
+	usb_phy_get_charger_current(chip->usb_phy[0], &min_current, &max_current);
+	if (max_current == 0)
+		val.intval = chip->usb_safe_max_current;
+	else
+		val.intval = max_current;
+	*/
 
 	val.intval = 0;
 
@@ -1658,17 +1657,8 @@ static int max77818_do_initial_charger_sync(struct max77818_dev *max77818,
 		return ret;
 	}
 
-	ret = MAX77818_DO_NON_FGCC_OP(
-			max77818,
-			power_supply_get_property(chip->charger,
-						  POWER_SUPPLY_PROP_STATUS_EX,
-						  &val),
-			"Reading initial status_ex from charger\n");
-	if (ret) {
-		dev_err(chip->dev,
-			"Failed to read status_ex from charger\n");
-		return ret;
-	}
+	/* Do an initial connection status read from the charger driver */
+	max77818_update_status_ex(chip);
 
 	return 0;
 }
