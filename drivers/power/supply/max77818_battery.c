@@ -139,6 +139,8 @@ struct max77818_chip {
 	struct work_struct charger_detection_work[2];
 	int status_ex;
 	int usb_safe_max_current;
+	struct work_struct initial_charger_sync_work;
+	struct completion init_completion;
 	struct mutex lock;
 };
 
@@ -184,6 +186,17 @@ struct max77818_of_property {
 			    unsigned int value);
 	bool is_learned_value;
 };
+
+static void max77818_do_init_completion(struct max77818_chip *chip)
+{
+	/* Clear flag used by power supply callbacks to check
+	 * if it is safe to do property read/write */
+	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
+
+	/* Signal to worker(s) waiting for initiation to be complete before
+	 * doing final steps */
+	complete(&chip->init_completion);
+}
 
 static bool max77818_do_complete_update(struct max77818_chip *chip)
 {
@@ -1104,8 +1117,6 @@ static void max77818_verify_custom_params(struct max77818_chip *chip)
 	}
 
 	max77818_lock_extra_config_registers(chip);
-
-	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
 }
 
 static void max77818_write_custom_params(struct max77818_chip *chip)
@@ -1166,6 +1177,71 @@ static int max77818_init_chip(struct max77818_chip *chip)
 	regmap_update_bits(map, MAX17042_STATUS, STATUS_POR_BIT, 0x0);
 
 	return 0;
+}
+
+static void max77818_do_initial_charger_sync_worker(struct work_struct *work)
+{
+	struct max77818_chip *chip =
+	    container_of(work, struct max77818_chip, initial_charger_sync_work);
+	struct max77818_dev *max77818 = chip->max77818_dev;
+	struct device *dev = max77818->dev;
+	union power_supply_propval val;
+	int ret;
+
+	/* Wait for other initiation to be completed before running these
+	 * final steps */
+	dev_dbg(dev, "Waiting for other initiation to complete before doing "
+		     "final charger driver sync. steps (max 5 seconds)\n");
+	ret = wait_for_completion_interruptible_timeout(&chip->init_completion,
+							10 * HZ);
+	if (ret == 0) {
+		dev_err(dev, "Timeout while waiting for other init to complete, "
+			     "trying to do final charger driver sync anyway\n");
+	}
+	else {
+		dev_dbg(dev, "Other init completed, starting final charger "
+			     "driver sync stepd\n");
+	}
+
+	val.intval = 0;
+	ret = MAX77818_DO_NON_FGCC_OP(
+			max77818,
+			power_supply_set_property(chip->charger,
+						  POWER_SUPPLY_PROP_CURRENT_MAX,
+						  &val),
+			"Setting chgin max current\n");
+	if (ret) {
+		dev_err(dev,
+			"Failed to set max current in charger driver\n");
+	}
+
+	ret = MAX77818_DO_NON_FGCC_OP(
+			max77818,
+			power_supply_get_property(chip->charger,
+						  POWER_SUPPLY_PROP_STATUS_EX,
+						  &val),
+			"Reading initial status_ex from charger\n");
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to read status_ex from charger driver while"
+			"doing initial charger driver sync\n");
+	}
+
+	/* Do an initial max current adjustment according to max current
+	 * currently configured in USB PHY, in case this was updated before
+	 * this driver was loaded.
+	 *
+	 * As the charger detection handling is normally done i a worker,
+	 * the initial calls done here are queued on the same work queue as the
+	 * async event workers, in order to prevent conflict with possible
+	 * ongoing event handling if called directly from here */
+	dev_dbg(chip->dev,
+		"Scheduling initial max current adjustment for chgin interface ");
+	schedule_work(&chip->charger_detection_work[0]);
+
+	dev_dbg(chip->dev,
+		"Scheduling initial max current adjustment for wcin interface ");
+	schedule_work(&chip->charger_detection_work[1]);
 }
 
 static irqreturn_t max77818_fg_isr(int id, void *dev)
@@ -1238,7 +1314,7 @@ static void max77818_init_worker(struct work_struct *work)
 		return;
 	}
 
-	SYNC_SET_FLAG(chip->init_complete, &chip->lock);
+	max77818_do_init_completion(chip);
 }
 
 static struct max17042_platform_data *
@@ -1317,12 +1393,14 @@ static void max77818_charger_detection_worker_chgin(struct work_struct *work)
 	union power_supply_propval val;
 	int ret;
 
-	dev_dbg(chip->dev, "Doing charger notification work for chgin interface..\n");
+	mutex_lock(&chip->lock);
+
+	dev_dbg(chip->dev, "Doing charger detection work for chgin interface..\n");
 
 	if (!chip->charger) {
 		dev_err(chip->dev,
-			"Cannot access charger device, unable to set max current\n");
-		return;
+			"Cannot access charger device, unable to set max current for chgin interface\n");
+		goto done;
 	}
 
 	/*
@@ -1341,10 +1419,13 @@ static void max77818_charger_detection_worker_chgin(struct work_struct *work)
 			power_supply_set_property(chip->charger,
 						  POWER_SUPPLY_PROP_CURRENT_MAX,
 						  &val),
-			"Setting max current through charger driver");
+			"Setting max chgin current through charger driver");
 	if (ret)
 		dev_err(chip->dev,
-			"Failed to set max current in charger driver\n");
+			"Failed to set max chgin current in charger driver\n");
+
+	done:
+	mutex_unlock(&chip->lock);
 }
 
 static void max77818_charger_detection_worker_wcin(struct work_struct *work)
@@ -1356,15 +1437,17 @@ static void max77818_charger_detection_worker_wcin(struct work_struct *work)
 	union power_supply_propval val;
 	int ret;
 
-	dev_dbg(chip->dev, "Doing charger notification work for wcin interface..\n");
+	mutex_lock(&chip->lock);
+
+	dev_dbg(chip->dev, "Doing charger detection work for wcin interface..\n");
 
 	if (!chip->charger) {
 		dev_err(chip->dev,
-			"Cannot access charger device, unable to set max current\n");
-		return;
+			"Cannot access charger device, unable to set max current for wcin interface\n");
+		goto done;
 	}
 
-	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
+	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY (wcin)\n");
 	usb_phy_get_charger_current(chip->usb_phy[1], &min_current, &max_current);
 	if (max_current == 0)
 		val.intval = 500;
@@ -1376,10 +1459,13 @@ static void max77818_charger_detection_worker_wcin(struct work_struct *work)
 			power_supply_set_property(chip->charger,
 						  POWER_SUPPLY_PROP_CURRENT_MAX2,
 						  &val),
-				"Setting max current through charger driver");
+				"Setting max wcin current through charger driver");
 	if (ret)
 		dev_err(chip->dev,
-			"Failed to set max current in charger driver\n");
+			"Failed to set max wcin current in charger driver\n");
+
+	done:
+	mutex_unlock(&chip->lock);
 }
 
 static int max77818_charger_detection_notifier_call_chgin(struct notifier_block *nb,
@@ -1637,32 +1723,6 @@ finish_fgcc_op:
 	return ret;
 }
 
-static int max77818_do_initial_charger_sync(struct max77818_dev *max77818,
-					    struct max77818_chip *chip)
-{
-	struct device *dev = max77818->dev;
-	union power_supply_propval val;
-	int ret;
-
-	val.intval = 0;
-	ret = MAX77818_DO_NON_FGCC_OP(
-			max77818,
-			power_supply_set_property(chip->charger,
-						  POWER_SUPPLY_PROP_CURRENT_MAX,
-						  &val),
-			"Setting chgin interface max current\n");
-	if (ret) {
-		dev_err(dev,
-			"Failed to set max current in charger driver\n");
-		return ret;
-	}
-
-	/* Do an initial connection status read from the charger driver */
-	max77818_update_status_ex(chip);
-
-	return 0;
-}
-
 static int max77818_probe(struct platform_device *pdev)
 {
 	struct max77818_dev *max77818 = dev_get_drvdata(pdev->dev.parent);
@@ -1725,15 +1785,16 @@ static int max77818_probe(struct platform_device *pdev)
 		goto unreg_fg_irq;
 	}
 
-	/* Do initial sync with the charger driver
-	 * -Read initial connection status
-	 * -Set default max current to defined safe value
-	 */
-	ret = max77818_do_initial_charger_sync(max77818, chip);
-	if (ret) {
-		dev_err(dev, "Failed to do initial sync wich charger driver\n");
-		goto unreg_chg_irq;
-	}
+	/* A completion object is initiated in order for init to be run after
+	 * completed initiation of this driver is kept waiting until all is done
+	 * here.
+	 *
+	 * Also a worker is scheduled to run which will wait for this until
+	 * performing final charger sync. */
+	init_completion(&chip->init_completion);
+	INIT_WORK(&chip->initial_charger_sync_work,
+		  max77818_do_initial_charger_sync_worker);
+	schedule_work(&chip->initial_charger_sync_work);
 
 	/* Read the POR bit set when the device boots from a total power loss.
 	 * If this bit is set, the device is given its initial config read from
@@ -1748,26 +1809,25 @@ static int max77818_probe(struct platform_device *pdev)
 	 * If the POR is not set, but the module parameter 'config_update' is
 	 * set to 'partial' when booting (by image update scripts typically),
 	 * a partial re-config of the custom params is performed in order to apply
-	 * only custom parameters read from updated DT.
-	 */
+	 * only custom parameters read from updated DT. */
 	regmap_read(chip->regmap, MAX17042_STATUS, &val);
 	if ((val & STATUS_POR_BIT) || max77818_do_complete_update(chip)) {
 		INIT_WORK(&chip->init_work, max77818_init_worker);
 		schedule_work(&chip->init_work);
 	} else if (max77818_do_partial_update(chip)) {
 		max77818_write_custom_params(chip);
+		max77818_do_init_completion(chip);
 	} else if (max77818_do_param_verification(chip)) {
 		max77818_verify_custom_params(chip);
+		max77818_do_init_completion(chip);
 	}
 	else {
 		dev_dbg(chip->dev, "No config change\n");
-		SYNC_SET_FLAG(chip->init_complete, &chip->lock);
+		max77818_do_init_completion(chip);
 	}
 
 	return 0;
 
-unreg_chg_irq:
-	free_irq(chip->chg_irq, NULL);
 unreg_fg_irq:
 	free_irq(chip->fg_irq, NULL);
 unreg_chg_det:
