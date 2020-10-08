@@ -1,0 +1,4 @@
+config RM_OTGCONTROL
+	tristate "reMarkable OTG control"
+	help
+		Add reMarkable OTG control module, required to control access to/from external equipment
