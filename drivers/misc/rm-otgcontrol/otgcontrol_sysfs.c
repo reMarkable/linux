@@ -166,13 +166,15 @@ int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
     kobject_put(otgc_data->kobject);
     return retval;
 }
-EXPORT_SYMBOL(otgcontrol_init_sysfs_nodes);
+//EXPORT_SYMBOL(otgcontrol_init_sysfs_nodes);
 
 void otgcontrol_uninit_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 {
     printk("%s: Enter\n", __func__);
     printk("%s: Decrementing kobject refcount\n", __func__);
-    if(!IS_ERR(otgc_data->kobject))
+    if(!IS_ERR(otgc_data->kobject)) {
         kobject_put(otgc_data->kobject);
+        otgc_data->kobject = NULL;
+    }
 }
-EXPORT_SYMBOL(otgcontrol_uninit_sysfs_nodes);
+//EXPORT_SYMBOL(otgcontrol_uninit_sysfs_nodes);

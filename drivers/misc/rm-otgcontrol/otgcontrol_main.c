@@ -12,6 +12,7 @@
 
 #include "otgcontrol_sysfs.h"
 #include "otgcontrol_fsm.h"
+#include "otgcontrol_dr_mode.h"
 
 /* Required Linux includes */
 #include <linux/kernel.h>
@@ -53,7 +54,11 @@ static int rm_otgcontrol_init(struct rm_otgcontrol_data *otgc_data)
 
     printk("%s: Initiating default ONEWIRE_AUTH state\n", __func__);
     ret = otgcontrol_init_fsm(otgc_data);
+    if (ret < 0)
+        return ret;
 
+    printk("%s: Initiating extcon device to control USB OTG dr mode\n", __func__);
+    ret = otgcontrol_init_extcon(otgc_data);
     return ret;
 }
 
@@ -148,7 +153,7 @@ static int rm_otgcontrol_probe(struct platform_device *pdev)
     printk("[---- SBA ----] %s: Setting otgc_data reference in pdev, and initiating\n", __func__);
     ret = rm_otgcontrol_init(otgc_data);
     if(ret < 0)
-        goto error_2;
+        goto error_3;
 
     platform_set_drvdata(pdev, otgc_data);
     return 0;
@@ -158,6 +163,13 @@ error_1:
     return ret;
 
 error_2:
+    kfree(pdata);
+    kfree(otgc_data);
+    return ret;
+
+error_3:
+    otgcontrol_uninit_sysfs_nodes(otgc_data);
+    otgcontrol_uninit_extcon(otgc_data);
     kfree(pdata);
     kfree(otgc_data);
     return ret;
@@ -171,6 +183,9 @@ static int rm_otgcontrol_remove(struct platform_device *pdev)
 
     printk("%s: Un-initializing sysfs nodes\n", __func__);
     otgcontrol_uninit_sysfs_nodes(otgc_data);
+
+    printk("%s: Un-initializing extcon device\n", __func__);
+    otgcontrol_uninit_extcon(otgc_data);
 
     printk("%s: Freeing otgc->pdata\n", __func__);
     kfree(otgc_data->pdata);
