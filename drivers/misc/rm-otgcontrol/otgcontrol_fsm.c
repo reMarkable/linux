@@ -188,7 +188,8 @@ static int otgcontrol_reset_fsm(struct rm_otgcontrol_data *otgc_data)
 		"%s: Activating one-wire GPIO IRQ\n",
 		__func__);
 
-	otgcontrol_activate_gpio_irq(otgc_data);
+	/* otgcontrol_activate_gpio_irq(otgc_data);*/
+	otgcontrol_deactivate_gpio_irq(otgc_data);
 
 	dev_dbg(otgc_data->dev,
 		"%s: Checking if device is connected and initiating default "
@@ -1282,6 +1283,8 @@ static int otgcontrol_do_set_controlmode(
 
 		otgc_data->otg_controlstate = OTG1_STATE__MANUAL_CONTROL;
 		otgc_data->otg1_controllermode = OTG_MODE__MANUAL_CONTROL;
+
+		otgcontrol_deactivate_gpio_irq(otgc_data);
 		break;
 
 	case OTG_MODE__ONEWIRE_AUTH:
@@ -1303,6 +1306,8 @@ static int otgcontrol_do_set_controlmode(
 			otgc_data->otg_controlstate = OTG1_STATE__ONEWIRE_AUTH_NOT_CONNECTED;
 		}
 		otgc_data->otg1_controllermode = OTG_MODE__ONEWIRE_AUTH;
+
+		otgcontrol_deactivate_gpio_irq(otgc_data);
 		break;
 
 	case OTG_MODE__USB_NO_AUTH:
@@ -1324,6 +1329,8 @@ static int otgcontrol_do_set_controlmode(
 			otgc_data->otg_controlstate = OTG1_STATE__USB_NO_AUTH_NOT_CONNECTED;
 		}
 		otgc_data->otg1_controllermode = OTG_MODE__USB_NO_AUTH;
+
+		otgcontrol_activate_gpio_irq(otgc_data);
 		break;
 
 	default:
@@ -1504,7 +1511,9 @@ static int otgcontrol_do_device_disconnected_procedure(
 		"%s: Activating one-wire GPIO IRQ\n",
 		__func__);
 
-	otgcontrol_activate_gpio_irq(otgc_data);
+	/* otgcontrol_activate_gpio_irq(otgc_data);*/
+	if (otgc_data->otg1_controllermode == OTG_MODE__USB_NO_AUTH)
+		otgcontrol_activate_gpio_irq(otgc_data);
 	return 0;
 }
 
