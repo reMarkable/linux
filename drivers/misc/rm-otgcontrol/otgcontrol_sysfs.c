@@ -16,6 +16,29 @@
 #define SYSFS_PARENT_NODE NULL
 #define SYSFS_NODE_NAME "otgcontrol"
 
+#define STATUS_GROUP_ATTRIBUTE_COUNT	1
+#define CONTROL_GROUP_ATTRIBUTE_COUNT	4
+
+static struct attribute *control_attrs[CONTROL_GROUP_ATTRIBUTE_COUNT + 1] = {
+    NULL, NULL, NULL, NULL,	/* CONTROL_GROUP_ATTRIBUTE_COUNT number of initializing NULLs */
+    NULL			/* NULL terminating the list */
+};
+
+struct attribute_group control_attr_group = {
+	.attrs = control_attrs,
+	.name = "control"
+};
+
+struct attribute *status_attrs[STATUS_GROUP_ATTRIBUTE_COUNT + 1] = {
+    NULL,			/* STATUS_GROUP_ATTRIBUTE_COUNT number of NULLS */
+    NULL			/* NULL terminating the list */
+};
+
+struct attribute_group status_attr_group = {
+	.attrs = status_attrs,
+	.name = "status"
+};
+
 static ssize_t attribute_show(struct kobject *kobj, struct kobj_attribute *attr,
 			  char *buf)
 {
@@ -135,14 +158,11 @@ int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 									attribute_show,
 									attribute_store);
 
-
-	struct attribute *control_attrs[] = {
-		&otgc_data->otg1_dr_mode_attribute.attr,
-		&otgc_data->otg1_chargermode_attribute.attr,
-		&otgc_data->otg1_controllermode_attribute.attr,
-		&otgc_data->otg1_pinctrlstate_attribute.attr,
-		NULL,	/* need to NULL terminate the list of attributes */
-	};
+	control_attrs[0] = &otgc_data->otg1_dr_mode_attribute.attr;
+	control_attrs[1] = &otgc_data->otg1_chargermode_attribute.attr;
+	control_attrs[2] = &otgc_data->otg1_controllermode_attribute.attr;
+	control_attrs[3] = &otgc_data->otg1_pinctrlstate_attribute.attr;
+	control_attrs[4] = NULL; /* NULL termination of the list */
 
 	printk("%s: Creating status properties (R)\n", __func__);
 	otgcontrol_create_kobj_property(&otgc_data->otg1_device_connected_attribute,
@@ -151,20 +171,8 @@ int otgcontrol_init_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 									attribute_show,
 									attribute_store);
 
-	struct attribute *status_attrs[] = {
-		&otgc_data->otg1_device_connected_attribute.attr,
-		NULL,	/* need to NULL terminate the list of attributes */
-	};
-
-	struct attribute_group control_attr_group = {
-		.attrs = control_attrs,
-		.name = "control"
-	};
-
-	struct attribute_group status_attr_group = {
-		.attrs = status_attrs,
-		.name = "status"
-	};
+	status_attrs[0] = &otgc_data->otg1_device_connected_attribute.attr;
+	status_attrs[1] = NULL;	/* NULL termination of the list */
 
 	otgcontrol_kobj = kobject_create_and_add(SYSFS_NODE_NAME, SYSFS_PARENT_NODE);
 	if (!otgcontrol_kobj)
@@ -185,6 +193,8 @@ void otgcontrol_uninit_sysfs_nodes(struct rm_otgcontrol_data *otgc_data)
 {
 	printk("%s: Decrementing kobject refcount\n", __func__);
 	if((otgc_data->kobject != NULL) && !IS_ERR(otgc_data->kobject)) {
+		sysfs_remove_group(otgc_data->kobject, &control_attr_group);
+		sysfs_remove_group(otgc_data->kobject, &status_attr_group);
 		kobject_put(otgc_data->kobject);
 		otgc_data->kobject = NULL;
 	}
