@@ -871,10 +871,10 @@
 
 	pinctrl_chg_stat: chg_stat_grp {
 		fsl,pins = <
-			/* WCIN (USB-C) OK/CONNECTED */
+			/* CHGIN OK/CONNECTED */
 			MX7D_PAD_SAI2_TX_SYNC__GPIO6_IO19          0x00000074
 
-			/* CHGIN (POGO) OK/CONNECTEED */
+			/* WCIN (USB-C) OK/CONNECTED */
 			MX7D_PAD_SAI2_TX_BCLK__GPIO6_IO20          0x00000074
 
 		>;
