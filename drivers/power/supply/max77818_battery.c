@@ -80,6 +80,7 @@ struct max77818_chip {
 	struct max17042_platform_data *pdata;
 	struct work_struct work;
 	int init_complete;
+	struct power_supply *charger;
 };
 
 static enum power_supply_property max77818_battery_props[] = {
@@ -107,6 +108,7 @@ static enum power_supply_property max77818_battery_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
+	POWER_SUPPLY_PROP_CHARGER_MODE,
 };
 
 struct max77818_of_property {
@@ -228,6 +230,91 @@ out:
 
 health_error:
 	return ret;
+}
+
+static int max77818_set_fgcc_mode(struct max77818_chip *chip, bool enabled, bool *cur_mode)
+{
+	unsigned int read_data;
+	int ret;
+
+	if (cur_mode) {
+		ret = regmap_read(chip->regmap, MAX17042_CONFIG, &read_data);
+		if (ret) {
+			dev_err(chip->dev, "Failed to read CONFIG register\n");
+			return ret;
+		}
+		*cur_mode = (read_data & 0x0800);
+	}
+
+	if (enabled) {
+		dev_dbg(chip->dev, "Turning on FGCC\n");
+		ret = regmap_update_bits(chip->regmap,
+					 MAX17042_CONFIG, 0x0800, 0x0800);
+		if (ret) {
+			dev_err(chip->dev,
+				"Failed to set FGCC bit in CONFIG register\n");
+			return ret;
+		}
+	}
+	else {
+		dev_dbg(chip->dev, "Turning off FGCC\n");
+		ret = regmap_update_bits(chip->regmap,
+					 MAX17042_CONFIG, 0x0800, 0x0000);
+		if (ret) {
+			dev_err(chip->dev,
+				"Failed to clear FGCC bit in CONFIG register\n");
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+static int max77818_set_charger_mode(struct max77818_chip *chip,
+				     const union power_supply_propval *val)
+{
+	bool cur_mode;
+	int ret;
+
+	if (!chip->charger) {
+		return -ENODEV;
+	}
+
+	dev_dbg(chip->dev, "Clearing FGCC mode\n");
+	ret = max77818_set_fgcc_mode(chip, false, &cur_mode);
+	if (ret)
+		return ret;
+
+	dev_dbg(chip->dev,
+		"Trying to set charger mode (%d) through charger driver\n",
+		val->intval);
+
+	ret = power_supply_set_property(chip->charger,
+					POWER_SUPPLY_PROP_CHARGER_MODE,
+					val);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to forward charger mode to charger driver\n");
+		return ret;
+	}
+
+	if (cur_mode) {
+		dev_dbg(chip->dev,
+			"Restoring FGCC mode\n");
+
+		ret = max77818_set_fgcc_mode(chip, true, NULL);
+		if (ret) {
+			dev_err(chip->dev,
+				"Failed to set FGCC bit in CONFIG register\n");
+			return ret;
+		}
+	}
+	else {
+		dev_dbg(chip->dev,
+			"Leaving FGCC bit as it were (OFF)\n");
+	}
+
+	return 0;
 }
 
 static int max77818_get_property(struct power_supply *psy,
@@ -420,6 +507,9 @@ static int max77818_get_property(struct power_supply *psy,
 		ret = regmap_read(map, MAX77818_TTF, &data);
 		val->intval = data * 5625 / 1000;
 		break;
+	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		val->intval = 0;
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -482,6 +572,14 @@ static int max77818_set_property(struct power_supply *psy,
 		ret = regmap_update_bits(map, MAX17042_SALRT_Th,
 					 0xff00, val->intval << 8);
 		break;
+	case POWER_SUPPLY_PROP_CHARGER_MODE:
+		if ((val->intval < 0) || (val->intval > 2)) {
+			ret = -EINVAL;
+			break;
+		}
+
+		ret = max77818_set_charger_mode(chip, val);
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -499,6 +597,7 @@ static int max77818_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP_ALERT_MAX:
 	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN:
 	case POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX:
+	case POWER_SUPPLY_PROP_CHARGER_MODE:
 		ret = 1;
 		break;
 	default:
@@ -952,6 +1051,18 @@ static int max77818_probe(struct platform_device *pdev)
 		ret = PTR_ERR(chip->battery);
 		dev_err(dev, "failed to regiser supply: %d \n", ret);
 		return ret;
+	}
+
+	dev_dbg(dev, "Trying to reference charger (expecting charger as"
+		     "first supply in given list of supplies)\n");
+	if (chip->battery->num_supplies > 0) {
+		chip->charger = power_supply_get_by_name(
+					chip->battery->supplied_from[0]);
+		if (!chip->charger) {
+			dev_warn(dev, "SBA: Failed to reference charger, "
+				      "OTG/charger IRQ handling will not"
+				      "be available - verify DT config\n");
+		}
 	}
 
 	/* Disable max SOC alert and set min SOC alert as 10% by default */

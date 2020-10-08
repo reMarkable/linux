@@ -238,9 +238,7 @@ static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 	}
 	else {
 		if (chg->chgin_stat_gpio) {
-			ret = gpiod_get_value_cansleep(chg->chgin_stat_gpio);
-			printk("%s: returning %d", __func__, ret);
-			return (bool)ret;
+			return gpiod_get_value_cansleep(chg->chgin_stat_gpio);
 		}
 		else {
 			dev_warn(chg->dev,
@@ -276,9 +274,7 @@ static bool max77818_charger_wcin_present(struct max77818_charger *chg)
 	}
 	else {
 		if (chg->wcin_stat_gpio) {
-			ret = gpiod_get_value_cansleep(chg->wcin_stat_gpio);
-			printk("%s: returning %d", __func__, ret);
-			return (bool)ret;
+			return gpiod_get_value_cansleep(chg->wcin_stat_gpio);
 		}
 		else {
 			dev_warn(chg->dev,
@@ -725,7 +721,8 @@ static void max77818_do_irq(struct max77818_charger *chg)
 		dev_dbg(dev, "CHGIN input %s\n", chg_input ? "inserted" :
 							     "removed");
 
-		/* Enable charging whenever charge input is changed, and leave it on */
+		/* Enable charging whenever charge input is changed,
+		 * and leave it on */
 		max77818_charger_set_enable(chg, 1);
 		break;
 	case CHG_INT_WCIN_I:
@@ -742,7 +739,8 @@ static void max77818_do_irq(struct max77818_charger *chg)
 		dev_dbg(dev, "WCIN input %s\n", wc_input ? "inserted" :
 							   "removed");
 
-		/* Enable charging whenever charge input is changed, and leave it on */
+		/* Enable charging whenever charge input is changed,
+		 * and leave it on */
 		max77818_charger_set_enable(chg, 1);
 		break;
 	default:
@@ -837,18 +835,18 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 	chg->chgin_stat_gpio = devm_gpiod_get(chg->dev, "chgin-stat", GPIOD_IN);
 	if (IS_ERR(chg->chgin_stat_gpio)) {
 		dev_warn(chg->dev,
-			"Failed: %ld\n",
-			PTR_ERR(chg->chgin_stat_gpio));
+			 "Failed: %ld\n",
+			 PTR_ERR(chg->chgin_stat_gpio));
 
 		if (PTR_ERR(chg->chgin_stat_gpio) != -ENOENT)
 			dev_warn(chg->dev,
 				"chgin-stat GPIO not given in DT, "
-			       "chgin connection status not available\n");
+				"chgin connection status not available\n");
 
 		if (PTR_ERR(chg->chgin_stat_gpio) != -ENOSYS)
 			dev_warn(chg->dev,
 				 "chgin-stat GPIO given is not valid, "
-				"chgin connection status not available\n");
+				 "chgin connection status not available\n");
 	}
 	else {
 		dev_dbg(chg->dev,
@@ -859,8 +857,8 @@ static int max77818_charger_parse_dt(struct max77818_charger *chg)
 	chg->wcin_stat_gpio = devm_gpiod_get(chg->dev, "wcin-stat", GPIOD_IN);
 	if (IS_ERR(chg->wcin_stat_gpio)) {
 		dev_warn(chg->dev,
-			"Failed: %ld\n",
-			PTR_ERR(chg->wcin_stat_gpio));
+			 "Failed: %ld\n",
+			 PTR_ERR(chg->wcin_stat_gpio));
 
 		if (PTR_ERR(chg->wcin_stat_gpio) != -ENOENT)
 			dev_warn(chg->dev,
@@ -931,7 +929,8 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	}
 
 	if (ret) {
-		dev_warn(dev, "skipping IRQ initialization, due to failed charger init\n");
+		dev_warn(dev, "skipping IRQ initialization, "
+			      "due to failed charger init\n");
 		return 0;
 	}
 
