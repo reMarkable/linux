@@ -13,6 +13,7 @@
 #include "otgcontrol_sysfs.h"
 #include "otgcontrol_fsm.h"
 #include "otgcontrol_dr_mode.h"
+#include "otgcontrol_onewire.h"
 
 /* Required Linux includes */
 #include <linux/kernel.h>
@@ -28,6 +29,8 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/string.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
 
 /* Sysfs */
 #include <linux/kobject.h>
@@ -59,6 +62,13 @@ static int rm_otgcontrol_init(struct rm_otgcontrol_data *otgc_data)
 
     printk("%s: Initiating extcon device to control USB OTG dr mode\n", __func__);
     ret = otgcontrol_init_extcon(otgc_data);
+    if (ret < 0) {
+        printk("%s: Failed to initiate extron (%d)\n", __func__, ret);
+        return ret;
+    }
+
+    printk("%s: Initiating one-wire gpio irq\n", __func__);
+    ret = otgcontrol_init_gpio_irq(otgc_data);
     return ret;
 }
 
@@ -69,7 +79,7 @@ static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
     struct device_node *np = dev->of_node;
     struct rm_otgcontrol_platform_data *pdata = otgc_data->pdata;
     const char *vbus_supply_name;
-    int ret = 0;
+    int ret = 0, gpio_num;
 
     printk("[---- SBA ----] %s: Enter\n", __func__);
 
@@ -96,13 +106,43 @@ static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
         printk("[---- SBA ----] %s: Got pointer to vbus-supply\n", __func__);
     }
     else {
-        printk("[---- SBA ----] %s: Failed to get pointer to vbus-supply - verify that the charger driver is loaded !\n", __func__);
+        printk("[---- SBA ----] %s: Required vbus-supply-name property not given !\n", __func__);
+        return -EINVAL;
     }
 
-    if (ret < 0)
-        return ret;
-    else
-        otgc_data->pdata = pdata;
+    if (of_find_property(np, "one-wire-tty-name", NULL)) {
+        printk("[---- SBA ----] %s: Found one-wire-tty-name property, trying to read it\n", __func__);
+        ret = of_property_read_string(np, "one-wire-tty-name", otgc_data->one_wire_tty_name);
+        if (ret) {
+            printk("[---- SBA ----] %s: Failed to read property one-wire-tty-name (code %d)\n", __func__, ret);
+            return ret;
+        }
+    }
+    else {
+        printk("%s: required property one-wire-tty-name not given !\n", __func__);
+        return -EINVAL;
+    }
+
+    //if (of_find_property(np, "one-wire-gpios", NULL)) {
+        //printk("[---- SBA ----] %s: Found one-wire-gpio property, trying to read it\n", __func__);
+//        gpio_num = of_get_named_gpio(np, "one-wire-gpio", 0);
+//        if (gpio_num < 0) {
+//            printk("%s: Failed to read property one-wire-gpio (code %ld)\n", __func__, gpio_num);
+//            return gpio_num;
+//        }
+//        otgc_data->one_wire_gpio = gpio_to_desc(gpio_num);
+
+        otgc_data->one_wire_gpio = devm_gpiod_get(otgc_data->dev, "one-wire", GPIOD_IN);
+        if (IS_ERR(otgc_data->one_wire_gpio)) {
+            printk("%s: Failed to read property one-wire-gpio (code %ld)\n", __func__, PTR_ERR(otgc_data->one_wire_gpio));
+            return PTR_ERR(otgc_data->one_wire_gpio);
+        }
+    //}
+    //else {
+    //    printk("%s: required property one-wire-gpio not given !\n", __func__);
+    //    return -EINVAL;
+    //}
+
     return 0;
 }
 #endif
