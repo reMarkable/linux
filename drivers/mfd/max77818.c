@@ -199,12 +199,15 @@ static int max77818_i2c_probe(struct i2c_client *client,
 		goto del_irqc_intsrc;
 	}
 
-	ret = regmap_add_irq_chip(me->regmap_chg, me->irq,
-				  IRQF_ONESHOT | IRQF_SHARED, 0,
-				  &max77818_chg_irq_chip, &me->irqc_chg);
-	if (ret) {
-		dev_warn(me->dev, "failed to add chg irq chip: %d\n", ret);
+	if (me->regmap_chg) {
+		ret = regmap_add_irq_chip(me->regmap_chg, me->irq,
+					  IRQF_ONESHOT | IRQF_SHARED, 0,
+					  &max77818_chg_irq_chip, &me->irqc_chg);
+
+		if (ret)
+			dev_warn(me->dev, "failed to add chg irq chip: %d\n", ret);
 	}
+
 
 	pm_runtime_set_active(me->dev);
 

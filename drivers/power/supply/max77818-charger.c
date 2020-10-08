@@ -221,38 +221,42 @@ static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 
 	/* Try to read from the device first, but if the charger device
 	 * is offline, try to read the chg status gpios */
-	ret = regmap_read(chg->regmap, REG_CHG_INT_OK, &chg_int_ok);
-	if (!ret) {
-		if (chg_int_ok & BIT_CHGIN_OK) {
-			return true;
-		} else {
-			/* check whether charging or not in the UVLO condition */
-			if (((chg->dtls[0] & BIT_CHGIN_DTLS) == 0) &&
-			    ((chg_int_ok & BIT_WCIN_OK) == 0) &&
-			    (((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CC) ||
-			     ((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CV))) {
+	if(!IS_ERR_OR_NULL(chg->regmap)) {
+		ret = regmap_read(chg->regmap, REG_CHG_INT_OK, &chg_int_ok);
+		if (!ret) {
+			if (chg_int_ok & BIT_CHGIN_OK) {
 				return true;
 			} else {
-				return false;
+				/* check whether charging or not in the UVLO condition */
+				if (((chg->dtls[0] & BIT_CHGIN_DTLS) == 0) &&
+				    ((chg_int_ok & BIT_WCIN_OK) == 0) &&
+				    (((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CC) ||
+				     ((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CV))) {
+					return true;
+				} else {
+					return false;
+				}
 			}
 		}
 	}
-	else {
-		if (chg->chgin_stat_gpio) {
-			ret = gpiod_get_value_cansleep(chg->chgin_stat_gpio);
-			if (ret < 0)
-				dev_err(chg->dev,
-					"failed to read chgin-stat-gpio: %d\n",
-					ret);
-			return (ret > 0);
 
-		}
-		else {
-			dev_warn(chg->dev,
-				"chgin-stat-gpio not configured, connection "
-				"status not available\n");
-			return false;
-		}
+	/* chg->regmap is not initialized, or read from device failed
+	 * Use GPIO
+	 */
+	if (chg->chgin_stat_gpio) {
+		ret = gpiod_get_value_cansleep(chg->chgin_stat_gpio);
+		if (ret < 0)
+			dev_err(chg->dev,
+				"failed to read chgin-stat-gpio: %d\n",
+				ret);
+		return (ret > 0);
+
+	}
+	else {
+		dev_warn(chg->dev,
+			"chgin-stat-gpio not configured, connection "
+			"status not available\n");
+		return false;
 	}
 }
 
@@ -263,37 +267,41 @@ static bool max77818_charger_wcin_present(struct max77818_charger *chg)
 
 	/* Try to read from the device first, but if the charger device
 	 * is offline, try to read the chg status gpios */
-	ret = regmap_read(chg->regmap, REG_CHG_INT_OK, &chg_int_ok);
-	if (!ret) {
-		if (chg_int_ok & BIT_WCIN_OK) {
-			return true;
-		} else {
-			/* check whether charging or not in the UVLO condition */
-			if (((chg->dtls[0] & BIT_WCIN_DTLS) == 0) &&
-			    ((chg_int_ok & BIT_CHGIN_OK) == 0) &&
-			    (((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CC) ||
-			     ((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CV))) {
+	if(!IS_ERR_OR_NULL(chg->regmap)) {
+		ret = regmap_read(chg->regmap, REG_CHG_INT_OK, &chg_int_ok);
+		if (!ret) {
+			if (chg_int_ok & BIT_WCIN_OK) {
 				return true;
 			} else {
-				return false;
+				/* check whether charging or not in the UVLO condition */
+				if (((chg->dtls[0] & BIT_WCIN_DTLS) == 0) &&
+				    ((chg_int_ok & BIT_CHGIN_OK) == 0) &&
+				    (((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CC) ||
+				     ((chg->dtls[1] & BIT_CHG_DTLS) == CHG_DTLS_FASTCHARGE_CV))) {
+					return true;
+				} else {
+					return false;
+				}
 			}
 		}
 	}
+
+	/* chg->regmap is not initialized, or read from device failed
+	 * Use GPIO
+	 */
+	if (chg->wcin_stat_gpio) {
+		ret = gpiod_get_value_cansleep(chg->wcin_stat_gpio);
+		if (ret < 0)
+			dev_err(chg->dev,
+				"failed to read wcin-stat-gpio: %d\n",
+				ret);
+		return (ret > 0);
+	}
 	else {
-		if (chg->wcin_stat_gpio) {
-			ret = gpiod_get_value_cansleep(chg->wcin_stat_gpio);
-			if (ret < 0)
-				dev_err(chg->dev,
-					"failed to read wcin-stat-gpio: %d\n",
-					ret);
-			return (ret > 0);
-		}
-		else {
-			dev_warn(chg->dev,
-				"wcin-stat-gpio not configured, connection "
-				"status not available\n");
-			return false;
-		}
+		dev_warn(chg->dev,
+			"wcin-stat-gpio not configured, connection "
+			"status not available\n");
+		return false;
 	}
 }
 
@@ -302,6 +310,11 @@ static int max77818_charger_get_input_current(struct max77818_charger *chg)
 	int get_current, quotient, remainder;
 	int steps[3] = { 0, 33, 67 };
 	u32 val = 0;
+
+	if(IS_ERR_OR_NULL(chg->regmap)) {
+		dev_warn(chg->dev, "unable to read from charger device\n");
+		return -ENODEV;
+	}
 
 	if (!max77818_charger_chgin_present(chg) &&
 	    max77818_charger_wcin_present(chg)) {
@@ -347,6 +360,11 @@ max77818_charger_set_chgin_current_limit(struct max77818_charger *chg,
 	int quotient, remainder;
 	u8 val = 0;
 
+	if(IS_ERR_OR_NULL(chg->regmap)) {
+		dev_warn(chg->dev, "unable to read from charger device\n");
+		return -ENODEV;
+	}
+
 	if (input_current) {
 		quotient = input_current / 100;
 		remainder = input_current % 100;
@@ -369,6 +387,11 @@ max77818_charger_set_wcin_current_limit(struct max77818_charger *chg,
 {
 	u8 val = 0;
 
+	if(IS_ERR_OR_NULL(chg->regmap)) {
+		dev_warn(chg->dev, "unable to read from charger device\n");
+		return -ENODEV;
+	}
+
 	if (input_current) {
 		if (input_current < 60)
 			input_current = 60;
@@ -386,6 +409,11 @@ static int max77818_charger_set_enable(struct max77818_charger *chg, int en)
 {
 	u8 mode;
 	int ret;
+
+	if(IS_ERR_OR_NULL(chg->regmap)) {
+		dev_warn(chg->dev, "unable to read from charger device\n");
+		return -ENODEV;
+	}
 
 	/* If enable = 0, just shut off charging/otg power */
 	if (!en) {
@@ -424,6 +452,11 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	u8 val, tmpval;
 	u32 read_val;
 	int ret;
+
+	if(IS_ERR_OR_NULL(chg->regmap)) {
+		dev_warn(chg->dev, "unable to read from charger device\n");
+		return -ENODEV;
+	}
 
 	/* unlock charger register */
 	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_06,
@@ -604,35 +637,39 @@ static void max77818_charger_update(struct max77818_charger *chg)
 		return;
 	}
 
-	ret = regmap_read(chg->regmap, REG_CHG_DTLS_01, &dtls_01);
-	if (!ret) {
-		chg_dtls = dtls_01 & BIT_CHG_DTLS;
+	if(!IS_ERR_OR_NULL(chg->regmap)) {
+		ret = regmap_read(chg->regmap, REG_CHG_DTLS_01, &dtls_01);
+		if (!ret) {
+			chg_dtls = dtls_01 & BIT_CHG_DTLS;
 
-		chg->health = max77818_charger_status_map[chg_dtls].health;
-		chg->status = max77818_charger_status_map[chg_dtls].status;
-		chg->charge_type = max77818_charger_status_map[chg_dtls].charge_type;
+			chg->health = max77818_charger_status_map[chg_dtls].health;
+			chg->status = max77818_charger_status_map[chg_dtls].status;
+			chg->charge_type = max77818_charger_status_map[chg_dtls].charge_type;
 
-		if (chg->health != POWER_SUPPLY_HEALTH_UNKNOWN)
+			if (chg->health != POWER_SUPPLY_HEALTH_UNKNOWN)
+				return;
+
+			/* override health by TREG */
+			if ((dtls_01 & BIT_TREG) != 0)
+				chg->health = POWER_SUPPLY_HEALTH_OVERHEAT;
+
 			return;
+		}
+	}
 
-		/* override health by TREG */
-		if ((dtls_01 & BIT_TREG) != 0)
-			chg->health = POWER_SUPPLY_HEALTH_OVERHEAT;
-	}
-	else {
-		/* Just do simple GPIO based check when device is not present on
-		 * the I2C bus, and set the status being used by ONLINE property,
-		 * being used by ...am_i_supplied() call which determines the
-		 * status of other supplies dependent on this supply
-		 */
-		if (chg->charger_mode == POWER_SUPPLY_MODE_ALL_OFF)
-			chg->status = 0;
-		else if(chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY)
-			chg->status = max77818_charger_wcin_present(chg);
-		else
-			chg->status = max77818_charger_chgin_present(chg) ||
-				      max77818_charger_wcin_present(chg);
-	}
+	/* chg->regmap is not initialized, or read from device failed
+	 * Just do simple GPIO based check when device is not present on
+	 * the I2C bus, and set the status being used by ONLINE property,
+	 * being used by ...am_i_supplied() call which determines the
+	 * status of other supplies dependent on this supply
+	 */
+	if (chg->charger_mode == POWER_SUPPLY_MODE_ALL_OFF)
+		chg->status = 0;
+	else if(chg->charger_mode == POWER_SUPPLY_MODE_OTG_SUPPLY)
+		chg->status = max77818_charger_wcin_present(chg);
+	else
+		chg->status = max77818_charger_chgin_present(chg) ||
+			      max77818_charger_wcin_present(chg);
 }
 
 static int max77818_charger_get_property(struct power_supply *psy,
@@ -747,6 +784,11 @@ static void max77818_do_irq(struct max77818_charger *chg)
 {
 	struct device *dev = chg->dev;
 	bool chg_input, wc_input;
+
+	if(IS_ERR_OR_NULL(chg->regmap)) {
+		dev_warn(chg->dev, "unable to read from charger device\n");
+		return;
+	}
 
 	regmap_bulk_read(chg->regmap, REG_CHG_DTLS_00, chg->dtls, 3);
 
@@ -941,9 +983,10 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
 	struct power_supply_config psy_cfg = {};
 	struct max77818_charger *chg;
-	int ret;
+	int ret, init_ok;
 
-	if (!max77818->regmap_chg) {
+
+	if (IS_ERR_OR_NULL(max77818->regmap_chg)) {
 		dev_warn(dev,
 			 "charge device regmap not initialized by MFD parent\n");
 	}
@@ -956,6 +999,8 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	chg->dev = dev;
 	chg->regmap = max77818->regmap_chg;
 
+	mutex_init(&chg->lock);
+
 	ret = max77818_charger_parse_dt(chg);
 	if (ret < 0)
 		dev_warn(dev, "failed to parse charger dt: %d\n", ret);
@@ -963,9 +1008,9 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	psy_cfg.drv_data = chg;
 	psy_cfg.of_node = dev->of_node;
 
-	ret = max77818_charger_initialize(chg);
-	if (ret) {
-		dev_warn(dev, "failed to init charger: %d\n", ret);
+	init_ok = max77818_charger_initialize(chg);
+	if (init_ok) {
+		dev_warn(dev, "failed to init charger: %d\n", init_ok);
 	}
 
 	chg->psy_chg = devm_power_supply_register(dev, &psy_chg_desc, &psy_cfg);
@@ -975,14 +1020,13 @@ static int max77818_charger_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	if (ret) {
+	if (init_ok) {
 		dev_warn(dev, "skipping IRQ initialization, "
 			      "due to failed charger init\n");
 		return 0;
 	}
 
 
-	mutex_init(&chg->lock);
 	INIT_WORK(&chg->irq_work, max77818_charger_irq_work);
 
 	chg->irq = regmap_irq_get_virq(max77818->irqc_intsrc,
