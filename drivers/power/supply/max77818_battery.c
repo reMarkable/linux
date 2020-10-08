@@ -37,6 +37,7 @@
 #include <linux/regmap.h>
 #include <linux/mfd/max77818/max77818.h>
 #include <linux/platform_device.h>
+#include <linux/usb/phy.h>
 
 /* Status register bits */
 #define STATUS_POR_BIT         (1 << 1)
@@ -138,6 +139,9 @@ struct max77818_chip {
 	struct work_struct work;
 	bool init_complete;
 	struct power_supply *charger;
+	struct usb_phy *usb_phy[2];
+	struct notifier_block charger_detection_nb[2];
+	struct work_struct charger_detection_work[2];
 	struct mutex lock;
 };
 
@@ -1299,6 +1303,174 @@ static const struct power_supply_desc max77818_psy_desc = {
 	.num_properties = ARRAY_SIZE(max77818_battery_props),
 };
 
+static void max77818_charger_detection_worker_usb1(struct work_struct *work)
+{
+	struct max77818_chip *chip = container_of(work,
+						  struct max77818_chip,
+						  charger_detection_work[0]);
+	bool restore_state;
+	unsigned int min_current, max_current;
+	union power_supply_propval val;
+	int ret;
+
+	dev_dbg(chip->dev, "Doing charger notification work for chgin interface..\n");
+
+	if (!chip->charger) {
+		dev_err(chip->dev,
+			"Cannot access charger device, unable to set max current\n");
+		return;
+	}
+
+	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
+	usb_phy_get_charger_current(chip->usb_phy[0], &min_current, &max_current);
+	if (max_current == 0)
+		val.intval = 500;
+	else
+		val.intval = max_current;
+
+	mutex_lock(&chip->lock);
+
+	dev_dbg(chip->dev, "Clearing FGCC mode\n");
+	ret = max77818_set_fgcc_mode(chip, false, &restore_state);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to clear FGCC bit in CONFIG register\n");
+		goto out;
+	}
+
+	dev_dbg(chip->dev,
+		"Trying to set max current (%d) through charger driver\n",
+		max_current);
+
+	ret = power_supply_set_property(chip->charger,
+					POWER_SUPPLY_PROP_CURRENT_MAX,
+					&val);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to set max current in charger driver\n");
+		goto out;
+	}
+
+	if (restore_state) {
+		dev_dbg(chip->dev,
+			"Restoring FGCC mode\n");
+
+		ret = max77818_set_fgcc_mode(chip, true, NULL);
+		if (ret) {
+			dev_err(chip->dev,
+				"Failed to set FGCC bit in CONFIG register\n");
+			goto out;
+		}
+	}
+	else {
+		dev_dbg(chip->dev,
+			"Leaving FGCC bit as it were (OFF)\n");
+	}
+
+out:
+	mutex_unlock(&chip->lock);
+}
+
+static void max77818_charger_detection_worker_usb2(struct work_struct *work)
+{
+	struct max77818_chip *chip = container_of(work,
+						  struct max77818_chip,
+						  charger_detection_work[1]);
+	bool restore_state;
+	unsigned int min_current, max_current;
+	union power_supply_propval val;
+	int ret;
+
+	dev_dbg(chip->dev, "Doing charger notification work for USB-C interface..\n");
+
+	if (!chip->charger) {
+		dev_err(chip->dev,
+			"Cannot access charger device, unable to set max current\n");
+		return;
+	}
+
+	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
+	usb_phy_get_charger_current(chip->usb_phy[1], &min_current, &max_current);
+	if (max_current == 0)
+		val.intval = 500;
+	else
+		val.intval = max_current;
+
+	mutex_lock(&chip->lock);
+
+	dev_dbg(chip->dev, "Clearing FGCC mode\n");
+	ret = max77818_set_fgcc_mode(chip, false, &restore_state);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to clear FGCC bit in CONFIG register\n");
+		goto out;
+	}
+
+	dev_dbg(chip->dev,
+		"Trying to set max current (%d) through charger driver\n",
+		max_current);
+
+	ret = power_supply_set_property(chip->charger,
+					POWER_SUPPLY_PROP_CURRENT_MAX2,
+					&val);
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to set max current in charger driver\n");
+		goto out;
+	}
+
+	if (restore_state) {
+		dev_dbg(chip->dev,
+			"Restoring FGCC mode\n");
+
+		ret = max77818_set_fgcc_mode(chip, true, NULL);
+		if (ret) {
+			dev_err(chip->dev,
+				"Failed to set FGCC bit in CONFIG register\n");
+			goto out;
+		}
+	}
+	else {
+		dev_dbg(chip->dev,
+			"Leaving FGCC bit as it were (OFF)\n");
+	}
+
+out:
+	mutex_unlock(&chip->lock);
+}
+
+static int max77818_charger_detection_notifier_call_usb1(struct notifier_block *nb,
+							 unsigned long val, void *v)
+{
+	struct max77818_chip *chip = container_of(nb,
+						  struct max77818_chip,
+						  charger_detection_nb[0]);
+
+	dev_dbg(chip->dev,
+		"Handling charger detection notification from chgin interface "
+		"(max current: %lu)\n", val);
+
+	schedule_work(&chip->charger_detection_work[0]);
+
+	return NOTIFY_OK;
+}
+
+static int max77818_charger_detection_notifier_call_usb2(struct notifier_block *nb,
+							 unsigned long val, void *v)
+{
+	struct max77818_chip *chip = container_of(nb,
+						  struct max77818_chip,
+						  charger_detection_nb[1]);
+
+	dev_dbg(chip->dev,
+		"Handling charger detection notification from USB-C interface "
+		"(max current: %lu)\n", val);
+
+	schedule_work(&chip->charger_detection_work[1]);
+
+	return NOTIFY_OK;
+}
+
 static int max77818_probe(struct platform_device *pdev)
 {
 	struct max77818_dev *max77818 = dev_get_drvdata(pdev->dev.parent);
@@ -1346,6 +1518,54 @@ static int max77818_probe(struct platform_device *pdev)
 				      "OTG/charger IRQ handling will not"
 				      "be available - verify DT config\n");
 		}
+	}
+
+	dev_dbg(dev,
+		"Trying to reference usb-phy1 (for receiving charger "
+		"detection notifications for chgin interface\n");
+	chip->usb_phy[0]= devm_usb_get_phy_by_phandle(dev, "usb-phy1", 0);
+	if (IS_ERR(chip->usb_phy[0])) {
+		ret = PTR_ERR(chip->usb_phy[0]);
+		dev_err(dev, "usb_get_phy failed: %d\n", ret);
+		return ret;
+	}
+
+	dev_dbg(dev,
+		"Trying to reference usb-phy2 (for receiving charger "
+		"detection notifications for USB-C interface\n");
+	chip->usb_phy[1]= devm_usb_get_phy_by_phandle(dev, "usb-phy2", 0);
+	if (IS_ERR(chip->usb_phy[1])) {
+		ret = PTR_ERR(chip->usb_phy[1]);
+		dev_err(dev, "usb_get_phy failed: %d\n", ret);
+		return ret;
+	}
+
+	dev_dbg(dev,
+		"Trying to register notification handler (worker) for "
+		"chgin interface charger detection notifications \n");
+	INIT_WORK(&chip->charger_detection_work[0],
+		  max77818_charger_detection_worker_usb1);
+	chip->charger_detection_nb[0].notifier_call =
+			max77818_charger_detection_notifier_call_usb1;
+	ret = usb_register_notifier(chip->usb_phy[0],
+				    &chip->charger_detection_nb[0]);
+	if (ret) {
+		dev_err(dev, "usb_register_notifier failed: %d\n", ret);
+		return ret;
+	}
+
+	dev_dbg(dev,
+		"Trying to register notification handler (worker) for "
+		"USB-C interface charger detection notifications \n");
+	INIT_WORK(&chip->charger_detection_work[1],
+		  max77818_charger_detection_worker_usb2);
+	chip->charger_detection_nb[1].notifier_call =
+			max77818_charger_detection_notifier_call_usb2;
+	ret = usb_register_notifier(chip->usb_phy[1],
+				    &chip->charger_detection_nb[1]);
+	if (ret) {
+		dev_err(dev, "usb_register_notifier failed: %d\n", ret);
+		return ret;
 	}
 
 	/* Disable max SOC alert and set min SOC alert as 10% by default */
