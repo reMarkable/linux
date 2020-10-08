@@ -1328,12 +1328,14 @@ static void max77818_charger_detection_worker_usb1(struct work_struct *work)
 		return;
 	}
 
-	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
-	usb_phy_get_charger_current(chip->usb_phy[0], &min_current, &max_current);
-	if (max_current == 0)
-		val.intval = chip->usb_safe_max_current;
-	else
-		val.intval = max_current;
+//	dev_dbg(chip->dev, "Getting max/min current configured for given USB PHY\n");
+//	usb_phy_get_charger_current(chip->usb_phy[0], &min_current, &max_current);
+//	if (max_current == 0)
+//		val.intval = chip->usb_safe_max_current;
+//	else
+//		val.intval = max_current;
+
+	val.intval = 100;
 
 	ret = MAX77818_DO_NON_FGCC_OP(
 			chip->max77818_dev,
