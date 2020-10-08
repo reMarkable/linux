@@ -34,7 +34,7 @@ int otgcontrol_init_fsm(struct rm_otgcontrol_data *otgc_data)
     }
     return 0;
 }
-EXPORT_SYMBOL(otgcontrol_init_fsm);
+//EXPORT_SYMBOL(otgcontrol_init_fsm);
 
 int otgcontrol_set_controlmode(struct rm_otgcontrol_data *otgc_data, int mode)
 {
@@ -70,26 +70,27 @@ int otgcontrol_handleInput(struct rm_otgcontrol_data *otgc_data, int signal, voi
     {
     case OTG1_EVENT__CHALLENGE_REPLY_RECEIVED:
         printk("%s: CHALLENGE REPLY RECEIVED\n", __func__);
+        printk("%s: PLEASE IMPLEMENT THIS !\n", __func__);
         break;
 
     case OTG1_EVENT__MODE_CHANGE_REQUESTED:
         printk("%s: MODE CHANGE REQUESTED\n", __func__);
+        printk("%s: PLEASE IMPLEMENT THIS !\n", __func__);
         break;
 
     case OTG1_EVENT__ONEWIRE_GPIO_STATE_CHANGED:
         printk("%s: ONEWIRE GPIO STATE CHANGED\n", __func__);
+        printk("%s: PLEASE IMPLEMENT THIS !\n", __func__);
         break;
 
     case OTG1_EVENT__OTG_CHARGERMODE_CHANGE_REQUESTED:
         printk("%s: CHARGERMODE CHANGE REQUESTED\n", __func__);
+        printk("%s: PLEASE IMPLEMENT THIS !\n", __func__);
         break;
 
     case OTG1_EVENT__TIMEOUT:
         printk("%s: TIMEOUT\n", __func__);
-        break;
-
-    case OTG1_EVENT__VBUS_CHANGED:
-        printk("%s: VBUS CHANGED\n", __func__);
+        printk("%s: PLEASE IMPLEMENT SUPPORT FOR THIS !\n", __func__);
         break;
 
     default:
@@ -104,6 +105,6 @@ static int otgcontrol_start_onewire_authentication(struct rm_otgcontrol_data *ot
 {
     printk("%s: Enter\n", __func__);
 
-    printk("%s: PLEASE IMPLEMENT THIS\n", __func__);
+    printk("%s: PLEASE IMPLEMENT THIS !\n", __func__);
     return 0;
 }

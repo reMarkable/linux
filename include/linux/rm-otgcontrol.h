@@ -1,8 +1,9 @@
-#ifndef __RM_OTGCONTROL_H_
+'#ifndef __RM_OTGCONTROL_H_
 #define __RM_OTGCONTROL_H_
 
 #include <linux/kobject.h>
 #include <linux/pinctrl/pinctrl.h>
+#include <linux/extcon.h>
 
 struct rm_otgcontrol_platform_data {
     struct power_supply		*vbus_supply;
@@ -11,6 +12,8 @@ struct rm_otgcontrol_platform_data {
 struct rm_otgcontrol_data {
     struct device           		*dev;
     struct rm_otgcontrol_platform_data 	*pdata;
+
+    struct extcon_dev                   *extcon_dev;
 
     int                                 otg_controlstate;
 

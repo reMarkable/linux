@@ -11,6 +11,8 @@ int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 
     printk("%s: Initiating one-wire pinctrl states\n", __func__);
     otgc_data->one_wire_pinctrl = devm_pinctrl_get(otgc_data->dev);
+    if (IS_ERR(otgc_data->one_wire_pinctrl))
+        return PTR_ERR(otgc_data->one_wire_pinctrl);
 
     otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO] = pinctrl_lookup_state(otgc_data->one_wire_pinctrl, "one_wire_gpio");
     if (IS_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO])) {
@@ -89,6 +91,7 @@ int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data, i
 int otgcontrol_get_current_gpio_state(struct rm_otgcontrol_data *otgc_data)
 {
     printk("%s: Enter\n", __func__);
+
     return 0;
 }
 
