@@ -1638,6 +1638,41 @@ finish_fgcc_op:
 	return ret;
 }
 
+static int max77818_do_initial_charger_sync(struct max77818_dev *max77818,
+					    struct max77818_chip *chip)
+{
+	struct device *dev = max77818->dev;
+	union power_supply_propval val;
+	int ret;
+
+	val.intval = 0;
+	ret = MAX77818_DO_NON_FGCC_OP(
+			max77818,
+			power_supply_set_property(chip->charger,
+						  POWER_SUPPLY_PROP_CURRENT_MAX,
+						  &val),
+			"Setting chgin interface max current\n");
+	if (ret) {
+		dev_err(dev,
+			"Failed to set max current in charger driver\n");
+		return ret;
+	}
+
+	ret = MAX77818_DO_NON_FGCC_OP(
+			max77818,
+			power_supply_get_property(chip->charger,
+						  POWER_SUPPLY_PROP_STATUS_EX,
+						  &val),
+			"Reading initial status_ex from charger\n");
+	if (ret) {
+		dev_err(chip->dev,
+			"Failed to read status_ex from charger\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static int max77818_probe(struct platform_device *pdev)
 {
 	struct max77818_dev *max77818 = dev_get_drvdata(pdev->dev.parent);
@@ -1700,10 +1735,15 @@ static int max77818_probe(struct platform_device *pdev)
 		goto unreg_fg_irq;
 	}
 
-	/* Do an initial connection status read from the charger driver */
-	ret = max77818_get_status_ex(chip, &chip->status_ex);
-	if (ret)
-		dev_err(chip->dev, "failed to read status_ex from charger\n");
+	/* Do initial sync with the charger driver
+	 * -Read initial connection status
+	 * -Set default max current to defined safe value
+	 */
+	ret = max77818_do_initial_charger_sync(max77818, chip);
+	if (ret) {
+		dev_err(dev, "Failed to do initial sync wich charger driver\n");
+		goto unreg_chg_irq;
+	}
 
 	/* Read the POR bit set when the device boots from a total power loss.
 	 * If this bit is set, the device is given its initial config read from
@@ -1736,6 +1776,8 @@ static int max77818_probe(struct platform_device *pdev)
 
 	return 0;
 
+unreg_chg_irq:
+	free_irq(chip->chg_irq, NULL);
 unreg_fg_irq:
 	free_irq(chip->fg_irq, NULL);
 unreg_chg_det:
