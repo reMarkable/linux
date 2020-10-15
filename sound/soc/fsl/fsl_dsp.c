@@ -740,7 +740,10 @@ static void dsp_load_firmware(const struct firmware *fw, void *context)
 			if ((!strcmp(&strtab[shdr->sh_name], ".rodata")) ||
 				(!strcmp(&strtab[shdr->sh_name], ".text"))   ||
 				(!strcmp(&strtab[shdr->sh_name], ".data"))   ||
-				(!strcmp(&strtab[shdr->sh_name], ".bss"))
+				(!strcmp(&strtab[shdr->sh_name], ".bss"))           ||
+				(!strcmp(&strtab[shdr->sh_name], ".rtos.rodata"))   ||
+				(!strcmp(&strtab[shdr->sh_name], ".clib.data"))     ||
+				(!strcmp(&strtab[shdr->sh_name], ".rtos.percpu.data"))
 			) {
 				memcpy_dsp((void *)(dsp_priv->sdram_vir_addr
 				  + (sh_addr - dsp_priv->sdram_phys_addr)),
