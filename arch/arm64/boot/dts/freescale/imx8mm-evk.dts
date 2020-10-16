@@ -60,15 +60,11 @@
 		clock-frequency = <100000000>;
 	};
 
-	reg_sd1_vmmc: sd1_regulator {
-		compatible = "regulator-fixed";
-		regulator-name = "WLAN_EN";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio2 10 GPIO_ACTIVE_HIGH>;
-		off-on-delay-us = <20000>;
-		startup-delay-us = <100>;
-		enable-active-high;
+	usdhc1_pwrseq: usdhc1_pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_usdhc1_gpio>;
+		reset-gpios = <&gpio2 10 GPIO_ACTIVE_LOW>;
 	};
 
 	reg_usdhc2_vmmc: regulator-usdhc2 {
@@ -102,14 +98,14 @@
 	};
 
 	bt_sco_codec: bt_sco_codec {
-		#sound-dai-cells = <0>;
+		#sound-dai-cells = <1>;
 		compatible = "linux,bt-sco";
 	};
 
 	sound-bt-sco {
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "bt-sco-audio";
-		simple-audio-card,format = "i2s";
+		simple-audio-card,format = "dsp_a";
 		simple-audio-card,bitclock-inversion;
 		simple-audio-card,frame-master = <&btcpu>;
 		simple-audio-card,bitclock-master = <&btcpu>;
@@ -121,7 +117,7 @@
 		};
 
 		simple-audio-card,codec {
-			sound-dai = <&bt_sco_codec>;
+			sound-dai = <&bt_sco_codec 1>;
 		};
 	};
 
@@ -382,14 +378,15 @@
 
 &usdhc1 {
 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
-	pinctrl-0 = <&pinctrl_usdhc1>, <&pinctrl_usdhc1_gpio>;
-	pinctrl-1 = <&pinctrl_usdhc1_100mhz>, <&pinctrl_usdhc1_gpio>;
-	pinctrl-2 = <&pinctrl_usdhc1_200mhz>, <&pinctrl_usdhc1_gpio>;
+	pinctrl-0 = <&pinctrl_usdhc1>, <&pinctrl_wlan>;
+	pinctrl-1 = <&pinctrl_usdhc1_100mhz>, <&pinctrl_wlan>;
+	pinctrl-2 = <&pinctrl_usdhc1_200mhz>, <&pinctrl_wlan>;
 	bus-width = <4>;
-	vmmc-supply = <&reg_sd1_vmmc>;
+	cap-power-off-card;
 	pm-ignore-notify;
 	keep-power-in-suspend;
 	non-removable;
+	mmc-pwrseq = <&usdhc1_pwrseq>;
 	status = "okay";
 };
 
@@ -1046,6 +1043,13 @@
 	pinctrl_wdog: wdoggrp {
 		fsl,pins = <
 			MX8MM_IOMUXC_GPIO1_IO02_WDOG1_WDOG_B	0xc6
+		>;
+	};
+
+	pinctrl_wlan: wlangrp {
+		fsl,pins = <
+			MX8MM_IOMUXC_GPIO1_IO00_ANAMIX_REF_CLK_32K	0x141
+			MX8MM_IOMUXC_SD1_DATA7_GPIO2_IO9		0x111
 		>;
 	};
 };
