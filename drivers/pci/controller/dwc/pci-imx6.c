@@ -1914,29 +1914,11 @@ static int imx6_pcie_host_init(struct pcie_port *pp)
 
 	if (gpio_is_valid(imx6_pcie->dis_gpio))
 		gpio_set_value_cansleep(imx6_pcie->dis_gpio, 1);
-
-	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		/*
-		 * Configure the msi_data to 64Kbytes alignment, since
-		 * the 64Kbytes alignment are mandatory required by some
-		 * iMX PCIe inbound/outbound regions.
-		 */
-		pp->msi_data = (u64)(pp->cfg1_base + pp->cfg1_size);
-		if (pp->io)
-			pp->msi_data += pp->io_size;
-		if (pp->msi_data & (SZ_64K - 1))
-			pp->msi_data = ALIGN(pp->msi_data, SZ_64K);
-		/* Program the msi_data */
-		dw_pcie_writel_dbi(pci, PCIE_MSI_ADDR_LO,
-				   lower_32_bits(pp->msi_data));
-		dw_pcie_writel_dbi(pci, PCIE_MSI_ADDR_HI,
-				   upper_32_bits(pp->msi_data));
-	}
-
 	dw_pcie_setup_rc(pp);
 	pci_imx_set_msi_en(pp);
 	if (imx6_pcie_establish_link(imx6_pcie))
 		return -ENODEV;
+	dw_pcie_msi_init(pp);
 
 	return 0;
 }
@@ -2132,6 +2114,7 @@ static int __init imx_add_pcie_ep(struct imx6_pcie *imx6_pcie,
 
 	ep->phys_base = res->start;
 	ep->addr_size = resource_size(res);
+	ep->page_size = SZ_64K;
 
 	ret = dw_pcie_ep_init(ep);
 	if (ret) {
