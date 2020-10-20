@@ -451,7 +451,7 @@ _QueryProcessPageTable(
         if (!current->mm)
             return gcvSTATUS_NOT_FOUND;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION (5,9,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION (5,8,0)
         down_read(&current->mm->mmap_lock);
         vma = find_vma(current->mm, logical);
         up_read(&current->mm->mmap_lock);

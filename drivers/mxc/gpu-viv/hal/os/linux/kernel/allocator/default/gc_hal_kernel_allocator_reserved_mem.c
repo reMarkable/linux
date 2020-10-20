@@ -348,7 +348,7 @@ reserved_mem_map_user(
         gcmkONERROR(gcvSTATUS_OUT_OF_MEMORY);
     }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
     down_write(&current->mm->mmap_lock);
 #else
     down_write(&current->mm->mmap_sem);
@@ -376,7 +376,7 @@ reserved_mem_map_user(
     }
     while (gcvFALSE);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
     up_write(&current->mm->mmap_lock);
 #else
     up_write(&current->mm->mmap_sem);
