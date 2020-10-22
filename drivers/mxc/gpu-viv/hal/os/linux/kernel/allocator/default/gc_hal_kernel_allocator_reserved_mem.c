@@ -298,12 +298,12 @@ reserved_mem_unmap_user(
         printk("%s: vm_munmap failed\n", __func__);
     }
 #else
-    down_write(&current->mm->mmap_sem);
+    down_write(&current_mm_mmap_sem);
     if (do_munmap(current->mm, (unsigned long)MdlMap->vmaAddr - res->offset_in_page, res->size) < 0)
     {
         printk("%s: do_munmap failed\n", __func__);
     }
-    up_write(&current->mm->mmap_sem);
+    up_write(&current_mm_mmap_sem);
 #endif
 }
 
@@ -325,10 +325,10 @@ reserved_mem_map_user(
     userLogical = (gctPOINTER)vm_mmap(NULL, 0L, res->size,
                 PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, 0);
 #else
-    down_write(&current->mm->mmap_sem);
+    down_write(&current_mm_mmap_sem);
     userLogical = (gctPOINTER)do_mmap_pgoff(NULL, 0L, res->size,
                 PROT_READ | PROT_WRITE, MAP_SHARED, 0);
-    up_write(&current->mm->mmap_sem);
+    up_write(&current_mm_mmap_sem);
 #endif
 
     gcmkTRACE_ZONE(
@@ -348,11 +348,7 @@ reserved_mem_map_user(
         gcmkONERROR(gcvSTATUS_OUT_OF_MEMORY);
     }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-    down_write(&current->mm->mmap_lock);
-#else
-    down_write(&current->mm->mmap_sem);
-#endif
+    down_write(&current_mm_mmap_sem);
 
     do
     {
@@ -376,11 +372,7 @@ reserved_mem_map_user(
     }
     while (gcvFALSE);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-    up_write(&current->mm->mmap_lock);
-#else
-    up_write(&current->mm->mmap_sem);
-#endif
+    up_write(&current_mm_mmap_sem);
 
 OnError:
     if (gcmIS_ERROR(status) && userLogical)
