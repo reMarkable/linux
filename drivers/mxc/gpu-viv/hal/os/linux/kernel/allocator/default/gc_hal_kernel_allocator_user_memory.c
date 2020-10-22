@@ -438,9 +438,9 @@ _Import(
             }
         }
 
-        down_read(&current->mm->mmap_sem);
+        down_read(&current_mm_mmap_sem);
         vma = find_vma(current->mm, memory);
-        up_read(&current->mm->mmap_sem);
+        up_read(&current_mm_mmap_sem);
 
         if (!vma)
         {
@@ -456,7 +456,7 @@ _Import(
         vm_flags = vma->vm_flags;
         vaddr = vma->vm_end;
 
-        down_read(&current->mm->mmap_sem);
+        down_read(&current_mm_mmap_sem);
         while (vaddr < memory + Size)
         {
             vma = find_vma(current->mm, vaddr);
@@ -464,20 +464,20 @@ _Import(
             if (!vma)
             {
                 /* No such memory. */
-                up_read(&current->mm->mmap_sem);
+                up_read(&current_mm_mmap_sem);
                 gcmkONERROR(gcvSTATUS_INVALID_ARGUMENT);
             }
 
             if ((vma->vm_flags & VM_PFNMAP) != (vm_flags & VM_PFNMAP))
             {
                 /* Can not support different map type: both PFN and PAGE detected. */
-                up_read(&current->mm->mmap_sem);
+                up_read(&current_mm_mmap_sem);
                 gcmkONERROR(gcvSTATUS_NOT_SUPPORTED);
             }
 
             vaddr = vma->vm_end;
         }
-        up_read(&current->mm->mmap_sem);
+        up_read(&current_mm_mmap_sem);
     }
 
     if (Physical != gcvINVALID_PHYSICAL_ADDRESS)
