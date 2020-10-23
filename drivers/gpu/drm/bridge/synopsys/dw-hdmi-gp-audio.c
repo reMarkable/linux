@@ -14,6 +14,7 @@
 #include <linux/dma-mapping.h>
 #include <drm/bridge/dw_hdmi.h>
 #include <drm/drm_edid.h>
+#include <drm/drm_connector.h>
 
 #include <sound/hdmi-codec.h>
 #include <sound/asoundef.h>
@@ -114,7 +115,7 @@ static int audio_get_eld(struct device *dev, void *data,
 {
 	struct snd_dw_hdmi *dw = dev_get_drvdata(dev);
 
-	memcpy(buf, dw->data.eld, min(sizeof(dw->data.eld), len));
+	memcpy(buf, dw->data.eld, min_t(size_t, MAX_ELD_BYTES, len));
 
 	return 0;
 }
