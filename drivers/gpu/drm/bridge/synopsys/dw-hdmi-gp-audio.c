@@ -89,6 +89,10 @@ static int audio_hw_params(struct device *dev,  void *data,
 	dw_hdmi_set_channel_count(dw->data.hdmi, params->channels);
 	dw_hdmi_set_channel_allocation(dw->data.hdmi, ca);
 
+	dw_hdmi_set_sample_non_pcm(dw->data.hdmi,
+				   params->iec.status[0] & IEC958_AES0_NONAUDIO);
+	dw_hdmi_set_sample_width(dw->data.hdmi, params->sample_width);
+
 	return ret;
 }
 
