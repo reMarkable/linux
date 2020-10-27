@@ -194,9 +194,26 @@ static void imx_mic_stop(struct cosm_device *cdev, bool force)
 	vop_unregister_device(mdev->vpdev);
 }
 
+static ssize_t imx_mic_family(struct cosm_device *cdev, char *buf)
+{
+	struct imx_mic_device *mdev = cosmdev_to_mdev(cdev);
+	static const char *family[MIC_FAMILY_LAST] = { "x100", "x200", "imx8", "Unknown" };
+
+	return scnprintf(buf, PAGE_SIZE, "%s\n", family[mdev->family]);
+}
+
+static ssize_t imx_mic_stepping(struct cosm_device *cdev, char *buf)
+{
+	struct imx_mic_device *mdev = cosmdev_to_mdev(cdev);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", mdev->stepping);
+}
+
 struct cosm_hw_ops cosm_hw_ops = {
 	.reset = imx_mic_reset,
 	.ready = imx_mic_ready,
 	.start = imx_mic_start,
 	.stop = imx_mic_stop,
+	.family = imx_mic_family,
+	.stepping = imx_mic_stepping,
 };
