@@ -1334,7 +1334,6 @@
 					clock-names = "ipg", "phy", "spba", "pll_ipg";
 					dmas = <&sdma2 30 2 0>, <&sdma2 31 2 0>;
 					dma-names = "rx", "tx";
-					fsl,xcvr-fw = "imx/xcvr/xcvr-imx8mp.bin";
 					resets = <&audiomix_reset 0>;
 					power-domains = <&audiomix_pd>;
 					status = "disabled";
