@@ -19,7 +19,12 @@
 
 #define FSL_XCVR_CAPDS_SIZE	256
 
+struct fsl_xcvr_soc_data {
+	const char *fw_name;
+};
+
 struct fsl_xcvr {
+	const struct fsl_xcvr_soc_data *soc_data;
 	struct platform_device *pdev;
 	struct regmap *regmap;
 	struct clk *ipg_clk;
@@ -27,7 +32,6 @@ struct fsl_xcvr {
 	struct clk *phy_clk;
 	struct clk *spba_clk;
 	struct reset_control *reset;
-	const char *fw_name;
 	u8 streams;
 	u32 mode;
 	u32 arc_mode;
@@ -51,7 +55,11 @@ static const struct fsl_xcvr_pll_conf {
 	{ .mfi = 29, .mfn = 1,  .mfd = 6,   .fout = 700000000, },  /* 700 MHz */
 };
 
-static const u32 fsl_xcvr_earc_channels[] = { 1, 2, 8, 16, 32, }; /* one bit 6, 12 ? */
+/*
+ * HDMI2.1 spec defines 6- and 12-channels layout for one bit audio
+ * stream. Todo: to check how this case can be considered below
+ */
+static const u32 fsl_xcvr_earc_channels[] = { 1, 2, 8, 16, 32, };
 static const struct snd_pcm_hw_constraint_list fsl_xcvr_earc_channels_constr = {
 	.count = ARRAY_SIZE(fsl_xcvr_earc_channels),
 	.list = fsl_xcvr_earc_channels,
@@ -105,7 +113,7 @@ static int fsl_xcvr_arc_mode_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static const int fsl_xcvr_phy_arc_cfg[] = {
+static const u32 fsl_xcvr_phy_arc_cfg[] = {
 	FSL_XCVR_PHY_CTRL_ARC_MODE_SE_EN, FSL_XCVR_PHY_CTRL_ARC_MODE_CM_EN,
 };
 
@@ -226,7 +234,9 @@ static struct snd_kcontrol_new fsl_xcvr_mode_kctl =
 /** phy: true => phy, false => pll */
 static int fsl_xcvr_ai_write(struct fsl_xcvr *xcvr, u8 reg, u32 data, bool phy)
 {
+	struct device *dev = &xcvr->pdev->dev;
 	u32 val, idx, tidx;
+	int ret;
 
 	idx  = BIT(phy ? 26 : 24);
 	tidx = BIT(phy ? 27 : 25);
@@ -236,11 +246,13 @@ static int fsl_xcvr_ai_write(struct fsl_xcvr *xcvr, u8 reg, u32 data, bool phy)
 	regmap_write(xcvr->regmap, FSL_XCVR_PHY_AI_WDATA, data);
 	regmap_write(xcvr->regmap, FSL_XCVR_PHY_AI_CTRL_TOG, idx);
 
-	do {
-		regmap_read(xcvr->regmap, FSL_XCVR_PHY_AI_CTRL, &val);
-	} while ((val & idx) != ((val & tidx) >> 1));
-
-	return 0;
+	ret = regmap_read_poll_timeout(xcvr->regmap, FSL_XCVR_PHY_AI_CTRL, val,
+				       (val & idx) == ((val & tidx) >> 1),
+				       10, 10000);
+	if (ret)
+		dev_err(dev, "AI timeout: failed to set %s reg 0x%02x=0x%08x\n",
+			phy ? "PHY" : "PLL", reg, data);
+	return ret;
 }
 
 static int fsl_xcvr_en_phy_pll(struct fsl_xcvr *xcvr, u32 freq, bool tx)
@@ -608,18 +620,16 @@ static int fsl_xcvr_trigger(struct snd_pcm_substream *substream, int cmd,
 						   FSL_XCVR_ISR_SET,
 						   FSL_XCVR_ISR_CMDC_TX_EN);
 				if (ret < 0) {
-					dev_err(dai->dev,
-						"err updating isr %d\n", ret);
+					dev_err(dai->dev, "err updating isr %d\n", ret);
 					return ret;
 				}
-				/* fall through */
-
+				fallthrough;
 			case FSL_XCVR_MODE_SPDIF:
 				ret = regmap_write(xcvr->regmap,
 					 FSL_XCVR_TX_DPTH_CTRL_SET,
 					 FSL_XCVR_TX_DPTH_CTRL_STRT_DATA_TX);
 				if (ret < 0) {
-					dev_err(dai->dev, "Failed to set TX_DPTH_CTRL_STRT_DATA_TX: %d\n", ret);
+					dev_err(dai->dev, "Failed to start DATA_TX: %d\n", ret);
 					return ret;
 				}
 				break;
@@ -653,10 +663,10 @@ static int fsl_xcvr_trigger(struct snd_pcm_substream *substream, int cmd,
 					 FSL_XCVR_TX_DPTH_CTRL_CLR,
 					 FSL_XCVR_TX_DPTH_CTRL_STRT_DATA_TX);
 				if (ret < 0) {
-					dev_err(dai->dev, "Failed to clr TX_DPTH_CTRL_STRT_DATA_TX: %d\n", ret);
+					dev_err(dai->dev, "Failed to stop DATA_TX: %d\n", ret);
 					return ret;
 				}
-				/* fall through ...*/
+				fallthrough;
 			case FSL_XCVR_MODE_EARC:
 				/* clear ISR_CMDC_TX_EN, W1C */
 				ret = regmap_write(xcvr->regmap,
@@ -685,7 +695,7 @@ static int fsl_xcvr_load_firmware(struct fsl_xcvr *xcvr)
 	int ret = 0, rem, off, out, page = 0, size = FSL_XCVR_REG_OFFSET;
 	u32 mask, val;
 
-	ret = request_firmware(&fw, xcvr->fw_name, dev);
+	ret = request_firmware(&fw, xcvr->soc_data->fw_name, dev);
 	if (ret) {
 		dev_err(dev, "failed to request firmware.\n");
 		return ret;
@@ -693,14 +703,18 @@ static int fsl_xcvr_load_firmware(struct fsl_xcvr *xcvr)
 
 	rem = fw->size;
 
-	/* RAM is 20KiB => max 10 pages 2KiB each */
-	for (page = 0; page < 10; page++)
-	{
+	/* RAM is 20KiB = 16KiB code + 4KiB data => max 10 pages 2KiB each */
+	if (rem > 16384) {
+		dev_err(dev, "FW size %d is bigger than 16KiB.\n", rem);
+		return -ENOMEM;
+	}
+
+	for (page = 0; page < 10; page++) {
 		ret = regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL,
 					 FSL_XCVR_EXT_CTRL_PAGE_MASK,
 					 FSL_XCVR_EXT_CTRL_PAGE(page));
 		if (ret < 0) {
-			dev_err(dev, "FW: failed to set page %d, err=%d \n",
+			dev_err(dev, "FW: failed to set page %d, err=%d\n",
 				page, ret);
 			goto err_firmware;
 		}
@@ -748,7 +762,6 @@ err_firmware:
 	/* Store Capabilities Data Structure into Data RAM */
 	memcpy_toio(xcvr->ram_addr + FSL_XCVR_CAP_DATA_STR, xcvr->cap_ds,
 		    FSL_XCVR_CAPDS_SIZE);
-
 	return 0;
 }
 
@@ -1035,13 +1048,13 @@ static irqreturn_t irq0_isr(int irq, void *devid)
 	struct device *dev = &xcvr->pdev->dev;
 	struct regmap *regmap = xcvr->regmap;
 	void __iomem *reg_ctrl, *reg_buff;
-	u32 isr, val, i;
+	u32 isr, isr_clr = 0, val, i;
 
 	regmap_read(regmap, FSL_XCVR_EXT_ISR, &isr);
-	regmap_write(regmap, FSL_XCVR_EXT_ISR_CLR, isr);
 
 	if (isr & FSL_XCVR_IRQ_NEW_CS) {
 		dev_dbg(dev, "Received new CS block\n");
+		isr_clr |= FSL_XCVR_IRQ_NEW_CS;
 		/* Data RAM is 4KiB, last two pages: 8 and 9. Select page 8. */
 		regmap_update_bits(xcvr->regmap, FSL_XCVR_EXT_CTRL,
 				   FSL_XCVR_EXT_CTRL_PAGE_MASK,
@@ -1070,52 +1083,52 @@ static irqreturn_t irq0_isr(int irq, void *devid)
 			memset_io(reg_ctrl, 0, sizeof(val));
 		}
 	}
-	if (isr & FSL_XCVR_IRQ_NEW_UD)
+	if (isr & FSL_XCVR_IRQ_NEW_UD) {
 		dev_dbg(dev, "Received new UD block\n");
-	if (isr & FSL_XCVR_IRQ_MUTE)
+		isr_clr |= FSL_XCVR_IRQ_NEW_UD;
+	}
+	if (isr & FSL_XCVR_IRQ_MUTE) {
 		dev_dbg(dev, "HW mute bit detected\n");
-	if (isr & FSL_XCVR_IRQ_FIFO_UOFL_ERR)
+		isr_clr |= FSL_XCVR_IRQ_MUTE;
+	}
+	if (isr & FSL_XCVR_IRQ_FIFO_UOFL_ERR) {
 		dev_dbg(dev, "RX/TX FIFO full/empty\n");
-	if (isr & FSL_XCVR_IRQ_ARC_MODE)
+		isr_clr |= FSL_XCVR_IRQ_FIFO_UOFL_ERR;
+	}
+	if (isr & FSL_XCVR_IRQ_ARC_MODE) {
 		dev_dbg(dev, "CMDC SM falls out of eARC mode\n");
-	if (isr & FSL_XCVR_IRQ_DMA_RD_REQ)
+		isr_clr |= FSL_XCVR_IRQ_ARC_MODE;
+	}
+	if (isr & FSL_XCVR_IRQ_DMA_RD_REQ) {
 		dev_dbg(dev, "DMA read request\n");
-	if (isr & FSL_XCVR_IRQ_DMA_WR_REQ)
+		isr_clr |= FSL_XCVR_IRQ_DMA_RD_REQ;
+	}
+	if (isr & FSL_XCVR_IRQ_DMA_WR_REQ) {
 		dev_dbg(dev, "DMA write request\n");
+		isr_clr |= FSL_XCVR_IRQ_DMA_WR_REQ;
+	}
 
-	return IRQ_HANDLED;
+	if (isr_clr) {
+		regmap_write(regmap, FSL_XCVR_EXT_ISR_CLR, isr_clr);
+		return IRQ_HANDLED;
+	}
+
+	return IRQ_NONE;
 }
 
-static irqreturn_t irq1_isr(int irq, void *devid)
-{
-	struct fsl_xcvr *xcvr = (struct fsl_xcvr *)devid;
-	struct device *dev = &xcvr->pdev->dev;
-
-	dev_dbg(dev, "irq[1]: %d\n", irq);
-
-	return IRQ_HANDLED;
-}
-
-static irqreturn_t irq2_isr(int irq, void *devid)
-{
-	struct fsl_xcvr *xcvr = (struct fsl_xcvr *)devid;
-	struct device *dev = &xcvr->pdev->dev;
-
-	dev_dbg(dev, "irq[2]: %d\n", irq);
-
-	return IRQ_HANDLED;
-}
+static const struct fsl_xcvr_soc_data fsl_xcvr_imx8mp_data = {
+	.fw_name = "imx/xcvr/xcvr-imx8mp.bin",
+};
 
 static const struct of_device_id fsl_xcvr_dt_ids[] = {
-	{ .compatible = "fsl,imx8mp-xcvr", },
-	{ }
+	{ .compatible = "fsl,imx8mp-xcvr", .data = &fsl_xcvr_imx8mp_data },
+	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, fsl_xcvr_dt_ids);
 
 static int fsl_xcvr_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *np = dev->of_node;
 	const struct of_device_id *of_id;
 	struct fsl_xcvr *xcvr;
 	struct resource *ram_res, *regs_res, *rx_res, *tx_res;
@@ -1131,6 +1144,8 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	xcvr->pdev = pdev;
+	xcvr->soc_data = of_device_get_match_data(&pdev->dev);
+
 	xcvr->ipg_clk = devm_clk_get(dev, "ipg");
 	if (IS_ERR(xcvr->ipg_clk)) {
 		dev_err(dev, "failed to get ipg clock\n");
@@ -1173,12 +1188,10 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 		return PTR_ERR(xcvr->regmap);
 	}
 
-	xcvr->reset = of_reset_control_get(np, NULL);
-
-	ret = of_property_read_string(np, "fsl,xcvr-fw", &xcvr->fw_name);
-	if (ret) {
-		dev_err(dev, "failed to get fsl,xcvr-fw: %d\n", ret);
-		return ret;
+	xcvr->reset = devm_reset_control_get_exclusive(dev, NULL);
+	if (IS_ERR(xcvr->reset)) {
+		dev_err(dev, "failed to get XCVR reset control\n");
+		return PTR_ERR(xcvr->reset);
 	}
 
 	/* get IRQs */
@@ -1191,30 +1204,6 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 	ret = devm_request_irq(dev, irq, irq0_isr, 0, pdev->name, xcvr);
 	if (ret) {
 		dev_err(dev, "failed to claim IRQ0: %i\n", ret);
-		return ret;
-	}
-
-	irq = platform_get_irq(pdev, 1);
-	if (irq < 0) {
-		dev_err(dev, "no irq[1]: %d\n", irq);
-		return irq;
-	}
-
-	ret = devm_request_irq(dev, irq, irq1_isr, 0, pdev->name, xcvr);
-	if (ret) {
-		dev_err(dev, "failed to claim IRQ1: %i\n", ret);
-		return ret;
-	}
-
-	irq = platform_get_irq(pdev, 2);
-	if (irq < 0) {
-		dev_err(dev, "no irq[2]: %d\n", irq);
-		return irq;
-	}
-
-	ret = devm_request_irq(dev, irq, irq2_isr, 0, pdev->name, xcvr);
-	if (ret) {
-		dev_err(dev, "failed to claim IRQ2: %i\n", ret);
 		return ret;
 	}
 
@@ -1246,8 +1235,7 @@ static int fsl_xcvr_probe(struct platform_device *pdev)
 	return ret;
 }
 
-#ifdef CONFIG_PM
-static int fsl_xcvr_runtime_suspend(struct device *dev)
+static __maybe_unused int fsl_xcvr_runtime_suspend(struct device *dev)
 {
 	struct fsl_xcvr *xcvr = dev_get_drvdata(dev);
 	int ret;
@@ -1259,6 +1247,10 @@ static int fsl_xcvr_runtime_suspend(struct device *dev)
 	if (ret < 0)
 		dev_err(dev, "Failed to assert M0+ core: %d\n", ret);
 
+	ret = reset_control_assert(xcvr->reset);
+	if (ret < 0)
+		dev_err(dev, "Failed to assert M0+ reset: %d\n", ret);
+
 	regcache_cache_only(xcvr->regmap, true);
 
 	clk_disable_unprepare(xcvr->spba_clk);
@@ -1269,7 +1261,7 @@ static int fsl_xcvr_runtime_suspend(struct device *dev)
 	return 0;
 }
 
-static int fsl_xcvr_runtime_resume(struct device *dev)
+static __maybe_unused int fsl_xcvr_runtime_resume(struct device *dev)
 {
 	struct fsl_xcvr *xcvr = dev_get_drvdata(dev);
 	int ret;
@@ -1283,22 +1275,19 @@ static int fsl_xcvr_runtime_resume(struct device *dev)
 	ret = clk_prepare_enable(xcvr->pll_ipg_clk);
 	if (ret) {
 		dev_err(dev, "failed to start PLL IPG clock.\n");
-		return ret;
+		goto stop_ipg_clk;
 	}
 
 	ret = clk_prepare_enable(xcvr->phy_clk);
 	if (ret) {
 		dev_err(dev, "failed to start PHY clock: %d\n", ret);
-		clk_disable_unprepare(xcvr->ipg_clk);
-		return ret;
+		goto stop_pll_ipg_clk;
 	}
 
 	ret = clk_prepare_enable(xcvr->spba_clk);
 	if (ret) {
 		dev_err(dev, "failed to start SPBA clock.\n");
-		clk_disable_unprepare(xcvr->phy_clk);
-		clk_disable_unprepare(xcvr->ipg_clk);
-		return ret;
+		goto stop_phy_clk;
 	}
 
 	regcache_cache_only(xcvr->regmap, false);
@@ -1307,16 +1296,19 @@ static int fsl_xcvr_runtime_resume(struct device *dev)
 
 	if (ret) {
 		dev_err(dev, "failed to sync regcache.\n");
-		return ret;
+		goto stop_spba_clk;
 	}
 
-	reset_control_assert(xcvr->reset);
-	reset_control_deassert(xcvr->reset);
+	ret = reset_control_deassert(xcvr->reset);
+	if (ret) {
+		dev_err(dev, "failed to deassert M0+ reset.\n");
+		goto stop_spba_clk;
+	}
 
 	ret = fsl_xcvr_load_firmware(xcvr);
 	if (ret) {
 		dev_err(dev, "failed to load firmware.\n");
-		return ret;
+		goto stop_spba_clk;
 	}
 
 	/* Release M0+ reset */
@@ -1324,13 +1316,25 @@ static int fsl_xcvr_runtime_resume(struct device *dev)
 				 FSL_XCVR_EXT_CTRL_CORE_RESET, 0);
 	if (ret < 0) {
 		dev_err(dev, "M0+ core release failed: %d\n", ret);
-		return ret;
+		goto stop_spba_clk;
 	}
-	mdelay(50);
+
+	/* Let M0+ core complete firmware initialization */
+	msleep(50);
 
 	return 0;
+
+stop_spba_clk:
+	clk_disable_unprepare(xcvr->spba_clk);
+stop_phy_clk:
+	clk_disable_unprepare(xcvr->phy_clk);
+stop_pll_ipg_clk:
+	clk_disable_unprepare(xcvr->pll_ipg_clk);
+stop_ipg_clk:
+	clk_disable_unprepare(xcvr->ipg_clk);
+
+	return ret;
 }
-#endif /* CONFIG_PM*/
 
 static const struct dev_pm_ops fsl_xcvr_pm_ops = {
 	SET_RUNTIME_PM_OPS(fsl_xcvr_runtime_suspend,
