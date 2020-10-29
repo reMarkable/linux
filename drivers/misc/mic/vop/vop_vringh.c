@@ -9,7 +9,6 @@
 #include <linux/sched.h>
 #include <linux/poll.h>
 #include <linux/dma-mapping.h>
-#include <linux/dma-noncoherent.h>
 
 #include <linux/mic_common.h>
 #include "../common/mic_dev.h"
@@ -52,34 +51,6 @@ static void _vop_notify(struct vringh *vrh)
 
 	if (db != -1)
 		vpdev->hw_ops->send_intr(vpdev, db);
-}
-
-static void vop_virtio_init_post(struct vop_vdev *vdev)
-{
-	struct mic_vqconfig *vqconfig = mic_vq_config(vdev->dd);
-	struct vop_device *vpdev = vdev->vpdev;
-	int i, used_size;
-
-	for (i = 0; i < vdev->dd->num_vq; i++) {
-		used_size = PAGE_ALIGN(sizeof(u16) * 3 +
-				sizeof(struct vring_used_elem) *
-				le16_to_cpu(vqconfig->num));
-		if (!le64_to_cpu(vqconfig[i].used_address)) {
-			dev_warn(vop_dev(vdev), "used_address zero??\n");
-			continue;
-		}
-		if (dev_is_dma_coherent(vop_dev(vdev)))
-			vdev->vvr[i].vrh.vring.used =
-				(void __force *)vpdev->hw_ops->remap(
-				vpdev,
-				le64_to_cpu(vqconfig[i].used_address),
-				used_size);
-	}
-
-	vdev->dc->used_address_updated = 0;
-
-	dev_info(vop_dev(vdev), "%s: device type %d LINKUP\n",
-		 __func__, vdev->virtio_id);
 }
 
 static inline void vop_virtio_device_reset(struct vop_vdev *vdev)
@@ -131,9 +102,6 @@ static void vop_bh_handler(struct work_struct *work)
 {
 	struct vop_vdev *vdev = container_of(work, struct vop_vdev,
 			virtio_bh_work);
-
-	if (vdev->dc->used_address_updated)
-		vop_virtio_init_post(vdev);
 
 	if (vdev->dc->vdev_reset)
 		vop_virtio_device_reset(vdev);
@@ -252,7 +220,6 @@ static void vop_init_device_ctrl(struct vop_vdev *vdev,
 	dc->guest_ack = 0;
 	dc->vdev_reset = 0;
 	dc->host_ack = 0;
-	dc->used_address_updated = 0;
 	dc->c2h_vdev_db = -1;
 	dc->h2c_vdev_db = -1;
 	vdev->dc = dc;
