@@ -125,10 +125,7 @@ static void vop_transport_features(struct virtio_device *vdev)
 	 * creates virtio rings on preallocated memory.
 	 */
 	__virtio_clear_bit(vdev, VIRTIO_F_RING_PACKED);
-
-	if (!dev_is_dma_coherent(vdev->dev.parent))
-		/* For i.MX MIC, need use dma to map tx/rx buffer for virtio_ring. */
-		__virtio_set_bit(vdev, VIRTIO_F_IOMMU_PLATFORM);
+	__virtio_set_bit(vdev, VIRTIO_F_IOMMU_PLATFORM);
 }
 
 static int vop_finalize_features(struct virtio_device *vdev)
