@@ -212,7 +212,7 @@ enum {
 	 *
 	 * This quirk must be set before hci_register_dev is called.
 	 */
-	HCI_QUIRK_WIDE_BAND_SPEECH_SUPPORTED,
+	HCI_QUIRK_WIDEBAND_SPEECH_SUPPORTED,
 };
 
 /* HCI device flags */
@@ -285,6 +285,7 @@ enum {
 	HCI_FAST_CONNECTABLE,
 	HCI_BREDR_ENABLED,
 	HCI_LE_SCAN_INTERRUPTED,
+	HCI_WIDEBAND_SPEECH_ENABLED,
 
 	HCI_DUT_MODE,
 	HCI_VENDOR_DIAG,
@@ -1261,6 +1262,19 @@ struct hci_rp_read_tx_power {
 	__u8     status;
 	__le16   handle;
 	__s8     tx_power;
+} __packed;
+
+#define HCI_OP_READ_DEF_ERR_DATA_REPORTING	0x0c5a
+	#define ERR_DATA_REPORTING_DISABLED	0x00
+	#define ERR_DATA_REPORTING_ENABLED	0x01
+struct hci_rp_read_def_err_data_reporting {
+	__u8     status;
+	__u8     err_data_reporting;
+} __packed;
+
+#define HCI_OP_WRITE_DEF_ERR_DATA_REPORTING	0x0c5b
+struct hci_cp_write_def_err_data_reporting {
+	__u8     err_data_reporting;
 } __packed;
 
 #define HCI_OP_READ_PAGE_SCAN_TYPE	0x0c46
