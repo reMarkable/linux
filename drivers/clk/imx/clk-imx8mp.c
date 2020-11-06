@@ -80,6 +80,7 @@ static struct imx_pll14xx_clk imx8mp_video_pll = {
 static struct imx_pll14xx_clk imx8mp_dram_pll = {
 		.type = PLL_1443X,
 		.rate_table = imx8mp_drampll_tbl,
+		.rate_count = ARRAY_SIZE(imx8mp_drampll_tbl),
 };
 
 static struct imx_pll14xx_clk imx8mp_arm_pll = {
@@ -91,16 +92,19 @@ static struct imx_pll14xx_clk imx8mp_arm_pll = {
 static struct imx_pll14xx_clk imx8mp_gpu_pll = {
 		.type = PLL_1416X,
 		.rate_table = imx8mp_pll1416x_tbl,
+		.rate_count = ARRAY_SIZE(imx8mp_pll1416x_tbl),
 };
 
 static struct imx_pll14xx_clk imx8mp_vpu_pll = {
 		.type = PLL_1416X,
 		.rate_table = imx8mp_pll1416x_tbl,
+		.rate_count = ARRAY_SIZE(imx8mp_pll1416x_tbl),
 };
 
 static struct imx_pll14xx_clk imx8mp_sys_pll = {
 		.type = PLL_1416X,
 		.rate_table = imx8mp_pll1416x_tbl,
+		.rate_count = ARRAY_SIZE(imx8mp_pll1416x_tbl),
 };
 
 static const char *pll_ref_sels[] = { "osc_24m", "dummy", "dummy", "dummy", };
