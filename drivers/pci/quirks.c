@@ -2522,14 +2522,25 @@ static void quirk_disable_all_msi(struct pci_dev *dev)
 static void quirk_disable_nxp_imx_msi(struct pci_dev *dev)
 {
 	struct pci_dev *host_bridge;
+	bool msi_dis = false;
 
 	host_bridge = pci_get_domain_bus_and_slot(pci_domain_nr(dev->bus), 0,
 						  PCI_DEVFN(0, 0));
 	if (host_bridge) {
-		if (host_bridge->vendor == PCI_VENDOR_ID_SYNOPSYS &&
-		    host_bridge->device == 0xabcd)
-			pci_no_msi();
+		switch (host_bridge->vendor) {
+		case PCI_VENDOR_ID_SYNOPSYS:
+			if (host_bridge->device == 0xabcd)
+				msi_dis = true;
+			break;
+		case PCI_VENDOR_ID_FREESCALE:
+			if (host_bridge->device == 0x0)
+				msi_dis = true;
+		default:
+			break;
+		}
 
+		if (msi_dis)
+			pci_no_msi();
 		pci_dev_put(host_bridge);
 	}
 }
