@@ -570,8 +570,8 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clks[IMX8MP_GPU_PLL] = imx_clk_pll14xx("gpu_pll", "gpu_pll_ref_sel", base + 0x64, &imx8mp_gpu_pll);
 	clks[IMX8MP_VPU_PLL] = imx_clk_pll14xx("vpu_pll", "vpu_pll_ref_sel", base + 0x74, &imx8mp_vpu_pll);
 	clks[IMX8MP_ARM_PLL] = imx_clk_pll14xx("arm_pll", "arm_pll_ref_sel", base + 0x84, &imx8mp_arm_pll);
-	clks[IMX8MP_SYS_PLL1] = imx_clk_pll14xx("sys_pll1", "sys_pll1_ref_sel", base + 0x94, &imx8mp_sys_pll);
-	clks[IMX8MP_SYS_PLL2] = imx_clk_pll14xx("sys_pll2", "sys_pll2_ref_sel", base + 0x104, &imx8mp_sys_pll);
+	clks[IMX8MP_SYS_PLL1] = imx_clk_fixed("sys_pll1", 800000000);
+	clks[IMX8MP_SYS_PLL2] = imx_clk_fixed("sys_pll2", 1000000000);
 	clks[IMX8MP_SYS_PLL3] = imx_clk_pll14xx("sys_pll3", "sys_pll3_ref_sel", base + 0x114, &imx8mp_sys_pll);
 
 	/* PLL bypass out */
