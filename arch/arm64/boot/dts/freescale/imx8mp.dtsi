@@ -38,6 +38,8 @@
 		isi1 = &isi_1;
 		csi0 = &mipi_csi_0;
 		csi1 = &mipi_csi_1;
+		isp0 = &isp_0;
+		isp1 = &isp_1;
 	};
 
 	cpus {
@@ -1806,6 +1808,7 @@
 					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
 					assigned-clock-rates = <500000000>;
 					power-domains = <&ispdwp_pd>;
+					id = <0>;
 					status = "disabled";
 				};
 
@@ -1819,6 +1822,7 @@
 					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>;
 					assigned-clock-rates = <500000000>;
 					power-domains = <&ispdwp_pd>;
+					id = <1>;
 					status = "disabled";
 				};
 
