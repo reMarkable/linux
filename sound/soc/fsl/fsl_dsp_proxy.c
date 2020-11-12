@@ -144,7 +144,7 @@ u32 icm_intr_send(struct xf_proxy *proxy, u32 msg)
 	struct fsl_dsp *dsp_priv = container_of(proxy,
 					struct fsl_dsp, proxy);
 
-	MU_SendMessage(dsp_priv->mu_base_virtaddr, 0, msg);
+	MU_SendMessageTimeout(dsp_priv->mu_base_virtaddr, 0, msg, 800);
 	return 0;
 }
 
@@ -161,9 +161,9 @@ int icm_intr_extended_send(struct xf_proxy *proxy,
 	if (msghdr.size != 8)
 		dev_err(dev, "too much ext msg\n");
 
-	MU_SendMessage(dsp_priv->mu_base_virtaddr, 1, ext_msg->phys);
-	MU_SendMessage(dsp_priv->mu_base_virtaddr, 2, ext_msg->size);
-	MU_SendMessage(dsp_priv->mu_base_virtaddr, 0, msg);
+	MU_SendMessageTimeout(dsp_priv->mu_base_virtaddr, 1, ext_msg->phys, 800);
+	MU_SendMessageTimeout(dsp_priv->mu_base_virtaddr, 2, ext_msg->size, 800);
+	MU_SendMessageTimeout(dsp_priv->mu_base_virtaddr, 0, msg, 800);
 
 	return 0;
 }
