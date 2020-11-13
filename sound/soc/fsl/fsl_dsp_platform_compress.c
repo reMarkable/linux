@@ -87,7 +87,8 @@ static int dsp_platform_compr_free(struct snd_compr_stream *cstream)
 	int ret;
 
 	if (cstream->runtime->state != SNDRV_PCM_STATE_PAUSED &&
-		cstream->runtime->state != SNDRV_PCM_STATE_DRAINING) {
+		cstream->runtime->state != SNDRV_PCM_STATE_DRAINING &&
+		cstream->runtime->state > SNDRV_PCM_STATE_OPEN) {
 		if (dsp_priv->dsp_is_lpa) {
 			ret = xaf_comp_flush(drv->client, &drv->component[0]);
 			if (ret) {
