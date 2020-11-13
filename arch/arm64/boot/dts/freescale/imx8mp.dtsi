@@ -1420,8 +1420,8 @@
 					 <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>;
 				clock-names = "cfg", "pll-ref";
 				assigned-clocks = <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>;
-				assigned-clock-parents = <&clk IMX8MP_VIDEO_PLL1_OUT>;
-				assigned-clock-rates = <27000000>;
+				assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+				assigned-clock-rates = <12000000>;
 				interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
 				power-domains = <&mipi_phy1_pd>;
 				status = "disabled";
