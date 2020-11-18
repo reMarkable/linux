@@ -1424,6 +1424,7 @@
 				assigned-clock-rates = <12000000>;
 				interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
 				power-domains = <&mipi_phy1_pd>;
+				blk-ctl = <&mediamix_blk_ctl>;
 				status = "disabled";
 
 				port@0 {
@@ -1740,6 +1741,7 @@
 				compatible = "fsl,imx8mp-iomuxc-gpr", "syscon";
 				reg = <0x32ec0008 0x4>;
 			};
+
 			cameradev: camera {
 				compatible = "fsl,mxc-md", "simple-bus";
 				#address-cells = <1>;
