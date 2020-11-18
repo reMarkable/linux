@@ -719,7 +719,8 @@
 };
 
 &usbphy1 {
-        status = "okay";
+	status = "okay";
+	fsl,tx-d-cal=<114>;
 };
 
 &usbotg1 {
@@ -735,6 +736,7 @@
 
 &usbphy2 {
 	status = "okay";
+	fsl,tx-d-cal=<111>;
 };
 
 &usbotg2 {
