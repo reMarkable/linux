@@ -800,6 +800,9 @@ static int caam_jr_suspend(struct device *dev)
 	list_del(&jrpriv->list_node);
 	spin_unlock(&driver_data.jr_alloc_lock);
 
+	if (jrpriv->hwrng)
+		caam_rng_exit(dev->parent);
+
 	if (ctrlpriv->caam_off_during_pm) {
 		int err;
 
@@ -885,6 +888,9 @@ add_jr:
 	spin_lock(&driver_data.jr_alloc_lock);
 	list_add_tail(&jrpriv->list_node, &driver_data.jr_list);
 	spin_unlock(&driver_data.jr_alloc_lock);
+
+	if (jrpriv->hwrng)
+		jrpriv->hwrng = !caam_rng_init(dev->parent);
 
 	return 0;
 }
