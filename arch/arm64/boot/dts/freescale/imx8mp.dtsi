@@ -1742,6 +1742,11 @@
 				reg = <0x32ec0008 0x4>;
 			};
 
+			isi_chain_buf: isi_chain@32e02000{
+				compatible = "fsl,imx8mp-iomuxc-gpr", "syscon";
+				reg = <0x32e02000 0x4>;
+			};
+
 			cameradev: camera {
 				compatible = "fsl,mxc-md", "simple-bus";
 				#address-cells = <1>;
@@ -1764,6 +1769,7 @@
 					assigned-clock-rates = <500000000>, <200000000>;
 					no-reset-control;
 					power-domains = <&mediamix_pd>;
+					isi_chain = <&isi_chain_buf>;
 					status = "disabled";
 
 					cap_device {
