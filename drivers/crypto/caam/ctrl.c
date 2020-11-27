@@ -384,8 +384,6 @@ static void kick_trng(struct device *dev, int ent_delay)
 	wr_reg32(&r4tst->rtfrqmin, ent_delay >> 2);
 	/* max. freq. count, equal to 16 times the entropy sample length */
 	wr_reg32(&r4tst->rtfrqmax, ent_delay << 4);
-	/* read the control register */
-	val = rd_reg32(&r4tst->rtmctl);
 start_rng:
 	/*
 	 * select raw sampling in both entropy shifter
