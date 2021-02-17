@@ -3556,9 +3556,9 @@ queue_startup:
 	cyttsp5_start_wd_timer(cd);
 }
 
-static void cyttsp5_watchdog_timer(unsigned long handle)
+static void cyttsp5_watchdog_timer(struct timer_list *t)
 {
-	struct cyttsp5_core_data *cd = (struct cyttsp5_core_data *)handle;
+	struct cyttsp5_core_data *cd = from_timer(cd, t, watchdog_timer);;
 
 	if (!cd)
 		return;
@@ -5819,8 +5819,7 @@ int cyttsp5_probe(const struct cyttsp5_bus_ops *ops, struct device *dev,
 	}
 
 	/* Setup watchdog timer */
-	setup_timer(&cd->watchdog_timer, cyttsp5_watchdog_timer,
-			(unsigned long)cd);
+	timer_setup(&cd->watchdog_timer, cyttsp5_watchdog_timer, 0);
 
 	rc = cyttsp5_setup_irq_gpio(cd);
 	if (rc < 0) {
