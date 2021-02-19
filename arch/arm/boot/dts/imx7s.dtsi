@@ -549,6 +549,10 @@
 				cpu_speed_grade: speed-grade@10 {
 					reg = <0x10 0x4>;
 				};
+
+				cpu_aux_grade: aux-grade@34 {
+					reg = <0x34 0x4>;
+				};
 			};
 
 			anatop: anatop@30360000 {

@@ -49,6 +49,14 @@ static int imx_cpufreq_dt_probe(struct platform_device *pdev)
 	else
 		mkt_segment = (cell_value & OCOTP_CFG3_MKT_SEGMENT_MASK)
 			       >> OCOTP_CFG3_MKT_SEGMENT_SHIFT;
+	if(of_machine_is_compatible("fsl,imx7d")) {
+		int aux_speed;
+		ret = nvmem_cell_read_u32(cpu_dev, "aux_grade", &cell_value);
+		if (!ret) {
+			aux_speed = cell_value & BIT(19);
+			speed_grade = aux_speed ? 0x3 : speed_grade;
+		}
+	}
 
 	/*
 	 * Early samples without fuses written report "0 0" which may NOT
