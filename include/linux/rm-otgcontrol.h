@@ -1,4 +1,4 @@
-'#ifndef __RM_OTGCONTROL_H_
+#ifndef __RM_OTGCONTROL_H_
 #define __RM_OTGCONTROL_H_
 
 #include <linux/kobject.h>
