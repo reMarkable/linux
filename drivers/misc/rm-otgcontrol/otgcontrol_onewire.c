@@ -223,7 +223,7 @@ int otgcontrol_onewire_write_tty(char *device_name, char *text_to_send)
 
 		// Set segment descriptor associated to kernel space
 		printk("%s: Setting segment descriptor\n", __func__);
-		set_fs(get_ds());
+		set_fs(KERNEL_DS);
 
 		//Write to the file
 		printk("%s: Writing '%s' to file\n", __func__, text_to_send);
@@ -261,7 +261,7 @@ int otgcontrol_onewire_read_until_cr(char *device_name, char *buf, int maxlen)
 
 		// Set segment descriptor associated to kernel space
 		printk("%s: Setting segment descriptor\n", __func__);
-		set_fs(get_ds());
+		set_fs(KERNEL_DS);
 
 		pos = 0;
 		int state = 0;
