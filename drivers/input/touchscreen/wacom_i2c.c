@@ -513,7 +513,6 @@ static int __maybe_unused wacom_i2c_suspend(struct device *dev)
 
 	if (device_may_wakeup(dev))
 		enable_irq_wake(client->irq);
-	disable_irq(client->irq);
 
 	return 0;
 }
@@ -524,7 +523,6 @@ static int __maybe_unused wacom_i2c_resume(struct device *dev)
 	struct wacom_i2c *wac_i2c = i2c_get_clientdata(client);
 	int ret;
 
-	enable_irq(client->irq);
 	if (device_may_wakeup(dev))
 		disable_irq_wake(client->irq);
 
