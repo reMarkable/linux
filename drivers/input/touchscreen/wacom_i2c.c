@@ -97,6 +97,7 @@ struct wacom_i2c {
 	bool flip_pos_y;
 	bool flip_distance;
 	bool flip_pressure;
+	unsigned int input_events_per_packet;
 };
 
 u8 reset_cmd[] = {
@@ -201,6 +202,9 @@ static void wacom_of_read(struct wacom_i2c *wac_i2c)
 	wac_i2c->flip_pos_y = of_property_read_bool(client->dev.of_node, "flip-pos-y");
 	wac_i2c->flip_distance = of_property_read_bool(client->dev.of_node, "flip-distance");
 	wac_i2c->flip_pressure = of_property_read_bool(client->dev.of_node, "flip-pressure");
+
+	wac_i2c->input_events_per_packet= 8; /*setting default to be the same as EVDEV_BUF_PACKETS in evdev.c*/
+	of_property_read_u32(client->dev.of_node, "input_events_per_packet", &wac_i2c->input_events_per_packet);
 }
 #endif
 
@@ -472,6 +476,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 
 	device_init_wakeup(&client->dev, true);
 
+	input_set_events_per_packet(input, wac_i2c->input_events_per_packet);
 	return 0;
 
 err_free_irq:
