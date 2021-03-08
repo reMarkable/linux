@@ -208,6 +208,7 @@
 		flip-pos-y;
 		flip-distance;
 		vdd-supply = <&reg_digitizer>;
+		input_events_per_packet = <128>;
 	};
 };
 
