@@ -40,7 +40,6 @@ struct sy7636a {
 	struct regmap *regmap;
 	unsigned int vcom;
 	struct gpio_desc *pgood_gpio;
-	struct mutex reglock;
 };
 
 int get_vcom_voltage_mv(struct regmap *regmap);
