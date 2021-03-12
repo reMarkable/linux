@@ -25,6 +25,7 @@
 static int get_vcom_voltage_op(struct regulator_dev *rdev)
 {
 	int ret;
+
 	ret = get_vcom_voltage_mv(rdev->regmap);
 	if (ret < 0)
 		return ret;
@@ -34,23 +35,10 @@ static int get_vcom_voltage_op(struct regulator_dev *rdev)
 
 static int disable_regulator(struct regulator_dev *rdev)
 {
-	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
-	int ret = 0;
-	mutex_lock(&sy7636a->reglock);
-	ret = regulator_disable_regmap(rdev);
-	usleep_range(30000, 35000);
-	mutex_unlock(&sy7636a->reglock);
-	return ret;
-}
-
-static int sy7636a_regulator_is_enabled(struct regulator_dev *rdev)
-{
-	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
 	int ret;
 
-	mutex_lock(&sy7636a->reglock);
-	ret = regulator_is_enabled_regmap(rdev);
-	mutex_unlock(&sy7636a->reglock);
+	ret = regulator_disable_regmap(rdev);
+	usleep_range(30000, 35000);
 
 	return ret;
 }
@@ -59,26 +47,22 @@ static int enable_regulator_pgood(struct regulator_dev *rdev)
 {
 	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
 	int pwr_good = 0;
-	int ret = 0;
+	int ret;
 	unsigned long t0, t1;
 	const unsigned int wait_time = 500;
 	unsigned int wait_cnt;
 
 	t0 = jiffies;
 
-	mutex_lock(&sy7636a->reglock);
-
 	ret = regulator_enable_regmap(rdev);
-	if (ret) {
-		goto finish;
-	}
+	if (ret)
+		return ret;
 
 	for (wait_cnt = 0; wait_cnt < wait_time; wait_cnt++) {
 		pwr_good = gpiod_get_value_cansleep(sy7636a->pgood_gpio);
 		if (pwr_good < 0) {
 			dev_err(&rdev->dev, "Failed to read pgood gpio: %d\n", pwr_good);
-			ret = pwr_good;
-			goto finish;
+			return pwr_good;
 		}
 		else if (pwr_good)
 			break;
@@ -91,16 +75,13 @@ static int enable_regulator_pgood(struct regulator_dev *rdev)
 	if (!pwr_good) {
 		dev_err(&rdev->dev, "Power good signal timeout after %u ms\n",
 				jiffies_to_msecs(t1 - t0));
-		ret = -ETIME;
-		goto finish;
+		return -ETIME;
 	}
 
 	dev_dbg(&rdev->dev, "Power good OK (took %u ms, %u waits)\n",
 		jiffies_to_msecs(t1 - t0),
 		wait_cnt);
 
-	finish:
-	mutex_unlock(&sy7636a->reglock);
 	return ret;
 }
 
@@ -108,7 +89,7 @@ static const struct regulator_ops sy7636a_vcom_volt_ops = {
 	.get_voltage = get_vcom_voltage_op,
 	.enable = enable_regulator_pgood,
 	.disable = disable_regulator,
-	.is_enabled = sy7636a_regulator_is_enabled,
+	.is_enabled = regulator_is_enabled_regmap,
 };
 
 struct regulator_desc desc = {
@@ -136,7 +117,6 @@ static int sy7636a_regulator_suspend(struct device *dev)
 	struct sy7636a *sy7636a = dev_get_drvdata(dev->parent);
 
 	ret = get_vcom_voltage_mv(sy7636a->regmap);
-
 	if (ret > 0)
 		sy7636a->vcom = (unsigned int)ret;
 
@@ -173,8 +153,6 @@ static int sy7636a_regulator_probe(struct platform_device *pdev)
 		return -EPROBE_DEFER;
 
 	platform_set_drvdata(pdev, sy7636a);
-
-	mutex_init(&sy7636a->reglock);
 
 	gdp = devm_gpiod_get(sy7636a->dev, "epd-pwr-good", GPIOD_IN);
 	if (IS_ERR(gdp)) {
