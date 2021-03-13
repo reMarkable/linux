@@ -682,7 +682,8 @@ dtb-$(CONFIG_SOC_IMX7D) += \
 	imx7s-warp.dtb \
 	imx7-test-image.dtb \
 	imx7-test-image_stripped.dtb \
-	zero-sugar.dtb
+	zero-sugar.dtb \
+	zero-sugar-wifi-cal.dtb
 dtb-$(CONFIG_SOC_IMX7ULP) += \
 	imx7ulp-evk.dtb \
 	imx7ulp-evk-ft5416.dtb \
