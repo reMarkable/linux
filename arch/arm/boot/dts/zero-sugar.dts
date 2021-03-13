@@ -194,7 +194,7 @@
 	pinctrl-1 = <&pinctrl_i2c1>;
 	status = "okay";
 
-	digitizer: wacom-i2c@09 {
+	digitizer: wacom-i2c@9 {
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_wacom>;
 		pinctrl-1 = <&pinctrl_wacom>;
