@@ -82,6 +82,7 @@
 #define CCM_LPCG_START		0x4040
 #define CCM_LPCG_STEP		0x10
 #define CCM_EIM_LPCG		0x4160
+#define CCM_SNVS_LPCG		0x4250
 #define CCM_PXP_LPCG		0x44c0
 #define CCM_PCIE_LPCG		0x4600
 
@@ -792,7 +793,12 @@ static int imx7_pm_is_resume_from_lpsr(void)
 
 static void imx7_lpsr_tweaks_enable(bool lpsr_enable)
 {
-	u32 val;
+	u32 val, snvs_lpcg;
+
+	/* Make sure that the clk for SNVS is running */
+	snvs_lpcg = readl_relaxed(pm_info->ccm_base.vbase + CCM_SNVS_LPCG);
+	val = snvs_lpcg | 0x3;
+	writel_relaxed(val, pm_info->ccm_base.vbase + CCM_SNVS_LPCG);
 
 	/*
 	 * To get GPIO1/2 LPSR wakeup work,
@@ -813,6 +819,9 @@ static void imx7_lpsr_tweaks_enable(bool lpsr_enable)
 	val |= (lpsr_enable ? SNVS_LPCR_ON_TIME_50MS : SNVS_LPCR_ON_TIME_500MS)
 			<< SNVS_LPCR_ON_TIME_SHIFT;
 	writel_relaxed(val, pm_info->snvs_base.vbase + SNVS_LPCR);
+
+	/* Restore old value of CCM_SNVS_LPCG register */
+	writel_relaxed(snvs_lpcg, pm_info->ccm_base.vbase + CCM_SNVS_LPCG);
 }
 
 static void imx7_pm_do_suspend(bool lpsr)
