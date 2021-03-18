@@ -362,7 +362,7 @@
 		compatible = "maxim,max77818";
 		#address-cells = <0>;
 		interrupt-parent = <&gpio1>;
-		interrupts = <7 IRQ_TYPE_EDGE_FALLING>;
+		interrupts = <7 IRQ_TYPE_LEVEL_LOW>;
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_max77818 &pinctrl_chg_stat>;
 		pinctrl-1 = <&pinctrl_max77818 &pinctrl_chg_stat>;
