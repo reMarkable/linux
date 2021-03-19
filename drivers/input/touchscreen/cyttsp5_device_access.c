@@ -1833,12 +1833,12 @@ int prepare_print_data(char *out_buf, int32_t *in_buf, int index, int data_num)
 
 int save_header(char *out_buf, int index, struct result *result)
 {
-	struct timex txc;
+	struct timespec64 t;
 	struct rtc_time tm;
 	char time_buf[100] = {0};
 
-	do_gettimeofday(&(txc.time));
-	rtc_time_to_tm(txc.time.tv_sec, &tm);
+	ktime_get_real_ts64(&t);
+	rtc_time_to_tm(t.tv_sec, &tm);
 	scnprintf(time_buf, 100, "%d/%d/%d,TIME,%d:%d:%d,", tm.tm_year+1900,
 		 tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
