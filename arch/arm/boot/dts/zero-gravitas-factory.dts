@@ -17,7 +17,6 @@
 	model = "reMarkable 1.0";
 	compatible = "remarkable,zero-gravitas", "fsl,imx6sl";
 
-
 	memory {
 		reg = <0x80000000 0x20000000>;
 	};
@@ -29,7 +28,6 @@
 	     clocks = <&clks IMX6SL_CLK_OSC>;
 	     clock-names = "ext_clock";
 	};
-
 
 	regulators {
 		compatible = "simple-bus";
@@ -120,12 +118,12 @@
 };
 
 &epdc {
-        pinctrl-names = "default";
-        pinctrl-0 = <&pinctrl_epdc_0>;
-        VCOM-supply = <&VCOM_reg>;
-        DISPLAY-supply = <&DISPLAY_reg>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_epdc_0>;
+	VCOM-supply = <&VCOM_reg>;
+	DISPLAY-supply = <&DISPLAY_reg>;
 	TMST-supply = <&TMST_reg>;
-        status = "okay";
+	status = "okay";
 };
 
 &gpc {
@@ -133,18 +131,18 @@
 };
 
 &reg_arm {
-        vin-supply = <&sw1a_reg>;
-        regulator-allow-bypass;
+	vin-supply = <&sw1a_reg>;
+	regulator-allow-bypass;
 };
 
 &reg_soc {
-        vin-supply = <&sw1c_reg>;
-        regulator-allow-bypass;
+	vin-supply = <&sw1c_reg>;
+	regulator-allow-bypass;
 };
 
 &reg_pu {
-        vin-supply = <&sw1c_reg>;
-        regulator-allow-bypass;
+	vin-supply = <&sw1c_reg>;
+	regulator-allow-bypass;
 };
 
 &i2c1 {
@@ -308,13 +306,13 @@
 				regulator-name = "HVINP";
 			};
 
-                        VCOM_reg: VCOM {
-                                regulator-name = "VCOM";
-                                /* Real max value: -500000 */
-                                regulator-max-microvolt = <4325000>;
-                                /* Real min value: -4325000 */
-                                regulator-min-microvolt = <500000>;
-                        };
+			VCOM_reg: VCOM {
+				regulator-name = "VCOM";
+				/* Real max value: -500000 */
+				regulator-max-microvolt = <4325000>;
+				/* Real min value: -4325000 */
+				regulator-min-microvolt = <500000>;
+			};
 
 			VNEG_reg: VNEG {
 				/* -15v */
@@ -491,35 +489,35 @@
 			>;
 		};
 
-                pinctrl_epdc_0: epdcgrp-0 {
-                        fsl,pins = <
-                                MX6SL_PAD_EPDC_D0__EPDC_DATA00  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D1__EPDC_DATA01  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D2__EPDC_DATA02  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D3__EPDC_DATA03  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D4__EPDC_DATA04  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D5__EPDC_DATA05  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D6__EPDC_DATA06  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D7__EPDC_DATA07  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D8__EPDC_DATA08  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D9__EPDC_DATA09  PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D10__EPDC_DATA10 PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D11__EPDC_DATA11 PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D12__EPDC_DATA12 PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D13__EPDC_DATA13 PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D14__EPDC_DATA14 PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_D15__EPDC_DATA15 PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_GDCLK__EPDC_GDCLK PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_GDOE__EPDC_GDOE   PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_GDSP__EPDC_GDSP   PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_SDCE0__EPDC_SDCE0 PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_SDCLK__EPDC_SDCLK_P PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_SDLE__EPDC_SDLE   PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_SDOE__EPDC_SDOE   PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_BDR0__EPDC_BDR0   PAD_CTL_NONE
-                                MX6SL_PAD_EPDC_BDR1__EPDC_BDR1   PAD_CTL_NONE
-                        >;
-                };
+		pinctrl_epdc_0: epdcgrp-0 {
+			fsl,pins = <
+				MX6SL_PAD_EPDC_D0__EPDC_DATA00  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D1__EPDC_DATA01  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D2__EPDC_DATA02  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D3__EPDC_DATA03  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D4__EPDC_DATA04  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D5__EPDC_DATA05  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D6__EPDC_DATA06  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D7__EPDC_DATA07  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D8__EPDC_DATA08  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D9__EPDC_DATA09  PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D10__EPDC_DATA10 PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D11__EPDC_DATA11 PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D12__EPDC_DATA12 PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D13__EPDC_DATA13 PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D14__EPDC_DATA14 PAD_CTL_NONE
+				MX6SL_PAD_EPDC_D15__EPDC_DATA15 PAD_CTL_NONE
+				MX6SL_PAD_EPDC_GDCLK__EPDC_GDCLK PAD_CTL_NONE
+				MX6SL_PAD_EPDC_GDOE__EPDC_GDOE   PAD_CTL_NONE
+				MX6SL_PAD_EPDC_GDSP__EPDC_GDSP   PAD_CTL_NONE
+				MX6SL_PAD_EPDC_SDCE0__EPDC_SDCE0 PAD_CTL_NONE
+				MX6SL_PAD_EPDC_SDCLK__EPDC_SDCLK_P PAD_CTL_NONE
+				MX6SL_PAD_EPDC_SDLE__EPDC_SDLE   PAD_CTL_NONE
+				MX6SL_PAD_EPDC_SDOE__EPDC_SDOE   PAD_CTL_NONE
+				MX6SL_PAD_EPDC_BDR0__EPDC_BDR0   PAD_CTL_NONE
+				MX6SL_PAD_EPDC_BDR1__EPDC_BDR1   PAD_CTL_NONE
+			>;
+		};
 
 		pinctrl_i2c1: i2c1grp {
 			fsl,pins = <
