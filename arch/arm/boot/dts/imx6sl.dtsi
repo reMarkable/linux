@@ -97,6 +97,20 @@
 		};
 	};
 
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/* global autoconfigured region for contiguous allocations */
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x14000000>;
+			linux,cma-default;
+		};
+	};
+
 	tempmon: tempmon {
 		compatible = "fsl,imx6q-tempmon";
 		interrupts = <0 49 IRQ_TYPE_LEVEL_HIGH>;
