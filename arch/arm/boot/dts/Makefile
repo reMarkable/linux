@@ -584,7 +584,8 @@ dtb-$(CONFIG_SOC_IMX6SL) += \
 	imx6sl-evk-csi.dtb \
 	imx6sl-evk-uart.dtb \
 	imx6sl-evk-btwifi.dtb \
-	imx6sl-warp.dtb
+	imx6sl-warp.dtb \
+	zero-gravitas.dtb
 dtb-$(CONFIG_SOC_IMX6SLL) += \
 	imx6sll-evk.dtb \
 	imx6sll-evk-reva.dtb \

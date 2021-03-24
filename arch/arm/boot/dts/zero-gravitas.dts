@@ -1,0 +1,6 @@
+#include "zero-gravitas-factory.dts"
+
+&usbotg1 {
+        vbus-supply = <&reg_usb_otg1_vbus>;
+};
+
