@@ -161,7 +161,7 @@
 		ti,resistor-sense = <10>;
 	};
 
-	pmic: pfuze100@08 {
+	pmic: pfuze100@8 {
 		compatible = "fsl,pfuze100";
 		reg = <0x08>;
 
@@ -342,7 +342,7 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
-	digitizer: wacom-i2c@09 {
+	digitizer: wacom-i2c@9 {
 		compatible = "wacom,wacom-i2c";
 		reg = <0x09>;
 		interrupt-parent = <&gpio2>;
