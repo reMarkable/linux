@@ -1,0 +1,135 @@
+pt_i2c_adaptor bindings
+
+Required properties:
+- compatible: "parade,pt_i2c_adaptor"
+- reg: i2c address of the chip
+- interrupt-parent: a phandle for the interrupt controller
+- interrupts: Interrupt GPIO
+- parade,adapter_id: adaptor name
+- core,name: name of core
+- core,irq_gpio: IRQ GPIO
+- core,hid_desc_register: Default HID register
+- core,flags: Special flags
+- core,mt,name: name of multi-touch module
+- core,mt,inp_dev_name: input device name
+- core,mt,flags: MT flags
+- core,mt,abs: ABS_MT_* event names
+
+Optional properties:
+- core,rst_gpio: Reset GPIO
+- core,easy_wakeup_gesture: Default wakeup gesture
+- core,panel_id_support: panel ID support
+- core,btn_keys: Virtual button key codes
+- core,btn_keys-tag: Button Tag
+- core,mt,vkeys-x: X coordinate for virtual button area
+- core,mt,vkeys-y: Y coordinate for virtual button area
+- core,mt,virtual_keys: Keycode CenterX CenterY Width Height
+
+[1]: Documentation/devicetree/bindings/input/parade-touchscreen.txt
+
+Example:
+	i2c@0 {
+		status = "ok";
+		tsc@24 {
+			compatible = "parade,pt_i2c_adapter";
+			reg = <0x24>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <59 0x2>;
+			parade,adapter_id = "pt_i2c_adapter";
+			pinctrl-names = "pmx_ts_active","pmx_ts_suspend","pmx_ts_release";
+			pinctrl-0 = <&ts_int_active>, <&ts_reset_active>;
+			pinctrl-1 = <&ts_int_suspend>, <&ts_reset_suspend>;
+			pinctrl-2 = <&ts_release>;
+
+			parade,core {
+				parade,name = "pt_core";
+
+				parade,irq_gpio = <59>;
+				parade,rst_gpio = <13>;
+				parade,runfw_gpio = <64>;
+				parade,hid_desc_register = <1>;
+				/* 
+				 * PT_CORE_FLAG_NONE = 0x00
+				 * PT_CORE_FLAG_POWEROFF_ON_SLEEP = 0x02
+				 * PT_CORE_FLAG_RESTORE_PARAMETERS = 0x04
+				 * PT_CORE_FLAG_DEEP_STANDBY = 0x08
+				 * PT_CORE_FLAG_SKIP_SYS_SLEEP = 0x10
+				 * PT_CORE_FLAG_SKIP_RUNTIME = 0x20
+				 * PT_CORE_FLAG_SKIP_RESUME = 0x40
+				 */
+				parade,flags = <4>;
+				/* PT_CORE_EWG_NONE */
+				parade,easy_wakeup_gesture = <0>;
+				/* 0:AUTO 1:PIP1_ONLY 2:PIP2_CAPABLE*/
+				parade,config_dut_generation = <2>;
+				/* 0:False 1:True*/
+				parade,watchdog_force_stop = <0>;
+				/* 
+				 * PT_PANEL_ID_DISABLE = 0x00
+				 * PT_PANEL_ID_BY_BL = 0x01
+				 * PT_PANEL_ID_BY_SYS_INFO = 0x02
+				 * PT_PANEL_ID_BY_MFG_DATA  = 0x04
+				 */
+				parade,panel_id_support = <0>;
+				parade,btn_keys = <172 /* KEY_HOMEPAGE */
+					   	   /* previously was KEY_HOME, new Android versions use KEY_HOMEPAGE */
+				               139 /* KEY_MENU */
+				               158 /* KEY_BACK */
+				               217 /* KEY_SEARCH */
+				               114 /* KEY_VOLUMEDOWN */
+				               115 /* KEY_VOLUMEUP */
+				               212 /* KEY_CAMERA */
+				               116>; /* KEY_POWER */
+				parade,btn_keys-tag = <0>;
+
+				parade,mt {
+					parade,name = "pt_mt";
+
+					parade,inp_dev_name = "pt_mt";
+					/*
+					 * PT_MT_FLAG_NONE = 0x00
+					 * PT_MT_FLAG_FLIP = 0x08
+					 * PT_MT_FLAG_INV_X = 0x10
+					 * PT_MT_FLAG_INV_Y = 0x20
+					 * PT_MT_FLAG_VKEYS = 0x40
+					 */
+					parade,flags = <0x00>;
+					parade,abs =
+						/* ABS_MT_POSITION_X, PT_ABS_MIN_X, PT_ABS_MAX_X, 0, 0 */
+						<0x35 0 880 0 0
+						/* ABS_MT_POSITION_Y, PT_ABS_MIN_Y, PT_ABS_MAX_Y, 0, 0 */
+						0x36 0 1280 0 0
+						/* ABS_MT_PRESSURE, PT_ABS_MIN_P, PT_ABS_MAX_P, 0, 0 */
+						0x3a 0 255 0 0
+						/* PT_IGNORE_VALUE, PT_ABS_MIN_W, PT_ABS_MAX_W, 0, 0 */
+						0xffff 0 255 0 0
+						/* ABS_MT_TRACKING_ID, PT_ABS_MIN_T, PT_ABS_MAX_T, 0, 0 */
+						0x39 0 15 0 0
+						/* ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0 */
+						0x30 0 255 0 0
+						/* ABS_MT_TOUCH_MINOR, 0, 255, 0, 0 */
+						0x31 0 255 0 0
+						/* ABS_MT_ORIENTATION, -127, 127, 0, 0 */
+						0x34 0xffffff81 127 0 0
+						/* ABS_MT_TOOL_TYPE, 0, MT_TOOL_MAX, 0, 0 */
+						0x37 0 1 0 0
+						/* ABS_DISTANCE, 0, 255, 0, 0 */
+						0x19 0 255 0 0>;
+
+					parade,vkeys_x = <720>;
+					parade,vkeys_y = <1280>;
+
+					parade,virtual_keys = /* KeyCode CenterX CenterY Width Height */
+						/* KEY_BACK */
+						<158 90 1360 160 180
+						/* KEY_MENU */
+						139 270 1360 160 180
+						/* KEY_HOMEPAGE */
+						172 450 1360 160 180
+						/* KEY SEARCH */
+						217 630 1360 160 180>;
+				};
+			};
+		};
+	};
+
