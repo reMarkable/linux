@@ -643,10 +643,11 @@
 &usdhc2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	pinctrl-names = "default", "state_100mhz", "sleep";
+	pinctrl-names = "default", "state_100mhz", "state_200mhz", "sleep";
 	pinctrl-0 = <&pinctrl_usdhc2>;
 	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
-	pinctrl-2 = <&pinctrl_usdhc2>;
+	pinctrl-2 = <&pinctrl_usdhc2_200mhz>;
+	pinctrl-3 = <&pinctrl_usdhc2>;
 	mmc-pwrseq = <&wifi_pwrseq>;
 	vmmc-supply = <&reg_brcm>;
 	bus-width = <4>;
