@@ -460,27 +460,50 @@
 
 	tsc@24 {
 		status = "okay";
-		compatible = "cy,cyttsp5_i2c_adapter";
+		compatible = "parade,pt_i2c_adapter";
 		reg = <0x24>;
 		interrupt-parent = <&gpio1>;
 		interrupts = <14 2>;
-		cy,adapter_id = "cyttsp5_i2c_adapter";
+		parade,adapter_id = "pt_i2c_adapter";
+
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_touch>;
 		pinctrl-1 = <&pinctrl_touch>;
 		vdd-supply = <&reg_touch>;
 
-		cy,core {
-			cy,name = "cyttsp5_core";
+		parade,core {
+			parade,name = "pt_core";
 
-			cy,irq_gpio = <&gpio1 14 0>;
-			cy,rst_gpio = <&gpio1 13 0>;
-			cy,hid_desc_register = <1>;
-			/* CY_CORE_FLAG_RESTORE_PARAMETERS & CY_CORE_FLAG_POWEROFF_ON_SLEEP */
-			cy,flags = <0x6>;
-			/* CY_CORE_EWG_NONE */
-			cy,easy_wakeup_gesture = <0>;
-			cy,btn_keys = <172 /* KEY_HOMEPAGE */
+			parade,irq_gpio = <&gpio1 14 0>;
+			parade,rst_gpio = <&gpio1 13 0>;
+			parade,hid_desc_register = <1>;
+			/*
+			 * PT_CORE_FLAG_NONE = 0x00
+			 * PT_CORE_FLAG_POWEROFF_ON_SLEEP = 0x02
+			 * PT_CORE_FLAG_RESTORE_PARAMETERS = 0x04
+			 * PT_CORE_FLAG_DEEP_STANDBY = 0x08
+			 * PT_CORE_FLAG_SKIP_SYS_SLEEP = 0x10
+			 * PT_CORE_FLAG_SKIP_RUNTIME = 0x20
+			 * PT_CORE_FLAG_SKIP_RESUME = 0x40
+			 */
+			/* PT_CORE_FLAG_RESTORE_PARAMETERS & PT_CORE_FLAG_POWEROFF_ON_SLEEP */
+			parade,flags = <0x6>;
+			/* PT_CORE_EWG_NONE */
+			parade,easy_wakeup_gesture = <0>;
+			/* 0:AUTO 1:PIP1_ONLY 2:PIP2_CAPABLE*/
+			parade,config_dut_generation = <0>;
+
+			/* 0:False 1:True*/
+			parade,watchdog_force_stop = <0>;
+			/*
+			 * PT_PANEL_ID_DISABLE = 0x00
+			 * PT_PANEL_ID_BY_BL = 0x01
+			 * PT_PANEL_ID_BY_SYS_INFO = 0x02
+			 * PT_PANEL_ID_BY_MFG_DATA  = 0x04
+			 */
+			parade,panel_id_support = <0>;
+
+			parade,btn_keys = <172 /* KEY_HOMEPAGE */
 				/* previously was KEY_HOME, new Android versions use KEY_HOMEPAGE */
 				139 /* KEY_MENU */
 				158 /* KEY_BACK */
@@ -489,15 +512,24 @@
 				115 /* KEY_VOLUMEUP */
 				212 /* KEY_CAMERA */
 				116>; /* KEY_POWER */
-			cy,btn_keys-tag = <0>;
-			cy,fb_blanking_disabled;
+			parade,btn_keys-tag = <0>;
 
-			cy,mt {
-				cy,name = "cyttsp5_mt";
+			/* not supported by Parade*/
+			/* cy,fb_blanking_disabled; */
 
-				cy,inp_dev_name = "cyttsp5_mt";
-				cy,flags = <0>;
-				cy,abs =
+			parade,mt {
+				parade,name = "pt_mt";
+
+				parade,inp_dev_name = "pt_mt";
+				/*
+				 * PT_MT_FLAG_NONE = 0x00
+				 * PT_MT_FLAG_FLIP = 0x08
+				 * PT_MT_FLAG_INV_X = 0x10
+				 * PT_MT_FLAG_INV_Y = 0x20
+				 * PT_MT_FLAG_VKEYS = 0x40
+				 */
+				parade,flags = <0x00>;
+				parade,abs =
 					/* ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0 */
 					<0x35 0 880 0 0
 					/* ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0 */
@@ -519,10 +551,10 @@
 					/* ABS_DISTANCE, 0, 255, 0, 0 */
 					0x19 0 255 0 0>;
 
-				cy,vkeys_x = <720>;
-				cy,vkeys_y = <1280>;
+				parade,vkeys_x = <720>;
+				parade,vkeys_y = <1280>;
 
-				cy,virtual_keys = /* KeyCode CenterX CenterY Width Height */
+				parade,virtual_keys = /* KeyCode CenterX CenterY Width Height */
 					/* KEY_BACK */
 					<158 1360 90 160 180
 					/* KEY_MENU */
