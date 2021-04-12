@@ -30,6 +30,7 @@
 #include <linux/device.h>
 #include <linux/err.h>
 #include <linux/of_device.h>
+#include <linux/of_gpio.h>
 #include <linux/slab.h>
 #include "pt_regs.h"
 #include <linux/pt_platform.h>
@@ -773,10 +774,12 @@ static struct pt_core_platform_data *create_and_get_core_pdata(
 	}
 
 	/* Required fields */
-	rc = of_property_read_u32(core_node, "parade,irq_gpio", &value);
-	if (rc)
+	pdata->irq_gpio = of_get_named_gpio(core_node, "parade,irq_gpio", 0);
+	if (!gpio_is_valid(pdata->irq_gpio)) {
+		rc = -ENODEV;
+		pr_err("Invalid irq_gpio");
 		goto fail_free;
-	pdata->irq_gpio = value;
+	}
 
 	rc = of_property_read_u32(core_node, "parade,hid_desc_register",
 		&value);
@@ -788,10 +791,8 @@ static struct pt_core_platform_data *create_and_get_core_pdata(
 	/* rst_gpio is optional since a platform may use
 	 * power cycling instead of using the XRES pin
 	 */
-	rc = of_property_read_u32(core_node, "parade,rst_gpio", &value);
-	if (!rc)
-		pdata->rst_gpio = value;
-
+	pdata->rst_gpio = of_get_named_gpio(core_node, "parade,rst_gpio", 0);
+	
 	rc = of_property_read_u32(core_node, "parade,ddi_rst_gpio", &value);
 	if (!rc)
 		pdata->ddi_rst_gpio = value;
