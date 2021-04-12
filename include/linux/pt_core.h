@@ -163,6 +163,7 @@ struct pt_core_platform_data {
 	u8 config_dut_generation;
 	u8 watchdog_force_stop;
 	u8 panel_id_support;
+	bool fb_blanking_disabled;
 };
 
 struct touch_framework {

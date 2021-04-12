@@ -17127,7 +17127,9 @@ skip_enum:
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	pt_setup_early_suspend(cd);
 #elif defined(CONFIG_FB)
-	pt_setup_fb_notifier(cd);
+	if (!cd->cpdata->fb_blanking_disabled) {
+		pt_setup_fb_notifier(cd);
+	}
 #endif
 
 #ifdef NEED_SUSPEND_NOTIFIER
