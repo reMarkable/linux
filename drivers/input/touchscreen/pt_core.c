@@ -10391,26 +10391,23 @@ static int pt_core_suspend_(struct device *dev)
 {
 	struct pt_core_data *cd = dev_get_drvdata(dev);
 
-	pt_core_sleep(cd);
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		pt_core_sleep(cd);
+		pinctrl_pm_select_sleep_state(dev);
+		/*
+		 * Disable interrupt here to avoid that pending IRQ makes
+		 * the entering to low power state fail.
+		 */
+		disable_irq(cd->irq);
 
-	if (!IS_EASY_WAKE_CONFIGURED(cd->easy_wakeup_gesture))
-		return 0;
-
-	/* Required to prevent interrupts before bus awake */
-	disable_irq(cd->irq);
-	cd->irq_disabled = 1;
-
-	if (device_may_wakeup(dev)) {
-		pt_debug(dev, DL_WARN, "%s Device MAY wakeup\n",
-			__func__);
-		if (!enable_irq_wake(cd->irq))
-			cd->irq_wake = 1;
 	} else {
-		pt_debug(dev, DL_WARN, "%s Device MAY NOT wakeup\n",
-			__func__);
+		/*
+		 * We need it to be a wakeup source for other suspend
+		 * types than 'mem'.
+		 */
+		if (device_may_wakeup(dev))
+			enable_irq_wake(cd->irq);
 	}
-
-	pinctrl_pm_select_sleep_state(dev);
 
 	return 0;
 }
@@ -10458,32 +10455,14 @@ static int pt_core_resume_(struct device *dev)
 {
 	struct pt_core_data *cd = dev_get_drvdata(dev);
 
-	if (!IS_EASY_WAKE_CONFIGURED(cd->easy_wakeup_gesture))
-		goto exit;
-
-	/*
-	 * Bus pm does not call suspend if device runtime suspended
-	 * This flag is covers that case
-	 */
-	if (cd->irq_disabled) {
+	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
 		enable_irq(cd->irq);
-		cd->irq_disabled = 0;
-	}
-
-	if (device_may_wakeup(dev)) {
-		pt_debug(dev, DL_WARN, "%s Device MAY wakeup\n",
-			__func__);
-		if (cd->irq_wake) {
-			disable_irq_wake(cd->irq);
-			cd->irq_wake = 0;
-		}
+		pinctrl_pm_select_default_state(dev);
+		pt_core_wake(cd);
 	} else {
-		pt_debug(dev, DL_WARN, "%s Device MAY NOT wakeup\n",
-			__func__);
+		if (device_may_wakeup(dev))
+			disable_irq_wake(cd->irq);
 	}
-
-exit:
-	pt_core_wake(cd);
 
 	return 0;
 }
