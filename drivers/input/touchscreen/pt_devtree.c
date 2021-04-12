@@ -792,7 +792,7 @@ static struct pt_core_platform_data *create_and_get_core_pdata(
 	 * power cycling instead of using the XRES pin
 	 */
 	pdata->rst_gpio = of_get_named_gpio(core_node, "parade,rst_gpio", 0);
-	
+
 	rc = of_property_read_u32(core_node, "parade,ddi_rst_gpio", &value);
 	if (!rc)
 		pdata->ddi_rst_gpio = value;
