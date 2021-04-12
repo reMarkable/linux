@@ -10410,6 +10410,8 @@ static int pt_core_suspend_(struct device *dev)
 			__func__);
 	}
 
+	pinctrl_pm_select_sleep_state(dev);
+
 	return 0;
 }
 
@@ -10430,6 +10432,8 @@ static int pt_core_suspend_(struct device *dev)
 static int pt_core_suspend(struct device *dev)
 {
 	struct pt_core_data *cd = dev_get_drvdata(dev);
+
+	pinctrl_pm_select_default_state(dev);
 
 	if (cd->cpdata->flags & PT_CORE_FLAG_SKIP_SYS_SLEEP)
 		return 0;
