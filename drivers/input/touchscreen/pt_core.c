@@ -31,6 +31,7 @@
 #include <linux/kthread.h>
 #include <linux/i2c.h>
 #include <linux/gpio.h>
+#include <linux/regulator/consumer.h>
 
 
 #define PT_CORE_STARTUP_RETRY_COUNT		3
@@ -16881,6 +16882,17 @@ int pt_probe(const struct pt_bus_ops *ops, struct device *dev,
 	/* PtSBC builds will call this function in pt_probe_complete() */
 	pt_add_core(dev);
 
+	cd->vdd = regulator_get(cd->dev, "vdd");
+	if (IS_ERR(cd->vdd)) {
+		rc = PTR_ERR(cd->vdd);
+		goto error_vdd_get;
+	}
+
+	rc = regulator_enable(cd->vdd);
+	if (rc)
+		goto error_vdd_enable;
+
+
 	rc = sysfs_create_group(&dev->kobj, &early_attr_group);
 	if (rc)
 		pt_debug(cd->dev, DL_WARN, "%s:create early attrs failed\n",
@@ -17161,6 +17173,9 @@ error_detect:
 	if (cd->cpdata->setup_power)
 		cd->cpdata->setup_power(cd->cpdata, PT_MT_POWER_OFF, dev);
 	sysfs_remove_group(&dev->kobj, &early_attr_group);
+error_vdd_enable:
+	regulator_put(cd->vdd);
+error_vdd_get:
 	pt_del_core(dev);
 	dev_set_drvdata(dev, NULL);
 	kfree(cd);
@@ -17253,6 +17268,9 @@ int pt_release(struct pt_core_data *cd)
 		cd->cpdata->init(cd->cpdata, PT_MT_POWER_OFF, dev);
 	if (cd->cpdata->setup_power)
 		cd->cpdata->setup_power(cd->cpdata, PT_MT_POWER_OFF, dev);
+
+	regulator_disable(cd->vdd);
+	regulator_put(cd->vdd);
 	dev_set_drvdata(dev, NULL);
 	pt_del_core(dev);
 	pt_free_si_ptrs(cd);

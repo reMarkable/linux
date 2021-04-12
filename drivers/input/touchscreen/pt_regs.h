@@ -1532,6 +1532,7 @@ struct pt_core_data {
 	bool show_tt_data;
 	bool bridge_mode;
 	bool hw_detect_enabled;
+	struct regulator *vdd;
 #endif
 };
 
