@@ -834,6 +834,8 @@ static struct pt_core_platform_data *create_and_get_core_pdata(
 	if (!rc)
 		pdata->easy_wakeup_gesture = (u8)value;
 
+	pdata->fb_blanking_disabled = of_property_read_bool(core_node, "parade,fb_blanking_disabled");
+
 	rc = of_property_read_u32(core_node, "parade,config_dut_generation",
 		&value);
 	if (!rc)
