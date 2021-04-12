@@ -1532,6 +1532,7 @@ struct pt_core_data {
 	bool show_tt_data;
 	bool bridge_mode;
 	bool hw_detect_enabled;
+	u8 pr_buf[PT_MAX_PRBUF_SIZE];
 	struct regulator *vdd;
 #endif
 };
