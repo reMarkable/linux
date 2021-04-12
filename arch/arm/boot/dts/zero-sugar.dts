@@ -514,8 +514,7 @@
 				116>; /* KEY_POWER */
 			parade,btn_keys-tag = <0>;
 
-			/* not supported by Parade*/
-			/* cy,fb_blanking_disabled; */
+			parade,fb_blanking_disabled;
 
 			parade,mt {
 				parade,name = "pt_mt";
