@@ -6189,8 +6189,7 @@ static int _pt_poll_for_fw_exit_boot_mode(struct pt_core_data *cd, int timeout,
 		 * timeout to make it clear in kmsg if non polling was done.
 		 */
 		*actual_wait = PT_FW_EXIT_BOOT_MODE_TIMEOUT + 1;
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: PIP %d.%d no support for ext STATUS, sleep %d\n",
+		pt_debug(cd->dev, DL_WARN, "%s: PIP %d.%d no support for ext STATUS, sleep %d\n",
 			__func__,
 			cd->sysinfo.ttdata.pip_ver_major,
 			cd->sysinfo.ttdata.pip_ver_minor, *actual_wait);
