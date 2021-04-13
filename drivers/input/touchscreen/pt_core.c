@@ -17052,11 +17052,12 @@ int pt_probe(const struct pt_bus_ops *ops, struct device *dev,
 		cd->sysinfo.ttdata.pip_ver_minor = 0;
 		cd->app_pip_ver_ready = false;
 		cd->hw_detected = false;
-		pt_debug(dev, DL_ERROR,
-			" === PIP Version Not Detected, Skip Enum ===\n");
 		/* For legacy DUTS proceed, enum will attempt to launch app */
-		if (cd->active_dut_generation != DUT_PIP1_ONLY)
+		if (cd->active_dut_generation != DUT_PIP1_ONLY){
+			pt_debug(dev, DL_ERROR,
+			" === PIP Version Not Detected, Skip Enum ===\n");
 			goto skip_enum;
+		}
 	}
 
 	rc = pt_enum_with_dut(cd, false, &status);
