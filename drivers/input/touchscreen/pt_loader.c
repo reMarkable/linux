@@ -558,7 +558,7 @@ static int pt_ldr_prog_row_(struct device *dev,
 				 struct pt_hex_image *row_image)
 {
 	u16 length = row_image->row_size + 3;
-	u8 data[3 + row_image->row_size];
+	u8 data[3 + sizeof(row_image->row_data)];
 	u8 offset = 0;
 
 	data[offset++] = row_image->array_id;
