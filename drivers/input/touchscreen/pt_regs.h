@@ -928,6 +928,8 @@ enum pt_tch_abs {	/* for ordering within the extracted touch data array */
 	PT_TCH_NUM_ABS,
 };
 
+#define PT_TCH_T_MAX 0x20
+
 enum pt_tch_hdr {
 	PT_TCH_TIME,	/* SCAN TIME */
 	PT_TCH_NUM,	/* NUMBER OF RECORDS */

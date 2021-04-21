@@ -304,7 +304,7 @@ static void pt_get_mt_touches(struct pt_mt_data *md,
 	struct pt_sysinfo *si = md->si;
 	int sig;
 	int i, j, t = 0;
-	DECLARE_BITMAP(ids, si->tch_abs[PT_TCH_T].max);
+	DECLARE_BITMAP(ids, PT_TCH_T_MAX);
 	int mt_sync_count = 0;
 	u8 *tch_addr;
 
