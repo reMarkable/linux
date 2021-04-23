@@ -189,6 +189,8 @@ enum {
 #define BRCMF_MFP_CAPABLE		1
 #define BRCMF_MFP_REQUIRED		2
 
+#define BRCMF_VHT_CAP_MCS_MAP_NSS_MAX	8
+
 /* MAX_CHUNK_LEN is the maximum length for data passing to firmware in each
  * ioctl. It is relatively small because firmware has small maximum size input
  * playload restriction for ioctls.
@@ -576,6 +578,8 @@ struct brcmf_sta_info_le {
 						/* w/hi bit set if basic */
 	__le32 in;		/* seconds elapsed since associated */
 	__le32 listen_interval_inms; /* Min Listen interval in ms for STA */
+
+	/* Fields valid for ver >= 3 */
 	__le32 tx_pkts;	/* # of packets transmitted */
 	__le32 tx_failures;	/* # of packets failed */
 	__le32 rx_ucast_pkts;	/* # of unicast packets received */
@@ -584,6 +588,8 @@ struct brcmf_sta_info_le {
 	__le32 rx_rate;	/* Rate of last successful rx frame */
 	__le32 rx_decrypt_succeeds;	/* # of packet decrypted successfully */
 	__le32 rx_decrypt_failures;	/* # of packet decrypted failed */
+
+	/* Fields valid for ver >= 4 */
 	__le32 tx_tot_pkts;    /* # of tx pkts (ucast + mcast) */
 	__le32 rx_tot_pkts;    /* # of data packets recvd (uni + mcast) */
 	__le32 tx_mcast_pkts;  /* # of mcast pkts txed */
@@ -620,6 +626,14 @@ struct brcmf_sta_info_le {
 						*/
 	__le32 rx_pkts_retried;        /* # rx with retry bit set */
 	__le32 tx_rate_fallback;       /* lowest fallback TX rate */
+
+	/* Fields valid for ver >= 5 */
+	struct {
+		__le32 count;					/* # rates in this set */
+		u8 rates[BRCMF_MAXRATES_IN_SET];		/* rates in 500kbps units w/hi bit set if basic */
+		u8 mcs[BRCMF_MCSSET_LEN];			/* supported mcs index bit map */
+		__le16 vht_mcs[BRCMF_VHT_CAP_MCS_MAP_NSS_MAX];	/* supported mcs index bit map per nss */
+	} rateset_adv;
 };
 
 struct brcmf_chanspec_list {
