@@ -447,8 +447,8 @@ wait:
 	if (with_timeout) {
 		t = wait_event_timeout(cd->wait_q, !cd->exclusive_dev, t);
 		if (IS_TMO(t)) {
-			pt_debug(cd->dev, DL_ERROR,
-				"%s: tmo waiting exclusive access\n", __func__);
+			pt_debug(cd->dev, DL_WARN, "%s: tmo waiting exclusive access\n",
+				__func__);
 			return -ETIME;
 		}
 	} else {
@@ -1931,8 +1931,7 @@ static int pt_pip1_send_output_and_wait_(struct pt_core_data *cd,
 		cd->bus_transmit_error_count++;
 		pt_toggle_err_gpio(cd, PT_ERR_GPIO_I2C_TRANS);
 #endif /* TTDL_DIAGNOSTICS */
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: HID output cmd execution timed out (%dms)\n",
+		pt_debug(cd->dev, DL_WARN, "%s: HID output cmd execution timed out (%dms)\n",
 			__func__, timeout_ms);
 		rc = -ETIME;
 		goto error;
@@ -3167,8 +3166,7 @@ static int pt_pip_resume_scanning_(struct pt_core_data *cd)
 
 	rc = pt_pip1_send_output_and_wait_(cd, &hid_output);
 	if (rc) {
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: Resume Scan PIP cmd failed. rc = %d\n",
+		pt_debug(cd->dev, DL_WARN, "%s: Resume Scan PIP cmd failed. rc = %d\n",
 			__func__, rc);
 	}
 	return rc;
@@ -6500,8 +6498,8 @@ static int pt_get_hid_descriptor_(struct pt_core_data *cd,
 		cd->bus_transmit_error_count++;
 		pt_toggle_err_gpio(cd, PT_ERR_GPIO_I2C_TRANS);
 #endif /* TTDL_DIAGNOSTICS */
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: HID get descriptor timed out\n", __func__);
+		pt_debug(cd->dev, DL_WARN, "%s: HID get descriptor timed out\n",
+			__func__);
 		rc = -ETIME;
 		goto error;
 	} else {
@@ -8443,8 +8441,8 @@ read:
 		}
 		usleep_range(1000, 2000);
 	}
-	pt_debug(dev, DL_ERROR,
-		"%s: Error getting report, rc=%d\n", __func__, rc);
+	pt_debug(dev, DL_WARN, "%s: Error getting report, rc=%d\n",
+		__func__, rc);
 
 read_exit:
 	return rc;
@@ -8924,8 +8922,7 @@ static int _pt_request_wait_for_enum_state(struct device *dev, int timeout,
 		(cd->startup_status & state) || (cd->startup_status & 0x0100),
 		msecs_to_jiffies(timeout));
 	if (IS_TMO(t)) {
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: TMO waiting for enum state 0x%04X in %dms\n",
+		pt_debug(cd->dev, DL_WARN, "%s: TMO waiting for enum state 0x%04X in %dms\n",
 			__func__, state, timeout);
 		pt_debug(cd->dev, DL_WARN,
 			"%s: enum state reached 0x%04X\n",
@@ -8939,8 +8936,7 @@ static int _pt_request_wait_for_enum_state(struct device *dev, int timeout,
 	} else {
 		if (t == 1) {
 			pt_debug(
-			    cd->dev, DL_ERROR,
-			    "%s: TMO waiting for enum state 0x%04X in %dms\n",
+			    cd->dev, DL_WARN, "%s: TMO waiting for enum state 0x%04X in %dms\n",
 			    __func__, state, timeout);
 			rc = -ETIME;
 		} else {
@@ -9304,8 +9300,7 @@ reset:
 				STARTUP_STATUS_BL_RESET_SENTINEL |
 				STARTUP_STATUS_FW_RESET_SENTINEL);
 			if (rc)
-				pt_debug(cd->dev, DL_ERROR,
-					 "%s: No Sentinel detected rc = %d\n",
+				pt_debug(cd->dev, DL_WARN, "%s: No Sentinel detected rc = %d\n",
 					 __func__, rc);
 		} else
 			pt_flush_bus_if_irq_asserted(cd,
@@ -10720,8 +10715,8 @@ _retry:
 		 && (cd->hid_reset_cmd_state == 0)),
 		msecs_to_jiffies(300));
 	if (IS_TMO(t)) {
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: TMO waiting for BL sentinel\n", __func__);
+		pt_debug(cd->dev, DL_WARN, "%s: TMO waiting for BL sentinel\n",
+			__func__);
 	}
 
 	/* Check if device is now in BL mode */
@@ -12844,8 +12839,7 @@ static ssize_t pt_hw_reset_show(struct device *dev,
 			STARTUP_STATUS_FW_RESET_SENTINEL);
 		if (rc) {
 			mutex_unlock(&cd->firmware_class_lock);
-			pt_debug(cd->dev, DL_ERROR,
-				"%s: No Sentinel detected rc = %d\n",
+			pt_debug(cd->dev, DL_WARN, "%s: No Sentinel detected rc = %d\n",
 				__func__, rc);
 			goto exit_hw_reset;
 		}
@@ -14128,8 +14122,8 @@ static ssize_t pt_ttdl_restart_show(struct device *dev,
 		(cd->startup_status >= STARTUP_STATUS_COMPLETE),
 		msecs_to_jiffies(PT_REQUEST_ENUM_TIMEOUT));
 	if (IS_TMO(t)) {
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: TMO waiting for FW sentinel\n", __func__);
+		pt_debug(cd->dev, DL_WARN, "%s: TMO waiting for FW sentinel\n",
+			__func__);
 		rc = -ETIME;
 	}
 
@@ -15380,8 +15374,8 @@ static int pt_bist_xres_test(struct device *dev,
 		 && (cd->hid_reset_cmd_state == 0)),
 		msecs_to_jiffies(timeout));
 	if (IS_TMO(t)) {
-		pt_debug(cd->dev, DL_ERROR,
-			"%s: TMO waiting for sentinel\n", __func__);
+		pt_debug(cd->dev, DL_WARN, "%s: TMO waiting for sentinel\n",
+			__func__);
 		*xres_toggled = 0;
 		strcpy(err_str, "- likely open. (No Reset Sentinel)");
 
@@ -15408,8 +15402,7 @@ static int pt_bist_xres_test(struct device *dev,
 				(cd->startup_status != STARTUP_STATUS_START),
 				msecs_to_jiffies(500));
 			if (IS_TMO(t)) {
-				pt_debug(cd->dev, DL_ERROR,
-					"%s: TMO waiting for BL sentinel\n",
+				pt_debug(cd->dev, DL_WARN, "%s: TMO waiting for BL sentinel\n",
 					__func__);
 				*xres_toggled = 0;
 				strcpy(err_str,
