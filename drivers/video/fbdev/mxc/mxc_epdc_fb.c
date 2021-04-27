@@ -1039,6 +1039,9 @@ static void epdc_init_settings(struct mxc_epdc_fb_data *fb_data)
 	u32 reg_val;
 	int num_ce;
 	int i;
+#ifdef QOS_ENABLE
+	u32 ot_wr, ot_rd;
+#endif
 
 	/* Enable clocks to access EPDC regs */
 	clk_prepare_enable(fb_data->epdc_clk_axi);
@@ -1213,7 +1216,6 @@ static void epdc_init_settings(struct mxc_epdc_fb_data *fb_data)
 	__raw_writel(fb_data->working_buffer_phys, EPDC_WB_ADDR_TCE);
 
 #ifdef QOS_ENABLE
-	u32 ot_wr, ot_rd;
 	ot_wr = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xd0);
 	ot_rd = __raw_readl(fb_data->qos_base + QOS_EPDC_OFFSET + 0xe0);
 	dev_dbg(fb_data->dev, "EPDC QoS wr 0x%x, rd 0x%x\n", ot_wr, ot_rd);
@@ -1268,7 +1270,7 @@ static void epdc_powerup(struct mxc_epdc_fb_data *fb_data)
 	ret = regulator_enable(fb_data->display_regulator);
 	if (IS_ERR((void *)ret)) {
 		dev_err(fb_data->dev, "Unable to enable DISPLAY regulator."
-			"err = %d\n", PTR_ERR(ret));
+			"err = %d\n", ret);
 		mutex_unlock(&fb_data->power_mutex);
 		return;
 	}
@@ -4571,6 +4573,10 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 	unsigned long x_mem_size = 0;
 	u32 val;
 	int irq;
+#ifdef QOS_ENABLE
+	u32 ot_wr, ot_rd;
+	struct device_node *np;
+#endif
 
 	fb_data = (struct mxc_epdc_fb_data *)framebuffer_alloc(
 			sizeof(struct mxc_epdc_fb_data), &pdev->dev);
@@ -4818,8 +4824,7 @@ int mxc_epdc_fb_probe(struct platform_device *pdev)
 
 #ifdef QOS_ENABLE
 	/* axi clock must enable for EPDC QoS access */
-	u32 ot_wr, ot_rd;
-	struct device_node *np = of_find_compatible_node(NULL, NULL, "fsl,imx6sl-qosc");
+	np = of_find_compatible_node(NULL, NULL, "fsl,imx6sl-qosc");
 	if (!np)
 		return -EINVAL;
 	fb_data->qos_base = of_iomap(np, 0);
