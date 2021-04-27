@@ -260,7 +260,7 @@ static inline int write_byte(struct bq27xxx_device_info *di, int reg,
 	if (!di || !is_reg_valid(reg))
 		return -EINVAL;
 
-	ret = di->bus.write(di, reg, &data, sizeof(data));
+	ret = di->bus.write(di, reg, data, true);
 	usleep_range(100, 200);
 
 	return ret;
@@ -270,12 +270,11 @@ static inline int write_word(struct bq27xxx_device_info *di, int reg,
 		u16 data)
 {
 	int ret;
-	unsigned char buf[2] = {(data & 0xff), (data >> 8)};
 
 	if (!di || !is_reg_valid(reg))
 		return -EINVAL;
 
-	ret = di->bus.write(di, reg, buf, sizeof(buf));
+	ret = di->bus.write(di, reg, data, false);
 	usleep_range(100, 200);
 
 	return ret;
@@ -289,7 +288,11 @@ static inline int write_array(struct bq27xxx_device_info *di, int reg,
 	if (!di || !is_reg_valid(reg))
 		return -EINVAL;
 
-	ret = di->bus.write(di, reg, data, len);;
+	/*
+	 * discard 'const' qualifier from data in order to quiet warning caused
+	 * by different bq27xxx_access_methods API.
+	 */
+	ret = di->bus.write_bulk(di, reg, (u8 *)data, len);
 	usleep_range(100, 200); /* This chip is slooooooow */
 
 	return ret;
