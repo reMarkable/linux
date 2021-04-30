@@ -6925,135 +6925,6 @@ static int pt_generate_hw_version(struct pt_core_data *cd, char *hw_version)
 
 	return rc;
 }
-/*******************************************************************************
- * SUMMARY: Attempt to retrieve the HW version of the connected DUT
- *
- * NOTE: The calling function must ensure to free *hw_version
- *
- * RETURN:
- *	0  = success
- *	!0 = Failure
- *
- * PARAMETERS:
- *      *dev        - pointer to device structure
- *	*hw_version - pointer to where the hw_version string will be stored
- ******************************************************************************/
-static int _pt_request_hw_version(struct device *dev, char *hw_version)
-{
-	int rc = 0;
-	u16 actual_read_len;
-	u16 pip_ver;
-	u8 rd_buf[256];
-	u8 status;
-	u8 index = PIP2_RESP_STATUS_OFFSET;
-	u8 return_data[8];
-	u8 panel_id;
-	struct pt_core_data *cd = dev_get_drvdata(dev);
-	struct pt_ttdata *ttdata = &cd->sysinfo.ttdata;
-
-	if (!hw_version)
-		return -ENOMEM;
-
-	if (!cd->hw_detected) {
-		/* No HW detected */
-		rc = -ENODEV;
-		pt_debug(dev, DL_ERROR, "%s: no hardware is detected!\n",
-			 __func__);
-		goto exit_error;
-	}
-
-	/* For Parade TC or TT parts */
-	if (cd->active_dut_generation == DUT_PIP2_CAPABLE) {
-		rc = _pt_request_pip2_send_cmd(dev,
-			PT_CORE_CMD_UNPROTECTED, PIP2_CMD_ID_VERSION,
-			NULL, 0, rd_buf, &actual_read_len);
-
-		if (rc) {
-			pt_debug(dev, DL_ERROR,
-				"%s: Failed to send PIP2 VERSION cmd\n",
-				__func__);
-			goto exit_error;
-		}
-
-		status = rd_buf[index];
-		if (status == 0) {
-			pip_ver = 256 * rd_buf[index + 2] + rd_buf[index + 1];
-
-			/*
-			 * BL PIP 2.02 and greater the version fields are
-			 * swapped
-			 */
-			if (pip_ver >= 0x0202) {
-				snprintf(hw_version, HW_VERSION_LEN_MAX,
-					"%02X%02X.%02X%02X.FF",
-					rd_buf[index + 10], rd_buf[index + 9],
-					rd_buf[index + 8], rd_buf[index + 7]);
-			} else {
-				snprintf(hw_version, HW_VERSION_LEN_MAX,
-					"%02X%02X.%02X%02X.FF",
-					rd_buf[index + 8], rd_buf[index + 7],
-					rd_buf[index + 10], rd_buf[index + 9]);
-			}
-			return STATUS_SUCCESS;
-		} else {
-			rc = status;
-			pt_debug(dev, DL_WARN,
-				"%s: PIP2 VERSION cmd response error\n",
-				__func__);
-		}
-	} else if (cd->active_dut_generation == DUT_PIP1_ONLY) {
-		/*
-		 * For Parade/Cypress legacy parts the RevID and FamilyID are
-		 * hard coded to FFFF
-		 */
-		if (cd->mode == PT_MODE_OPERATIONAL) {
-			rc = pt_hid_output_get_sysinfo(cd);
-			if (!rc) {
-				panel_id =
-					cd->sysinfo.sensing_conf_data.panel_id;
-			} else {
-				panel_id = PANEL_ID_NOT_ENABLED;
-			}
-			/* In FW - simply retrieve from ttdata struct */
-			snprintf(hw_version, HW_VERSION_LEN_MAX,
-				"%04X.FFFF.%02X",
-				ttdata->jtag_id_h,
-				panel_id);
-			return STATUS_SUCCESS;
-		} else {
-			/*
-			 * Return the stored value if PT_PANEL_ID_BY_BL
-			 * is not supported while other feature is.
-			 */
-			if (cd->panel_id_support & PT_PANEL_ID_BY_BL) {
-				rc = pt_hid_output_bl_get_information(
-				    cd, return_data);
-				if (!rc) {
-					rc = pt_hid_output_bl_get_panel_id(
-					    cd, &panel_id);
-				}
-			} else
-				panel_id = cd->pid_for_loader;
-			if (!rc) {
-				snprintf(hw_version,
-					HW_VERSION_LEN_MAX,
-					"%02X%02X.FFFF.%02X",
-					return_data[3], return_data[2],
-					panel_id);
-				return STATUS_SUCCESS;
-			}
-		}
-	} else {
-		/* Unknown generation */
-		rc = -ENODEV;
-		pt_debug(dev, DL_ERROR, "%s: generation is unkown!\n",
-			 __func__);
-	}
-
-exit_error:
-	snprintf(hw_version, HW_VERSION_LEN_MAX, "FFFF.FFFF.FF");
-	return rc;
-}
 
 /*******************************************************************************
  * FUNCTION: pt_start_wd_timer
@@ -11864,7 +11735,6 @@ static struct pt_core_commands _pt_core_commands = {
 	.request_pip2_enter_bl         = _pt_request_pip2_enter_bl,
 	.request_pip2_bin_hdr          = _pt_request_pip2_bin_hdr,
 	.request_dut_generation        = _pt_request_dut_generation,
-	.request_hw_version            = _pt_request_hw_version,
 	.parse_sysfs_input             = _pt_ic_parse_input,
 #ifdef TTHE_TUNER_SUPPORT
 	.request_tthe_print            = _pt_request_tthe_print,
@@ -12562,7 +12432,6 @@ static ssize_t pt_hw_version_show(struct device *dev,
 {
 	struct pt_core_data *cd = dev_get_drvdata(dev);
 
-	_pt_request_hw_version(dev, cd->hw_version);
 	return snprintf(buf, PT_MAX_PRBUF_SIZE, "%s\n", cd->hw_version);
 }
 static DEVICE_ATTR(hw_version, 0444, pt_hw_version_show, NULL);

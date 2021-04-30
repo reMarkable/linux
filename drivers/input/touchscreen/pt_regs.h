@@ -1338,7 +1338,6 @@ struct pt_core_commands {
 	int (*request_pip2_bin_hdr)(struct device *dev,
 		struct pt_bin_file_hdr *hdr);
 	int (*request_dut_generation)(struct device *dev);
-	int (*request_hw_version)(struct device *dev, char *hw_version);
 	int (*parse_sysfs_input)(struct device *dev,
 		const char *buf, size_t buf_size,
 		u32 *out_buf, size_t out_buf_size);
