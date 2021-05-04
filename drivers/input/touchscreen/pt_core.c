@@ -9213,35 +9213,36 @@ reset:
 					goto reset;
 				goto exit;
 			}
-		}
-		cd->startup_status |= STARTUP_STATUS_GET_DESC;
 
-		/* FW cannot handle most PIP cmds when it is still in BOOT mode */
-		rc = _pt_poll_for_fw_exit_boot_mode(cd, 500, &wait_time);
-		if (!rc) {
-			cd->startup_status |= STARTUP_STATUS_FW_OUT_OF_BOOT;
-			pt_debug(cd->dev, DL_WARN,
-				"%s: Exit FW BOOT Mode after %dms\n",
-				__func__, wait_time);
-		} else {
-			pt_debug(cd->dev, DL_WARN,
-				"%s: FW stuck in BOOT Mode after %dms\n",
-				__func__, wait_time);
-			goto exit;
-		}
+			cd->startup_status |= STARTUP_STATUS_GET_DESC;
 
-		if (!cd->sysinfo.ready) {
-			rc = pt_hid_output_get_sysinfo_(cd);
-			if (rc) {
-				pt_debug(cd->dev, DL_ERROR,
-					"%s: Error on getting sysinfo r=%d\n",
-					__func__, rc);
-				if (retry--)
-					goto reset;
+			/* FW cannot handle most PIP cmds when it is still in BOOT mode */
+			rc = _pt_poll_for_fw_exit_boot_mode(cd, 500, &wait_time);
+			if (!rc) {
+				cd->startup_status |= STARTUP_STATUS_FW_OUT_OF_BOOT;
+				pt_debug(cd->dev, DL_WARN,
+					"%s: Exit FW BOOT Mode after %dms\n",
+					__func__, wait_time);
+			} else {
+				pt_debug(cd->dev, DL_WARN,
+					"%s: FW stuck in BOOT Mode after %dms\n",
+					__func__, wait_time);
 				goto exit;
 			}
+
+			if (!cd->sysinfo.ready) {
+				rc = pt_hid_output_get_sysinfo_(cd);
+				if (rc) {
+					pt_debug(cd->dev, DL_ERROR,
+						"%s: Error on getting sysinfo r=%d\n",
+						__func__, rc);
+					if (retry--)
+						goto reset;
+					goto exit;
+				}
+			}
+			cd->startup_status |= STARTUP_STATUS_GET_SYS_INFO;
 		}
-		cd->startup_status |= STARTUP_STATUS_GET_SYS_INFO;
 	}
 
 	rc = pt_restore_parameters_(cd);
