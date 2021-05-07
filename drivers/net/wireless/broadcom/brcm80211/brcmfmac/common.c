@@ -465,7 +465,7 @@ struct brcmf_mp_device *brcmf_get_module_param(struct device *dev,
 	if (!found) {
 		/* No platform data for this device, try OF and DMI data */
 		brcmf_dmi_probe(settings, chip, chiprev);
-		brcmf_of_probe(dev, bus_type, settings);
+		brcmf_of_probe(dev, bus_type, settings, chip, chiprev);
 	}
 	return settings;
 }
