@@ -101,8 +101,8 @@ struct rmidev_handle {
 	struct device dev;
 	struct synaptics_rmi4_data *rmi4_data;
 	struct kobject *sysfs_dir;
-	struct siginfo interrupt_signal;
-	struct siginfo terminate_signal;
+	struct kernel_siginfo interrupt_signal;
+	struct kernel_siginfo terminate_signal;
 	void *data;
 	bool concurrent;
 };
