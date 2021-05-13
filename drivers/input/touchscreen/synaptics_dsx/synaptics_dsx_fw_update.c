@@ -3278,6 +3278,7 @@ static int fwu_erase_configuration(void)
 		retval = fwu_write_f34_command(CMD_ERASE_UTILITY_PARAMETER);
 		if (retval < 0)
 			return retval;
+		break;
 	default:
 		dev_err(rmi4_data->pdev->dev.parent,
 				"%s: Invalid config area\n",
