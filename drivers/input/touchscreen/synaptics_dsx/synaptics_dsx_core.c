@@ -59,7 +59,7 @@
 #define USE_DATA_SERVER
 */
 
-#define WAKEUP_GESTURE false
+#define WAKEUP_GESTURE true
 
 #define NO_0D_WHILE_2D
 #define REPORT_2D_Z
@@ -4339,6 +4339,8 @@ static int synaptics_rmi4_probe(struct platform_device *pdev)
 	queue_work(rmi4_data->reset_workqueue, &rmi4_data->reset_work);
 #endif
 
+	device_init_wakeup(&pdev->dev, 1);
+
 	return retval;
 
 err_sysfs:
@@ -4706,10 +4708,8 @@ exit:
 
 #ifdef CONFIG_PM
 static const struct dev_pm_ops synaptics_rmi4_dev_pm_ops = {
-#ifndef CONFIG_FB
 	.suspend = synaptics_rmi4_suspend,
 	.resume = synaptics_rmi4_resume,
-#endif
 };
 #endif
 
