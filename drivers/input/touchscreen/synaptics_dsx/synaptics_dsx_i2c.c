@@ -348,7 +348,11 @@ static int synaptics_rmi4_i2c_read(struct synaptics_rmi4_data *rmi4_data,
 	unsigned int remaining_length = length;
 	struct i2c_client *i2c = to_i2c_client(rmi4_data->pdev->dev.parent);
 	struct i2c_adapter *adap = i2c->adapter;
-	struct i2c_msg msg[rd_msgs + 1];
+	struct i2c_msg *msg;
+
+	msg = kcalloc(rd_msgs + 1, sizeof(*msg), GFP_KERNEL);
+	if (!msg)
+		return -ENOMEM;
 
 	mutex_lock(&rmi4_data->rmi4_io_ctrl_mutex);
 
@@ -430,6 +434,7 @@ static int synaptics_rmi4_i2c_read(struct synaptics_rmi4_data *rmi4_data,
 
 exit:
 	mutex_unlock(&rmi4_data->rmi4_io_ctrl_mutex);
+	kfree(msg);
 
 	return retval;
 }
