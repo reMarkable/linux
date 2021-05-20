@@ -393,6 +393,7 @@
 			maxim,cold-temp = <(-200)>;
 			maxim,over-volt = <4400>; /* mV */
 			maxim,dead-volt = <3000>;
+			maxim,valrtth = /bits/ 16 <0xFF00>;
 			maxim,at-rate = /bits/ 16 <0x1900>;
 			maxim,design-cap = /bits/ 16 <0x1816>;
 			maxim,config = /bits/ 16 <0x0a14>; /* FGCC Enabled */
