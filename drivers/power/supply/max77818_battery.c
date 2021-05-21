@@ -1136,6 +1136,8 @@ static struct max77818_of_property max77818_relax_cfg =
 	{"maxim,relax-cfg", MAX17042_RelaxCFG, regmap_write, true, false };
 
 static struct max77818_of_property max77818_custom_param_list [] = {
+	{ "maxim,valrtth", MAX17042_VALRT_Th, regmap_write, false, false },
+
 	{ "maxim,learn-cfg", MAX17042_LearnCFG, regmap_write, true, false },
 
 	/* Verified and restored if required after reboot to ensure FGCC=1 */
