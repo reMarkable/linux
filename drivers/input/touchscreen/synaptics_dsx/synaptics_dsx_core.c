@@ -4676,6 +4676,7 @@ static int synaptics_rmi4_resume(struct device *dev)
 
 	if (rmi4_data->enable_wakeup_gesture) {
 		disable_irq_wake(rmi4_data->irq);
+		synaptics_rmi4_wakeup_gesture(rmi4_data, false);
 		goto exit;
 	}
 
