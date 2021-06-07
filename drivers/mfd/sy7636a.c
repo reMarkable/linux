@@ -75,7 +75,7 @@ int get_vcom_voltage_mv(struct regmap *regmap)
 	if (ret)
 		return ret;
 
-	val |= (val_h << 8);
+	val |= (val_h << 1);
 
 	return (val & 0x1FF) * 10;
 }
@@ -94,7 +94,7 @@ int set_vcom_voltage_mv(struct regmap *regmap, unsigned int vcom)
 	if (ret)
 		return ret;
 
-	ret = regmap_write(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_H, val >> 8);
+	ret = regmap_write(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_H, (val >> 1) & 0x80);
 	if (ret)
 		return ret;
 
