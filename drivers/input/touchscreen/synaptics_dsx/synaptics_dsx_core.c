@@ -58,8 +58,9 @@
 /*
 #define USE_DATA_SERVER
 */
-
-#define WAKEUP_GESTURE true
+#undef CONFIG_FB
+#define WAKEUP_TOUCH
+#define WAKEUP_GESTURE false
 
 #define NO_0D_WHILE_2D
 #define REPORT_2D_Z
@@ -4602,6 +4603,32 @@ exit:
 }
 #endif
 
+#ifdef WAKEUP_TOUCH
+#include <linux/suspend.h>
+static bool __try_enable_touch_wakeup(struct device *dev)
+{
+	struct synaptics_rmi4_data *data = dev_get_drvdata(dev);
+
+	/* this is a workaround, in suspend to MEM (deep sleep), touch
+	 * controller regulator is powered down by the SoC and so IRQ line
+	 * is becoming low/hz, causing spurious interrupt and leading to
+	 * unexpected wake-up during suspend-to-mem transition. So we don't
+	 * want to allow wakeup from touch in that case. (alternatively,
+	 * configure soc pull-up on interrupt pin...).
+	 */
+	data->enable_wakeup_touch = device_may_wakeup(dev) &&
+					!(pm_suspend_target_state == PM_SUSPEND_MEM);
+	return data->enable_wakeup_touch;
+}
+
+static bool __touch_wakeup_enabled(struct device *dev)
+{
+	struct synaptics_rmi4_data *data = dev_get_drvdata(dev);
+
+	return data->enable_wakeup_touch;
+}
+#endif
+
 static int synaptics_rmi4_suspend(struct device *dev)
 {
 	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
@@ -4610,6 +4637,20 @@ static int synaptics_rmi4_suspend(struct device *dev)
 
 	if (rmi4_data->stay_awake)
 		return 0;
+
+#ifdef WAKEUP_TOUCH
+	if (__try_enable_touch_wakeup(dev)) {
+		/* Do not stop sensing, touch must wakeup the host */
+		dev_dbg(rmi4_data->pdev->dev.parent, "Suspending with touch wakeup\n");
+		enable_irq_wake(rmi4_data->irq);
+		disable_irq(rmi4_data->irq);
+
+		/* TODO: move to reduced reporting mode: e.g. on finger detection
+		 * This requests F12 documentation.
+		 */
+		goto exit;
+	}
+#endif
 
 	if (rmi4_data->enable_wakeup_gesture) {
 		if (rmi4_data->no_sleep_setting) {
@@ -4673,6 +4714,15 @@ static int synaptics_rmi4_resume(struct device *dev)
 
 	if (rmi4_data->stay_awake)
 		return 0;
+
+#ifdef WAKEUP_TOUCH
+	if (__touch_wakeup_enabled(dev)) {
+		dev_dbg(rmi4_data->pdev->dev.parent, "Resuming with touch wakeup\n");
+		disable_irq_wake(rmi4_data->irq);
+		enable_irq(rmi4_data->irq);
+		goto exit;
+	}
+#endif
 
 	if (rmi4_data->enable_wakeup_gesture) {
 		disable_irq_wake(rmi4_data->irq);
