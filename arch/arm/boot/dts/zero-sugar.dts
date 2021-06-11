@@ -755,10 +755,10 @@
 
 	pinctrl_touch: touchgrp {
 		fsl,pins = <
-			/* CYTTSP interrupt */
-			MX7D_PAD_GPIO1_IO14__GPIO1_IO14		0x17000
-			/* CYTTSP reset */
-			MX7D_PAD_GPIO1_IO13__GPIO1_IO13		0x110b0
+			/* TOUCH_INT */
+			MX7D_PAD_GPIO1_IO14__GPIO1_IO14		0x54
+			/* TOUCH_RESET */
+			MX7D_PAD_GPIO1_IO13__GPIO1_IO13		0x4
 		>;
 	};
 
