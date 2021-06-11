@@ -166,15 +166,12 @@ endif
 GCOV_PROFILE := y
 
 obj-$(CONFIG_TOUCHSCREEN_PARADE)      += pt.o
-pt-y := pt_core.o pt_mt_common.o
+pt-y := pt_core.o pt_mt_common.o pt_platform.o
 pt-$(CONFIG_TOUCHSCREEN_PARADE_MT_A) += pt_mta.o
 pt-$(CONFIG_TOUCHSCREEN_PARADE_MT_B) += pt_mtb.o
 pt-$(CONFIG_TOUCHSCREEN_PARADE_BUTTON) += pt_btn.o
 pt-$(CONFIG_TOUCHSCREEN_PARADE_PROXIMITY) += pt_proximity.o
 obj-$(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT) += pt_devtree.o
-ifdef CONFIG_TOUCHSCREEN_PARADE
-obj-y += pt_platform.o
-endif
 obj-$(CONFIG_TOUCHSCREEN_PARADE_I2C)  += pt_i2c.o
 obj-$(CONFIG_TOUCHSCREEN_PARADE_SPI)  += pt_spi.o
 obj-$(CONFIG_TOUCHSCREEN_PARADE_DEBUG_MDL)    += pt_debug.o
@@ -212,4 +209,3 @@ CFLAGS_pt_debug.o += -DVERBOSE_DEBUG
 CFLAGS_pt_devtree.o += -DVERBOSE_DEBUG
 CFLAGS_pt_platform.o += -DVERBOSE_DEBUG
 endif
-
