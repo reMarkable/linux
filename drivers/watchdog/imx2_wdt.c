@@ -66,6 +66,7 @@ struct imx2_wdt_device {
 	struct regmap *regmap;
 	struct watchdog_device wdog;
 	bool ext_reset;
+	bool restart_on_resume;
 };
 
 static bool nowayout = WATCHDOG_NOWAYOUT;
@@ -375,6 +376,16 @@ static int imx2_wdt_suspend(struct device *dev)
 		 */
 		__imx2_wdt_set_timeout(wdog, IMX2_WDT_MAX_TIME);
 		imx2_wdt_ping(wdog);
+		/*
+		 * The watchdog IP block is reset to POR state after resuming
+		 * from sleep, meaning that it will be disabled.
+		 * Since the watchdog is running before sleep make sure that
+		 * the watchdog is running also after resuming.
+		 */
+		wdev->restart_on_resume = true;
+	}
+	else {
+		wdev->restart_on_resume = false;
 	}
 
 	clk_disable_unprepare(wdev->clk);
@@ -397,7 +408,8 @@ static int imx2_wdt_resume(struct device *dev)
 	if (ret)
 		return ret;
 
-	if (watchdog_active(wdog) && !imx2_wdt_is_running(wdev)) {
+	if ((watchdog_active(wdog) || wdev->restart_on_resume)
+		&& !imx2_wdt_is_running(wdev)) {
 		/*
 		 * If the watchdog is still active and resumes
 		 * from deep sleep state, need to restart the
