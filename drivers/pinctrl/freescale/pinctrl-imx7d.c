@@ -387,6 +387,7 @@ static struct platform_driver imx7d_pinctrl_driver = {
 	.driver = {
 		.name = "imx7d-pinctrl",
 		.of_match_table = of_match_ptr(imx7d_pinctrl_of_match),
+		.pm = &imx_pinctrl_pm_ops,
 	},
 	.probe = imx7d_pinctrl_probe,
 };

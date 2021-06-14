@@ -622,11 +622,32 @@ MODULE_DEVICE_TABLE(of, synaptics_rmi4_of_match_table);
 #define synaptics_rmi4_of_match_table NULL
 #endif
 
+#ifdef CONFIG_PM
+static int synaptics_rmi4_i2c_suspend(struct device *dev)
+{
+	return pinctrl_pm_select_sleep_state(dev);
+}
+
+static int synaptics_rmi4_i2c_resume(struct device *dev)
+{
+	/* Workaround for pinctrl context loss */
+	return pinctrl_pm_select_default_state(dev);
+}
+
+static const struct dev_pm_ops synaptics_rmi4_i2c_pm_ops = {
+	.suspend = synaptics_rmi4_i2c_suspend,
+	.resume = synaptics_rmi4_i2c_resume,
+};
+#endif
+
 static struct i2c_driver synaptics_rmi4_i2c_driver = {
 	.driver = {
 		.name = I2C_DRIVER_NAME,
 		.owner = THIS_MODULE,
 		.of_match_table = synaptics_rmi4_of_match_table,
+#ifdef CONFIG_PM
+		.pm = &synaptics_rmi4_i2c_pm_ops,
+#endif
 	},
 	.probe = synaptics_rmi4_i2c_probe,
 	.remove = synaptics_rmi4_i2c_remove,
