@@ -631,6 +631,10 @@
 	};
 };
 
+&mu {
+	status = "disabled";
+};
+
 &mu_lp {
 	status = "disabled";
 };
