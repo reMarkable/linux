@@ -1054,6 +1054,17 @@ static int brcmf_inet6addr_changed(struct notifier_block *nb,
 }
 #endif
 
+static ssize_t chipname_show(struct device *dev, struct device_attribute *attr,
+			     char *buf)
+{
+	struct brcmf_bus *bus_if = dev_get_drvdata(dev->parent);
+	struct brcmf_pub *drvr = bus_if->drvr;
+	struct brcmf_rev_info *ri = &drvr->revinfo;
+
+	return snprintf(buf, PAGE_SIZE, "%s\n", ri->chipname);
+}
+static DEVICE_ATTR_RO(chipname);
+
 static int brcmf_revinfo_read(struct seq_file *s, void *data)
 {
 	struct brcmf_bus *bus_if = dev_get_drvdata(s->private);
@@ -1280,6 +1291,13 @@ int brcmf_attach(struct device *dev)
 		goto fail;
 	}
 
+	/* Create sysfs file to get chip name */
+	ret = device_create_file(&drvr->wiphy->dev, &dev_attr_chipname);
+	if (ret) {
+		brcmf_err("failed to create sysfs file chipname");
+		goto fail;
+	}
+
 	return 0;
 
 fail:
@@ -1340,6 +1358,8 @@ void brcmf_detach(struct device *dev)
 
 	if (drvr == NULL)
 		return;
+
+	device_remove_file(&drvr->wiphy->dev, &dev_attr_chipname);
 
 #ifdef CONFIG_INET
 	unregister_inetaddr_notifier(&drvr->inetaddr_notifier);
