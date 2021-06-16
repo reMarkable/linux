@@ -16,13 +16,13 @@ choice
 	default TOUCHSCREEN_SYNAPTICS_DSX_I2C
 	prompt "Synaptics DSX bus interface"
 config TOUCHSCREEN_SYNAPTICS_DSX_I2C
-	bool "RMI over I2C"
+	tristate "RMI over I2C"
 	depends on I2C
 config TOUCHSCREEN_SYNAPTICS_DSX_SPI
-	bool "RMI over SPI"
+	tristate "RMI over SPI"
 	depends on SPI_MASTER
 config TOUCHSCREEN_SYNAPTICS_DSX_RMI_HID_I2C
-	bool "HID over I2C"
+	tristate "HID over I2C"
 	depends on I2C
 endchoice
 

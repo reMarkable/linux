@@ -4764,6 +4764,12 @@ static const struct dev_pm_ops synaptics_rmi4_dev_pm_ops = {
 };
 #endif
 
+static const struct platform_device_id synaptics_rmi4_device_ids[] = {
+	{ PLATFORM_DRIVER_NAME, 0 },
+	{},
+};
+MODULE_DEVICE_TABLE(platform, synaptics_rmi4_device_ids);
+
 static struct platform_driver synaptics_rmi4_driver = {
 	.driver = {
 		.name = PLATFORM_DRIVER_NAME,
@@ -4774,26 +4780,17 @@ static struct platform_driver synaptics_rmi4_driver = {
 	},
 	.probe = synaptics_rmi4_probe,
 	.remove = synaptics_rmi4_remove,
+	.id_table = synaptics_rmi4_device_ids,
 };
 
 static int __init synaptics_rmi4_init(void)
 {
-	int retval;
-
-	retval = synaptics_rmi4_bus_init();
-	if (retval)
-		return retval;
-
 	return platform_driver_register(&synaptics_rmi4_driver);
 }
 
 static void __exit synaptics_rmi4_exit(void)
 {
 	platform_driver_unregister(&synaptics_rmi4_driver);
-
-	synaptics_rmi4_bus_exit();
-
-	return;
 }
 
 module_init(synaptics_rmi4_init);

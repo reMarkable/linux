@@ -593,7 +593,7 @@ static int synaptics_rmi4_i2c_probe(struct i2c_client *client,
 	}
 
 	wr_buf_size = 0;
-	
+
 	return 0;
 }
 
@@ -658,7 +658,6 @@ int synaptics_rmi4_bus_init(void)
 {
 	return i2c_add_driver(&synaptics_rmi4_i2c_driver);
 }
-EXPORT_SYMBOL(synaptics_rmi4_bus_init);
 
 void synaptics_rmi4_bus_exit(void)
 {
@@ -671,7 +670,9 @@ void synaptics_rmi4_bus_exit(void)
 
 	return;
 }
-EXPORT_SYMBOL(synaptics_rmi4_bus_exit);
+
+module_init(synaptics_rmi4_bus_init);
+module_exit(synaptics_rmi4_bus_exit);
 
 MODULE_AUTHOR("Synaptics, Inc.");
 MODULE_DESCRIPTION("Synaptics DSX I2C Bus Support Module");
