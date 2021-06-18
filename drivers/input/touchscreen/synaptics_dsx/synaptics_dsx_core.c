@@ -4649,8 +4649,16 @@ static int synaptics_rmi4_suspend(struct device *dev)
 		 * This requests F12 documentation.
 		 */
 		goto exit;
+	} else {
+		/* In deep-sleep/LPSR, touch is fully disabled to save power,
+		 * explicitely power-off touch regulator.
+		 */
+		disable_irq(rmi4_data->irq);
+		synaptics_rmi4_enable_reg(rmi4_data, false);
+		goto exit;
 	}
 #endif
+
 
 	if (rmi4_data->enable_wakeup_gesture) {
 		if (rmi4_data->no_sleep_setting) {
@@ -4720,6 +4728,15 @@ static int synaptics_rmi4_resume(struct device *dev)
 		dev_dbg(rmi4_data->pdev->dev.parent, "Resuming with touch wakeup\n");
 		disable_irq_wake(rmi4_data->irq);
 		enable_irq(rmi4_data->irq);
+		goto exit;
+	} else {
+		/* Re-enabled touch regulator */
+		synaptics_rmi4_enable_reg(rmi4_data, true);
+		enable_irq(rmi4_data->irq);
+
+		/* Once restarted, device will assert attention pin and
+		 * reinitialization will take place.
+		 */
 		goto exit;
 	}
 #endif
