@@ -1170,7 +1170,7 @@ void __exit watchdog_dev_exit(void)
 int watchdog_dev_suspend(struct watchdog_device *wdd)
 {
 	struct watchdog_core_data *wd_data = wdd->wd_data;
-	int ret;
+	int ret = 0;
 
 	if (!wdd->wd_data)
 		return -ENODEV;
@@ -1198,7 +1198,7 @@ EXPORT_SYMBOL_GPL(watchdog_dev_suspend);
 int watchdog_dev_resume(struct watchdog_device *wdd)
 {
 	struct watchdog_core_data *wd_data = wdd->wd_data;
-	int ret;
+	int ret = 0;
 
 	if (!wdd->wd_data)
 		return -ENODEV;
