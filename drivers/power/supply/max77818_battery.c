@@ -79,6 +79,9 @@
 
 #define MAX77818_VMAX_TOLERANCE	50 /* 50 mV */
 
+#define MIN_SOC_ALRT_DISABLE 0;
+#define MAX_SOC_ALRT_DISABLE 0xFF;
+
 #define SYNC_SET_FLAG(flag, lock) ( \
 	{ \
 		mutex_lock(lock); \
@@ -138,6 +141,7 @@ struct max77818_chip {
 	struct max17042_platform_data *pdata;
 	struct work_struct init_work;
 	struct work_struct chg_isr_work;
+	struct work_struct fg_isr_work;
 	bool init_complete;
 	struct power_supply *charger;
 	struct usb_phy *usb_phy[2];
@@ -1376,10 +1380,13 @@ static void max77818_do_initial_charger_sync_worker(struct work_struct *work)
 	schedule_work(&chip->charger_detection_work[1]);
 }
 
-static irqreturn_t max77818_fg_isr(int id, void *dev)
+
+static void max77818_fg_isr_work(struct work_struct *work)
 {
-	struct max77818_chip *chip = dev;
 	u32 val;
+	union power_supply_propval power_supply_propval;
+	struct max77818_chip *chip =
+		container_of(work, struct max77818_chip, fg_isr_work);
 
 	regmap_read(chip->regmap, MAX17042_STATUS, &val);
 
@@ -1387,15 +1394,42 @@ static irqreturn_t max77818_fg_isr(int id, void *dev)
 		dev_info(chip->dev, "MIN SOC alert\n");
 		sysfs_notify(&chip->battery->dev.kobj, NULL,
 			     "capacity_alert_min");
+
+		power_supply_propval.intval = MIN_SOC_ALRT_DISABLE;
+		max77818_set_property(chip->battery,
+					POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN,
+					&power_supply_propval);
+
+		power_supply_propval.intval = chip->pdata->max_soc_alrt;
+		max77818_set_property(chip->battery,
+					POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX,
+					&power_supply_propval);
 	}
 
 	if (val & STATUS_INTR_SOCMAX_BIT) {
 		dev_info(chip->dev, "MAX SOC alert\n");
 		sysfs_notify(&chip->battery->dev.kobj, NULL,
 			     "capacity_alert_max");
+
+		power_supply_propval.intval = chip->pdata->min_soc_alrt;
+		max77818_set_property(chip->battery,
+					POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN,
+					&power_supply_propval);
+
+		power_supply_propval.intval = MAX_SOC_ALRT_DISABLE;
+		max77818_set_property(chip->battery,
+					POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX,
+					&power_supply_propval);
 	}
+}
+
+static irqreturn_t max77818_fg_isr(int id, void *dev)
+{
+	struct max77818_chip *chip = dev;
 
 	power_supply_changed(chip->battery);
+
+	schedule_work(&chip->fg_isr_work);
 
 	return IRQ_HANDLED;
 }
@@ -1471,6 +1505,12 @@ max77818_get_pdata(struct max77818_chip *chip)
 		pdata->vmin = INT_MIN;
 	if (of_property_read_s32(np, "maxim,over-volt", &pdata->vmax))
 		pdata->vmax = INT_MAX;
+
+	if (of_property_read_u8(np, "maxim,min-soc-alert", &pdata->min_soc_alrt))
+		pdata->min_soc_alrt = MIN_SOC_ALRT_DISABLE;
+
+	if (of_property_read_u8(np, "maxim,max-soc-alert", &pdata->max_soc_alrt))
+		pdata->max_soc_alrt = MAX_SOC_ALRT_DISABLE;
 
 	return pdata;
 }
@@ -1717,9 +1757,21 @@ static int max77818_init_fg_interrupt_handling(struct max77818_dev *max77818,
 {
 	struct device *dev = chip->dev;
 	int ret;
+	union power_supply_propval power_supply_propval;
 
-	/* Disable max SOC alert and set min SOC alert as 10% by default */
-	regmap_write(chip->regmap, MAX17042_SALRT_Th, (0xff << 8) | 0x0a );
+	/* Disable max SOC alert and set min SOC alert */
+	power_supply_propval.intval = MAX_SOC_ALRT_DISABLE;
+	max77818_set_property(chip->battery,
+				POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX,
+				&power_supply_propval);
+
+	power_supply_propval.intval = chip->pdata->min_soc_alrt;
+	max77818_set_property(chip->battery,
+				POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN,
+				&power_supply_propval);
+
+	/* Init worker to be used by the FG interrupt handler */
+	INIT_WORK(&chip->fg_isr_work, max77818_fg_isr_work);
 
 	/* Register irq handler for the FG interrupt */
 	chip->fg_irq = regmap_irq_get_virq(max77818->irqc_intsrc,

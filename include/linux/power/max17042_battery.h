@@ -230,10 +230,12 @@ struct max17042_platform_data {
 	 * the datasheet although it can be changed by board designers.
 	 */
 	unsigned int r_sns;
-	int         vmin;	/* in millivolts */
-	int         vmax;	/* in millivolts */
-	int         temp_min;	/* in tenths of degree Celsius */
-	int         temp_max;	/* in tenths of degree Celsius */
+	int vmin;		/* in millivolts */
+	int vmax;		/* in millivolts */
+	int temp_min;		/* in tenths of degree Celsius */
+	int temp_max;		/* in tenths of degree Celsius */
+	u8 min_soc_alrt;	/* in percent */
+	u8 max_soc_alrt;	/* in percent */
 };
 
 #endif /* __MAX17042_BATTERY_H_ */
