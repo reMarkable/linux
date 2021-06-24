@@ -948,8 +948,19 @@ void pm_wakeup_clear(bool reset)
 void pm_system_irq_wakeup(unsigned int irq_number)
 {
 	if (pm_wakeup_irq == 0) {
+		struct wakeup_source *ws;
+		int srcuidx;
+
 		pm_wakeup_irq = irq_number;
 		pm_system_wakeup();
+
+		/* wakeup accounting */
+		srcuidx = srcu_read_lock(&wakeup_srcu);
+		list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
+			if (ws->wakeirq && ws->wakeirq->irq == irq_number)
+				pm_wakeup_ws_event(ws, 0, false);
+		}
+		srcu_read_unlock(&wakeup_srcu, srcuidx);
 	}
 }
 
