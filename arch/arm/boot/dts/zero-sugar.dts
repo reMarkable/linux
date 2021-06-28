@@ -408,7 +408,7 @@
 			maxim,design-cap = /bits/ 16 <0x1816>;
 			maxim,config = /bits/ 16 <0x0a14>; /* FGCC Enabled */
 			/* maxim,config = /bits/ 16 <0x0214>; /* FGCC disabled */
-			maxim,config2 = /bits/ 16 <0x0050>;
+			maxim,config2 = /bits/ 16 <0x0010>;
 			maxim,convgcfg = /bits/ 16 <0x2241>;
 			maxim,dpacc = /bits/ 16 <0x3200>;
 			maxim,dqacc = /bits/ 16 <0x0605>;
