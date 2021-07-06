@@ -44,9 +44,9 @@
 
 #define FW_IHEX_NAME "synaptics/startup_fw_update.bin"
 #define FW_IMAGE_NAME "synaptics/startup_fw_update.img"
-/*
+
 #define DO_STARTUP_FW_UPDATE
-*/
+
 /*
 #ifdef DO_STARTUP_FW_UPDATE
 #ifdef CONFIG_FB
