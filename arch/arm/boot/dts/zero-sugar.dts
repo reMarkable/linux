@@ -53,6 +53,16 @@
 		stdout-path = &uart1;
 	};
 
+	aliases {
+		/* the touch_* aliases are use by the bootloader (u-boot) for
+		 * accessing related DTB nodes (keep aligned with u-boot
+		 * touch_init).
+		 */
+		touch_parade = &touch_parade;
+		touch_synaptics = &touch_synaptics;
+		touch_atmel = &touch_atmel;
+	};
+
 	memory {
 		reg = <0x80000000 0x40000000>;
 	};
@@ -459,8 +469,45 @@
 	pinctrl-1 = <&pinctrl_i2c3>;
 	status = "okay";
 
-	tsc@24 {
-		status = "okay";
+	touch_synaptics: touch@20 {
+		compatible = "synaptics,dsx-i2c";
+		reg = <0x20>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&pinctrl_touch>;
+		pinctrl-1 = <&pinctrl_touch>;
+		vdd-supply = <&reg_touch>;
+		synaptics,pwr-reg-name = "vdd";
+		synaptics,power-delay-ms = <200>;
+		synaptics,irq-gpio = <&gpio1 14 0x2008>; /* IRQF_ONESHOT | IRQF_TRIGGER_LOW */
+		synaptics,reset-gpio = <&gpio1 13 0>;
+		synaptics,reset-delay-ms = <200>;
+		synaptics,reset-on-state = <0>;
+		synaptics,reset-active-ms = <20>;
+
+		/* Keep it disabled in the DTS, the bootloader is in charge of
+		 * enabling this device if present (cf u-boot touchdetect).
+		 */
+		status = "disabled";
+	};
+
+	touch_atmel: touch@4b {
+		compatible = "atmel,maxtouch";
+		reg = <0x4b>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <14 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&pinctrl_touch>;
+		pinctrl-1 = <&pinctrl_touch>;
+		vdd-supply = <&reg_touch>;
+		reset-gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
+
+		/* Keep it disabled in the DTS, the bootloader is in charge of
+		 * enabling this device if present (cf u-boot touchdetect).
+		 */
+		status = "disabled";
+	};
+
+	touch_parade: touch@24 {
 		compatible = "parade,pt_i2c_adapter";
 		reg = <0x24>;
 		interrupt-parent = <&gpio1>;
@@ -471,6 +518,11 @@
 		pinctrl-0 = <&pinctrl_touch>;
 		pinctrl-1 = <&pinctrl_touch>;
 		vdd-supply = <&reg_touch>;
+
+		/* This is the legacy touchscreen, keep it enabled by default
+		 * and the bootloader will disable it if not present.
+		 */
+		status = "okay";
 
 		parade,core {
 			parade,name = "pt_core";
