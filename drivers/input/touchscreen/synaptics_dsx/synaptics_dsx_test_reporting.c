@@ -3172,25 +3172,19 @@ static int test_raw_cap(struct device *dev, struct syn_ref_data *ref_data)
 		return -EINVAL;
 	}
 
-	/* compare to max */
 	for (tx = 0; tx < tx_count; tx++) {
 		for (rx = 0; rx < rx_count; rx++) {
 			int idx = tx * rx_count + rx;
 
+			/* compare to max */
 			if (report_data[idx] > ref_data->raw_cap_max[idx]) {
 				dev_err(parent, "CAP[tx%u,rx%u]=%u exceeds max %u\n",
 					tx, rx, report_data[idx],
 					ref_data->raw_cap_max[idx]);
 				ret = -EINVAL;
 			}
-		}
-	}
 
-	/* compare to min */
-	for (tx = 0; tx < tx_count; tx++) {
-		for (rx = 0; rx < rx_count; rx++) {
-			int idx = tx * rx_count + rx;
-
+			/* compare to min */
 			if (report_data[idx] < ref_data->raw_cap_min[idx]) {
 				dev_err(parent, "CAP[tx%u,rx%u]=%u below min %u\n",
 					tx, rx, report_data[idx],
@@ -3209,17 +3203,15 @@ static int test_high_resistance(struct device *dev, struct syn_ref_data *ref_dat
 	int16_t *report_data = (uint16_t *)f54->report_data;
 	int ret = 0, i;
 
-	/* compare to max */
 	for (i = 0; i < HIGHRES_COUNT; i++) {
+		/* compare to max */
 		if (report_data[i] > ref_data->high_resistance_max[i]) {
 			dev_err(parent, "HIGH_RES[%d]=%d exceeds max %d\n", i,
 				report_data[i], ref_data->high_resistance_max[i]);
 			ret = -EINVAL;
 		}
-	}
 
-	/* compare to min */
-	for (i = 0; i < HIGHRES_COUNT; i++) {
+		/* compare to min */
 		if (report_data[i] < ref_data->high_resistance_min[i]) {
 			dev_err(parent, "HIGH_RES[%d]=%d below min %d\n", i,
 				report_data[i], ref_data->high_resistance_min[i]);
