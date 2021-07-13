@@ -3149,6 +3149,7 @@ static ssize_t test_sysfs_selftest_store(struct device *dev,
 
 static int test_raw_cap(struct device *dev, struct syn_ref_data *ref_data)
 {
+	struct device *parent = f54->rmi4_data->pdev->dev.parent;
 	uint16_t *report_data = (uint16_t *)f54->report_data;
 	int tx, rx, rx_count, tx_count;
 	int ret = 0;
@@ -3157,17 +3158,17 @@ static int test_raw_cap(struct device *dev, struct syn_ref_data *ref_data)
 	tx_count = min(f54->tx_assigned, ref_data->tx_count);
 
 	if (f54->tx_assigned != ref_data->tx_count) {
-		dev_warn(dev, "TX count mismatch, expected %d, assigned %d\n",
+		dev_warn(parent, "TX count mismatch, expected %d, assigned %d\n",
 			 ref_data->tx_count, f54->tx_assigned);
 	}
 
 	if (f54->rx_assigned != ref_data->rx_count) {
-		dev_warn(dev, "RX count mismatch, expected %d, assigned %d\n",
+		dev_warn(parent, "RX count mismatch, expected %d, assigned %d\n",
 			 ref_data->tx_count, f54->tx_assigned);
 	}
 
 	if (f54->report_size < sizeof(uint16_t) * rx_count * tx_count) {
-		dev_err(dev, "Report size too small (%u)\n", f54->report_size);
+		dev_err(parent, "Report size too small (%u)\n", f54->report_size);
 		return -EINVAL;
 	}
 
@@ -3177,7 +3178,7 @@ static int test_raw_cap(struct device *dev, struct syn_ref_data *ref_data)
 			int idx = tx * rx_count + rx;
 
 			if (report_data[idx] > ref_data->raw_cap_max[idx]) {
-				dev_err(dev, "CAP[tx%u,rx%u]=%u exceeds max %u\n",
+				dev_err(parent, "CAP[tx%u,rx%u]=%u exceeds max %u\n",
 					tx, rx, report_data[idx],
 					ref_data->raw_cap_max[idx]);
 				ret = -EINVAL;
@@ -3191,7 +3192,7 @@ static int test_raw_cap(struct device *dev, struct syn_ref_data *ref_data)
 			int idx = tx * rx_count + rx;
 
 			if (report_data[idx] < ref_data->raw_cap_min[idx]) {
-				dev_err(dev, "CAP[tx%u,rx%u]=%u below min %u\n",
+				dev_err(parent, "CAP[tx%u,rx%u]=%u below min %u\n",
 					tx, rx, report_data[idx],
 					ref_data->raw_cap_min[idx]);
 				ret = -EINVAL;
@@ -3204,13 +3205,14 @@ static int test_raw_cap(struct device *dev, struct syn_ref_data *ref_data)
 
 static int test_high_resistance(struct device *dev, struct syn_ref_data *ref_data)
 {
+	struct device *parent = f54->rmi4_data->pdev->dev.parent;
 	int16_t *report_data = (uint16_t *)f54->report_data;
 	int ret = 0, i;
 
 	/* compare to max */
 	for (i = 0; i < HIGHRES_COUNT; i++) {
 		if (report_data[i] > ref_data->high_resistance_max[i]) {
-			dev_err(dev, "HIGH_RES[%d]=%d exceeds max %d\n", i,
+			dev_err(parent, "HIGH_RES[%d]=%d exceeds max %d\n", i,
 				report_data[i], ref_data->high_resistance_max[i]);
 			ret = -EINVAL;
 		}
@@ -3219,7 +3221,7 @@ static int test_high_resistance(struct device *dev, struct syn_ref_data *ref_dat
 	/* compare to min */
 	for (i = 0; i < HIGHRES_COUNT; i++) {
 		if (report_data[i] < ref_data->high_resistance_min[i]) {
-			dev_err(dev, "HIGH_RES[%d]=%d below min %d\n", i,
+			dev_err(parent, "HIGH_RES[%d]=%d below min %d\n", i,
 				report_data[i], ref_data->high_resistance_min[i]);
 			ret = -EINVAL;
 		}
