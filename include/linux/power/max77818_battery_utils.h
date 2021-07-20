@@ -41,7 +41,6 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 #define MAX77818_START_NON_FGCC_OP_3(max77818_dev, fgcc_restore_state, op_description) ( \
 { \
 	int ret = 0; \
-	bool restore_state = 0; \
 \
 	if (!max77818_dev) { \
 		printk("%s: max77818_dev is NULL in MAX77818_DO_NON_FGCC_OP\n", __func__); \
@@ -56,13 +55,10 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 		dev_dbg(max77818_dev->dev, "Clearing FGCC mode\n"); \
 		ret = max77818_utils_set_fgcc_mode(max77818_dev, \
 						   false, \
-						   &restore_state); \
+						   &fgcc_restore_state); \
 		if (ret) { \
 			dev_err(max77818_dev->dev, \
 				"Failed to clear FGCC bit in CONFIG register\n"); \
-		} \
-		else { \
-			fgcc_restore_state = restore_state; \
 		} \
 \
 		/* UNLOCKING IS DONE IN MAX77818_FINISH_NON_FGCC_OP */ \
