@@ -527,7 +527,7 @@ static int max77818_charger_get_charger_mode(struct max77818_charger *chg)
 		break;
 	default:
 		dev_warn(chg->dev,
-			 "Unknown charger_mode read from device: 0x%02x\n",
+			 "Unknown charger_mode read from device: 0x%02lx\n",
 			 (read_val & BIT_MODE));
 	}
 
