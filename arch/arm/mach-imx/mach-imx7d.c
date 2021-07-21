@@ -125,7 +125,10 @@ static void __init imx7d_init_machine(void)
 	of_platform_default_populate(NULL, NULL, parent);
 	imx7d_pm_init();
 	imx_anatop_init();
+
+#ifdef CONFIG_FEC
 	imx7d_enet_init();
+#endif
 }
 
 static void __init imx7d_init_late(void)
