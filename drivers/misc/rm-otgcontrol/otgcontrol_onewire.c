@@ -31,6 +31,9 @@
 
 #define ONE_WIRE_GPIO_DEBOUNCE_MS	500	/* ms */
 
+static irqreturn_t otgcontrol_gpio_irq_handler(int irq, void *data);
+static void otgcontrol_gpio_irq_work(struct work_struct *work);
+
 int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 {
 	int ret;

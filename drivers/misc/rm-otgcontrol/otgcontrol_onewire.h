@@ -40,8 +40,6 @@ int otgcontrol_init_gpio_irq(struct rm_otgcontrol_data *otgc_data);
 void otgcontrol_uninit_gpio_irq(struct rm_otgcontrol_data *otgc_data);
 void otgcontrol_activate_gpio_irq(struct rm_otgcontrol_data *otgc_data);
 void otgcontrol_deactivate_gpio_irq(struct rm_otgcontrol_data *otgc_data);
-static irqreturn_t otgcontrol_gpio_irq_handler(int irq, void *data);
-static void otgcontrol_gpio_irq_work(struct work_struct *work);
 int otgcontrol_onewire_read_until_cr(struct rm_otgcontrol_data *otgc_data,
 				     char *device_name,
 				     char *buf,
