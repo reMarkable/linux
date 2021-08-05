@@ -1,0 +1,173 @@
+// SPDX-License-Identifier: GPL-2.0+ OR MIT
+//
+// Copyright (C) 2021 reMarkable AS - http://www.remarkable.com/
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include "imx6sl.dtsi"
+#include "zero-gravitas-padctl.h"
+
+/ {
+	model = "reMarkable 1.0";
+	compatible = "remarkable,zero-gravitas", "fsl,imx6sl";
+
+	/delete-node/ reserved-memory;
+
+	memory {
+		reg = <0x80000000 0x20000000>;
+	};
+};
+
+&epdc {
+	status = "disabled";
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+
+	zero-gravitas {
+		pinctrl_hog: hoggrp {
+			fsl,pins = <
+				/* MAX17135 pwrgood */
+				MX6SL_PAD_EPDC_PWRSTAT__GPIO2_IO13	PAD_CTL_NONE
+				/* MAX17135 vcom ctrl */
+				MX6SL_PAD_EPDC_VCOM0__GPIO2_IO03	PAD_CTL_NONE
+				/* MAX17135 wakeup */
+				MX6SL_PAD_EPDC_PWRWAKEUP__GPIO2_IO14	PAD_CTL_NONE
+				/* MAX17135 v3p3 */
+				MX6SL_PAD_EPDC_PWRCTRL0__GPIO2_IO07	PAD_CTL_NONE
+				/* MAX17135 intr */
+				MX6SL_PAD_EPDC_PWRINT__GPIO2_IO12	PAD_CTL_NONE
+
+				/* BQ27441 low power */
+				MX6SL_PAD_KEY_ROW3__GPIO3_IO31		0x17000
+
+				/* Wacom interrupt */
+				MX6SL_PAD_EPDC_PWRCTRL3__GPIO2_IO10	0x17000
+				/* Wacom reset */
+				MX6SL_PAD_KEY_COL6__GPIO4_IO04		0x110b0
+
+				/* CYTTSP interrupt */
+				MX6SL_PAD_KEY_ROW5__GPIO4_IO03		0x17000
+				/* CYTTSP reset */
+				MX6SL_PAD_KEY_ROW6__GPIO4_IO05		0x110b0
+
+				/* USB OTG1 voltage control */
+				/*MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x17000*/
+				/*MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	0x000b0*/
+				MX6SL_PAD_ECSPI2_SS0__GPIO4_IO15	PAD_CTL_NONE
+				/*MX6SL_PAD_ECSPI2_SS0__USB_OTG1_PWR	0x17000*/
+				/* USB OTG1 over current detection */
+				MX6SL_PAD_ECSPI2_MISO__USB_OTG1_OC	0x1b0b0
+
+				/* Charger control */
+				MX6SL_PAD_KEY_ROW1__GPIO3_IO27		0x110b0
+				/* Charger status */
+				MX6SL_PAD_KEY_ROW4__GPIO4_IO01		PAD_CTL_NONE
+
+				/* USDHC1 card detect */
+				MX6SL_PAD_KEY_ROW7__GPIO4_IO07		0x17059
+
+				/* CHIP_WAKE_HOST */
+				MX6SL_PAD_KEY_COL5__GPIO4_IO02		PAD_CTL_NONE
+				/* POWER_WIFI: WiFi external power control */
+				MX6SL_PAD_KEY_COL3__GPIO3_IO30		PAD_CTL_NONE
+				/* WL_DIS: WiFi internal power control */
+				MX6SL_PAD_KEY_COL4__GPIO4_IO00		PAD_CTL_NONE
+
+				/* 32Khz clock from i.MX6 to WiFi for power saving */
+				MX6SL_PAD_REF_CLK_32K__XTALOSC_REF_CLK_32K 0x1b0b0
+			>;
+		};
+
+		pinctrl_uart1: uart1grp {
+			fsl,pins = <
+				MX6SL_PAD_UART1_RXD__UART1_RX_DATA	0x1b0b1
+				MX6SL_PAD_UART1_TXD__UART1_TX_DATA	0x1b0b1
+			>;
+		};
+
+		pinctrl_usdhc2: usdhc2grp {
+			fsl,pins = <
+				MX6SL_PAD_SD2_CMD__SD2_CMD		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_CLK__SD2_CLK		PAD_CTL_USDHC_CLK_DEFAULT
+				MX6SL_PAD_SD2_DAT0__SD2_DATA0		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_DAT1__SD2_DATA1		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_DAT2__SD2_DATA2		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_DAT3__SD2_DATA3		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_DAT4__SD2_DATA4		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_DAT5__SD2_DATA5		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_DAT6__SD2_DATA6		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_DAT7__SD2_DATA7		PAD_CTL_USDHC_DEFAULT
+				MX6SL_PAD_SD2_RST__SD2_RESET		PAD_CTL_USDHC_CLK_DEFAULT
+			>;
+		};
+
+		pinctrl_usdhc2_100mhz: usdhc2grp100mhz {
+			fsl,pins = <
+				MX6SL_PAD_SD2_CMD__SD2_CMD		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_CLK__SD2_CLK		PAD_CTL_USDHC_CLK_100MHZ
+				MX6SL_PAD_SD2_DAT0__SD2_DATA0		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_DAT1__SD2_DATA1		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_DAT2__SD2_DATA2		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_DAT3__SD2_DATA3		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_DAT4__SD2_DATA4		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_DAT5__SD2_DATA5		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_DAT6__SD2_DATA6		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_DAT7__SD2_DATA7		PAD_CTL_USDHC_100MHZ
+				MX6SL_PAD_SD2_RST__SD2_RESET		PAD_CTL_USDHC_CLK_DEFAULT
+			>;
+		};
+
+		pinctrl_usdhc2_200mhz: usdhc2grp200mhz {
+			fsl,pins = <
+				MX6SL_PAD_SD2_CMD__SD2_CMD		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_CLK__SD2_CLK		PAD_CTL_USDHC_CLK_200MHZ
+				MX6SL_PAD_SD2_DAT0__SD2_DATA0		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_DAT1__SD2_DATA1		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_DAT2__SD2_DATA2		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_DAT3__SD2_DATA3		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_DAT4__SD2_DATA4		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_DAT5__SD2_DATA5		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_DAT6__SD2_DATA6		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_DAT7__SD2_DATA7		PAD_CTL_USDHC_200MHZ
+				MX6SL_PAD_SD2_RST__SD2_RESET		PAD_CTL_USDHC_CLK_DEFAULT
+			>;
+		};
+	};
+};
+
+&snvs_poweroff {
+	status = "okay";
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1>;
+	status = "okay";
+};
+
+&usbphy1 {
+	status = "disabled";
+};
+
+&usbphy2 {
+	status = "disabled";
+};
+
+&usdhc2 {
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-0 = <&pinctrl_usdhc2>;
+	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
+	pinctrl-2 = <&pinctrl_usdhc2_200mhz>;
+	bus-width = <8>;
+	non-removable;
+	keep-power-in-suspend;
+	no-1-8-v;
+	disable-wp;
+	cap-mmc-highspeed;
+	status = "okay";
+};
