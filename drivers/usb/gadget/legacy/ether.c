@@ -134,8 +134,10 @@ USB_ETHERNET_MODULE_PARAMETERS();
  * used with CDC Ethernet, Linux 2.4 hosts will need updates to choose
  * the non-RNDIS configuration.
  */
-/*#define RNDIS_VENDOR_NUM	0x0525	/* NetChip */
-/*#define RNDIS_PRODUCT_NUM	0xa4a2	/* Ethernet/RNDIS Gadget */
+#if 0
+#define RNDIS_VENDOR_NUM	0x0525	/* NetChip */
+#define RNDIS_PRODUCT_NUM	0xa4a2	/* Ethernet/RNDIS Gadget */
+#endif
 #define RNDIS_VENDOR_NUM       0x04b3  /* IBM */
 #define RNDIS_PRODUCT_NUM      0x4010  /* Ethernet/RNDIS Gadget */
 
