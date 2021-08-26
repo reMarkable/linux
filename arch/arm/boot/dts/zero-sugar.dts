@@ -147,6 +147,14 @@
 		regulator-always-on;
 	};
 
+	reg_epd_vcom: regulator-epd-vcom {
+		compatible = "regulator-fixed";
+		regulator-name = "EPD_VCOM";
+		gpio = <&gpio6 18 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		vin-supply = <&reg_epdpmic>;
+	};
+
 	wifi_pwrseq: wifi_pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		pinctrl-names = "default", "sleep";
@@ -647,7 +655,7 @@
 	pinctrl-0 = <&pinctrl_lcdif>;
 	pinctrl-1 = <&pinctrl_lcdif>;
 	/* TODO: enable-gpio = <&extended_io 7 GPIO_ACTIVE_LOW>; */
-	lcd-supply = <&reg_epdpmic>;
+	lcd-supply = <&reg_epd_vcom>;
 	lcd2-supply = <&reg_sdoe>;
 	display = <&display0>;
 	prevent-frying-pan;

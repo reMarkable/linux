@@ -106,6 +106,11 @@ struct regulator_desc desc = {
 
 static int sy7636a_regulator_init(struct sy7636a *sy7636a)
 {
+	/* Control VCOM output with VCOM_EN pin */
+	regmap_update_bits(sy7636a->regmap, SY7636A_REG_OPERATION_MODE_CRL,
+			   SY7636A_OPERATION_MODE_CRL_VCOMCTL,
+			   SY7636A_OPERATION_MODE_CRL_VCOMCTL);
+
 	return regmap_write(sy7636a->regmap,
 				SY7636A_REG_POWER_ON_DELAY_TIME,
 				0x0);
