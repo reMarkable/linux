@@ -626,8 +626,9 @@
 		compatible = "silergy,sy7636a";
 		reg = <0x62>;
 		status = "okay";
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pinctrl_epdpmic>;
+		pinctrl-1 = <&pinctrl_epdpmic>;
 		#thermal-sensor-cells = <0>;
 
 		epd-pwr-good-gpios = <&gpio6 21 GPIO_ACTIVE_HIGH>;

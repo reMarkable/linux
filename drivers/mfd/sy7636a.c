@@ -23,6 +23,7 @@
 #include <linux/of_device.h>
 #include <linux/regmap.h>
 #include <linux/sysfs.h>
+#include <linux/pinctrl/consumer.h>
 
 #include <linux/mfd/sy7636a.h>
 
@@ -233,10 +234,34 @@ static const struct i2c_device_id sy7636a_id_table[] = {
 };
 MODULE_DEVICE_TABLE(i2c, sy7636a_id_table);
 
+#ifdef CONFIG_PM
+static int sy7636a_suspend(struct device *dev)
+{
+	pinctrl_pm_select_sleep_state(dev);
+
+	return 0;
+}
+
+static int sy7636a_resume(struct device *dev)
+{
+	pinctrl_pm_select_default_state(dev);
+
+	return 0;
+}
+
+static const struct dev_pm_ops sy7636a_pm_ops = {
+	.suspend = sy7636a_suspend,
+	.resume = sy7636a_resume,
+};
+#endif
+
 static struct i2c_driver sy7636a_driver = {
 	.driver	= {
 		.name	= "sy7636a",
 		.of_match_table = of_sy7636a_match_table,
+#ifdef CONFIG_PM
+		.pm = &sy7636a_pm_ops,
+#endif
 	},
 	.probe = sy7636a_probe,
 	.id_table = sy7636a_id_table,
