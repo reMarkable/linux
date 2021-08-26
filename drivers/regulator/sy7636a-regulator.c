@@ -111,6 +111,18 @@ static int sy7636a_regulator_init(struct sy7636a *sy7636a)
 				0x0);
 }
 
+static irqreturn_t sy7636a_pgood_irq_handler(int irq, void *_sy7636a)
+{
+	struct sy7636a *sy7636a = _sy7636a;
+	int pwr_good;
+
+	pwr_good = gpiod_get_value_cansleep(sy7636a->pgood_gpio);
+
+	dev_dbg(sy7636a->dev, "Power good line changed to %d\n", pwr_good);
+
+	return IRQ_HANDLED;
+}
+
 static int sy7636a_regulator_suspend(struct device *dev)
 {
 	int ret;
@@ -164,6 +176,18 @@ static int sy7636a_regulator_probe(struct platform_device *pdev)
 	dev_info(sy7636a->dev,
 		"Power good GPIO registered (gpio# %d)\n",
 		desc_to_gpio(sy7636a->pgood_gpio));
+
+
+	sy7636a->pgood_irq = gpiod_to_irq(gdp);
+	ret = devm_request_threaded_irq(sy7636a->dev, sy7636a->pgood_irq,
+					NULL, sy7636a_pgood_irq_handler,
+					IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+					"epd_pgood", sy7636a);
+	if (ret) {
+		dev_err(sy7636a->dev, "Unable to request power good irq %d\n",
+			sy7636a->pgood_irq);
+		/* non fatal */
+	}
 
 	ret = sy7636a_regulator_init(sy7636a);
 	if (ret) {
