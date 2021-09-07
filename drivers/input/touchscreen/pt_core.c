@@ -10046,7 +10046,7 @@ static int _pt_ttdl_restart(struct device *dev)
 {
 	int rc = 0;
 	struct pt_core_data *cd = dev_get_drvdata(dev);
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_I2C)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_I2C
 	struct i2c_client *client =
 		(struct i2c_client *)container_of(dev, struct i2c_client, dev);
 #endif
@@ -10061,7 +10061,7 @@ static int _pt_ttdl_restart(struct device *dev)
 
 	remove_sysfs_and_modules(cd->dev);
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_I2C)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_I2C
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		pt_debug(dev, DL_ERROR,
 			"%s I2C functionality not Supported\n", __func__);
@@ -10113,7 +10113,7 @@ static int _pt_ttdl_restart(struct device *dev)
 		"%s: Well Done! TTDL Restart Completed\n", __func__);
 	rc = 0;
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_I2C)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_I2C
 ttdl_no_error:
 #endif
 	mutex_unlock(&cd->ttdl_restart_lock);
@@ -10953,7 +10953,7 @@ int _pt_read_us_file(struct device *dev, u8 *file_path, u8 *buf, int *size)
 		goto exit;
 	}
 	filp->private_data = inode->i_private;
-	if (kernel_read(filp, buf, read_len, &(filp->f_pos)) != read_len) {
+	if (vfs_read(filp, buf, read_len, &(filp->f_pos)) != read_len) {
 		pt_debug(dev, DL_ERROR, "%s: file read error.\n", __func__);
 		rc = -EINVAL;
 		goto exit;

@@ -166,7 +166,7 @@ static struct pt_bus_ops pt_i2c_bus_ops = {
 	.write_read_specific = pt_i2c_write_read_specific,
 };
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 static const struct of_device_id pt_i2c_of_match[] = {
 	{ .compatible = "parade,pt_i2c_adapter", },
 	{ }
@@ -188,7 +188,7 @@ static int pt_i2c_probe(struct i2c_client *client,
 	const struct i2c_device_id *i2c_id)
 {
 	struct device *dev = &client->dev;
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 	const struct of_device_id *match;
 #endif
 	int rc;
@@ -198,7 +198,7 @@ static int pt_i2c_probe(struct i2c_client *client,
 		return -EIO;
 	}
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 	match = of_match_device(of_match_ptr(pt_i2c_of_match), dev);
 	if (match) {
 		rc = pt_devtree_create_and_get_pdata(dev);
@@ -211,7 +211,7 @@ static int pt_i2c_probe(struct i2c_client *client,
 	rc = pt_probe(&pt_i2c_bus_ops, &client->dev, client->irq,
 			  PT_I2C_DATA_SIZE);
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 	if (rc && match)
 		pt_devtree_clean_pdata(dev);
 #endif
@@ -229,7 +229,7 @@ static int pt_i2c_probe(struct i2c_client *client,
  ******************************************************************************/
 static int pt_i2c_remove(struct i2c_client *client)
 {
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 	const struct of_device_id *match;
 #endif
 	struct device *dev = &client->dev;
@@ -237,7 +237,7 @@ static int pt_i2c_remove(struct i2c_client *client)
 
 	pt_release(cd);
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 	match = of_match_device(of_match_ptr(pt_i2c_of_match), dev);
 	if (match)
 		pt_devtree_clean_pdata(dev);
@@ -257,7 +257,7 @@ static struct i2c_driver pt_i2c_driver = {
 		.name = PT_I2C_NAME,
 		.owner = THIS_MODULE,
 		.pm = &pt_pm_ops,
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 		.of_match_table = pt_i2c_of_match,
 #endif
 	},

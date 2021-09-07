@@ -521,7 +521,7 @@ config TOUCHSCREEN_PARADE
 	  module will be called pt.
 
 config TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
-	tristate "Enable Device Tree support"
+	bool "Enable Device Tree support"
 	depends on TOUCHSCREEN_PARADE && OF
 	help
 	  Say Y here to enable support for device tree.

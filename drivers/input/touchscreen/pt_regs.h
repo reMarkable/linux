@@ -1632,7 +1632,7 @@ static inline int pt_request_nonhid_set_param(struct device *dev,
 void pt_pr_buf(struct device *dev, u8 debug_level, u8 *buf,
 	u16 buf_len, const char *data_name);
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT)
+#ifdef CONFIG_TOUCHSCREEN_PARADE_DEVICETREE_SUPPORT
 int pt_devtree_create_and_get_pdata(struct device *adap_dev);
 int pt_devtree_clean_pdata(struct device *adap_dev);
 #else

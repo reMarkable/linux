@@ -167,7 +167,6 @@ struct pt_loader_platform_data _pt_loader_platform_data = {
 	.ttconfigs = pt_ttconfigs,
 	.flags = PT_LOADER_FLAG_NONE,
 };
-EXPORT_SYMBOL_GPL(_pt_loader_platform_data);
 
 /*******************************************************************************
  * FUNCTION: pt_xres
@@ -207,7 +206,6 @@ int pt_xres(struct pt_core_platform_data *pdata,
 	usleep_range(3000, 4000);
 	return rc;
 }
-EXPORT_SYMBOL_GPL(pt_xres);
 
 #ifdef PT_PINCTRL_EN
 /*******************************************************************************
@@ -519,7 +517,6 @@ success:
 		__func__, ddi_rst_gpio, irq_gpio, rst_gpio);
 	return rc;
 }
-EXPORT_SYMBOL_GPL(pt_init);
 
 /*******************************************************************************
  * FUNCTION: pt_wakeup
@@ -707,7 +704,6 @@ int pt_power(struct pt_core_platform_data *pdata,
 
 	return pt_sleep(pdata, dev, ignore_irq);
 }
-EXPORT_SYMBOL_GPL(pt_power);
 
 /*******************************************************************************
  * FUNCTION: pt_irq_stat
@@ -726,7 +722,6 @@ int pt_irq_stat(struct pt_core_platform_data *pdata,
 {
 	return gpio_get_value(pdata->irq_gpio);
 }
-EXPORT_SYMBOL_GPL(pt_irq_stat);
 
 #ifdef PT_DETECT_HW
 /*******************************************************************************
@@ -987,7 +982,6 @@ int pt_setup_power(struct pt_core_platform_data *pdata, int on,
 
 	return rc;
 }
-EXPORT_SYMBOL_GPL(pt_setup_power);
 
 
 /*******************************************************************************
@@ -1053,4 +1047,3 @@ int pt_setup_irq(struct pt_core_platform_data *pdata, int on,
 	}
 	return rc;
 }
-EXPORT_SYMBOL_GPL(pt_setup_irq);
