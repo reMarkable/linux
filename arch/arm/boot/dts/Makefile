@@ -684,6 +684,7 @@ dtb-$(CONFIG_SOC_IMX7D) += \
 	imx7-test-image.dtb \
 	imx7-test-image_stripped.dtb \
 	zero-sugar.dtb \
+	zero-sugar-mfgtool.dtb \
 	zero-sugar-kdump.dtb
 dtb-$(CONFIG_SOC_IMX7ULP) += \
 	imx7ulp-evk.dtb \

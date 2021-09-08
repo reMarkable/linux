@@ -1,0 +1,45 @@
+/*
+ * Copyright (C) 2021 reMarkable AS - http://www.remarkable.com/
+ */
+
+#include "zero-sugar.dts"
+
+&otgcontrol {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&max77818 {
+	status = "disabled";
+};
+
+&i2c3 {
+	status = "disabled";
+};
+
+&i2c4 {
+	status = "disabled";
+};
+
+&lcdif {
+	status = "disabled";
+};
+
+&uart6 {
+	status = "disabled";
+};
+
+&usbotg1 {
+	/delete-property/ extcon;
+};
+
+&usdhc2 {
+	status = "disabled";
+};
+
+&ocotp {
+	/delete-property/ read-only;
+};
