@@ -26,16 +26,9 @@
 #define SNVS_HPSR_BTN	BIT(6)
 #define SNVS_LPSR_SPO	BIT(18)
 #define SNVS_LPCR_DEP_EN BIT(5)
-#define SNVS_LPCR_BTN_PRESS_TIME (BIT(16) | BIT(17))
 
 #define DEBOUNCE_TIME 30
 #define REPEAT_INTERVAL 60
-
-#define PRESS_TIMEOUT_5S  (0x00 << 16)
-#define PRESS_TIMEOUT_10S (0x01 << 16)
-#define PRESS_TIMEOUT_15S (0x02 << 16)
-#define PRESS_TIMEOUT_DIS (0x03 << 16)
-
 
 struct pwrkey_drv_data {
 	struct regmap *snvs;
@@ -172,7 +165,6 @@ static int imx_snvs_pwrkey_probe(struct platform_device *pdev)
 	}
 
 	regmap_update_bits(pdata->snvs, SNVS_LPCR_REG, SNVS_LPCR_DEP_EN, SNVS_LPCR_DEP_EN);
-	regmap_update_bits(pdata->snvs, SNVS_LPCR_REG, SNVS_LPCR_BTN_PRESS_TIME, PRESS_TIMEOUT_10S);
 
 	/* clear the unexpected interrupt before driver ready */
 	regmap_write(pdata->snvs, SNVS_LPSR_REG, SNVS_LPSR_SPO);
