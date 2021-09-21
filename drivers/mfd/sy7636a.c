@@ -75,7 +75,7 @@ int get_vcom_voltage_mv(struct regmap *regmap)
 	if (ret)
 		return ret;
 
-	val |= (val_h << 1);
+	val |= ((val_h & 0x80) << 1);
 
 	return (val & 0x1FF) * 10;
 }
