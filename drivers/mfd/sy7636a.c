@@ -90,15 +90,12 @@ int set_vcom_voltage_mv(struct regmap *regmap, unsigned int vcom)
 
 	val = (unsigned int)(vcom / 10) & 0x1ff;
 
-	ret = regmap_write(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L, val);
+	ret = regmap_write(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_L, (val & 0xFF));
 	if (ret)
 		return ret;
 
-	ret = regmap_write(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_H, (val >> 1) & 0x80);
-	if (ret)
-		return ret;
-
-	return 0;
+	/* We touch only bit 7, the rest is reserved */
+	return regmap_update_bits(regmap, SY7636A_REG_VCOM_ADJUST_CTRL_H, 0x80, (val >> 1)) ;
 }
 
 static ssize_t state_show(struct device *dev, struct device_attribute *attr,
