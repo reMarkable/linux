@@ -2932,6 +2932,8 @@ static void _pt_pip2_firmware_cont(const struct firmware *fw,
 	else
 		packet_size = PIP2_BL_SPI_FILE_WRITE_LEN_PER_PACKET;
 
+	pm_runtime_get_sync(dev);
+
 	ret = cmd->request_exclusive(dev, PT_LDR_REQUEST_EXCLUSIVE_TIMEOUT);
 	if (ret < 0) {
 		pt_debug(dev, DL_ERROR,
@@ -2995,7 +2997,6 @@ static void _pt_pip2_firmware_cont(const struct firmware *fw,
 	_pt_pip2_update_bl_status(dev, 0, 1);
 	pt_debug(dev, DL_INFO,
 		"%s: Found file of size: %d bytes\n", __func__, (int)fw_size);
-	pm_runtime_get_sync(dev);
 	_pt_pip2_update_bl_status(dev, 0, 1);
 
 	/* Wait for completion of FW upgrade thread before continuing */
