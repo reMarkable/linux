@@ -1549,7 +1549,8 @@ static char *generate_silicon_id_firmware_filename(struct device *dev)
 	panel_id = pt_get_panel_id(dev);
 	memcpy(si_id, cd->hw_version, 4);
 
-	if (panel_id == PANEL_ID_NOT_ENABLED)
+	/* fixme!? paranoia... don't use panel_id extension */
+	if (1 || panel_id == PANEL_ID_NOT_ENABLED)
 		snprintf(filename, FILENAME_LEN_MAX, "%s_%s", si_id,
 			PT_FW_FILE_NAME);
 	else
