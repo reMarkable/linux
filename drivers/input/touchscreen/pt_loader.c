@@ -3406,7 +3406,6 @@ exit:
 
 	cmd->release_exclusive(dev);
 
-	pm_runtime_put_sync(dev);
 	if (fw)
 		release_firmware(fw);
 
@@ -3447,6 +3446,8 @@ exit:
 	 */
 	if (cd->flashless_dut)
 		cd->flashless_auto_bl = PT_ALLOW_AUTO_BL;
+
+	pm_runtime_put(dev);
 
 	return;
 
