@@ -165,7 +165,7 @@ struct pt_loader_platform_data _pt_loader_platform_data = {
 	.ttconfig = &pt_ttconfig,
 	.fws = pt_firmwares,
 	.ttconfigs = pt_ttconfigs,
-	.flags = PT_LOADER_FLAG_NONE,
+	.flags = PT_LOADER_FLAG_CALIBRATE_AFTER_FW_UPGRADE,
 };
 
 /*******************************************************************************
