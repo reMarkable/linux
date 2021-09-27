@@ -340,9 +340,10 @@ static u8 pt_get_panel_id(struct device *dev)
  *  *dev             - pointer to device structure
  *   fw_ver_new      - firmware version
  *   fw_revctrl_new  - firmware revision control number
+ *   force           -
  ******************************************************************************/
 static int pt_check_firmware_version(struct device *dev,
-		u32 fw_ver_new, u32 fw_revctrl_new)
+		u32 fw_ver_new, u32 fw_revctrl_new, bool force)
 {
 	struct pt_loader_data *ld = pt_get_loader_data(dev);
 	u32 fw_ver_img;
@@ -355,9 +356,10 @@ static int pt_check_firmware_version(struct device *dev,
 		"%s: Current FW ver:0x%04X New FW ver:0x%04X\n", __func__,
 			fw_ver_img, fw_ver_new);
 
-	if (fw_ver_new > fw_ver_img) {
+	if ((force && (fw_ver_new != fw_ver_img)) || fw_ver_new > fw_ver_img) {
 		pt_debug(dev, DL_WARN,
-			"%s: Image is newer, will upgrade\n", __func__);
+			"%s: Image is %s, will upgrade\n", __func__,
+			force ? "different" : "newer");
 		return 1;
 	}
 
@@ -373,9 +375,10 @@ static int pt_check_firmware_version(struct device *dev,
 		"%s: Current FW rev:%d New FW rev:%d\n",
 		__func__, fw_revctrl_img, fw_revctrl_new);
 
-	if (fw_revctrl_new > fw_revctrl_img) {
+	if ((force && (fw_revctrl_new != fw_revctrl_img)) || fw_revctrl_new > fw_revctrl_img) {
 		pt_debug(dev, DL_WARN,
-			"%s: Image is newer, will upgrade\n", __func__);
+			"%s: Image is %s, will upgrade\n", __func__,
+			force ? "different" : "newer");
 		return 1;
 	}
 
@@ -1365,9 +1368,10 @@ static int pt_check_firmware_config_version(struct device *dev,
  * PARAMETERS:
  *  *dev  - pointer to device structure
  *  *fw   - pointer to the firmware structure
+ *  force - Force update if firmware differ, whatever the version
  ******************************************************************************/
 static int pt_check_firmware_version_builtin(struct device *dev,
-		const struct firmware *fw)
+		const struct firmware *fw, bool force)
 {
 	struct pt_loader_data *ld = pt_get_loader_data(dev);
 	u16 fw_config_ver_new;
@@ -1393,7 +1397,7 @@ static int pt_check_firmware_version_builtin(struct device *dev,
 		__func__, fw_ver_new, fw_revctrl_new, fw_config_ver_new);
 
 	upgrade = pt_check_firmware_version(dev, fw_ver_new,
-			fw_revctrl_new);
+			fw_revctrl_new, force);
 
 	/* Only check config version if FW version was an exact match */
 	if (upgrade == 0)
@@ -1436,7 +1440,7 @@ static void _pt_firmware_cont_builtin(const struct firmware *fw,
 
 	pt_debug(dev, DL_WARN, "%s: Found firmware\n", __func__);
 
-	upgrade = pt_check_firmware_version_builtin(dev, fw);
+	upgrade = pt_check_firmware_version_builtin(dev, fw, true);
 	if (upgrade) {
 		_pt_firmware_cont(fw, dev);
 		ld->builtin_bin_fw_status = 0;
@@ -2259,7 +2263,7 @@ static int pt_verify_ttconfig_binary(struct device *dev,
 
 	/* FW versions should match */
 	if (pt_check_firmware_version(dev, fw_ver_config,
-			fw_revctrl_config)) {
+			fw_revctrl_config, true)) {
 		pt_debug(dev, DL_ERROR,
 			"%s: FW versions mismatch\n", __func__);
 		return -EINVAL;
@@ -2667,9 +2671,10 @@ static int _pt_pip2_log_last_error(struct device *dev,
  *	*dev - pointer to device structure
  *	*fw  - pointer to the new FW image to load
  *	*hdr - pointer to the PIP2 bin file hdr structure
+ *	force - Check if version differ only
  ******************************************************************************/
 static int _pt_pip2_check_fw_ver(struct device *dev,
-	const struct firmware *fw, struct pt_bin_file_hdr *hdr)
+	const struct firmware *fw, struct pt_bin_file_hdr *hdr, bool force)
 {
 	u8 img_app_major_ver = fw->data[3];
 	u8 img_app_minor_ver = fw->data[4];
@@ -2684,6 +2689,18 @@ static int _pt_pip2_check_fw_ver(struct device *dev,
 	pt_debug(dev, DL_WARN,
 		"%s ATM - Current FW Version: %02X.%02X.%d\n",
 		__func__, hdr->fw_major, hdr->fw_minor, hdr->fw_rev_ctrl);
+
+	if (force) {
+		if (img_app_major_ver != hdr->fw_major  ||
+				img_app_minor_ver != hdr->fw_minor ||
+				img_app_rev_ctrl != hdr->fw_rev_ctrl) {
+			pt_debug(dev, DL_WARN, "will upgrade FW (forced)");
+			return 1;
+		} else {
+			pt_debug(dev, DL_WARN, "will NOT upgrade FW (forced)");
+			return 0;
+		}
+	}
 
 	if ((256 * img_app_major_ver + img_app_minor_ver) >
 	    (256 * hdr->fw_major + hdr->fw_minor)) {
@@ -2701,13 +2718,15 @@ static int _pt_pip2_check_fw_ver(struct device *dev,
 
 	if (img_app_rev_ctrl > hdr->fw_rev_ctrl) {
 		pt_debug(dev, DL_WARN,
-			"bin file rev ctrl > FW, will upgrade FW");
+			"bin file rev ctrl %s FW, will upgrade FW",
+			force ? "!=" : ">");
 		return 1;
 	}
 
 	if (img_app_rev_ctrl < hdr->fw_rev_ctrl) {
 		pt_debug(dev, DL_WARN,
-			"bin file rev ctrl > FW, will NOT upgrade FW");
+			"bin file rev ctrl %s FW, will NOT upgrade FW",
+			force ? "==" : "<");
 		return -1;
 	}
 
@@ -2765,9 +2784,10 @@ static int _pt_pip2_check_config_ver(struct device *dev,
  * PARAMETERS:
  *	*dev - pointer to device structure
  *	*fw  - pointer to the new FW image to load
+ *	force - Allow older firmware version
  ******************************************************************************/
 static u8 _pt_pip2_need_upgrade_due_to_fw_ver(struct device *dev,
-	const struct firmware *fw)
+	const struct firmware *fw, bool force)
 {
 	int ret;
 	u8 should_upgrade = 0;
@@ -2781,7 +2801,7 @@ static u8 _pt_pip2_need_upgrade_due_to_fw_ver(struct device *dev,
 		goto exit;
 	}
 
-	ret = _pt_pip2_check_fw_ver(dev, fw, &hdr);
+	ret = _pt_pip2_check_fw_ver(dev, fw, &hdr, force);
 	if (ret == 0)
 		ret = _pt_pip2_check_config_ver(dev, fw, &hdr);
 
@@ -3029,7 +3049,7 @@ static void _pt_pip2_firmware_cont(const struct firmware *fw,
 
 	/* Only compare FW ver or previous mode when doing a built-in upgrade */
 	if (ld->pip2_load_builtin) {
-		if (_pt_pip2_need_upgrade_due_to_fw_ver(dev, fw) ||
+		if (_pt_pip2_need_upgrade_due_to_fw_ver(dev, fw, true) ||
 		    mode == PT_MODE_BOOTLOADER) {
 			_pt_pip2_update_bl_status(dev, 0, 1);
 		} else {
