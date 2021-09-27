@@ -2748,9 +2748,10 @@ static int _pt_pip2_check_fw_ver(struct device *dev,
  *	*dev - pointer to device structure
  *	*fw  - pointer to the new FW image to load
  *	*hdr - pointer to the PIP2 bin file hdr structure
+ *	force
  ******************************************************************************/
 static int _pt_pip2_check_config_ver(struct device *dev,
-	const struct firmware *fw, struct pt_bin_file_hdr *hdr)
+	const struct firmware *fw, struct pt_bin_file_hdr *hdr, bool force)
 {
 	u16 fw_config_ver_new;
 
@@ -2763,6 +2764,12 @@ static int _pt_pip2_check_config_ver(struct device *dev,
 	pt_debug(dev, DL_WARN,
 		"%s ATM - Current Config Version:    %d\n",
 		__func__, hdr->config_ver);
+
+	if (force && (fw_config_ver_new != hdr->config_ver)) {
+		pt_debug(dev, DL_WARN,
+			"ATM - bin file Config version != FW, will upgrade FW");
+		return 1;
+	}
 
 	if (fw_config_ver_new > hdr->config_ver) {
 		pt_debug(dev, DL_WARN,
@@ -2803,7 +2810,7 @@ static u8 _pt_pip2_need_upgrade_due_to_fw_ver(struct device *dev,
 
 	ret = _pt_pip2_check_fw_ver(dev, fw, &hdr, force);
 	if (ret == 0)
-		ret = _pt_pip2_check_config_ver(dev, fw, &hdr);
+		ret = _pt_pip2_check_config_ver(dev, fw, &hdr, force);
 
 	if (ret > 0)
 		should_upgrade = 1;
