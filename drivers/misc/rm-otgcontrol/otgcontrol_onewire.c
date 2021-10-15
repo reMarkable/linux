@@ -31,12 +31,24 @@
 
 #define ONE_WIRE_GPIO_DEBOUNCE_MS	500	/* ms */
 
+static const char *otg_onewire_state_name[] = {
+	[OTG1_ONEWIRE_STATE__GPIO] = "GPIO",
+	[OTG1_ONEWIRE_STATE__UART_TX] = "UART_TX",
+	[OTG1_ONEWIRE_STATE__UART_RX] = "UART_RX",
+};
+
+static const char *otg_onewire_pinctrl_name[] = {
+	[OTG1_ONEWIRE_STATE__GPIO] = "default",
+	[OTG1_ONEWIRE_STATE__UART_TX] = "one_wire_uart_tx",
+	[OTG1_ONEWIRE_STATE__UART_RX] = "one_wire_uart_rx",
+};
+
 static irqreturn_t otgcontrol_gpio_irq_handler(int irq, void *data);
 static void otgcontrol_gpio_irq_work(struct work_struct *work);
 
 int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 {
-	int ret;
+	int ret, idx;
 
 	dev_dbg(otgc_data->dev,
 		"%s: Initiating one-wire pinctrl states\n",
@@ -51,43 +63,19 @@ int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 		return PTR_ERR(otgc_data->one_wire_pinctrl);
 	}
 
-	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO] =
+	for (idx = 0; idx < OTG1_ONEWIRE_STATE_NR; idx++) {
+		otgc_data->one_wire_pinctrl_states[idx] =
 			pinctrl_lookup_state(otgc_data->one_wire_pinctrl,
-					     "default");
+					     otg_onewire_pinctrl_name[idx]);
 
-	if (IS_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO])) {
-		dev_err(otgc_data->dev,
-			"%s: Failed to configure one-wire-gpio state\n",
-			__func__);
+		if (IS_ERR(otgc_data->one_wire_pinctrl_states[idx])) {
+			dev_err(otgc_data->dev,
+				"%s: Failed to find pin state %s\n",
+				__func__, otg_onewire_pinctrl_name[idx]);
 
-		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
-		return PTR_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO]);
-	}
-
-	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX] =
-			pinctrl_lookup_state(otgc_data->one_wire_pinctrl,
-					     "one_wire_uart_tx");
-
-	if (IS_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX])) {
-		dev_err(otgc_data->dev,
-			"%s: Failed to configure one-wire-uart-tx state\n",
-			__func__);
-
-		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
-		return PTR_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX]);
-	}
-
-	otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX] =
-			pinctrl_lookup_state(otgc_data->one_wire_pinctrl,
-					     "one_wire_uart_rx");
-
-	if (IS_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX])) {
-		dev_err(otgc_data->dev,
-			"%s: Failed to configure one-wire-uart-rx\n",
-			__func__);
-
-		devm_pinctrl_put(otgc_data->one_wire_pinctrl);
-		return PTR_ERR(otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX]);
+			devm_pinctrl_put(otgc_data->one_wire_pinctrl);
+			return PTR_ERR(otgc_data->one_wire_pinctrl_states[idx]);
+		}
 	}
 
 	dev_dbg(otgc_data->dev,
@@ -112,56 +100,20 @@ int otgcontrol_init_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data)
 int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
 					 int state)
 {
-	int ret;
+	int ret, state2;
 
 	switch(state)
 	{
 	case OTG1_ONEWIRE_STATE__GPIO:
-		dev_dbg(otgc_data->dev,
-			"%s: Switching onewire state -> GPIO\n",
-			__func__);
-
-		ret = pinctrl_select_state(
-			otgc_data->one_wire_pinctrl,
-			otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__GPIO]);
-		if (ret < 0) {
-			dev_err(otgc_data->dev,
-				"%s: Failed to set pinctrl state\n",
-				__func__);
-			return ret;
-		}
+		state2 = OTG1_ONEWIRE_STATE__GPIO;
 		break;
 
 	case OTG1_ONEWIRE_STATE__UART_RX:
-		dev_dbg(otgc_data->dev,
-			"%s: Switching onewire state -> UART RX\n",
-			__func__);
-
-		ret = pinctrl_select_state(
-			otgc_data->one_wire_pinctrl,
-			otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_RX]);
-		if (ret < 0) {
-			dev_err(otgc_data->dev,
-				"%s: Failed to set pinctrl state\n",
-				__func__);
-			return ret;
-		}
+		state2 = OTG1_ONEWIRE_STATE__UART_RX;
 		break;
 
 	case OTG1_ONEWIRE_STATE__UART_TX:
-		dev_dbg(otgc_data->dev,
-			"%s: switching onewire state -> UART TX\n",
-			__func__);
-
-		ret = pinctrl_select_state(
-			otgc_data->one_wire_pinctrl,
-			otgc_data->one_wire_pinctrl_states[OTG1_ONEWIRE_STATE__UART_TX]);
-		if (ret < 0) {
-			dev_err(otgc_data->dev,
-				"%s: Failed to set pinctrl state\n",
-				__func__);
-			return ret;
-		}
+		state2 = OTG1_ONEWIRE_STATE__UART_TX;
 		break;
 
 	default:
@@ -169,6 +121,18 @@ int otgcontrol_switch_one_wire_mux_state(struct rm_otgcontrol_data *otgc_data,
 			"%s: unable to switch onewire state (unknown state %d)\n",
 			__func__, state);
 		return -EINVAL;
+	}
+
+	dev_dbg(otgc_data->dev, "%s: switching onewire state -> %s\n",
+			__func__, otg_onewire_state_name[state2]);
+
+	ret = pinctrl_select_state(otgc_data->one_wire_pinctrl,
+				   otgc_data->one_wire_pinctrl_states[state2]);
+	if (ret < 0) {
+		dev_err(otgc_data->dev,
+			"%s: Failed to set pinctrl state %s\n",
+			__func__, otg_onewire_state_name[state2]);
+		return ret;
 	}
 
 	otgc_data->otg1_pinctrlstate = state;
