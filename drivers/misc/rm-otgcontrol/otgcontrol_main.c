@@ -316,6 +316,8 @@ static int rm_otgcontrol_remove(struct platform_device *pdev)
 {
 	struct rm_otgcontrol_data *otgc_data = platform_get_drvdata(pdev);
 
+	otgcontrol_uninit_extcon(otgc_data);
+
 	dev_dbg(otgc_data->dev,
 		"%s: Un-initializing sysfs nodes\n",
 		__func__);

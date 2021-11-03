@@ -15,17 +15,23 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __OTGCONTROL_DR_MODE_H__
-#define __OTGCONTROL_DR_MODE_H__
+#ifndef __POGO_CHARGING_CTRL_H__
+#define __POGO_CHARGING_CTRL_H__
 
-#include "otgcontrol.h"
+#include "pogo.h"
 
-#define OTG1_DR_MODE__DEVICE	0
-#define OTG1_DR_MODE__HOST	1
 
-int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data);
-void otgcontrol_uninit_extcon(struct rm_otgcontrol_data *otgc_data);
-int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_dta, int mode);
-int otgcontrol_get_dr_mode(struct rm_otgcontrol_data *otgc_data);
+#define POGO_CHARGERMODE_CHARGE	POWER_SUPPLY_MODE_CHARGER
+#define POGO_CHARGERMODE_OTG	POWER_SUPPLY_MODE_OTG_SUPPLY
+#define POGO_CHARGERMODE_OFF	POWER_SUPPLY_MODE_ALL_OFF
 
-#endif // __OTGCONTROL_DR_MODE_H__
+int pogo_get_otg_charger_modes(struct rm_pogo_data *pdata,
+				     char *prop_buf);
+
+int pogo_change_otg_charger_mode_int(struct rm_pogo_data *pdata,
+					   int mode);
+
+int pogo_change_otg_charger_mode_str(struct rm_pogo_data *pdata,
+					   const char *buf);
+
+#endif /* __POGO_CHARGING_CTRL_H__ */

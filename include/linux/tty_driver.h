@@ -280,6 +280,7 @@ struct tty_operations {
 	void (*flush_buffer)(struct tty_struct *tty);
 	void (*set_ldisc)(struct tty_struct *tty);
 	void (*wait_until_sent)(struct tty_struct *tty, int timeout);
+	void (*poll_sent)(struct tty_struct *tty, int char_count);
 	void (*send_xchar)(struct tty_struct *tty, char ch);
 	int (*tiocmget)(struct tty_struct *tty);
 	int (*tiocmset)(struct tty_struct *tty,

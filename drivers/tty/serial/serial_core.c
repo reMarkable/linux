@@ -1647,6 +1647,56 @@ static void uart_wait_until_sent(struct tty_struct *tty, int timeout)
 	uart_port_deref(port);
 }
 
+/* New version uart_wait_until_sent without jiffies wait */
+static void uart_poll_sent(struct tty_struct *tty, int char_count)
+{
+	struct uart_state *state = tty->driver_data;
+	struct uart_port *port;
+	unsigned long char_time, expire;
+	unsigned int rate = tty_get_baud_rate(tty);
+
+	port = uart_port_ref(state);
+	if (!port)
+		return;
+
+	if (port->type == PORT_UNKNOWN || port->fifosize == 0) {
+		uart_port_deref(port);
+		return;
+	}
+
+	/*
+	 * If the transmitter hasn't cleared in twice the approximate
+	 * amount of time to send the entire FIFO, it probably won't
+	 * ever clear.  This assumes the UART isn't doing flow
+	 * control, which is currently the case.  Hence, if it ever
+	 * takes longer than port->timeout, this is probably due to a
+	 * UART bug of some kind.  So, we clamp the timeout parameter at
+	 * 2*port->timeout.
+	 */
+	expire = 1 + jiffies + 2 * port->timeout;
+
+	/* We assume start and stop bit takes the same time with data bit */
+	char_time = (1000000 * 10 / rate) * char_count;
+
+	pr_debug("uart_poll_sent(%d) tx_time %lu, jiffies=%lu, expire=%lu...\n",
+		port->line, char_time, jiffies, expire);
+
+	/*
+	 * Check whether the transmitter is empty every 'char_time'.
+	 * 'timeout' / 'expire' give us the maximum amount of time
+	 * we wait.
+	 */
+	usleep_range(char_time, char_time + 100);
+	while (!port->ops->tx_empty(port)) {
+		usleep_range(50, 100);
+		if (signal_pending(current))
+			break;
+		if (time_after(jiffies, expire))
+			break;
+	}
+	uart_port_deref(port);
+}
+
 /*
  * Calls to uart_hangup() are serialised by the tty_lock in
  *   drivers/tty/tty_io.c:do_tty_hangup()
@@ -2481,6 +2531,7 @@ static const struct tty_operations uart_ops = {
 	.hangup		= uart_hangup,
 	.break_ctl	= uart_break_ctl,
 	.wait_until_sent= uart_wait_until_sent,
+	.poll_sent	= uart_poll_sent,
 #ifdef CONFIG_PROC_FS
 	.proc_show	= uart_proc_show,
 #endif

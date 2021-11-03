@@ -15,17 +15,12 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __OTGCONTROL_DR_MODE_H__
-#define __OTGCONTROL_DR_MODE_H__
+#ifndef __POGO_SYSFS_H__
+#define __POGO_SYSFS_H__
 
-#include "otgcontrol.h"
+#include "pogo.h"
 
-#define OTG1_DR_MODE__DEVICE	0
-#define OTG1_DR_MODE__HOST	1
+int pogo_init_sysfs_nodes(struct rm_pogo_data *pogo_data);
+void pogo_uninit_sysfs_nodes(struct rm_pogo_data *pogo_data);
 
-int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data);
-void otgcontrol_uninit_extcon(struct rm_otgcontrol_data *otgc_data);
-int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_dta, int mode);
-int otgcontrol_get_dr_mode(struct rm_otgcontrol_data *otgc_data);
-
-#endif // __OTGCONTROL_DR_MODE_H__
+#endif /* __POGO_SYSFS_H__ */

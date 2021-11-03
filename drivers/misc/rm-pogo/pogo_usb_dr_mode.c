@@ -15,7 +15,7 @@
  * GNU General Public License for more details.
  */
 
-#include "otgcontrol_dr_mode.h"
+#include "pogo_dr_mode.h"
 
 #include <linux/extcon-provider.h>
 #include <linux/kernel.h>
@@ -26,81 +26,81 @@ static const unsigned int usb_extcon_cable[] = {
 	EXTCON_NONE,
 };
 
-int otgcontrol_init_extcon(struct rm_otgcontrol_data *otgc_data)
+int pogo_init_extcon(struct rm_pogo_data *pdata)
 {
 	int ret;
 
-	dev_dbg(otgc_data->dev,
+	dev_dbg(pdata->dev,
 		"%s: Allocating extcon device\n",
 		__func__);
 
-	otgc_data->extcon_dev = devm_extcon_dev_allocate(otgc_data->dev,
+	pdata->extcon_dev = devm_extcon_dev_allocate(pdata->dev,
 							 usb_extcon_cable);
-	if (IS_ERR(otgc_data->extcon_dev)) {
-		dev_err(otgc_data->dev,
+	if (IS_ERR(pdata->extcon_dev)) {
+		dev_err(pdata->dev,
 			"%s: failed to allocate extcon device\n",
 			__func__);
 
 		return -ENOMEM;
 	}
 
-	dev_dbg(otgc_data->dev,
+	dev_dbg(pdata->dev,
 		"%s: Registering extcon device\n",
 		__func__);
 
-	ret = devm_extcon_dev_register(otgc_data->dev, otgc_data->extcon_dev);
+	ret = devm_extcon_dev_register(pdata->dev, pdata->extcon_dev);
 	if (ret < 0) {
-		dev_err(otgc_data->dev,
+		dev_err(pdata->dev,
 			"%s: Failed to register extcon device\n",
 			__func__);
 
-		dev_dbg(otgc_data->dev,
+		dev_dbg(pdata->dev,
 			"%s: De-allocating extcon device\n",
 			__func__);
 
-		kfree(otgc_data->extcon_dev);
-		otgc_data->extcon_dev = NULL;
+		kfree(pdata->extcon_dev);
+		pdata->extcon_dev = NULL;
 		return ret;
 	}
 
 	return 0;
 }
 
-int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_data, int mode)
+int pogo_set_dr_mode(struct rm_pogo_data *pdata, int mode)
 {
 	int ret;
 
 	switch(mode)
 	{
-	case OTG1_DR_MODE__DEVICE:
-		dev_dbg(otgc_data->dev,
-			"%s: Switching OTG1 DR mode -> DEVICE\n",
+	case POGO_OTG_DR_MODE__DEVICE:
+		dev_dbg(pdata->dev,
+			"%s: Switching POGO DR mode -> DEVICE\n",
 			__func__);
 
-		ret = extcon_set_state_sync(otgc_data->extcon_dev,
+		ret = extcon_set_state_sync(pdata->extcon_dev,
 					    EXTCON_USB_HOST,
 					    false);
 		if (ret < 0) {
-			dev_err(otgc_data->dev,
-				"%s: Failed to set OTG1 DR mode\n",
+			dev_err(pdata->dev,
+				"%s: Failed to set POGO DR mode\n",
 				__func__);
 
 			return ret;
 		}
 		break;
 
-	case OTG1_DR_MODE__HOST:
-		dev_dbg(otgc_data->dev,
-			"%s: Switching OTG1 DR mode -> HOST\n",
+	case POGO_OTG_DR_MODE__HOST:
+		dev_dbg(pdata->dev,
+			"%s: Switching POGO DR mode -> HOST\n",
 			__func__);
 
-		otgc_data->otg1_dr_mode = mode;
-		ret = extcon_set_state_sync(otgc_data->extcon_dev,
+		pdata->pogo_dr_mode = mode;
+		ret = extcon_set_state_sync(pdata->extcon_dev,
 					    EXTCON_USB_HOST,
 					    true);
 		if (ret < 0) {
-			dev_err(otgc_data->dev,
-				"%s: Failed to set OTG1 DR mode\n",
+			dev_err(pdata->dev,
+				"%s: Failed to set POGO DR mode\n",
 				__func__);
 
 			return ret;
@@ -108,27 +108,20 @@ int otgcontrol_set_dr_mode(struct rm_otgcontrol_data *otgc_data, int mode)
 		break;
 
 	default:
-		dev_err(otgc_data->dev,
-			"%s: unable to switch OTG1 DR mode (unknown mode %d)\n",
+		dev_err(pdata->dev,
+			"%s: unable to switch POGO DR mode (unknown mode %d)\n",
 			__func__,
 			mode);
 
 		return -EINVAL;
 	}
 
-	otgc_data->otg1_dr_mode = mode;
+	pdata->pogo_dr_mode = mode;
 	return ret;
 }
 
-int otgcontrol_get_dr_mode(struct rm_otgcontrol_data *otgc_data)
+int pogo_get_dr_mode(struct rm_pogo_data *pdata)
 {
 	/* Just return the last stored value */
-	return otgc_data->otg1_dr_mode;
-}
-
-void otgcontrol_uninit_extcon(struct rm_otgcontrol_data *otgc_data)
-{
-	dev_dbg(otgc_data->dev, "%s: Unregistering extcon device\n", __func__);
-
-	devm_extcon_dev_free(otgc_data->dev, otgc_data->extcon_dev);
+	return pdata->pogo_dr_mode;
 }

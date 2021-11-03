@@ -470,6 +470,7 @@ static inline struct tty_struct *tty_kref_get(struct tty_struct *tty)
 
 extern const char *tty_driver_name(const struct tty_struct *tty);
 extern void tty_wait_until_sent(struct tty_struct *tty, long timeout);
+extern void tty_poll_sent(struct tty_struct *tty, long char_count);
 extern int __tty_check_change(struct tty_struct *tty, int sig);
 extern int tty_check_change(struct tty_struct *tty);
 extern void __stop_tty(struct tty_struct *tty);

@@ -382,6 +382,17 @@ void serdev_device_wait_until_sent(struct serdev_device *serdev, long timeout)
 }
 EXPORT_SYMBOL_GPL(serdev_device_wait_until_sent);
 
+void serdev_device_poll_sent(struct serdev_device *serdev, long timeout)
+{
+	struct serdev_controller *ctrl = serdev->ctrl;
+
+	if (!ctrl || !ctrl->ops->poll_sent)
+		return;
+
+	ctrl->ops->poll_sent(ctrl, timeout);
+}
+EXPORT_SYMBOL_GPL(serdev_device_poll_sent);
+
 int serdev_device_get_tiocm(struct serdev_device *serdev)
 {
 	struct serdev_controller *ctrl = serdev->ctrl;

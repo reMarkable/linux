@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for reMarkable OTG Control
+#
+
+config RM_POGO
+	tristate "reMarkable POGO interface"
+	depends on SERIAL_DEV_BUS
+	help
+		Add reMarkable POGO interface control module, that compose of
+		OTG and ONEWIRE. This is required to control access to/from
+		external equipment.
+
+config RM_POGO_DEBUG
+	bool	"reMarkable POGO interface debug"
+	depends on RM_POGO
+	help
+		Enable extensive debug output (useful when debugging FSM type
+		of errors to see what is going on)
+

@@ -235,6 +235,14 @@ void tty_wait_until_sent(struct tty_struct *tty, long timeout)
 }
 EXPORT_SYMBOL(tty_wait_until_sent);
 
+void tty_poll_sent(struct tty_struct *tty, long char_count)
+{
+	tty_debug_wait_until_sent(tty, "poll sent, char_count=%ld\n", char_count);
+
+	if (tty->ops->poll_sent)
+		tty->ops->poll_sent(tty, char_count);
+}
+EXPORT_SYMBOL(tty_poll_sent);
 
 /*
  *		Termios Helper Methods

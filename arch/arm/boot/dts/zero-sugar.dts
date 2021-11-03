@@ -176,6 +176,7 @@
 		vbus-supply =<&max77818_fg>;
 		one-wire-tty-name = "ttymxc5";
 		one-wire-gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
+		status = "disabled";
 	};
 };
 
@@ -721,10 +722,29 @@
 };
 
 &uart6 {
-	/* Pinctrl is defined under 'otgcontrol' driver, which will switch the pinmuxing as required */
 	assigned-clocks = <&clks IMX7D_UART6_ROOT_SRC>;
 	assigned-clock-parents = <&clks IMX7D_OSC_24M_CLK>;
 	status = "okay";
+
+	pogo: rm-pogo {
+		compatible = "rm-pogo";
+		pinctrl-names = "default", "one_wire_uart_tx", "one_wire_uart_rx",
+		"one_wire_gpio_5k_5k", "one_wire_gpio_5k_47k", "one_wire_gpio_5k_100k",
+		"one_wire_gpio_47k_47k", "one_wire_gpio_47k_100k", "one_wire_gpio_100k_100k", "one_wire_gpio_100k_PD_100k_PD";
+		pinctrl-0 = <&pinctrl_one_wire_gpio>;
+		pinctrl-1 = <&pinctrl_one_wire_uart6_tx>;
+		pinctrl-2 = <&pinctrl_one_wire_uart6_rx>;
+		pinctrl-3 = <&pinctrl_one_wire_gpio_5k_5k>;
+		pinctrl-4 = <&pinctrl_one_wire_gpio_5k_47k>;
+		pinctrl-5 = <&pinctrl_one_wire_gpio_5k_100k>;
+		pinctrl-6 = <&pinctrl_one_wire_gpio_47k_47k>;
+		pinctrl-7 = <&pinctrl_one_wire_gpio_47k_100k>;
+		pinctrl-8 = <&pinctrl_one_wire_gpio_100k_100k>;
+		pinctrl-9 = <&pinctrl_one_wire_gpio_100k_PD_100k_PD>;
+
+		vbus-supply =<&max77818_fg>;
+		one-wire-gpios = <&gpio2 9 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &usbotg1 {
@@ -1010,8 +1030,8 @@
 
 	pinctrl_one_wire_gpio: one_wire_gpio_grp {
 		fsl,pins = <
-			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000004
-			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000004
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000034
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000074
 		>;
 	};
 
@@ -1026,6 +1046,55 @@
 		fsl,pins = <
 			MX7D_PAD_EPDC_DATA08__UART6_DCE_RX	0x00000004
 			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000004
+		>;
+	};
+
+	pinctrl_one_wire_gpio_5k_5k: one_wire_gpio_5k_5k_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000034
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000034
+		>;
+	};
+
+	pinctrl_one_wire_gpio_5k_47k: one_wire_gpio_5k_47k_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000034
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000054
+		>;
+	};
+
+	pinctrl_one_wire_gpio_5k_100k: one_wire_gpio_5k_100k_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000034
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000074
+		>;
+	};
+
+	pinctrl_one_wire_gpio_47k_47k: one_wire_gpio_47k_47k_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000054
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000054
+		>;
+	};
+
+	pinctrl_one_wire_gpio_47k_100k: one_wire_gpio_47k_100k_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000054
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000074
+		>;
+	};
+
+	pinctrl_one_wire_gpio_100k_100k: one_wire_gpio_100k_100k_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000074
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000074
+		>;
+	};
+
+	pinctrl_one_wire_gpio_100k_PD_100k_PD: one_wire_gpio_100k_PD_100k_PD_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000014
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000014
 		>;
 	};
 

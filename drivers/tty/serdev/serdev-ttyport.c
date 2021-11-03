@@ -225,6 +225,14 @@ static void ttyport_wait_until_sent(struct serdev_controller *ctrl, long timeout
 	tty_wait_until_sent(tty, timeout);
 }
 
+static void ttyport_poll_sent(struct serdev_controller *ctrl, long char_count)
+{
+	struct serport *serport = serdev_controller_get_drvdata(ctrl);
+	struct tty_struct *tty = serport->tty;
+
+	tty_poll_sent(tty, char_count);
+}
+
 static int ttyport_get_tiocm(struct serdev_controller *ctrl)
 {
 	struct serport *serport = serdev_controller_get_drvdata(ctrl);
@@ -257,6 +265,7 @@ static const struct serdev_controller_ops ctrl_ops = {
 	.set_parity = ttyport_set_parity,
 	.set_baudrate = ttyport_set_baudrate,
 	.wait_until_sent = ttyport_wait_until_sent,
+	.poll_sent = ttyport_poll_sent,
 	.get_tiocm = ttyport_get_tiocm,
 	.set_tiocm = ttyport_set_tiocm,
 };
