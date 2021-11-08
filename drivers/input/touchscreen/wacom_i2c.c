@@ -66,6 +66,9 @@
 
 #define WACOM_MAX_DATA_SIZE     22
 
+#define WACOM_DEFAULT_WIDTH_MM	209
+#define WACOM_DEFAULT_HEIGHT_MM	157
+
 struct wacom_features {
 	int x_max;
 	int y_max;
@@ -441,6 +444,9 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_DISTANCE, 0, features->distance_max, 0, 0);
 	input_set_abs_params(input, ABS_TILT_X, -features->tilt_x_max, features->tilt_x_max, 0, 0);
 	input_set_abs_params(input, ABS_TILT_Y, -features->tilt_y_max, features->tilt_y_max, 0, 0);
+
+	input_abs_set_res(input, ABS_X, features->x_max / WACOM_DEFAULT_WIDTH_MM);
+	input_abs_set_res(input, ABS_Y, features->y_max / WACOM_DEFAULT_HEIGHT_MM);
 
 	input_set_drvdata(input, wac_i2c);
 
