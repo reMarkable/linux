@@ -212,7 +212,7 @@
 		compatible = "wacom,wacom-i2c";
 		reg = <0x09>;
 		interrupt-parent = <&gpio1>;
-		interrupts = <1 2>;
+		interrupts = <1 IRQ_TYPE_LEVEL_LOW>;
 		flip-tilt-x;
 		flip-tilt-y;
 		flip-pos-x;
