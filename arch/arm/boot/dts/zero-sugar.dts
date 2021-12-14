@@ -695,6 +695,10 @@
 	status = "disabled";
 };
 
+&ocotp {
+	read-only;
+};
+
 &sdma {
 	status = "okay";
 };
