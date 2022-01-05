@@ -72,6 +72,11 @@ static void imx_imx_snvs_check_for_events(struct timer_list *t)
 		input_event(input, EV_KEY, pdata->keycode, state);
 		input_sync(input);
 		pm_relax(pdata->input->dev.parent);
+
+		if(state == 1)
+			dev_dbg(&input->dev, "pwrkey pressed");
+		else
+			dev_dbg(&input->dev, "pwrkey released");
 	}
 
 	/* repeat check if pressed long */
@@ -97,6 +102,8 @@ static irqreturn_t imx_snvs_pwrkey_interrupt(int irq, void *dev_id)
 		pdata->keystate = 1;
 		input_event(input, EV_KEY, pdata->keycode, 1);
 		input_sync(input);
+
+		dev_dbg(&input->dev, "pwrkey released");
 	}
 
 	regmap_read(pdata->snvs, SNVS_LPSR_REG, &lp_status);
