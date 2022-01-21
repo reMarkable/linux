@@ -32,7 +32,7 @@
 #include <linux/i2c.h>
 #include <linux/gpio.h>
 #include <linux/regulator/consumer.h>
-
+#include <linux/pm_wakeirq.h>
 
 #define PT_CORE_STARTUP_RETRY_COUNT		3
 
@@ -10264,15 +10264,8 @@ static int pt_core_suspend_(struct device *dev)
 		 * Disable interrupt here to avoid that pending IRQ makes
 		 * the entering to low power state fail.
 		 */
+		device_set_wakeup_enable(dev, false);
 		disable_irq(cd->irq);
-
-	} else {
-		/*
-		 * We need it to be a wakeup source for other suspend
-		 * types than 'mem'.
-		 */
-		if (device_may_wakeup(dev))
-			enable_irq_wake(cd->irq);
 	}
 
 	return 0;
@@ -10323,11 +10316,9 @@ static int pt_core_resume_(struct device *dev)
 
 	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
 		enable_irq(cd->irq);
+		device_set_wakeup_enable(dev, true);
 		pinctrl_pm_select_default_state(dev);
 		pt_core_wake(cd);
-	} else {
-		if (device_may_wakeup(dev))
-			disable_irq_wake(cd->irq);
 	}
 
 	return 0;
@@ -16857,6 +16848,8 @@ int pt_probe(const struct pt_bus_ops *ops, struct device *dev,
 	if (rc < 0)
 		pt_debug(dev, DL_ERROR, "%s: Error, device_init_wakeup rc:%d\n",
 			__func__, rc);
+	if (cd->irq)
+		dev_pm_set_wake_irq(dev, cd->irq);
 
 	pm_runtime_get_noresume(dev);
 	pm_runtime_set_active(dev);
@@ -17014,6 +17007,7 @@ error_after_startup:
 	del_timer(&cd->watchdog_timer);
 	if (cd->cpdata->setup_irq)
 		cd->cpdata->setup_irq(cd->cpdata, PT_MT_IRQ_FREE, dev);
+	dev_pm_clear_wake_irq(dev);
 error_setup_irq:
 error_detect:
 	if (cd->cpdata->init)
@@ -17096,6 +17090,7 @@ int pt_release(struct pt_core_data *cd)
 	device_wakeup_disable(dev);
 #endif
 	device_init_wakeup(dev, 0);
+	dev_pm_clear_wake_irq(dev);
 
 #ifdef TTHE_TUNER_SUPPORT
 	mutex_lock(&cd->tthe_lock);
