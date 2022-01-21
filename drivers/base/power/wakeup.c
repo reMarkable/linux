@@ -1185,10 +1185,38 @@ static const struct file_operations wakeup_sources_stats_fops = {
 	.release = seq_release_private,
 };
 
+static int wakeup_reason_show(struct seq_file *m, void *v)
+{
+	struct wakeup_source *best_ws = NULL;
+	struct wakeup_source *ws;
+	ktime_t best = 0;
+	int srcuidx;
+
+	srcuidx = srcu_read_lock(&wakeup_srcu);
+	list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
+		ktime_t delta;
+
+		delta = ktime_sub(ktime_get(), ws->last_time);
+		if (!best || (delta <= best)) {
+			best = delta;
+			best_ws = ws;
+		}
+	}
+
+	seq_printf(m, "%s\n", best_ws ? best_ws->name : "none");
+
+	srcu_read_unlock(&wakeup_srcu, srcuidx);
+
+	return 0;
+}
+DEFINE_SHOW_ATTRIBUTE(wakeup_reason);
+
 static int __init wakeup_sources_debugfs_init(void)
 {
 	debugfs_create_file("wakeup_sources", S_IRUGO, NULL, NULL,
 			    &wakeup_sources_stats_fops);
+	debugfs_create_file("wakeup_reason", 0444, NULL, NULL,
+			    &wakeup_reason_fops);
 	return 0;
 }
 
