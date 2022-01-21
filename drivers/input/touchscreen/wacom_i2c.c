@@ -17,6 +17,7 @@
 #include <linux/of_gpio.h>
 #include <asm/unaligned.h>
 #include <linux/kernel.h>
+#include <linux/pm_wakeirq.h>
 #include <linux/reset.h>
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
@@ -476,6 +477,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 #endif
 
 	device_init_wakeup(&client->dev, true);
+	dev_pm_set_wake_irq(&client->dev, client->irq);
 
 	input_set_events_per_packet(input, wac_i2c->input_events_per_packet);
 	return 0;
@@ -498,6 +500,7 @@ static int wacom_i2c_remove(struct i2c_client *client)
 {
 	struct wacom_i2c *wac_i2c = i2c_get_clientdata(client);
 
+	dev_pm_clear_wake_irq(&client->dev);
 	free_irq(client->irq, wac_i2c);
 	input_unregister_device(wac_i2c->input);
 	regulator_disable(wac_i2c->vdd);
@@ -513,12 +516,11 @@ static int __maybe_unused wacom_i2c_suspend(struct device *dev)
 	struct wacom_i2c *wac_i2c = i2c_get_clientdata(client);
 
 	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		device_set_wakeup_enable(dev, false);
 		regulator_disable(wac_i2c->vdd);
 		pinctrl_pm_select_sleep_state(dev);
 	}
 
-	if (device_may_wakeup(dev))
-		enable_irq_wake(client->irq);
 	disable_irq(client->irq);
 
 	return 0;
@@ -531,8 +533,6 @@ static int __maybe_unused wacom_i2c_resume(struct device *dev)
 	int ret;
 
 	enable_irq(client->irq);
-	if (device_may_wakeup(dev))
-		disable_irq_wake(client->irq);
 
 	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
 		pinctrl_pm_select_default_state(dev);
@@ -544,6 +544,8 @@ static int __maybe_unused wacom_i2c_resume(struct device *dev)
 		ret = wacom_setup_device(client);
 		if (ret)
 			return ret;
+
+		device_set_wakeup_enable(dev, true);
 	}
 
 	return 0;
