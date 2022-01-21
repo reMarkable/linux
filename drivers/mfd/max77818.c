@@ -35,6 +35,7 @@
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
+#include <linux/pm_wakeirq.h>
 #include <linux/irq.h>
 #include <linux/gpio.h>
 #include <linux/pm_runtime.h>
@@ -284,6 +285,7 @@ static int max77818_i2c_probe(struct i2c_client *client,
 	}
 
 	device_init_wakeup(me->dev, true);
+	dev_pm_set_wake_irq(me->dev, me->irq);
 
 	return 0;
 
@@ -305,6 +307,8 @@ static int max77818_i2c_remove(struct i2c_client *client)
 {
 	struct max77818_dev *me = i2c_get_clientdata(client);
 
+	dev_pm_clear_wake_irq(me->dev);
+
 	mfd_remove_devices(me->dev);
 
 	regmap_del_irq_chip(me->irq, me->irqc_chg);
@@ -325,10 +329,7 @@ static int max77818_suspend(struct device *dev)
 	struct i2c_client *i2c = to_i2c_client(dev);
 	struct max77818_dev *me = i2c_get_clientdata(i2c);
 
-	if (device_may_wakeup(dev)) {
-		enable_irq_wake(me->irq);
-		disable_irq(me->irq);
-	}
+	disable_irq(me->irq);
 
 	return 0;
 }
@@ -338,10 +339,7 @@ static int max77818_resume(struct device *dev)
 	struct i2c_client *i2c = to_i2c_client(dev);
 	struct max77818_dev *me = i2c_get_clientdata(i2c);
 
-	if (device_may_wakeup(dev)) {
-		disable_irq_wake(me->irq);
-		enable_irq(me->irq);
-	}
+	enable_irq(me->irq);
 
 	return 0;
 }
