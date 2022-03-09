@@ -79,8 +79,8 @@
 
 #define MAX77818_VMAX_TOLERANCE	50 /* 50 mV */
 
-#define MIN_SOC_ALRT_DISABLE 0;
-#define MAX_SOC_ALRT_DISABLE 0xFF;
+#define MIN_SOC_ALRT_DISABLE 0
+#define MAX_SOC_ALRT_DISABLE 0xFF
 
 #define SYNC_SET_FLAG(flag, lock) ( \
 	{ \
@@ -152,6 +152,7 @@ struct max77818_chip {
 	struct work_struct initial_charger_sync_work;
 	struct completion init_completion;
 	struct mutex lock;
+	bool enable_soc_hysteresis;
 };
 
 static enum power_supply_property max77818_battery_props[] = {
@@ -990,7 +991,7 @@ static int max77818_write_of_param_if_mismatch(struct max77818_chip *chip,
 	int ret;
 
 	ret = max77818_read_of_property(chip, prop->property_name, &read_param);
-	if(!ret) {
+	if (!ret) {
 		dev_dbg(chip->dev, "Verifying '%s' (reg 0x%02x) = 0x%04x\n",
 			prop->property_name,
 			prop->register_addr,
@@ -1004,7 +1005,7 @@ static int max77818_write_of_param_if_mismatch(struct max77818_chip *chip,
 		ret = regmap_read(chip->regmap,
 				  prop->register_addr,
 				  &read_cur_value);
-		if(ret) {
+		if (ret) {
 			dev_warn(chip->dev,
 				 "Failed to read '%s' from reg 0x%02x)\n",
 				 prop->property_name,
@@ -1429,7 +1430,16 @@ static irqreturn_t max77818_fg_isr(int id, void *dev)
 
 	power_supply_changed(chip->battery);
 
-	schedule_work(&chip->fg_isr_work);
+	if (chip->enable_soc_hysteresis)
+		schedule_work(&chip->fg_isr_work);
+	else
+		/*
+		 * Once the min SOC threshold has been reached, max77818 will pull
+		 * the interrupt line low and keep it low as long as SOC is below
+		 * the min threshold. Sleeping here will reduce the load from the
+		 * interrupts.
+		 */
+		msleep(10);
 
 	return IRQ_HANDLED;
 }
@@ -1511,6 +1521,12 @@ max77818_get_pdata(struct max77818_chip *chip)
 
 	if (of_property_read_u8(np, "maxim,max-soc-alert", &pdata->max_soc_alrt))
 		pdata->max_soc_alrt = MAX_SOC_ALRT_DISABLE;
+
+	if (pdata->min_soc_alrt == MIN_SOC_ALRT_DISABLE ||
+			pdata->max_soc_alrt == MAX_SOC_ALRT_DISABLE)
+		chip->enable_soc_hysteresis = false;
+	else
+		chip->enable_soc_hysteresis = true;
 
 	return pdata;
 }
@@ -1771,7 +1787,8 @@ static int max77818_init_fg_interrupt_handling(struct max77818_dev *max77818,
 				&power_supply_propval);
 
 	/* Init worker to be used by the FG interrupt handler */
-	INIT_WORK(&chip->fg_isr_work, max77818_fg_isr_work);
+	if (chip->enable_soc_hysteresis)
+		INIT_WORK(&chip->fg_isr_work, max77818_fg_isr_work);
 
 	/* Register irq handler for the FG interrupt */
 	chip->fg_irq = regmap_irq_get_virq(max77818->irqc_intsrc,
