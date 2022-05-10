@@ -996,8 +996,8 @@
 
 	pinctrl_epdpmic: epdpmicgrp {
 		fsl,pins = <
-			MX7D_PAD_SAI2_RX_DATA__GPIO6_IO21 0x00000074
-			MX7D_PAD_ENET1_RGMII_TXC__GPIO7_IO11 0x00000014
+			MX7D_PAD_SAI2_RX_DATA__GPIO6_IO21 0x00000004 /* pgood is open-drain with hardware 100k pull-up */
+			MX7D_PAD_ENET1_RGMII_TXC__GPIO7_IO11 0x00000004 /* pmic-pwrup has a 100k pull-down already */
 			MX7D_PAD_SAI1_MCLK__GPIO6_IO18 0x00000074
 		>;
 	};
