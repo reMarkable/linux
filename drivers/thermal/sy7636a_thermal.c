@@ -46,7 +46,12 @@ static int sy7636a_get_temp(void *arg, int *res)
 		*res *= 1000;
 	}
 
-	regulator_disable(data->regulator);
+	/* SY7636A rail enabling is a heavy operation, so avoid toggling down
+	 * if reused in next 1000ms, this especially prevent double toggling
+	 * on system resume (1. thermal resume update 2. xochitl display
+	 * enabling).
+	 */
+	regulator_disable_deferred(data->regulator, 1000);
 
 	return ret;
 }
