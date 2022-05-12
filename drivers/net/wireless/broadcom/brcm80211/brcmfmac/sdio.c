@@ -16,6 +16,7 @@
 #include <linux/mmc/sdio_ids.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/card.h>
+#include <linux/mmc/core.h>
 #include <linux/semaphore.h>
 #include <linux/firmware.h>
 #include <linux/module.h>
@@ -4276,6 +4277,23 @@ int brcmf_sdio_get_fwname(struct device *dev, const char *ext, u8 *fw_name)
 	return 0;
 }
 
+
+static int brcmf_sdio_reset(struct device *dev)
+{
+	struct brcmf_bus *bus_if = dev_get_drvdata(dev);
+	struct brcmf_sdio_dev *sdiodev = bus_if->bus_priv.sdio;
+	int ret = 0;
+
+	brcmf_dbg(SDIO, "Enter\n");
+
+	/* reset the host => soft disconnect/reconnect */
+	sdio_claim_host(sdiodev->func1);
+	mmc_hw_reset(sdiodev->func1->card->host);
+	sdio_release_host(sdiodev->func1);
+
+	return ret;
+}
+
 static const struct brcmf_bus_ops brcmf_sdio_bus_ops = {
 	.stop = brcmf_sdio_bus_stop,
 	.preinit = brcmf_sdio_bus_preinit,
@@ -4287,7 +4305,8 @@ static const struct brcmf_bus_ops brcmf_sdio_bus_ops = {
 	.get_ramsize = brcmf_sdio_bus_get_ramsize,
 	.get_memdump = brcmf_sdio_bus_get_memdump,
 	.get_fwname = brcmf_sdio_get_fwname,
-	.debugfs_create = brcmf_sdio_debugfs_create
+	.debugfs_create = brcmf_sdio_debugfs_create,
+	.reset = brcmf_sdio_reset
 };
 
 static void brcmf_sdio_firmware_callback(struct device *dev, int err,
