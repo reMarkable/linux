@@ -237,6 +237,67 @@ static enum power_supply_property max77818_charger_props[] = {
 	POWER_SUPPLY_PROP_STATUS_EX,
 };
 
+static ssize_t chg_dump_regs_show(struct device *dev,
+				   struct device_attribute *attr,
+				   char *buf)
+{
+	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
+	struct max77818_charger *chg = dev_get_drvdata(dev);
+	int value;
+	int i;
+	char temp[15];
+	bool restore_state;
+	int ret;
+	int len;
+
+	ret = MAX77818_START_NON_FGCC_OP(
+			max77818,
+			restore_state,
+			"Disabling FGCC");
+	if (ret) {
+		dev_err(dev, "Failed to disable FGCC\n");
+		goto end;
+	}
+
+	for (i = 0x00; i < 0xFF; i++) {
+		ret = regmap_read(chg->regmap, i, &value);
+
+		if (ret) {
+			dev_err(dev, "failed to read charger registers");
+
+			len = scnprintf(buf, PAGE_SIZE,
+				"failed to read charger register\n");
+			goto end;
+		} else {
+			scnprintf(temp, sizeof(temp), "0x%02x: 0x%02x\n", i, value);
+			strncat(buf, temp, 13);
+			len = strlen(buf);
+		}
+	}
+
+	end:
+	ret = MAX77818_FINISH_NON_FGCC_OP(
+			max77818,
+			restore_state,
+			"Enabling FGCC\n");
+	if (ret)
+		dev_err(dev, "Failed to enable FGCC\n");
+
+	return len;
+}
+
+static DEVICE_ATTR_RO(chg_dump_regs);
+
+static struct attribute *max77818_charger_attrs[] = {
+	&dev_attr_chg_dump_regs.attr,
+	NULL,
+};
+
+static const struct attribute_group max77818_charger_attrs_group = {
+	.attrs = max77818_charger_attrs,
+};
+
+/* This function must be called in NON FGCC mode only */
 static bool max77818_charger_chgin_present(struct max77818_charger *chg)
 {
 	u32 chg_int_ok = 0;
@@ -1035,6 +1096,11 @@ static int max77818_charger_probe(struct platform_device *pdev)
 		ret = PTR_ERR(chg->psy_chg);
 		dev_err(dev, "failed to register supply: %d\n", ret);
 		return ret;
+	}
+
+	ret = sysfs_create_group(&dev->kobj, &max77818_charger_attrs_group);
+	if (ret) {
+		dev_warn(dev, "Failed to create sysfs attributes\n");
 	}
 
 	return 0;
