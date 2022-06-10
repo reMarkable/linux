@@ -38,6 +38,7 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/power_supply.h>
 #include <linux/mfd/max77818/max77818.h>
+#include <linux/power/max77818_battery_utils.h>
 #include <linux/gpio/consumer.h>
 #include <linux/suspend.h>
 
@@ -712,7 +713,7 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	ret = regmap_write(chg->regmap, REG_CHG_CNFG_04, val);
 	if (ret) {
 		dev_err(dev, "failed to update CNFG_04: %d\n", ret);
-		return ret;;
+		return ret;
 	}
 
 
@@ -1062,7 +1063,8 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	struct power_supply_config psy_cfg = {};
 	struct max77818_charger *chg;
 	int ret;
-	bool init_ok;
+	bool init_ret;
+	bool fgcc_mode;
 
 	if (IS_ERR_OR_NULL(max77818->regmap_chg)) {
 		dev_warn(dev,
@@ -1086,9 +1088,22 @@ static int max77818_charger_probe(struct platform_device *pdev)
 	psy_cfg.drv_data = chg;
 	psy_cfg.of_node = dev->of_node;
 
-	init_ok = !max77818_charger_initialize(chg);
-	if (!init_ok) {
-		dev_warn(dev, "failed to init charger: %d\n", init_ok);
+	fgcc_mode = false;
+	ret = max77818_utils_get_fgcc_mode(max77818, &fgcc_mode);
+	if (ret)
+		dev_warn(dev, "failed to get fgcc mode\n");
+
+	/* We here rely on u-boot initializing and putting the chip in fgcc mode,
+	 * otherwise we need to do the initialization here.
+	 */
+	if (!fgcc_mode) {
+		dev_info(dev, "not in fgcc mode, starting charger initialization\n");
+
+		init_ret = max77818_charger_initialize(chg);
+		if (init_ret)
+			dev_warn(dev, "failed to init charger: %d\n", init_ret);
+	} else {
+		dev_info(dev, "in fgcc mode, skipping initialization\n");
 	}
 
 	chg->psy_chg = devm_power_supply_register(dev, &psy_chg_desc, &psy_cfg);

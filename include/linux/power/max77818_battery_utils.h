@@ -24,10 +24,13 @@
 #include <linux/mfd/max77818/max77818.h>
 
 /* Exported function required for modules external to the max77818_battery
- * module to be able to use the MAX77818_DO_NON_FGCC_OP macrov*/
+ * module to be able to use the MAX77818_DO_NON_FGCC_OP macro*/
 int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 				 bool enabled,
 				 bool *cur_mode);
+
+int max77818_utils_get_fgcc_mode(struct max77818_dev *max77818_dev,
+				bool *cur_mode);
 
 /* Magic to enable optional macro param */
 #define VARGS_(_10, _9, _8, _7, _6, _5, _4, _3, _2, _1, N, ...) N

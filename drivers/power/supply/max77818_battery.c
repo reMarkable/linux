@@ -1866,7 +1866,7 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 					max77818_charger_connection_change_isr,
 					0, "charger-chgin", chip);
 	if (ret) {
-		dev_err(dev, "failed to reqeust chgin irq: %d\n", ret);
+		dev_err(dev, "failed to request chgin irq: %d\n", ret);
 		goto free_chg_irq;
 	}
 
@@ -1884,7 +1884,7 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 					max77818_charger_connection_change_isr,
 					0, "charger-wcin", chip);
 	if (ret) {
-		dev_err(dev, "failed to reqeust wcin irq: %d\n", ret);
+		dev_err(dev, "failed to request wcin irq: %d\n", ret);
 		goto free_chgin_irq;
 	}
 

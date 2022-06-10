@@ -72,3 +72,30 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 
 	return 0;
 }
+
+int max77818_utils_get_fgcc_mode(struct max77818_dev *max77818_dev, bool *mode)
+{
+	int ret;
+	unsigned int read_data;
+
+	if (mode == NULL)
+		return -ENOMEM;
+
+	dev_dbg(max77818_dev->dev, "Applying lock\n");
+	mutex_lock(&max77818_dev->lock);
+
+	ret = regmap_read(max77818_dev->regmap_fg,
+				MAX17042_CONFIG, &read_data);
+	if (ret) {
+		dev_err(max77818_dev->dev,
+			"Failed to read CONFIG register\n");
+		goto end;
+	}
+	*mode = (read_data & CONFIG_FGCC_BIT);
+
+end:
+	dev_dbg(max77818_dev->dev, "Releasing lock\n");
+	mutex_unlock(&max77818_dev->lock);
+
+	return ret;
+}
