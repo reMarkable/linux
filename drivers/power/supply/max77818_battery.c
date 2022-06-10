@@ -1149,7 +1149,7 @@ static struct max77818_of_property max77818_custom_param_list [] = {
 	/* Also marked to require lock */
 	{ "maxim,config", MAX17042_CONFIG, regmap_write, false, true},
 
-	{ "maxim,config2", MAX77818_Config2, regmap_write, true },
+	{ "maxim,config2", MAX77818_Config2, regmap_write, false },
 	{ "maxim,full-soc-threshold", MAX17047_FullSOCThr, regmap_write, true, false },
 
 	/* learned value, skipped during verify/write operation at boot */
