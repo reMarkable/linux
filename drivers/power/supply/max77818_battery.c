@@ -2042,12 +2042,79 @@ unreg_supply:
 	return ret;
 }
 
+static void max77818_recover_threshold_registers(struct platform_device *pdev)
+{
+	struct max77818_chip *chip = platform_get_drvdata(pdev);
+	union power_supply_propval power_supply_propval;
+	int i;
+	int ret;
+
+	dev_dbg(chip->dev, "Recovering alert threshold registers\n");
+
+	for (i = 0; i < sizeof(max77818_custom_param_list); i++) {
+		if (max77818_custom_param_list[i].register_addr == MAX17042_VALRT_Th) {
+			max77818_write_of_param_if_mismatch(chip,
+					       &max77818_custom_param_list[i]);
+			break;
+		}
+	}
+
+	for (i = 0; i < sizeof(max77818_custom_param_list); i++) {
+		if (max77818_custom_param_list[i].register_addr == MAX17042_TALRT_Th) {
+			max77818_write_of_param_if_mismatch(chip,
+					       &max77818_custom_param_list[i]);
+			break;
+		}
+	}
+
+	ret = max77818_get_property(chip->battery,
+							POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX,
+							&power_supply_propval);
+
+	if (power_supply_propval.intval != chip->pdata->max_soc_alrt) {
+		dev_dbg(chip->dev,
+				"Read 'maxim,man-soc-alert' (reg 0x03) = 0x%02x from device, "
+				"expected 0x%02x\n",
+				power_supply_propval.intval,
+				chip->pdata->max_soc_alrt);
+
+		power_supply_propval.intval = chip->pdata->max_soc_alrt;
+		max77818_set_property(chip->battery,
+							POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX,
+							&power_supply_propval);
+	}
+
+	ret = max77818_get_property(chip->battery,
+							POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN,
+							&power_supply_propval);
+
+	if (power_supply_propval.intval != chip->pdata->min_soc_alrt) {
+		dev_dbg(chip->dev,
+				"Read 'maxim,min-soc-alert' (reg 0x03) = 0x%02x from device, "
+				"expected 0x%02x\n",
+				power_supply_propval.intval,
+				chip->pdata->min_soc_alrt);
+
+		power_supply_propval.intval = chip->pdata->min_soc_alrt;
+		max77818_set_property(chip->battery,
+							POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN,
+							&power_supply_propval);
+	}
+}
+
+static int max77818_resume(struct platform_device *pdev)
+{
+	max77818_recover_threshold_registers(pdev);
+	return 0;
+}
+
 static struct platform_driver max77818_fg_driver = {
 	.driver = {
 		.name = MAX77818_FUELGAUGE_NAME,
 		.owner = THIS_MODULE,
 	},
 	.probe = max77818_probe,
+	.resume = max77818_resume,
 };
 module_platform_driver(max77818_fg_driver);
 
