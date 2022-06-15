@@ -11,6 +11,7 @@
  */
 
 #include <linux/mutex.h>
+#include <linux/notifier.h>
 
 #ifndef __MAX77818_MFD_H__
 #define __MAX77818_MFD_H__
@@ -103,6 +104,13 @@ struct max77818_dev {
 
 	struct mutex lock;
 };
+
+enum {
+	MAX77818_NOTIFICATION_VBUS_OVER_CURRENT = 0,
+};
+
+int register_max77818_notifier(struct notifier_block *nb);
+int unregister_max77818_notifier(struct notifier_block *nb);
 
 #endif /* !__MAX77818_MFD_H__ */
 

@@ -249,7 +249,7 @@ static ssize_t chg_dump_regs_show(struct device *dev,
 	char temp[15];
 	bool restore_state;
 	int ret;
-	int len;
+	int len = 0;
 
 	ret = MAX77818_START_NON_FGCC_OP(
 			max77818,

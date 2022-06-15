@@ -45,6 +45,21 @@
 #include <linux/mfd/max77818/max77818.h>
 #include <linux/platform_device.h>
 #include <linux/usb/phy.h>
+#include <linux/notifier.h>
+
+static ATOMIC_NOTIFIER_HEAD(max77818_notifier_chain);
+
+int register_max77818_notifier(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&max77818_notifier_chain, nb);
+}
+EXPORT_SYMBOL_GPL(register_max77818_notifier);
+
+int unregister_max77818_notifier(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&max77818_notifier_chain, nb);
+}
+EXPORT_SYMBOL_GPL(unregister_max77818_notifier);
 
 /* Status register bits */
 #define STATUS_POR_BIT         (1 << 1)
@@ -136,6 +151,7 @@ struct max77818_chip {
 	int chg_irq;
 	int chg_chgin_irq;
 	int chg_wcin_irq;
+	int chg_byp_irq;
 	struct regmap *regmap;
 	struct power_supply *battery;
 	struct max17042_platform_data *pdata;
@@ -1477,6 +1493,13 @@ static irqreturn_t max77818_charger_isr(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static irqreturn_t max77818_vbus_over_current_isr(int irq, void *data)
+{
+	atomic_notifier_call_chain(&max77818_notifier_chain, MAX77818_NOTIFICATION_VBUS_OVER_CURRENT, NULL);
+
+	return IRQ_HANDLED;
+}
+
 static void max77818_init_worker(struct work_struct *work)
 {
 	struct max77818_chip *chip = container_of(work, struct max77818_chip,
@@ -1888,6 +1911,24 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 		goto free_chgin_irq;
 	}
 
+	/* Register irq handler for the BYP interrupt */
+	chip->chg_byp_irq = regmap_irq_get_virq(max77818->irqc_chg,
+					    CHG_IRQ_BYP_I);
+	if (chip->chg_byp_irq <= 0) {
+		dev_err(dev, "failed to get byp virq: %d\n", chip->chg_byp_irq);
+		ret = -ENODEV;
+		goto free_byp_irq;
+	}
+	dev_dbg(dev, "byp irq: %d\n", chip->chg_byp_irq);
+
+	ret = devm_request_threaded_irq(dev, chip->chg_byp_irq, NULL,
+					max77818_vbus_over_current_isr,
+					0, "charger-byp", chip);
+	if (ret) {
+		dev_err(dev, "failed to reqeust byp irq: %d\n", ret);
+		goto free_byp_irq;
+	}
+
 	ret = MAX77818_FINISH_NON_FGCC_OP(
 			max77818,
 			fgcc_restore_state,
@@ -1905,6 +1946,8 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 
 free_wcin_irq:
 	free_irq(chip->chg_wcin_irq, NULL);
+free_byp_irq:
+	free_irq(chip->chg_byp_irq, NULL);
 free_chgin_irq:
 	free_irq(chip->chg_chgin_irq, NULL);
 free_chg_irq:
