@@ -158,6 +158,7 @@ struct max77818_chip {
 	struct work_struct init_work;
 	struct work_struct chg_isr_work;
 	struct work_struct fg_isr_work;
+	struct work_struct byp_isr_work;
 	bool init_complete;
 	struct power_supply *charger;
 	struct usb_phy *usb_phy[2];
@@ -1493,9 +1494,32 @@ static irqreturn_t max77818_charger_isr(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static void max77818_byp_isr_work(struct work_struct *work)
+{
+	struct max77818_chip *chip = container_of(work, struct max77818_chip,
+												byp_isr_work);
+	union power_supply_propval val;
+	int ret = 0;
+
+	val.intval = POWER_SUPPLY_MODE_ALL_OFF;
+
+	ret = MAX77818_DO_NON_FGCC_OP(
+					chip->max77818_dev,
+					power_supply_set_property(chip->charger,
+					POWER_SUPPLY_PROP_CHARGER_MODE,
+					&val),
+					"Disabling VBUS due to over-current");
+	if (ret)
+		dev_err(chip->dev, "failed to disable VBUS\n");
+
+	atomic_notifier_call_chain(&max77818_notifier_chain, MAX77818_NOTIFICATION_VBUS_OVER_CURRENT, NULL);
+}
+
 static irqreturn_t max77818_vbus_over_current_isr(int irq, void *data)
 {
-	atomic_notifier_call_chain(&max77818_notifier_chain, MAX77818_NOTIFICATION_VBUS_OVER_CURRENT, NULL);
+	struct max77818_chip *chip = (struct max77818_chip*) data;
+
+	schedule_work(&chip->byp_isr_work);
 
 	return IRQ_HANDLED;
 }
@@ -1928,6 +1952,8 @@ static int max77818_init_chg_interrupt_handling(struct max77818_dev *max77818,
 		dev_err(dev, "failed to reqeust byp irq: %d\n", ret);
 		goto free_byp_irq;
 	}
+
+	INIT_WORK(&chip->byp_isr_work, max77818_byp_isr_work);
 
 	ret = MAX77818_FINISH_NON_FGCC_OP(
 			max77818,
