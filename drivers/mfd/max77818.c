@@ -230,7 +230,7 @@ static int max77818_i2c_probe(struct i2c_client *client,
 		goto unreg_fg;
 	}
 
-	me->regmap_fg= devm_regmap_init_i2c(me->fg, &max77818_regmap_config_fg);
+	me->regmap_fg = devm_regmap_init_i2c(me->fg, &max77818_regmap_config_fg);
 	if (IS_ERR_OR_NULL(me->regmap_fg)) {
 		ret = PTR_ERR(me->regmap_fg);
 		dev_err(me->dev, "failed to initialize FG regmap: %d\n", ret);

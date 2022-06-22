@@ -27,14 +27,10 @@
 /* Config register bits */
 #define CONFIG_FGCC_BIT		(1 << 11)
 
-/* Parameter to be given from command line in order to tune the delay introduced after
- * clearing the FGCC bit before forwarding requests to the charger driver */
-static int post_fgcc_change_delay_us = 100000;
-
 /* DO NOT CALL DIRECTLY !!
  *
  * ONLY TO _BE CALLED FROM MAX77818_DO_NON_FGCC_OP macro */
-int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
+int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818,
 				  bool enabled,
 				  bool *cur_mode)
 {
@@ -42,38 +38,45 @@ int max77818_utils_set_fgcc_mode(struct max77818_dev *max77818_dev,
 	int ret;
 
 	if (cur_mode) {
-		ret = regmap_read(max77818_dev->regmap_fg,
+		ret = regmap_read(max77818->regmap_fg,
 				  MAX17042_CONFIG, &read_data);
 		if (ret) {
-			dev_err(max77818_dev->dev,
+			dev_err(max77818->dev,
 				"Failed to read CONFIG register\n");
 			return ret;
 		}
 		*cur_mode = (read_data & CONFIG_FGCC_BIT);
 	}
 
-	dev_dbg(max77818_dev->dev, "Turning %s FGCC\n", enabled ? "on" : "off");
-	ret = regmap_update_bits(max77818_dev->regmap_fg,
+	dev_dbg(max77818->dev, "Turning %s FGCC\n", enabled ? "on" : "off");
+	ret = regmap_update_bits(max77818->regmap_fg,
 				 MAX17042_CONFIG,
 				 CONFIG_FGCC_BIT,
 				 enabled ? CONFIG_FGCC_BIT : 0x0000);
 
 	if (ret) {
-		dev_err(max77818_dev->dev,
+		dev_err(max77818->dev,
 			"Failed to %s FGCC bit in CONFIG register\n",
 			enabled ? "set" : "clear");
 		return ret;
 	}
 
-	dev_dbg(max77818_dev->dev,
-		"Waiting %d us after FGCC mode change..\n",
-		post_fgcc_change_delay_us);
-	usleep_range(post_fgcc_change_delay_us, post_fgcc_change_delay_us + 100000);
+	if (max77818->post_fgcc_change_delay_us_min <
+		max77818->post_fgcc_change_delay_us_max) {
+
+		dev_dbg(max77818->dev,
+			"Waiting %d to %d us after FGCC mode change..\n",
+			max77818->post_fgcc_change_delay_us_min,
+			max77818->post_fgcc_change_delay_us_max);
+
+		usleep_range(max77818->post_fgcc_change_delay_us_min,
+					 max77818->post_fgcc_change_delay_us_max);
+	}
 
 	return 0;
 }
 
-int max77818_utils_get_fgcc_mode(struct max77818_dev *max77818_dev, bool *mode)
+int max77818_utils_get_fgcc_mode(struct max77818_dev *max77818, bool *mode)
 {
 	int ret;
 	unsigned int read_data;
@@ -81,21 +84,21 @@ int max77818_utils_get_fgcc_mode(struct max77818_dev *max77818_dev, bool *mode)
 	if (mode == NULL)
 		return -ENOMEM;
 
-	dev_dbg(max77818_dev->dev, "Applying lock\n");
-	mutex_lock(&max77818_dev->lock);
+	dev_dbg(max77818->dev, "Applying lock\n");
+	mutex_lock(&max77818->lock);
 
-	ret = regmap_read(max77818_dev->regmap_fg,
+	ret = regmap_read(max77818->regmap_fg,
 				MAX17042_CONFIG, &read_data);
 	if (ret) {
-		dev_err(max77818_dev->dev,
+		dev_err(max77818->dev,
 			"Failed to read CONFIG register\n");
 		goto end;
 	}
 	*mode = (read_data & CONFIG_FGCC_BIT);
 
 end:
-	dev_dbg(max77818_dev->dev, "Releasing lock\n");
-	mutex_unlock(&max77818_dev->lock);
+	dev_dbg(max77818->dev, "Releasing lock\n");
+	mutex_unlock(&max77818->lock);
 
 	return ret;
 }

@@ -216,6 +216,72 @@ struct max77818_of_property {
 	bool require_lock;
 };
 
+
+static ssize_t post_fgcc_change_delay_us_min_show(struct device *dev,
+				   struct device_attribute *attr,
+				   char *buf)
+{
+	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
+
+	return sprintf(buf, "%d\n", max77818->post_fgcc_change_delay_us_min);
+}
+
+static ssize_t post_fgcc_change_delay_us_min_store(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf, size_t count)
+{
+	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
+	int val;
+	int ret;
+
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	max77818->post_fgcc_change_delay_us_min = val;
+
+	return count;
+}
+
+static ssize_t post_fgcc_change_delay_us_max_show(struct device *dev,
+				   struct device_attribute *attr,
+				   char *buf)
+{
+	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
+
+	return sprintf(buf, "%d\n", max77818->post_fgcc_change_delay_us_max);
+}
+
+static ssize_t post_fgcc_change_delay_us_max_store(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf, size_t count)
+{
+	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
+	int val;
+	int ret;
+
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	max77818->post_fgcc_change_delay_us_max = val;
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(post_fgcc_change_delay_us_min);
+static DEVICE_ATTR_RW(post_fgcc_change_delay_us_max);
+
+static struct attribute *max77818_battery_attrs[] = {
+	&dev_attr_post_fgcc_change_delay_us_min.attr,
+	&dev_attr_post_fgcc_change_delay_us_max.attr,
+	NULL,
+};
+
+static const struct attribute_group max77818_battery_attrs_group = {
+	.attrs = max77818_battery_attrs,
+};
+
 static void max77818_do_init_completion(struct max77818_chip *chip)
 {
 	/* Clear flag used by power supply callbacks to check
@@ -2093,6 +2159,14 @@ static int max77818_probe(struct platform_device *pdev)
 	else {
 		dev_dbg(chip->dev, "No config change\n");
 		max77818_do_init_completion(chip);
+	}
+
+	max77818->post_fgcc_change_delay_us_min = 0;
+	max77818->post_fgcc_change_delay_us_max = 0;
+
+	ret = sysfs_create_group(&dev->kobj, &max77818_battery_attrs_group);
+	if (ret) {
+		dev_warn(dev, "Failed to create sysfs attributes\n");
 	}
 
 	return 0;

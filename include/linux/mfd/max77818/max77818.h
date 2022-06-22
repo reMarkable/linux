@@ -103,6 +103,9 @@ struct max77818_dev {
 	struct regmap *regmap_fg;
 
 	struct mutex lock;
+
+	int post_fgcc_change_delay_us_min;
+	int post_fgcc_change_delay_us_max;
 };
 
 enum {
