@@ -1123,7 +1123,22 @@ static int max77818_charger_probe(struct platform_device *pdev)
 
 static int max77818_charger_suspend(struct device *dev)
 {
+	struct max77818_dev *max77818 = dev_get_drvdata(dev->parent);
+	struct max77818_charger *chg = dev_get_drvdata(dev);
+	union power_supply_propval val;
+	int ret;
+
 	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
+		val.intval = POWER_SUPPLY_MODE_ALL_OFF;
+		ret = MAX77818_DO_NON_FGCC_OP(
+					max77818,
+					max77818_charger_set_property(chg->psy_chg,
+					POWER_SUPPLY_PROP_CHARGER_MODE,
+					&val),
+					"Disabling VBUS on suspend");
+		if (ret)
+			dev_err(dev->parent, "failed to disable VBUS\n");
+
 		dev_dbg(dev->parent, "Selecting sleep pinctrl state\n");
 		pinctrl_pm_select_sleep_state(dev->parent);
 	}
