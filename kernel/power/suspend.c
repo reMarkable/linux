@@ -342,6 +342,8 @@ static void resleep_unlock(struct work_struct *work)
 	mutex_unlock(&resleep_mutex);
 	pr_info("Sleep re-enabled\n");
 }
+#else
+static inline void resleep_unlock(struct work_struct *work) {}
 #endif /* CONFIG_PM_RESLEEP_LOCK */
 
 static void resleep_timer(suspend_state_t state)
@@ -407,6 +409,13 @@ static int suspend_prepare(suspend_state_t state)
  Finish:
 	__pm_notifier_call_chain(PM_POST_SUSPEND, nr_calls, NULL);
 	pm_restore_console();
+
+	/* resleep_isok() takes a lock and we need to release it in case of error
+	 * since suspend_finish() will not be called...
+	 */
+	if (error)
+		resleep_unlock(&resleep_work.work);
+
 	return error;
 }
 
