@@ -2073,7 +2073,7 @@ static void max77818_recover_threshold_registers(struct platform_device *pdev)
 
 	if (power_supply_propval.intval != chip->pdata->max_soc_alrt) {
 		dev_dbg(chip->dev,
-				"Read 'maxim,man-soc-alert' (reg 0x03) = 0x%02x from device, "
+				"Read 'maxim,max-soc-alert' (reg 0x03) = 0x%02x from device, "
 				"expected 0x%02x\n",
 				power_supply_propval.intval,
 				chip->pdata->max_soc_alrt);
