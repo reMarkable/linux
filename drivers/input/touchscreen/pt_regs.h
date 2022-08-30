@@ -231,7 +231,7 @@ enum PT_HID_REPORT_ID {
 #define PT_FW_EXIT_BOOT_MODE_TIMEOUT            1000
 #define PT_BL_WAIT_FOR_SENTINEL                  500
 #define PT_REQUEST_ENUM_TIMEOUT                 4000
-#define PT_GET_HID_DESCRIPTOR_TIMEOUT            500
+#define PT_GET_HID_DESCRIPTOR_TIMEOUT           2500
 #define PT_HID_CMD_DEFAULT_TIMEOUT               500
 #define PT_PIP_CMD_DEFAULT_TIMEOUT              2000
 #define PT_PIP1_CMD_DEFAULT_TIMEOUT             1000

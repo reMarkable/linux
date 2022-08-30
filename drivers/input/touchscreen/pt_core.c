@@ -6493,6 +6493,9 @@ static int pt_get_hid_descriptor_(struct pt_core_data *cd,
 	t = wait_event_timeout(cd->wait_q, (cd->hid_cmd_state == 0),
 		msecs_to_jiffies(PT_GET_HID_DESCRIPTOR_TIMEOUT));
 
+	pt_debug(cd->dev, DL_WARN, "%s: PT_GET_HID_DESCRIPTOR_TIMEOUT=%d \n",
+			__func__, PT_GET_HID_DESCRIPTOR_TIMEOUT);
+
 	if (IS_TMO(t)) {
 #ifdef TTDL_DIAGNOSTICS
 		cd->bus_transmit_error_count++;
