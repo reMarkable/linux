@@ -410,11 +410,13 @@ static int suspend_prepare(suspend_state_t state)
 	__pm_notifier_call_chain(PM_POST_SUSPEND, nr_calls, NULL);
 	pm_restore_console();
 
+#ifdef CONFIG_PM_RESLEEP_LOCK
 	/* resleep_isok() takes a lock and we need to release it in case of error
 	 * since suspend_finish() will not be called...
 	 */
 	if (error)
 		resleep_unlock(&resleep_work.work);
+#endif
 
 	return error;
 }
