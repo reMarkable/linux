@@ -68,6 +68,7 @@ struct suspend_stats {
 	int	last_failed_errno;
 	int	errno[REC_FAILED_NUM];
 	int	last_failed_step;
+	ktime_t	last_success;
 	enum suspend_stat_step	failed_steps[REC_FAILED_NUM];
 };
 

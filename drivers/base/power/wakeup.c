@@ -16,6 +16,7 @@
 #include <linux/debugfs.h>
 #include <linux/pm_wakeirq.h>
 #include <trace/events/power.h>
+#include <linux/suspend.h>
 
 #include "power.h"
 
@@ -1196,6 +1197,9 @@ static int wakeup_reason_show(struct seq_file *m, void *v)
 	list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
 		ktime_t delta;
 
+		if (ktime_before(ws->last_time, suspend_stats.last_success))
+			continue;
+
 		delta = ktime_sub(ktime_get(), ws->last_time);
 		if (!best || (delta <= best)) {
 			best = delta;
@@ -1203,7 +1207,7 @@ static int wakeup_reason_show(struct seq_file *m, void *v)
 		}
 	}
 
-	seq_printf(m, "%s\n", best_ws ? best_ws->name : "none");
+	seq_printf(m, "%s\n", best_ws ? best_ws->name : "unknown");
 
 	srcu_read_unlock(&wakeup_srcu, srcuidx);
 
