@@ -1567,7 +1567,7 @@ static void max77818_byp_isr_work(struct work_struct *work)
 	union power_supply_propval val;
 	int ret = 0;
 
-	val.intval = POWER_SUPPLY_MODE_ALL_OFF;
+	val.intval = POWER_SUPPLY_MODE_CHARGER;
 
 	ret = MAX77818_DO_NON_FGCC_OP(
 					chip->max77818_dev,

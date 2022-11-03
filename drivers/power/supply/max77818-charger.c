@@ -1129,7 +1129,7 @@ static int max77818_charger_suspend(struct device *dev)
 	int ret;
 
 	if (pm_suspend_target_state == PM_SUSPEND_MEM) {
-		val.intval = POWER_SUPPLY_MODE_ALL_OFF;
+		val.intval = POWER_SUPPLY_MODE_CHARGER;
 		ret = MAX77818_DO_NON_FGCC_OP(
 					max77818,
 					max77818_charger_set_property(chg->psy_chg,
