@@ -279,6 +279,7 @@ struct rm_pogo_data {
 	struct kobj_attribute			user_command_response_attribute;
 	struct kobj_attribute			serial_attribute;
 	struct kobj_attribute			mcu_alive_interval_attribute;
+	struct kobj_attribute			attribute_rw_attribute;
 	uint16_t				mcu_alive_interval;
 
 

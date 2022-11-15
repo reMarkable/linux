@@ -12,6 +12,21 @@
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)
 
+#define INIT_USER_COMMAND(COMMAND, DATA_SIZE)                                  \
+	do {                                                                   \
+		memset(pdata->user_command_response, 0x00,                     \
+		       sizeof(pdata->user_command_response));                  \
+		if (pdata->user_command_data) {                                \
+			devm_kfree(pdata->dev, pdata->user_command_data);      \
+			pdata->user_command_data = NULL;                       \
+		}                                                              \
+		if (DATA_SIZE > 0)                                             \
+			pdata->user_command_data = (u8 *)devm_kmalloc(         \
+				pdata->dev, DATA_SIZE, GFP_KERNEL);            \
+		pdata->user_command = COMMAND;                                 \
+		pdata->user_command_data_len = DATA_SIZE;                      \
+	} while (0)
+
 typedef uint8_t attribute_storage_id_t;
 typedef uint8_t attribute_storage_status_t;
 typedef uint8_t attribute_storage_data_type_t;
@@ -131,6 +146,7 @@ static const char __maybe_unused *ATTR_DATA_TYPE_NAMES[] = {
 			uint16_t n_len;                                        \
 			uint8_t array_data[];                                  \
 		};                                                             \
+		uint8_t payload;                                               \
 	}
 
 /* Separate read/write structs to be able to easily use offsetof for stuff
@@ -216,7 +232,7 @@ typedef struct __attribute__((__packed__)) {
 	_struct->type = ATTR_ID_TO_DATA_TYPE_ENUM(ATTR_ID)
 
 #define SIZEOF_ATTR_TX_U(ATTR_ID)                                              \
-	(ATTR_DATA_OFFSET(attribute_tx_u) +                                    \
+	(offsetof(attribute_tx_u, payload) +                                    \
 	 get_type_size(ATTR_ID_TO_DATA_TYPE_ENUM(ATTR_ID)))
 
 /*
@@ -302,6 +318,29 @@ const char *const get_attr_name(const attribute_storage_id_t attr);
 const char *const get_attr_status_name(const attribute_storage_status_t status);
 
 /*
+ * Sets the value field of an attribute_tx_u union when we only have the raw
+ * type and can't use a macro. Reads type field of attribute_tx to determine
+ * size of data at buf.
+ *
+ * Returns return-value from kstr* function used or -EINVAL on complete failure.
+ */
+int kstr_to_attr_value(attribute_tx_u *attribute_tx, const uint8_t *buf);
+
+static inline bool __must_check
+is_known_attr_id(const attribute_storage_id_t attr_id)
+{
+	return attr_id > 0 && attr_id < ATTRIBUTE_ID_UNKNOWN &&
+	       ATTR_NAMES[attr_id] != NULL;
+}
+
+static inline bool __must_check
+is_known_attr_type(const attribute_storage_data_type_t attr_type)
+{
+	return attr_type < ATTRIBUTE_STORAGE_DATA_UNKNOWN && attr_type > 0 &&
+	       ATTR_DATA_TYPE_NAMES[attr_type] != NULL;
+}
+
+/*
  * Get byte size of attribute storage data type
  */
 uint8_t get_type_size(const attribute_storage_data_type_t data_type);
@@ -349,7 +388,8 @@ int update_pdata_from_attribute_read_response(struct rm_pogo_data *pdata,
 					      const size_t payload_size);
 
 /* 
- * Iterates over all the write responses in a write response message and prints a warning if any write attribute command failed.
+ * Iterates over all the write responses in a write response message and prints
+ * a warning if any write attribute command failed.
  *
  * @payload start of write attribute command response payload.
  * @payload_size size of payload.
@@ -357,4 +397,18 @@ int update_pdata_from_attribute_read_response(struct rm_pogo_data *pdata,
 void check_attribute_write_response(struct rm_pogo_data *pdata,
 				    const uint8_t *payload,
 				    const size_t payload_size);
+
+/*
+ * Uses the user_command concept to read or write an attribute. This function
+ * acquire the pdata->lock.
+ *
+ * The command, attribute id and potential payload are
+ * parsed from the string at buf. See function definition for detailed
+ * documentation.
+ *
+ * Returns count on success or error.
+ */
+int exec_attribute_user_command(struct rm_pogo_data *pdata, const char *buf,
+				const size_t count);
+
 #endif /* __POGO_ATTRIBUTE_STORAGE_H__ */

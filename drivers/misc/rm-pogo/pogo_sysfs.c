@@ -140,14 +140,14 @@ u8 key_map[] = {
 	KEY_Z,		// z  /* ASCII val: 122 */
 };
 
-#define CONTROL_GROUP_ATTRIBUTE_COUNT	19
+#define CONTROL_GROUP_ATTRIBUTE_COUNT	20
 
 static struct attribute *control_attrs[CONTROL_GROUP_ATTRIBUTE_COUNT + 1] = {
 	/* CONTROL_GROUP_ATTRIBUTE_COUNT number of initializing NULLs */
 	NULL, NULL, NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL, NULL,
 
 	/* NULL terminating the list */
 	NULL
@@ -185,22 +185,6 @@ static struct pogo_mcu_cmd mcu_cmd[] = {
 	{"app", cmd_dev_app, ARRAY_SIZE(cmd_dev_app)},
 	{"alive", cmd_alive, ARRAY_SIZE(cmd_alive)},
 };
-
-
-#define INIT_USER_COMMAND(COMMAND, DATA_SIZE)                                  \
-do {                                                                           \
-	memset(pdata->user_command_response, 0x00,                             \
-		sizeof(pdata->user_command_response));                         \
-	if (pdata->user_command_data)                                          \
-		devm_kfree(pdata->dev, pdata->user_command_data);              \
-	if (DATA_SIZE > 0)                                                     \
-		pdata->user_command_data = (u8 *)devm_kmalloc(                 \
-			pdata->dev, DATA_SIZE, GFP_KERNEL);                    \
-	pdata->user_command = COMMAND;                                         \
-	pdata->user_command_data_len = DATA_SIZE;                              \
-} while(0)
-
-
 
 static struct attribute_group control_attr_group = {
 	.attrs = control_attrs,
@@ -1182,6 +1166,9 @@ static ssize_t attribute_store(struct kobject *kobj,
 
 		write_payload->ATTR_VAL_BY_ID(ATTRIBUTE_ID_ALIVE_MESSAGE_TIMEOUT_MS) = mcu_alive_interval;
 		mutex_unlock(&pdata->lock);
+	} else if (strcmp(attr->attr.name, "attribute_rw") == 0) {
+		pdata = to_pogo_data(attr, attribute_rw_attribute);
+		return exec_attribute_user_command(pdata, buf, count);
 	}
 	else {
 		return -EINVAL;
@@ -1345,6 +1332,13 @@ int pogo_init_sysfs_nodes(struct rm_pogo_data *pdata)
 					attribute_show,
 					attribute_store);
 
+	sysfs_attr_init(&pdata->attribute_rw_attribute.attr);
+	pogo_create_kobj_property(&pdata->attribute_rw_attribute,
+					"attribute_rw",
+					S_IWUSR,
+					NULL,
+					attribute_store);
+
 	control_attrs[0] = &pdata->pogo_dr_mode_attribute.attr;
 	control_attrs[1] = &pdata->pogo_chargermode_attribute.attr;
 	control_attrs[2] = &pdata->onewire_pinctrlstate_attribute.attr;
@@ -1364,6 +1358,7 @@ int pogo_init_sysfs_nodes(struct rm_pogo_data *pdata)
 	control_attrs[16] = &pdata->user_command_response_attribute.attr;
 	control_attrs[17] = &pdata->serial_attribute.attr;
 	control_attrs[18] = &pdata->mcu_alive_interval_attribute.attr;
+	control_attrs[19] = &pdata->attribute_rw_attribute.attr;
 	control_attrs[CONTROL_GROUP_ATTRIBUTE_COUNT] = NULL; /* NULL termination of the list */
 
 	sysfs_attr_init(&pdata->pogo_connected_attribute.attr);

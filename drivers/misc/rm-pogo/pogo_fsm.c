@@ -168,12 +168,9 @@ static bool fsm_entry_idle(struct rm_pogo_data *pdata)
 	pdata->auto_key = 0;
 	pdata->mfg_log = 0;
 	pdata->mcu_alive_interval = 0;
-	pdata->user_command = POGO_CMD_NONE;
-	if (pdata->user_command_data) {
-		devm_kfree(pdata->dev, pdata->user_command_data);
-	}
-	pdata->user_command_data = NULL;
-	pdata->user_command_data_len = 0;
+
+	INIT_USER_COMMAND(POGO_CMD_NONE, 0);
+
 	memset(pdata->onewire_rx_buf, 0, ONE_WIRE_MAX_TX_MSG_SIZE);
 	pdata->onewire_rx_buf_len = 0;
 	pdata->pogo_connected = false;
@@ -819,11 +816,8 @@ static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
 				"wrong user command reply 0x%x, expected 0x%x\n",
 					msg[2], pdata->user_command);
 		}
-		pdata->user_command = POGO_CMD_NONE;
-		if (pdata->user_command_data) {
-			devm_kfree(pdata->dev, pdata->user_command_data);
-			pdata->user_command_data = NULL;
-		}
+
+		INIT_USER_COMMAND(POGO_CMD_NONE, 0);
 	}
 }
 
