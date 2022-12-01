@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 #include "pogo_attribute_storage.h"
 
 #include <linux/byteorder/generic.h>

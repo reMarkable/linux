@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 #ifndef __POGO_ATTRIBUTE_STORAGE_H__
 #define __POGO_ATTRIBUTE_STORAGE_H__
 
