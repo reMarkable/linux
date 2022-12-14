@@ -16926,8 +16926,6 @@ int pt_probe(const struct pt_bus_ops *ops, struct device *dev,
 		goto error_after_startup;
 	}
 
-	/* Suspend scanning until probe is complete to avoid asyc touches */
-	pt_pip_suspend_scanning_(cd);
 
 	if (cd->hw_detected) {
 		pt_debug(dev, DL_INFO, "%s: Add sysfs interfaces\n",
@@ -16976,7 +16974,6 @@ skip_enum:
 	cd->pm_notifier.notifier_call = pt_pm_notifier;
 	register_pm_notifier(&cd->pm_notifier);
 #endif
-	pt_pip_resume_scanning_(cd);
 
 	mutex_lock(&cd->system_lock);
 	cd->startup_status |= status;
