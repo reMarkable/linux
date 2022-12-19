@@ -22,6 +22,8 @@
 
 #include <linux/mfd/sy7636a.h>
 
+static int sy7636a_regulator_resume(struct regulator_dev *rdev);
+
 static int get_vcom_voltage_op(struct regulator_dev *rdev)
 {
 	int ret;
@@ -90,6 +92,7 @@ static const struct regulator_ops sy7636a_vcom_volt_ops = {
 	.enable = enable_regulator_pgood,
 	.disable = disable_regulator,
 	.is_enabled = regulator_is_enabled_regmap,
+	.resume = sy7636a_regulator_resume,
 };
 
 struct regulator_desc desc = {
@@ -137,17 +140,28 @@ static int sy7636a_regulator_suspend(struct device *dev)
 	if (ret > 0)
 		sy7636a->vcom = (unsigned int)ret;
 
+	ret = regulator_is_enabled_regmap(sy7636a->rdev);
+
+	if (ret < 0) {
+		dev_err(dev,
+			"%s: Unable to retrieve is_enabled state for regulator: %d\n",
+			__func__, ret);
+		ret = 1; /* consider enabled */
+	}
+
+	sy7636a->stored_enabled_state = ret;
+
 	return 0;
 }
 
-static int sy7636a_regulator_resume(struct device *dev)
+static int sy7636a_regulator_resume(struct regulator_dev *rdev)
 {
 	int ret;
 
-	struct sy7636a *sy7636a = dev_get_drvdata(dev->parent);
+	struct sy7636a *sy7636a = dev_get_drvdata(rdev->dev.parent);
 
 	if (!sy7636a->vcom || sy7636a->vcom > 5000) {
-		dev_warn(dev, "Vcom value invalid, and thus not restored\n");
+		dev_warn(&rdev->dev, "Vcom value invalid, and thus not restored\n");
 	}
 	else {
 		ret = set_vcom_voltage_mv(sy7636a->regmap, sy7636a->vcom);
@@ -155,7 +169,17 @@ static int sy7636a_regulator_resume(struct device *dev)
 			return ret;
 	}
 
-	return sy7636a_regulator_init(sy7636a);
+	ret = sy7636a_regulator_init(sy7636a);
+	if(ret < 0)
+		return ret;
+
+	if (sy7636a->stored_enabled_state) {
+		dev_dbg(&rdev->dev, "%s: restoring enabled state\n", __func__);
+		ret = enable_regulator_pgood(sy7636a->rdev);
+		sy7636a->stored_enabled_state = false;
+	}
+
+	return ret;
 }
 
 static int sy7636a_regulator_probe(struct platform_device *pdev)
@@ -211,6 +235,8 @@ static int sy7636a_regulator_probe(struct platform_device *pdev)
 			pdev->name);
 		return PTR_ERR(rdev);
 	}
+	sy7636a->rdev = rdev;
+	sy7636a->stored_enabled_state = false;
 
 	return 0;
 }
@@ -222,7 +248,6 @@ MODULE_DEVICE_TABLE(platform, sy7636a_regulator_id_table);
 
 static const struct dev_pm_ops sy7636a_pm_ops = {
 	.suspend = sy7636a_regulator_suspend,
-	.resume = sy7636a_regulator_resume,
 };
 
 static struct platform_driver sy7636a_regulator_driver = {
