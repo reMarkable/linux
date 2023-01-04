@@ -26,23 +26,31 @@ struct sy7636a_data {
 	struct sy7636a *sy7636a;
 	struct thermal_zone_device *thermal_zone_dev;
 	struct regulator *regulator;
+	struct delayed_work disable_work;
+	bool is_enabled;
 };
 
 static int sy7636a_get_temp(void *arg, int *res)
 {
 	unsigned int reg_val;
-	int ret;
+	int ret = 0;
 	struct sy7636a_data *data = arg;
 
-	ret = regulator_enable(data->regulator);
-	if (ret)
-		return ret;
+	cancel_delayed_work_sync(&data->disable_work);
 
-	ret = regmap_read(data->sy7636a->regmap,
-			SY7636A_REG_TERMISTOR_READOUT, &reg_val);
+	if (!data->is_enabled) {
+		ret = regulator_enable(data->regulator);
+		if (ret) {
+			return ret;
+		}
+		data->is_enabled = true;
+	}
+
+	ret = regmap_read(data->sy7636a->regmap, SY7636A_REG_TERMISTOR_READOUT,
+			  &reg_val);
 
 	if (!ret) {
-		*res = *((signed char*)&reg_val);
+		*res = *((signed char *)&reg_val);
 		*res *= 1000;
 	}
 
@@ -51,9 +59,19 @@ static int sy7636a_get_temp(void *arg, int *res)
 	 * on system resume (1. thermal resume update 2. xochitl display
 	 * enabling).
 	 */
-	regulator_disable_deferred(data->regulator, 1000);
-
+	queue_delayed_work(system_power_efficient_wq, &data->disable_work,
+			   msecs_to_jiffies(1000));
 	return ret;
+}
+
+static void regulator_disable_work(struct work_struct *work)
+{
+	struct sy7636a_data *data =
+		container_of(work, struct sy7636a_data, disable_work.work);
+
+	if (regulator_disable(data->regulator) == 0) {
+		data->is_enabled = false;
+	}
 }
 
 static const struct thermal_zone_of_device_ops ops = {
@@ -71,6 +89,9 @@ static int sy7636a_thermal_probe(struct platform_device *pdev)
 	data = devm_kzalloc(&pdev->dev, sizeof(struct sy7636a_data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
+
+	data->is_enabled = false;
+	INIT_DELAYED_WORK(&data->disable_work, regulator_disable_work);
 
 	platform_set_drvdata(pdev, data);
 

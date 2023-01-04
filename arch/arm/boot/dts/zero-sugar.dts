@@ -645,6 +645,9 @@
 			compatible = "silergy,sy7636a-regulator";
 			reg_epdpmic: vcom {
 				regulator-name = "vcom";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
 			};
 		};
 	};
