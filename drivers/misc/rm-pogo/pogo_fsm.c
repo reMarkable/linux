@@ -60,24 +60,49 @@ const attribute_storage_id_t dev_info_attrs[] = {
 	ATTRIBUTE_ID_DEVICE_ID,	   ATTRIBUTE_ID_RM_SERIAL_NUMBER,
 };
 
-#define GET_AND_VERIFY_MSG(MSG, MSG_SIZE, RETURN, FSM_ERR)   \
-do { \
-	count = kfifo_out(&pdata->read_fifo, MSG, MSG_SIZE); \
-	if (count < 2) { \
-		dev_err(pdata->dev, "Ack message length < 2!\n"); \
-		if (FSM_ERR) \
-			pdata->fsm_err = true; \
-		return RETURN; \
-	} \
-	len = packet_payload_len(MSG); \
-	if (count < len + 3) {\
-		dev_err(pdata->dev, "Ack message length:%d, expected:%d!\n", \
-				count, len + 3); \
-		if (FSM_ERR) \
-			pdata->fsm_err = true; \
-		return RETURN; \
-	} \
-} while(0)
+/*
+ * If the payload size doesn't correspond to the size specified in the header
+ * we can't be sure of the rest of the buffer, so abort. entry_idle will
+ * reset read_fifo.
+ *
+ * This macro fetches at most once message from the buffer. Calls return with
+ * RETURN if buffer is empty or if the data found in the buffer does not match
+ * expectations.
+ */
+#define GET_AND_VERIFY_MSG(MSG, MSG_SIZE, RETURN, FSM_ERR)                       \
+	do {                                                                     \
+		memset(msg, 0, MSG_SIZE);                                        \
+		count = kfifo_out(&pdata->read_fifo, MSG,                        \
+				  3 /* header size */);                          \
+		if (count != 3) {                                                \
+			dev_dbg(pdata->dev,                                      \
+				"%s: Header length != 3. Got %d\n", __func__,    \
+				count);                                          \
+			if (FSM_ERR)                                             \
+				pdata->fsm_err = true;                           \
+			return RETURN;                                           \
+		}                                                                \
+                                                                                 \
+		len = packet_payload_len(MSG);                                   \
+		if (len > MSG_SIZE - 3) {                                        \
+			dev_err(pdata->dev,                                      \
+				"%s: Message length: %d > %d, too large\n",      \
+				__func__, len, MSG_SIZE - 3);                    \
+			if (FSM_ERR)                                             \
+				pdata->fsm_err = true;                           \
+			return RETURN;                                           \
+		}                                                                \
+                                                                                 \
+		count += kfifo_out(&pdata->read_fifo, MSG + 3, len);             \
+		if (count != 3 + len) {                                          \
+			dev_err(pdata->dev,                                      \
+				"%s: Message payload length:%d, expected:%d!\n", \
+				__func__, count, len);                           \
+			if (FSM_ERR)                                             \
+				pdata->fsm_err = true;                           \
+			return RETURN;                                           \
+		}                                                                \
+	} while (0)
 
 /******************************************************************************
  * EVENT FUNCTIONS
@@ -719,30 +744,31 @@ static bool fsm_exit_uart_keyboard(struct rm_pogo_data *pdata)
 	return true;
 }
 
-static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
+static __always_inline void
+fsm_routine_uart_keyboard_handle_message(struct rm_pogo_data *pdata,
+					 const u8 msg[ONE_WIRE_MCU_MSG_SIZE],
+					 const int count, int len)
 {
-	int count, ret, len, len_max;
-	u8 msg[ONE_WIRE_MCU_MSG_SIZE];
+	int ret;
+	int len_max;
 
-	if (!(pdata->app_session & APP_SESSION_UART))
-		return;
-
-	GET_AND_VERIFY_MSG(msg, ONE_WIRE_MCU_MSG_SIZE, , false);
+	dev_dbg(pdata->dev,
+		"%s: handling message with count %d and payload len %d\n",
+		__func__, count, len);
 
 	switch (msg[2]) {
 	case KB_REPORT_KEY:
 		mod_timer(&pdata->alive_timer,
 			  jiffies + msecs_to_jiffies(pdata->alive_timeout));
-		dev_dbg(pdata->dev, "report key val 0x%x\n", msg[3]);
 		pogo_keyboard_report(pdata, msg[3]);
-		return;
+		break;
 	case KB_REPORT_ALIVE:
 		mod_timer(&pdata->alive_timer,
 			  jiffies + msecs_to_jiffies(pdata->alive_timeout));
 
 		if (pdata->user_command != POGO_CMD_NONE) {
 			memset(pdata->user_command_response, 0x00,
-				sizeof(pdata->user_command_response));
+			       sizeof(pdata->user_command_response));
 			/* This will work also if there is no data to send.
 			 * In that case pdata->user_command == NULL and
 			 * pdata->user_command_data_len == 0 */
@@ -750,11 +776,10 @@ static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
 				"sending user cmd 0x%x with data of length %d\n",
 				pdata->user_command,
 				pdata->user_command_data_len);
-			ret = pogo_onewire_write(
-				pdata, pdata->user_command, 0,
-				pdata->user_command_data,
-				pdata->user_command_data_len,
-				true);
+			ret = pogo_onewire_write(pdata, pdata->user_command, 0,
+						 pdata->user_command_data,
+						 pdata->user_command_data_len,
+						 true);
 			if (ret != 0) {
 				dev_err(pdata->dev,
 					"failed sending user cmd 0x%x\n",
@@ -763,7 +788,7 @@ static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
 		}
 		mod_timer(&pdata->alive_timer,
 			  jiffies + msecs_to_jiffies(pdata->alive_timeout));
-		return;
+		break;
 	case POGO_CMD_ATTRIBUTE_READ:
 		len = packet_payload_len(msg);
 		update_pdata_from_attribute_read_response(pdata, &msg[3], len);
@@ -787,14 +812,11 @@ static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
 		pdata->fsm_err = true;
 		break;
 	default:
-		if (pdata->user_command == POGO_CMD_NONE) {
-				dev_err(pdata->dev, "Unsupported cmd 0x%x\n",
-					msg[2]);
-				return;
-		} else {
-				break;
-		}
+		if (pdata->user_command == POGO_CMD_NONE)
+			dev_err(pdata->dev, "Unsupported cmd 0x%x\n", msg[2]);
+		break;
 	}
+
 	/*
 	 * We should only get here if the command is anything else than
 	 * KB_REPORT_KEY or KB_REPORT_ALIVE as these commands are not allowed
@@ -802,12 +824,14 @@ static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
 	 */
 	if (pdata->user_command != POGO_CMD_NONE) {
 		if (msg[2] == pdata->user_command) {
-			dev_dbg(pdata->dev, "user command reply 0x%x\n", msg[2]);
+			dev_dbg(pdata->dev, "user command reply 0x%x\n",
+				msg[2]);
 			len = packet_len(msg);
 			len_max = sizeof(pdata->user_command_response);
 			if (len > len_max) {
-				dev_warn(pdata->dev,
-				"user command reply length (%d) exceeded allowed limit (%d)\n",
+				dev_warn(
+					pdata->dev,
+					"user command reply length (%d) exceeded allowed limit (%d)\n",
 					len, len_max);
 				/*
 				 * We choose not to abort here but to limit the output data to what the
@@ -819,13 +843,36 @@ static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
 		} else {
 			dev_dbg(pdata->dev,
 				"wrong user command reply 0x%x, expected 0x%x\n",
-					msg[2], pdata->user_command);
+				msg[2], pdata->user_command);
 		}
 		pdata->user_command = POGO_CMD_NONE;
 		if (pdata->user_command_data) {
 			devm_kfree(pdata->dev, pdata->user_command_data);
 			pdata->user_command_data = NULL;
 		}
+	}
+}
+
+static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
+{
+	int count, len;
+	u8 msg[ONE_WIRE_MCU_MSG_SIZE];
+
+	if (!(pdata->app_session & APP_SESSION_UART))
+		return;
+
+	dev_dbg(pdata->dev, "%s: handling RX uart data\n", __func__);
+
+	GET_AND_VERIFY_MSG(msg, ONE_WIRE_MCU_MSG_SIZE, , false);
+
+	while (count > 0) {
+		fsm_routine_uart_keyboard_handle_message(pdata, msg, count,
+							 len);
+
+		/* Do we have more data in the RX buffer? 
+		 * If not, that's fine, the macro will return from this
+		 * function. */
+		GET_AND_VERIFY_MSG(msg, ONE_WIRE_MCU_MSG_SIZE, , false);
 	}
 }
 

@@ -34,6 +34,12 @@
 #define ONE_WIRE_MCU_MSG_SIZE		280
 #define MAX_POGO_DEV_NAME		16
 
+/* Maximum number of maxium-size incoming messages that can be buffered while
+ * waiting to be handled by FSM. Actual number will be higher since most
+ * messages are a lot smaller than ONE_WIRE_MCU_MSG_SIZE.
+ */
+#define NUM_MSGS_RECV_BUFFER 4
+
 #define ONE_WIRE_UART_ACK		1
 #define ONE_WIRE_UART_LISTEN		2
 #define POGO_TX_RETRY_LIMIT		3
@@ -326,12 +332,12 @@ int __must_check pogo_onewire_write(struct rm_pogo_data *data, u8 cmd, u8 ext,
 			const unsigned char *msg, size_t count,
 			bool ack_required);
 
-static inline u32 packet_payload_len(u8 *msg)
+static inline u32 packet_payload_len(const u8 *msg)
 {
 	return msg[0] | ((msg[1] & 0xf) << 8);
 }
 
-static inline u32 packet_len(u8 *msg)
+static inline u32 packet_len(const u8 *msg)
 {
 	/* 3 is for two length bytes and command*/
 	return packet_payload_len(msg) + 3;

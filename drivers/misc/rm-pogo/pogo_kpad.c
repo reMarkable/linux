@@ -574,8 +574,8 @@ void pogo_keyboard_report(struct rm_pogo_data *pdata, u8 val)
 	row = 0x7 & (val >> 1);
 	col = 0xf & (val >> 4);
 	key = MATRIX_SCAN_CODE(row, col, pdata->kb_row_shift);
-	dev_dbg(pdata->dev, "Report row %d col %d key_idx %d code %d\n",
-		row, col, key, keycodes[key]);
+	dev_dbg(pdata->dev, "Report row %d col %d key_idx %d code %d active %d\n",
+		row, col, key, keycodes[key], val & 1);
 	input_report_key(pdata->kb_dev, keycodes[key], val & 1);
 	input_sync(pdata->kb_dev);
 }

@@ -239,14 +239,62 @@ int __must_check pogo_onewire_write(struct rm_pogo_data *data, u8 cmd, u8 ext,
 		return -EIO;
 }
 
+/*
+ * Handle one message. Only used in receive_buf.
+ *
+ * return -EINVAL on parsing error
+ * return -EAGAIN when we haven't received enough bytes given packet header len
+ */
+static __always_inline int pogo_onewire_receive_buf_handle_message(
+	struct rm_pogo_data *data, const unsigned char *buf, const size_t count)
+{
+	int i = 0;
+	unsigned int len = 0;
+	uint8_t checksum = 0;
+	uint8_t rcv_check = 0;
+
+	/* Follow Accessory interface description/specification:
+	 * start_1 : data_len_1 : cmd_2 : datax : checksum_from_len_1 : end_1
+	 */
+	if (buf[0] != '.') { /* check magic */
+		dev_warn(data->dev, "invalid magic 0x%2x\n", buf[0]);
+		return -EINVAL;
+	}
+
+	len = buf[1] | ((0xf & buf[2]) << 8);
+	if (5 + len > count) {
+		dev_warn(data->dev, "%d bytes ready, wait %d bytes\n", count,
+			 5 + len);
+		return -EAGAIN;
+	}
+
+	checksum = buf[1] + buf[2] + buf[3]; /* add len, cmd */
+
+	for (i = 0; i < len; i++) {
+		checksum += buf[4 + i];
+	}
+	rcv_check = buf[4 + len];
+
+	checksum += rcv_check;
+	if (checksum) {
+		dev_warn(data->dev, "rx packet checksum error\n");
+		return -EINVAL;
+	}
+
+	// SUCCESS
+	return len;
+}
+
 static int pogo_onewire_receive_buf(struct serdev_device *serdev,
-				const unsigned char *buf, size_t count)
+				const unsigned char *buf, const size_t count)
 {
 	struct rm_pogo_data *data = serdev_device_get_drvdata(serdev);
 	int i, ret = 0;
-	u16 len;
-	u8 rcv_check = 0, checksum = 0;
+	int len = 0;
+	int bytes_processed = 0;
+
 	const bool tx_ack_required_backup = data->tx_ack_required;
+
 	// FIXME Remove, only for debugging
 	unsigned char *str_buf =
 		kzalloc((ONE_WIRE_MAX_TX_MSG_SIZE * 2) + 1, GFP_KERNEL);
@@ -275,7 +323,7 @@ static int pogo_onewire_receive_buf(struct serdev_device *serdev,
 		return 0;
 	}
 
-	dev_dbg(data->dev, "%d bytes packet received.\n", count);
+	dev_dbg(data->dev, "%s: %d bytes data received.\n", __func__, count);
 
 	for (i = 0; i < count; ++i) {
 		snprintf(str_buf + (i * 2), 3, "%02hhx", buf[i]);
@@ -283,55 +331,67 @@ static int pogo_onewire_receive_buf(struct serdev_device *serdev,
 	dev_dbg(data->dev, "%s: complete recv msg: %s\n", __func__, str_buf);
 	kfree(str_buf);
 
+	/* For debugging from user-space */
 	if (count <= ONE_WIRE_MAX_TX_MSG_SIZE) {
 		memset(data->onewire_rx_buf, 0, ONE_WIRE_MAX_TX_MSG_SIZE);
 		memcpy(data->onewire_rx_buf, buf, count);
 		data->onewire_rx_buf_len = count;
 	}
 
-	/* Follow Accessory interface description/specification:
-	 * start_1 : data_len_1 : cmd_2 : datax : checksum_from_len_1 : end_1
+	/* There may be multiple messages in the RX buffer.
+	 * Parse one at a time, signal FSM thread once after.
 	 */
-	if (buf[0] != '.') {	/* check magic */
-		dev_warn(data->dev,
-			 "invalid magic 0x%2x\n", buf[0]);
-		if (data->tx_ack_required)
-			goto resend_unlock;
-		else
+	while (count > bytes_processed) {
+		ret = pogo_onewire_receive_buf_handle_message(
+			data, buf + bytes_processed, count - bytes_processed);
+
+		if (ret == -EINVAL) {
+			/* We've received a buffer we can't parse. We don't
+			 * want to get the same buffer contents again, so mark
+			 * all remaining as processed and drop. 
+			 */
+			bytes_processed = count;
+			if (data->tx_ack_required)
+				goto resend_unlock;
+			else
+				goto ignore_rx;
+
+		} else if (ret == -EAGAIN) {
+			/* We are waiting for more data. Don't mark this
+			 * message as processed. */
+			goto rx_unlock;
+		} else if (ret < 0) {
+			dev_warn(data->dev,
+				 "%s: unknown error %d, ignoring RX\n",
+				 __func__, ret);
+			bytes_processed = count;
 			goto ignore_rx;
+		}
+
+		// ret is now the payload len of the most recent packet
+		len = ret;
+
+		/* Do we have enough buffer space available? */
+		if (kfifo_avail(&data->read_fifo) < (3 + len)) {
+			dev_warn(
+				data->dev,
+				"%s: warning, receiving data faster than we can handle! overflow of %d bytes\n",
+				__func__,
+				(3 + len) - kfifo_avail(&data->read_fifo));
+			// We abort.
+			break;
+		} else {
+			/* send len, cmd and data to FSM layer */
+			ret = kfifo_in(&data->read_fifo,
+				       (buf + bytes_processed) + 1, 3 + len);
+			dev_dbg(data->dev, "%s: processed %d (len %d)\n",
+				__func__, 5 + len, len);
+
+			/* Set processed to what's actually processed, so magic
+			 * byte, header, payload and CRC. */
+			bytes_processed += (5 + len);
+		}
 	}
-
-	len = buf[1] | ((0xf & buf[2]) << 8);
-	if (5 + len > count) {
-		dev_warn(data->dev, "%d bytes ready, wait %d bytes\n",
-			 count, 5 + len);
-		count = 0;
-		goto rx_unlock;
-	}
-
-	checksum = buf[1] + buf[2] + buf[3];	/* add len, cmd */
-
-	for (i = 0; i < len; i++) {
-		checksum += buf[4 + i];
-	}
-	rcv_check = buf[4 + len];
-
-	checksum += rcv_check;
-	if (checksum) {
-		dev_warn(data->dev,
-			 "rx packet checksum error\n");
-		if (data->tx_ack_required)
-			goto resend_unlock;
-		else
-			goto ignore_rx;
-	}
-
-	/* send len, cmd and data to FSM layer */
-	ret = kfifo_in(&data->read_fifo, buf + 1, 3 + len);
-	dev_dbg(data->dev, "%s: %d bytes message received, wake up FSM..\n",
-		__func__, len + 3);
-
-	wake_up_process(data->fsm_thread);
 	goto rx_unlock;
 
 resend_unlock:
@@ -356,15 +416,22 @@ resend_unlock:
 	}
 
 rx_unlock:
+	if (bytes_processed > 0) {
+		dev_dbg(data->dev,
+			"%s: %d RX bytes processed. Waking up FSM...\n",
+			__func__, bytes_processed);
+		wake_up_process(data->fsm_thread);
+	}
+
 	mutex_unlock(&data->lock);
 
 	/* report the consumed data so those will not be reported again */
-	return count;
+	return bytes_processed;
 
 ignore_rx:
 	kfifo_reset(&data->read_fifo);
 	mutex_unlock(&data->lock);
-	return count;
+	return bytes_processed;
 }
 
 static const struct serdev_device_ops pogo_serdev_ops = {
@@ -490,7 +557,8 @@ static int rm_pogo_probe(struct serdev_device *serdev)
 
 	pdata->pogo_name = NULL;
 	ret = kfifo_alloc(&pdata->read_fifo,
-			  ONE_WIRE_MCU_MSG_SIZE, GFP_KERNEL);
+			  ONE_WIRE_MCU_MSG_SIZE * NUM_MSGS_RECV_BUFFER,
+			  GFP_KERNEL);
 	if (ret)
 		goto error_1;
 
