@@ -760,6 +760,9 @@ fsm_routine_uart_keyboard_handle_message(struct rm_pogo_data *pdata,
 	case KB_REPORT_KEY:
 		mod_timer(&pdata->alive_timer,
 			  jiffies + msecs_to_jiffies(pdata->alive_timeout));
+		dev_dbg(pdata->dev,
+			"report key val 0x%x, seq %d\n",
+			msg[3], msg[4]);
 		pogo_keyboard_report(pdata, msg[3]);
 		break;
 	case KB_REPORT_ALIVE:
