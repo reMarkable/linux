@@ -423,6 +423,8 @@ resend_unlock:
 		data->tx_ack_timeout = true;
 		wake_up_process(data->fsm_thread);
 	}
+	mutex_unlock(&data->lock);
+	return bytes_processed;
 
 rx_unlock:
 	if (bytes_processed > 0) {
