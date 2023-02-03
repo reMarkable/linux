@@ -261,6 +261,15 @@ static __always_inline int pogo_onewire_receive_buf_handle_message(
 		return -EINVAL;
 	}
 
+	if (count < ONE_WIRE_MIN_MSG_SIZE) {
+		dev_warn(
+			data->dev,
+			"%s: %d bytes message too short, a message is at least %d bytes."
+			"Waiting for more.\n",
+			__func__, count, ONE_WIRE_MIN_MSG_SIZE);
+		return -EAGAIN;
+	}
+
 	len = buf[1] | ((0xf & buf[2]) << 8);
 	if (5 + len > count) {
 		dev_warn(data->dev, "%d bytes ready, wait %d bytes\n", count,

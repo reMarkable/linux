@@ -33,6 +33,8 @@
 #define ONE_WIRE_SHORT_TX_MSG_SHORT	16
 #define ONE_WIRE_MCU_MSG_SIZE		280
 #define MAX_POGO_DEV_NAME		16
+/* A message is at least 5 bytes due to the magic byte, header and CRC byte. */
+#define ONE_WIRE_MIN_MSG_SIZE		5
 
 /* Maximum number of maxium-size incoming messages that can be buffered while
  * waiting to be handled by FSM. Actual number will be higher since most
