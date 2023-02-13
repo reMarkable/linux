@@ -209,6 +209,7 @@ struct rm_pogo_data {
 	int					mode_requested;
 	int					uart_rx_mode;
 	bool					serdev_ready;
+	bool					serdev_open;
 	bool					tx_ack_timeout;
 	bool					tx_ack_required;
 	bool					mcu_authenticated;

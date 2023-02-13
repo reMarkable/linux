@@ -205,8 +205,6 @@ static bool fsm_entry_idle(struct rm_pogo_data *pdata)
 	pdata->onewire_rx_buf_len = 0;
 	pdata->pogo_connected = false;
 
-	if (pdata->serdev_ready)
-		pogo_serdev_close(pdata);
 	pdata->serdev_ready = false;
 
 	pdata->tx_ack_timeout = false;
@@ -249,13 +247,17 @@ static bool fsm_entry_enumerate(struct rm_pogo_data *pdata)
 			"Unable to turn on OTG power, check connections\n");
 		return false;
 	}
-
+	if (pdata->serdev_open) {
+		pogo_serdev_close(pdata);
+		pdata->serdev_open = false;
+	}
 	/* Sleep to allow VBUS to be turned on */
 	usleep_range(20000, 21000);
 
-	if (!pogo_serdev_open(pdata))
+	if (!pogo_serdev_open(pdata)) {
+		pdata->serdev_open = true;
 		pdata->serdev_ready = true;
-	else {
+	} else {
 		return false;
 	}
 
@@ -708,8 +710,6 @@ static void fsm_routine_start_app(struct rm_pogo_data *pdata)
 
 static void clean_up_uart_keyboard(struct rm_pogo_data *pdata)
 {
-	if (pdata->serdev_ready)
-		pogo_serdev_close(pdata);
 	pdata->serdev_ready = false;
 
 	if (pdata->kb_dev == NULL)

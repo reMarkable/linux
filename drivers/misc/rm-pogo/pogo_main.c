@@ -298,15 +298,11 @@ static int pogo_onewire_receive_buf(struct serdev_device *serdev,
 				const unsigned char *buf, const size_t count)
 {
 	struct rm_pogo_data *data = serdev_device_get_drvdata(serdev);
-	int i, ret = 0;
+	int ret = 0;
 	int len = 0;
 	int bytes_processed = 0;
 
 	const bool tx_ack_required_backup = data->tx_ack_required;
-
-	// FIXME Remove, only for debugging
-	unsigned char *str_buf =
-		kzalloc((ONE_WIRE_MAX_TX_MSG_SIZE * 2) + 1, GFP_KERNEL);
 
 	/* The tx ack timeout work might run here. To avoid the work triggering
 	 * a timeout just as we might be about to/just as we have resent a
@@ -320,25 +316,18 @@ static int pogo_onewire_receive_buf(struct serdev_device *serdev,
 	cancel_delayed_work_sync(&data->uart_tx_ack_watchdog_work_queue);
 	data->tx_ack_required = tx_ack_required_backup;
 
-	if (!mutex_trylock(&data->lock)) {
-		/* When FSM fall back to idle, serdev_device_close() is called.
-		 * At the same time TTY core may call pogo_onewire_receive_buf()
-		 * to notify pogo driver to handle just received RX data.
-		 * serdev_device_close() want to hold tty lock with pogo lock held,
-		 * while pogo_onewire_receive_buf() want to hold pogo lock
-		 * with tty lock held.
-		 */
-		dev_warn(data->dev, "%s: mutex_trylock failed\n", __func__);
-		return 0;
+	print_hex_dump_debug("pogo raw data:", DUMP_PREFIX_NONE, count, 1,
+			     buf, count, false);
+
+	mutex_lock(&data->lock);
+	if (!data->serdev_ready) {
+		dev_warn(data->dev, "%s: serdev is not ready, dropping data\n", __func__);
+		mutex_unlock(&data->lock);
+		return count;
 	}
 
 	dev_dbg(data->dev, "%s: %d bytes data received.\n", __func__, count);
 
-	for (i = 0; i < count; ++i) {
-		snprintf(str_buf + (i * 2), 3, "%02hhx", buf[i]);
-	}
-	dev_dbg(data->dev, "%s: complete recv msg: %s\n", __func__, str_buf);
-	kfree(str_buf);
 
 	/* For debugging from user-space */
 	if (count <= ONE_WIRE_MAX_TX_MSG_SIZE) {
@@ -545,6 +534,7 @@ static int rm_pogo_probe(struct serdev_device *serdev)
 	pdata->dev = dev;
 	pdata->serdev = serdev;
 	pdata->serdev_ready = false;
+	pdata->serdev_open = false;
 	mutex_init(&pdata->lock);
 
 	serdev_device_set_drvdata(serdev, pdata);
