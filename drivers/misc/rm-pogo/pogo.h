@@ -234,10 +234,11 @@ struct rm_pogo_data {
 	struct timer_list			alive_timer;
 	unsigned int				kb_row_shift;
 
-	u8				user_command;
-	u8				*user_command_data;
-	int				user_command_data_len;
-	u8				user_command_response[ONE_WIRE_MCU_MSG_SIZE];
+	u8					user_command;
+	bool					user_command_sent;
+	u8					*user_command_data;
+	int					user_command_data_len;
+	u8					user_command_response[ONE_WIRE_MCU_MSG_SIZE];
 
 	struct pinctrl*				one_wire_pinctrl;
 	struct pinctrl_state*			one_wire_pinctrl_states[POGO_ONEWIRE_STATE_NR];

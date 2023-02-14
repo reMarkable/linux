@@ -25,6 +25,7 @@
 			pdata->user_command_data = (u8 *)devm_kmalloc(         \
 				pdata->dev, DATA_SIZE, GFP_KERNEL);            \
 		pdata->user_command = COMMAND;                                 \
+		pdata->user_command_sent = false;                              \
 		pdata->user_command_data_len = DATA_SIZE;                      \
 	} while (0)
 

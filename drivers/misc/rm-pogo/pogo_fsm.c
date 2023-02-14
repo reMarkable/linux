@@ -195,12 +195,13 @@ static bool fsm_entry_idle(struct rm_pogo_data *pdata)
 	pdata->mfg_log = 0;
 	pdata->mcu_alive_interval = 0;
 	pdata->user_command = POGO_CMD_NONE;
+	pdata->user_command_sent = false;
 	if (pdata->user_command_data) {
 		devm_kfree(pdata->dev, pdata->user_command_data);
 	}
 	pdata->user_command_data = NULL;
 	pdata->user_command_data_len = 0;
-	
+
 	memset(pdata->onewire_rx_buf, 0, ONE_WIRE_MAX_TX_MSG_SIZE);
 	pdata->onewire_rx_buf_len = 0;
 	pdata->pogo_connected = false;
@@ -769,7 +770,7 @@ fsm_routine_uart_keyboard_handle_message(struct rm_pogo_data *pdata,
 		mod_timer(&pdata->alive_timer,
 			  jiffies + msecs_to_jiffies(pdata->alive_timeout));
 
-		if (pdata->user_command != POGO_CMD_NONE) {
+		if (pdata->user_command != POGO_CMD_NONE && !pdata->user_command_sent) {
 			memset(pdata->user_command_response, 0x00,
 			       sizeof(pdata->user_command_response));
 			/* This will work also if there is no data to send.
@@ -788,10 +789,11 @@ fsm_routine_uart_keyboard_handle_message(struct rm_pogo_data *pdata,
 					"failed sending user cmd 0x%x\n",
 					pdata->user_command);
 			}
+			pdata->user_command_sent = true;
 		}
 		mod_timer(&pdata->alive_timer,
 			  jiffies + msecs_to_jiffies(pdata->alive_timeout));
-		break;
+		return;
 	case POGO_CMD_ATTRIBUTE_READ:
 		len = packet_payload_len(msg);
 		update_pdata_from_attribute_read_response(pdata, &msg[3], len);
@@ -825,7 +827,7 @@ fsm_routine_uart_keyboard_handle_message(struct rm_pogo_data *pdata,
 	 * KB_REPORT_KEY or KB_REPORT_ALIVE as these commands are not allowed
 	 * to be sent as user commands
 	 */
-	if (pdata->user_command != POGO_CMD_NONE) {
+	if (pdata->user_command != POGO_CMD_NONE && pdata->user_command_sent) {
 		if (msg[2] == pdata->user_command) {
 			dev_dbg(pdata->dev, "user command reply 0x%x\n",
 				msg[2]);
@@ -849,10 +851,12 @@ fsm_routine_uart_keyboard_handle_message(struct rm_pogo_data *pdata,
 				msg[2], pdata->user_command);
 		}
 		pdata->user_command = POGO_CMD_NONE;
+		pdata->user_command_sent = false;
 		if (pdata->user_command_data) {
 			devm_kfree(pdata->dev, pdata->user_command_data);
 			pdata->user_command_data = NULL;
 		}
+		return;
 	}
 }
 
@@ -872,7 +876,7 @@ static void fsm_routine_uart_keyboard(struct rm_pogo_data *pdata)
 		fsm_routine_uart_keyboard_handle_message(pdata, msg, count,
 							 len);
 
-		/* Do we have more data in the RX buffer? 
+		/* Do we have more data in the RX buffer?
 		 * If not, that's fine, the macro will return from this
 		 * function. */
 		GET_AND_VERIFY_MSG(msg, ONE_WIRE_MCU_MSG_SIZE, , false);
