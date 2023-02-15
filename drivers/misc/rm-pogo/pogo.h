@@ -208,7 +208,8 @@ struct rm_pogo_data {
 
 	int					mode_requested;
 	int					uart_rx_mode;
-	bool					serdev_ready;
+	atomic_t				serdev_ready;
+	bool					serdev_open;
 	bool					tx_ack_timeout;
 	bool					tx_ack_required;
 	bool					mcu_authenticated;
@@ -233,10 +234,11 @@ struct rm_pogo_data {
 	struct timer_list			alive_timer;
 	unsigned int				kb_row_shift;
 
-	u8				user_command;
-	u8				*user_command_data;
-	int				user_command_data_len;
-	u8				user_command_response[ONE_WIRE_MCU_MSG_SIZE];
+	u8					user_command;
+	bool					user_command_sent;
+	u8					*user_command_data;
+	int					user_command_data_len;
+	u8					user_command_response[ONE_WIRE_MCU_MSG_SIZE];
 
 	struct pinctrl*				one_wire_pinctrl;
 	struct pinctrl_state*			one_wire_pinctrl_states[POGO_ONEWIRE_STATE_NR];
