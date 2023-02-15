@@ -206,7 +206,7 @@ static bool fsm_entry_idle(struct rm_pogo_data *pdata)
 	pdata->onewire_rx_buf_len = 0;
 	pdata->pogo_connected = false;
 
-	pdata->serdev_ready = false;
+	atomic_set(&pdata->serdev_ready, 0);
 
 	pdata->tx_ack_timeout = false;
 	pdata->tx_ack_required = false;
@@ -257,7 +257,7 @@ static bool fsm_entry_enumerate(struct rm_pogo_data *pdata)
 
 	if (!pogo_serdev_open(pdata)) {
 		pdata->serdev_open = true;
-		pdata->serdev_ready = true;
+		atomic_set(&pdata->serdev_ready, 1);
 	} else {
 		return false;
 	}
@@ -711,7 +711,7 @@ static void fsm_routine_start_app(struct rm_pogo_data *pdata)
 
 static void clean_up_uart_keyboard(struct rm_pogo_data *pdata)
 {
-	pdata->serdev_ready = false;
+	atomic_set(&pdata->serdev_ready, 0);
 
 	if (pdata->kb_dev == NULL)
 		return;

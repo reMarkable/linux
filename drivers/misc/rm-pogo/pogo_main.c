@@ -319,15 +319,28 @@ static int pogo_onewire_receive_buf(struct serdev_device *serdev,
 	print_hex_dump_debug("pogo raw data:", DUMP_PREFIX_NONE, count, 1,
 			     buf, count, false);
 
-	mutex_lock(&data->lock);
-	if (!data->serdev_ready) {
+
+	/* We are closing serdev on connect (if open), not on disconnect.
+	 * There is a small possibility for MCU to send a message if it is
+	 * physically disconnected and reconnected within a very short time. This is
+	 * because there might just enough charge to keep the MCU running.
+	 * At the same time the driver has initialized re-connection and tries to
+	 * close serdev. In that situation the pogo lock is taken by fsm_entry_enumerate()
+	 * while the tty lock is taken by pogo_onewire_receive_buf(). Then both
+	 * functions try to take the other lock resulting in deadlock.
+	 * At the same time serdev_ready should be 0. It is safe to check it
+	 * without taking the lock and exit allowing fsm_entry_enumerate() to
+	 * close and open serdev without deadlocking.
+	 */
+
+	if (atomic_read(&data->serdev_ready) == 0) {
 		dev_warn(data->dev, "%s: serdev is not ready, dropping data\n", __func__);
-		mutex_unlock(&data->lock);
 		return count;
 	}
 
-	dev_dbg(data->dev, "%s: %d bytes data received.\n", __func__, count);
+	mutex_lock(&data->lock);
 
+	dev_dbg(data->dev, "%s: %d bytes data received.\n", __func__, count);
 
 	/* For debugging from user-space */
 	if (count <= ONE_WIRE_MAX_TX_MSG_SIZE) {
@@ -533,7 +546,7 @@ static int rm_pogo_probe(struct serdev_device *serdev)
 
 	pdata->dev = dev;
 	pdata->serdev = serdev;
-	pdata->serdev_ready = false;
+	atomic_set(&pdata->serdev_ready, 0);
 	pdata->serdev_open = false;
 	mutex_init(&pdata->lock);
 
