@@ -168,10 +168,10 @@
 	otgcontrol: otgcontrol1 {
 		pinctrl-names = "default", "one_wire_uart_tx", "one_wire_uart_rx",
 				"sleep";
-		pinctrl-0 = <&pinctrl_one_wire_gpio>;
+		pinctrl-0 = <&pinctrl_one_wire_otg_gpio>;
 		pinctrl-1 = <&pinctrl_one_wire_uart6_tx>;
 		pinctrl-2 = <&pinctrl_one_wire_uart6_rx>;
-		pinctrl-3 = <&pinctrl_one_wire_gpio>;
+		pinctrl-3 = <&pinctrl_one_wire_otg_gpio>;
 		compatible = "rm-otgcontrol";
 		vbus-supply =<&max77818_fg>;
 		one-wire-tty-name = "ttymxc5";
@@ -1028,6 +1028,13 @@
 	pinctrl_wdog: wdoggrp {
 		fsl,pins = <
 			MX7D_PAD_ENET1_COL__WDOG1_WDOG_ANY	0x74
+		>;
+	};
+
+	pinctrl_one_wire_otg_gpio: one_wire_otg_gpio_grp {
+		fsl,pins = <
+			MX7D_PAD_EPDC_DATA08__GPIO2_IO8		0x00000004
+			MX7D_PAD_EPDC_DATA09__GPIO2_IO9		0x00000004
 		>;
 	};
 

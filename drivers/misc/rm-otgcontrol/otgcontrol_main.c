@@ -100,7 +100,7 @@ static int rm_otgcontrol_init(struct rm_otgcontrol_data *otgc_data)
 static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
 {
 	struct device *dev = otgc_data->dev;
-	struct device_node *np = dev->of_node;
+	struct device_node *np;
 	struct rm_otgcontrol_platform_data *pdata = otgc_data->pdata;
 	const char *vbus_supply_name;
 	int ret = 0;
@@ -108,6 +108,16 @@ static int rm_otgcontrol_parse_dt(struct rm_otgcontrol_data *otgc_data)
 	dev_dbg(otgc_data->dev,
 		"%s: Enter\n",
 		__func__);
+
+	np = of_find_node_by_name(NULL, "otgcontrol1");
+
+	if (!np) {
+    		dev_err(otgc_data->dev,
+		"%s: Failed looking up node 'otgcontrol1'\n",
+		__func__);
+		return -EINVAL;
+	}
+	dev->of_node = np;
 
 	if (of_find_property(np, "vbus-supply", NULL)) {
 		dev_dbg(otgc_data->dev,
@@ -366,7 +376,7 @@ static SIMPLE_DEV_PM_OPS(rm_otgcontrol_pm_ops,
 
 static struct platform_driver rm_otgcontrol_driver = {
 	.driver = {
-		.name = "rm_otg_control",
+		.name = "rm-otgcontrol",
 		.owner = THIS_MODULE,
 #ifdef CONFIG_PM
 		.pm = &rm_otgcontrol_pm_ops,
@@ -377,7 +387,39 @@ static struct platform_driver rm_otgcontrol_driver = {
 	.remove = rm_otgcontrol_remove,
 };
 
-module_platform_driver(rm_otgcontrol_driver);
+/*
+ * module_platform_driver(rm_otgcontrol_driver);
+ * we are not using module_platform_driver(rm_otgcontrol_driver)
+ * to be able to register the device within this driver
+ */
+
+static struct platform_device *rm_otgcontrol_dev;
+
+static int __init rm_otgcontrol_driver_init(void)
+{
+	int ret;
+
+	rm_otgcontrol_dev = platform_device_alloc("rm-otgcontrol", -1);
+	if (!rm_otgcontrol_dev)
+		return -ENOMEM;
+
+	ret = platform_device_add(rm_otgcontrol_dev);
+	if (ret) {
+		pr_err("%s: Failed registering device\n", __func__);
+		platform_device_put(rm_otgcontrol_dev);
+		return -ENOMEM;
+	}
+
+	return platform_driver_register(&rm_otgcontrol_driver);
+}
+module_init(rm_otgcontrol_driver_init);
+static void __exit rm_otgcontrol_driver_exit(void) \
+{
+	platform_driver_unregister(&(rm_otgcontrol_driver));
+	platform_device_unregister(rm_otgcontrol_dev);
+}
+module_exit(rm_otgcontrol_driver_exit);
+
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("reMarkable OTG control driver, to enable authentication of "
