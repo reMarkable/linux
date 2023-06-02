@@ -191,6 +191,9 @@ static ssize_t power_supply_show_property(struct device *dev,
 	case POWER_SUPPLY_PROP_MODEL_NAME ... POWER_SUPPLY_PROP_SERIAL_NUMBER:
 		ret = sprintf(buf, "%s\n", value.strval);
 		break;
+	case POWER_SUPPLY_PROP_CAPACITY_HIRES:
+		ret = sprintf(buf, "%s\n", value.strval);
+		break;
 	default:
 		ret = sprintf(buf, "%d\n", value.intval);
 	}
@@ -344,6 +347,8 @@ static struct device_attribute power_supply_attrs[] = {
 	 * which of the two charger inputs are connected
 	 */
 	POWER_SUPPLY_ATTR(status_ex),
+	/* MAX77818-battery specific property to get high resolution battery capacity */
+	POWER_SUPPLY_ATTR(capacity_hires),
 };
 
 static struct attribute *

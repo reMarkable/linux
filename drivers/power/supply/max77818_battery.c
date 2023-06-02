@@ -170,6 +170,7 @@ struct max77818_chip {
 	struct completion init_completion;
 	struct mutex lock;
 	bool enable_soc_hysteresis;
+	char capacity_hires[8];
 };
 
 static enum power_supply_property max77818_battery_props[] = {
@@ -199,6 +200,7 @@ static enum power_supply_property max77818_battery_props[] = {
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_CHARGER_MODE,
+	POWER_SUPPLY_PROP_CAPACITY_HIRES,
 };
 
 static const char * const max77818_status_ex_text[] = {
@@ -723,6 +725,13 @@ static int max77818_get_property(struct power_supply *psy,
 		ret = max77818_get_charger_mode(chip, &val->intval);
 		if (ret)
 			return ret;
+		break;
+	case POWER_SUPPLY_PROP_CAPACITY_HIRES:
+		ret = regmap_read(map, MAX17042_RepSOC, &data);
+		if (ret < 0)
+			return ret;
+		sprintf(chip->capacity_hires, "%d.%d", data >> 8, data & 0xFF);
+		val->strval = chip->capacity_hires;
 		break;
 	default:
 		return -EINVAL;

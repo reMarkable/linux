@@ -186,6 +186,8 @@ enum power_supply_property {
 	 * which of the two charger inputs are connected
 	 */
 	POWER_SUPPLY_PROP_STATUS_EX,
+	/* MAX77818-battery specific property to get high resolution battery capacity */
+	POWER_SUPPLY_PROP_CAPACITY_HIRES,
 };
 
 enum power_supply_type {
