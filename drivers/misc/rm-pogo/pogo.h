@@ -233,6 +233,8 @@ struct rm_pogo_data {
 	bool 					mcu_detach_work_active;
 	struct timer_list			alive_timer;
 	unsigned int				kb_row_shift;
+	u8                                      layer;
+	u8                                      layers;
 
 	u8					user_command;
 	bool					user_command_sent;

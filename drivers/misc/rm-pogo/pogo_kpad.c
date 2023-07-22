@@ -165,7 +165,7 @@ static const uint32_t pogo_keymap_proto3[] = {
 	KEY(2, 1, KEY_LEFTALT),
 	KEY(2, 2, KEY_RESERVED),
 	KEY(2, 3, KEY_BACKSPACE),
-	KEY(2, 4, KEY_BACKSLASH),
+	KEY(2, 4, KEY_EQUAL),
 	KEY(2, 5, KEY_LEFT),
 	KEY(2, 6, KEY_ENTER),
 	KEY(2, 7, KEY_7),
@@ -179,7 +179,7 @@ static const uint32_t pogo_keymap_proto3[] = {
 	KEY(3, 0, KEY_RESERVED),
 	KEY(3, 1, KEY_RESERVED),
 	KEY(3, 2, KEY_RESERVED),
-	KEY(3, 3, KEY_RIGHTBRACE),
+	KEY(3, 3, KEY_LEFTBRACE),
 	KEY(3, 4, KEY_0),
 	KEY(3, 5, KEY_C),
 	KEY(3, 6, KEY_UP),
@@ -213,7 +213,7 @@ static const uint32_t pogo_keymap_proto3[] = {
 	KEY(5, 4, KEY_N),
 	KEY(5, 5, KEY_9),
 	KEY(5, 6, KEY_H),
-	KEY(5, 7, KEY_GRAVE),
+	KEY(5, 7, KEY_SLASH),
 	KEY(5, 8, KEY_RESERVED),
 	KEY(5, 9, KEY_RESERVED),
 	KEY(5, 10, KEY_RESERVED),
@@ -236,6 +236,220 @@ static const uint32_t pogo_keymap_proto3[] = {
 	KEY(6, 12, KEY_RESERVED),
 	KEY(6, 13, KEY_RESERVED),
 	KEY(6, 14, KEY_RESERVED),
+
+	/* layer 1 */
+	KEY(7, 0, KEY_RESERVED),
+	KEY(7, 1, KEY_RESERVED),
+	KEY(7, 2, KEY_RESERVED),
+	KEY(7, 3, KEY_END),
+	KEY(7, 4, KEY_RESERVED),
+	KEY(7, 5, KEY_RESERVED),
+	KEY(7, 6, KEY_RESERVED),
+	KEY(7, 7, KEY_B),
+	KEY(7, 8, KEY_X),
+	KEY(7, 9, KEY_K),
+	KEY(7, 10, KEY_E),
+	KEY(7, 11, KEY_Q),
+	KEY(7, 12, KEY_SEMICOLON),
+	KEY(7, 13, KEY_RESERVED),
+	KEY(7, 14, KEY_LEFTSHIFT),
+	KEY(8, 0, KEY_RESERVED),
+	KEY(8, 1, KEY_RESERVED),
+	KEY(8, 2, KEY_RESERVED),
+	KEY(8, 3, KEY_RESERVED),
+	KEY(8, 4, KEY_PAGEDOWN),
+	KEY(8, 5, KEY_RESERVED),
+	KEY(8, 6, KEY_RESERVED),
+	KEY(8, 7, KEY_D),
+	KEY(8, 8, KEY_I),
+	KEY(8, 9, KEY_U),
+	KEY(8, 10, KEY_J),
+	KEY(8, 11, KEY_RESERVED),
+	KEY(8, 12, KEY_RESERVED),
+	KEY(8, 13, KEY_END),
+	KEY(8, 14, KEY_RESERVED),
+	KEY(9, 0, KEY_LEFTCTRL),
+	KEY(9, 1, KEY_LEFTALT),
+	KEY(9, 2, KEY_RESERVED),
+	KEY(9, 3, KEY_DELETE),
+	KEY(9, 4, KEY_BACKSLASH),
+	KEY(9, 5, KEY_HOME),
+	KEY(9, 6, KEY_ENTER),
+	KEY(9, 7, KEY_7),
+	KEY(9, 8, KEY_Y),
+	KEY(9, 9, KEY_DOT),
+	KEY(9, 10, KEY_P),
+	KEY(9, 11, KEY_COMMA),
+	KEY(9, 12, KEY_APOSTROPHE),
+	KEY(9, 13, KEY_RESERVED),
+	KEY(9, 14, KEY_RESERVED),
+	KEY(10, 0, KEY_RESERVED),
+	KEY(10, 1, KEY_RESERVED),
+	KEY(10, 2, KEY_RESERVED),
+	KEY(10, 3, KEY_RIGHTBRACE),
+	KEY(10, 4, KEY_0),
+	KEY(10, 5, KEY_C),
+	KEY(10, 6, KEY_PAGEUP),
+	KEY(10, 7, KEY_F),
+	KEY(10, 8, KEY_6),
+	KEY(10, 9, KEY_5),
+	KEY(10, 10, KEY_4),
+	KEY(10, 11, KEY_3),
+	KEY(10, 12, KEY_LEFTCTRL),
+	KEY(10, 13, KEY_O),
+	KEY(10, 14, KEY_A),
+	KEY(11, 0, KEY_RESERVED),
+	KEY(11, 1, KEY_RESERVED),
+	KEY(11, 2, KEY_HOME),
+	KEY(11, 3, KEY_L),
+	KEY(11, 4, KEY_R),
+	KEY(11, 5, KEY_T),
+	KEY(11, 6, KEY_G),
+	KEY(11, 7, KEY_8),
+	KEY(11, 8, KEY_RESERVED),
+	KEY(11, 9, KEY_RESERVED),
+	KEY(11, 10, KEY_RESERVED),
+	KEY(11, 11, KEY_2),
+	KEY(11, 12, KEY_ESC),
+	KEY(11, 13, KEY_RESERVED),
+	KEY(11, 14, KEY_RESERVED),
+	KEY(12, 0, KEY_RESERVED),
+	KEY(12, 1, KEY_RESERVED),
+	KEY(12, 2, KEY_RESERVED),
+	KEY(12, 3, KEY_S),
+	KEY(12, 4, KEY_N),
+	KEY(12, 5, KEY_9),
+	KEY(12, 6, KEY_H),
+	KEY(12, 7, KEY_SLASH),
+	KEY(12, 8, KEY_RESERVED),
+	KEY(12, 9, KEY_RESERVED),
+	KEY(12, 10, KEY_RESERVED),
+	KEY(12, 11, KEY_RESERVED),
+	KEY(12, 12, KEY_GRAVE),
+	KEY(12, 13, KEY_RESERVED),
+	KEY(12, 14, KEY_RIGHTSHIFT),
+	KEY(13, 0, KEY_RESERVED),
+	KEY(13, 1, KEY_RIGHTALT),
+	KEY(13, 2, KEY_SPACE),
+	KEY(13, 3, KEY_Z),
+	KEY(13, 4, KEY_V),
+	KEY(13, 5, KEY_W),
+	KEY(13, 6, KEY_M),
+	KEY(13, 7, KEY_MINUS),
+	KEY(13, 8, KEY_RESERVED),
+	KEY(13, 9, KEY_RESERVED),
+	KEY(13, 10, KEY_RESERVED),
+	KEY(13, 11, KEY_RESERVED),
+	KEY(13, 12, KEY_RESERVED),
+	KEY(13, 13, KEY_RESERVED),
+	KEY(13, 14, KEY_RESERVED),
+
+	/* layer 2 */
+	KEY(14, 0, KEY_RESERVED),
+	KEY(14, 1, KEY_RESERVED),
+	KEY(14, 2, KEY_RESERVED),
+	KEY(14, 3, KEY_RIGHT),
+	KEY(14, 4, KEY_RESERVED),
+	KEY(14, 5, KEY_RESERVED),
+	KEY(14, 6, KEY_RESERVED),
+	KEY(14, 7, KEY_B),
+	KEY(14, 8, KEY_X),
+	KEY(14, 9, KEY_K),
+	KEY(14, 10, KEY_E),
+	KEY(14, 11, KEY_Q),
+	KEY(14, 12, KEY_SEMICOLON),
+	KEY(14, 13, KEY_RESERVED),
+	KEY(14, 14, KEY_LEFTSHIFT),
+	KEY(15, 0, KEY_RESERVED),
+	KEY(15, 1, KEY_RESERVED),
+	KEY(15, 2, KEY_RESERVED),
+	KEY(15, 3, KEY_RESERVED),
+	KEY(15, 4, KEY_DOWN),
+	KEY(15, 5, KEY_RESERVED),
+	KEY(15, 6, KEY_RESERVED),
+	KEY(15, 7, KEY_D),
+	KEY(15, 8, KEY_I),
+	KEY(15, 9, KEY_U),
+	KEY(15, 10, KEY_J),
+	KEY(15, 11, KEY_RESERVED),
+	KEY(15, 12, KEY_RESERVED),
+	KEY(15, 13, KEY_END),
+	KEY(15, 14, KEY_RESERVED),
+	KEY(16, 0, KEY_LEFTCTRL),
+	KEY(16, 1, KEY_LEFTALT),
+	KEY(16, 2, KEY_RESERVED),
+	KEY(16, 3, KEY_F12),
+	KEY(16, 4, KEY_EQUAL),
+	KEY(16, 5, KEY_LEFT),
+	KEY(16, 6, KEY_ENTER),
+	KEY(16, 7, KEY_F7),
+	KEY(16, 8, KEY_Y),
+	KEY(16, 9, KEY_DOT),
+	KEY(16, 10, KEY_P),
+	KEY(16, 11, KEY_COMMA),
+	KEY(16, 12, KEY_APOSTROPHE),
+	KEY(16, 13, KEY_RESERVED),
+	KEY(16, 14, KEY_RESERVED),
+	KEY(17, 0, KEY_RESERVED),
+	KEY(17, 1, KEY_RESERVED),
+	KEY(17, 2, KEY_RESERVED),
+	KEY(17, 3, KEY_F11),
+	KEY(17, 4, KEY_F10),
+	KEY(17, 5, KEY_C),
+	KEY(17, 6, KEY_UP),
+	KEY(17, 7, KEY_F),
+	KEY(17, 8, KEY_F6),
+	KEY(17, 9, KEY_F5),
+	KEY(17, 10, KEY_F4),
+	KEY(17, 11, KEY_F3),
+	KEY(17, 12, KEY_LEFTCTRL),
+	KEY(17, 13, KEY_O),
+	KEY(17, 14, KEY_A),
+	KEY(18, 0, KEY_RESERVED),
+	KEY(18, 1, KEY_RESERVED),
+	KEY(18, 2, KEY_HOME),
+	KEY(18, 3, KEY_L),
+	KEY(18, 4, KEY_R),
+	KEY(18, 5, KEY_T),
+	KEY(18, 6, KEY_G),
+	KEY(18, 7, KEY_F8),
+	KEY(18, 8, KEY_RESERVED),
+	KEY(18, 9, KEY_RESERVED),
+	KEY(18, 10, KEY_RESERVED),
+	KEY(18, 11, KEY_F2),
+	KEY(18, 12, KEY_F1),
+	KEY(18, 13, KEY_RESERVED),
+	KEY(18, 14, KEY_RESERVED),
+	KEY(19, 0, KEY_RESERVED),
+	KEY(19, 1, KEY_RESERVED),
+	KEY(19, 2, KEY_RESERVED),
+	KEY(19, 3, KEY_S),
+	KEY(19, 4, KEY_N),
+	KEY(19, 5, KEY_F9),
+	KEY(19, 6, KEY_H),
+	KEY(19, 7, KEY_SLASH),
+	KEY(19, 8, KEY_RESERVED),
+	KEY(19, 9, KEY_RESERVED),
+	KEY(19, 10, KEY_RESERVED),
+	KEY(19, 11, KEY_RESERVED),
+	KEY(19, 12, KEY_TAB),
+	KEY(19, 13, KEY_RESERVED),
+	KEY(19, 14, KEY_RIGHTSHIFT),
+	KEY(20, 0, KEY_RESERVED),
+	KEY(20, 1, KEY_RIGHTALT),
+	KEY(20, 2, KEY_SPACE),
+	KEY(20, 3, KEY_Z),
+	KEY(20, 4, KEY_V),
+	KEY(20, 5, KEY_W),
+	KEY(20, 6, KEY_M),
+	KEY(20, 7, KEY_MINUS),
+	KEY(20, 8, KEY_RESERVED),
+	KEY(20, 9, KEY_RESERVED),
+	KEY(20, 10, KEY_RESERVED),
+	KEY(20, 11, KEY_RESERVED),
+	KEY(20, 12, KEY_RESERVED),
+	KEY(20, 13, KEY_RESERVED),
+	KEY(20, 14, KEY_RESERVED),
 };
 
 /* Debug for Proto#3, Seabird_2022 0511 */
@@ -458,11 +672,27 @@ static const uint32_t pogo_keymap_proto3_type_c[] = {
     KEY(6, 14, KEY_RESERVED),
 };
 
+struct pogo_layerdata {
+    u8 row;
+    u8 col;
+};
 
 struct pogo_keydata {
 	struct matrix_keymap_data keymap_data;
 	u8 row;
 	u8 col;
+	u8 layer;
+};
+
+static struct pogo_layerdata pogo_layer_data_proto3[] = {
+    { /* left opt */
+	.row = 1,
+	.col = 13,
+    },
+    { /* right alt/opt */
+	.row = 6,
+	.col = 1,
+    }
 };
 
 static struct pogo_keydata pogo_key_data[] =
@@ -474,6 +704,7 @@ static struct pogo_keydata pogo_key_data[] =
 		},
 		.row = 7,
 		.col = 15,
+		.layer = 1,
 	},
 	{
 		.keymap_data = {
@@ -482,6 +713,7 @@ static struct pogo_keydata pogo_key_data[] =
 		},
 		.row = 7,
 		.col = 15,
+		.layer = 3,
 	},
 	{
 		.keymap_data = {
@@ -490,14 +722,16 @@ static struct pogo_keydata pogo_key_data[] =
 		},
 		.row = 7,
 		.col = 15,
+		.layer = 1,
 	},
-		{
+	{
 		.keymap_data = {
 			.keymap = pogo_keymap_proto3_type_c,
 			.keymap_size = ARRAY_SIZE(pogo_keymap_proto3_type_c),
 		},
 		.row = 7,
 		.col = 15,
+		.layer = 1,
 	},
 };
 
@@ -519,6 +753,8 @@ int pogo_register_uart_keyboard(struct rm_pogo_data *pdata)
 
 	pdata->kb_dev = kb_dev;
 	pdata->kb_row_shift = get_count_order(pogo_key_data[pdata->dev_info.keylayout].col);
+	pdata->layer = 0;
+	pdata->layers = pogo_key_data[pdata->dev_info.keylayout].layer;
 	kb_dev->name = "rM_Keyboard";
 	kb_dev->phys = "pogo/input0";
 	kb_dev->id.bustype = BUS_HOST;
@@ -528,7 +764,8 @@ int pogo_register_uart_keyboard(struct rm_pogo_data *pdata)
 	kb_dev->dev.parent = pdata->dev;
 
 	ret = matrix_keypad_build_keymap(&pogo_key_data[pdata->dev_info.keylayout].keymap_data, NULL,
-					   pogo_key_data[pdata->dev_info.keylayout].row,
+					   pogo_key_data[pdata->dev_info.keylayout].row *
+					   pogo_key_data[pdata->dev_info.keylayout].layer,
 					   pogo_key_data[pdata->dev_info.keylayout].col,
 					   NULL, kb_dev);
 	if (ret) {
@@ -568,12 +805,49 @@ kb_fail1:
 
 void pogo_keyboard_report(struct rm_pogo_data *pdata, u8 val)
 {
-	unsigned int col, row, key;
+	unsigned int i, col, row, key, from_layer, to_layer;
+	bool toggle = false;
 	const unsigned short *keycodes = pdata->kb_dev->keycode;
 
 	row = 0x7 & (val >> 1);
 	col = 0xf & (val >> 4);
-	key = MATRIX_SCAN_CODE(row, col, pdata->kb_row_shift);
+	key = MATRIX_SCAN_CODE(row + (7 * pdata->layer), col, pdata->kb_row_shift);
+
+	for(i = 0; i < ARRAY_SIZE(pogo_layer_data_proto3); ++i) {
+	    // skip if layer doesn't exist
+	    if(i + 1 >= pdata->layers) {
+		continue;
+	    }
+	    // skip if toggle key not pressed
+	    if(row != pogo_layer_data_proto3[i].row || col != pogo_layer_data_proto3[i].col) {
+		continue;
+	    }
+
+	    toggle = true;
+	    if(val & 1) {
+		from_layer = 0;
+		to_layer = i + 1;
+	    } else {
+		from_layer = i + 1;
+		to_layer = 0;
+	    }
+
+	    // skip if expected layer doesn't match
+	    if(pdata->layer != from_layer) {
+		continue;
+	    }
+
+	    // apply layer
+	    pdata->layer = to_layer;
+	    dev_dbg(pdata->dev, "Change layer from %d to %d", from_layer, to_layer);
+	    break;
+	}
+
+	// ignore if any toggle key pressed
+	if(toggle) {
+	    return;
+	}
+
 	dev_dbg(pdata->dev, "Report row %d col %d key_idx %d code %d active %d\n",
 		row, col, key, keycodes[key], val & 1);
 	input_report_key(pdata->kb_dev, keycodes[key], val & 1);
