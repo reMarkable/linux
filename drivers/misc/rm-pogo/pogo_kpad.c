@@ -805,14 +805,16 @@ kb_fail1:
 
 void pogo_keyboard_report(struct rm_pogo_data *pdata, u8 val)
 {
-	unsigned int i, col, row, key, from_layer, to_layer;
+	unsigned int i, col, row, key, from_layer, to_layer, curr_layer;
 	bool toggle = false;
 	const unsigned short *keycodes = pdata->kb_dev->keycode;
 
+	// determine position
+	curr_layer = pdata->layer;
 	row = 0x7 & (val >> 1);
 	col = 0xf & (val >> 4);
-	key = MATRIX_SCAN_CODE(row + (7 * pdata->layer), col, pdata->kb_row_shift);
 
+	// handle layer changes
 	for(i = 0; i < ARRAY_SIZE(pogo_layer_data_proto3); ++i) {
 	    // skip if layer doesn't exist
 	    if(i + 1 >= pdata->layers) {
@@ -848,8 +850,19 @@ void pogo_keyboard_report(struct rm_pogo_data *pdata, u8 val)
 	    return;
 	}
 
+	// report key down for pressed key
+	if (val & 1) {
+	    key = MATRIX_SCAN_CODE(row + (7 * curr_layer), col, pdata->kb_row_shift);
+	    input_report_key(pdata->kb_dev, keycodes[key], 1);
+	// report key up for all layers
+	} else {
+	    for(i = 0; i < pdata->layers; ++i) {
+		key = MATRIX_SCAN_CODE(row + (7 * i), col, pdata->kb_row_shift);
+		input_report_key(pdata->kb_dev, keycodes[key], 0);
+	    }
+	}
+	input_sync(pdata->kb_dev);
+
 	dev_dbg(pdata->dev, "Report row %d col %d key_idx %d code %d active %d\n",
 		row, col, key, keycodes[key], val & 1);
-	input_report_key(pdata->kb_dev, keycodes[key], val & 1);
-	input_sync(pdata->kb_dev);
 }
