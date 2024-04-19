@@ -385,6 +385,7 @@
 		max77818_chg: charger {
 			compatible = "maxim,max77818-charger";
 			fast_charge_current = <1500>; /* mA */
+			fast_charge_timer = <10>; /* 10h */
 			charge_termination_voltage = <4400>; /* mV */
 			vsys_min = <3400>; /* mV */
 			default_current_limit = <500>; /* mA */
