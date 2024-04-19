@@ -730,6 +730,72 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	return 0;
 }
 
+static int max77818_charger_fast_charge_time_duration_initialize(struct max77818_charger *chg)
+{
+	struct device *dev = chg->dev;
+	struct max77818_dev *max77818_dev = dev_get_drvdata(dev->parent);
+	bool restore_state;
+	u8 val;
+	u32 cnfg_01;
+	int ret;
+
+	ret = MAX77818_START_NON_FGCC_OP(
+			max77818_dev,
+			restore_state,
+			"Setting fast charge time duration");
+	if (ret) {
+		dev_err(dev, "Failed to disable FGCC\n");
+		goto end;
+	}
+
+	if (chg->fast_charge_timer <= 0)
+		val = 0x00; /* disable */
+	else if (chg->fast_charge_timer > 16)
+		val = 0x07; /* 16 hours */
+	else
+		val = chg->fast_charge_timer / 2 - 1;
+
+	ret = regmap_read(chg->regmap, REG_CHG_CNFG_01, &cnfg_01);
+	if (!ret) {
+		if ((cnfg_01 & BIT_FCHGTIME) == val)
+			goto end;
+		else
+			dev_info(dev, "setting fast charge time duration to %d", chg->fast_charge_timer);
+	}
+
+	/* unlock charger register */
+	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_06,
+				 BIT_CHGPROT, BIT_CHGPROT);
+	if (ret) {
+		dev_err(dev, "failed to unlock: %d\n", ret);
+		goto end;
+	}
+
+	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_01,
+				 BIT_FCHGTIME, val);
+	if (ret)
+		dev_err(dev, "failed to update CNFG_01: %d\n", ret);
+
+	/* lock charger register */
+	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_06,
+				 BIT_CHGPROT, 0);
+	if (ret) {
+		dev_err(dev, "failed to lock: %d\n", ret);
+		goto end;
+	}
+
+end:
+	ret = MAX77818_FINISH_NON_FGCC_OP(
+			max77818_dev,
+			restore_state,
+			"Enabling FGCC\n");
+	if (ret)
+		dev_err(dev, "Failed to enable FGCC\n");
+
+	return ret;
+}
+
+
 struct max77818_charger_status_map {
 	int health;
 	int status;
@@ -1103,7 +1169,9 @@ static int max77818_charger_probe(struct platform_device *pdev)
 		if (init_ret)
 			dev_warn(dev, "failed to init charger: %d\n", init_ret);
 	} else {
-		dev_info(dev, "in fgcc mode, skipping initialization\n");
+		dev_info(dev, "in fgcc mode, skipping initialization,"
+			      " except of fast charge time duration");
+		max77818_charger_fast_charge_time_duration_initialize(chg);
 	}
 
 	chg->psy_chg = devm_power_supply_register(dev, &psy_chg_desc, &psy_cfg);
