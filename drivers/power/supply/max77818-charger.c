@@ -669,7 +669,7 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 		val = (chg->restart_threshold - 100) / 50;
 
 	/* fast-charge timer(hr) */
-	if (chg->fast_charge_timer <= 0 || chg->fast_charge_timer > 16)
+	if (chg->fast_charge_timer <= 0)
 		tmpval = 0x00; /* disable */
 	else if (chg->fast_charge_timer > 16)
 		tmpval = 0x07; /* 16 hours */
@@ -682,7 +682,7 @@ static int max77818_charger_initialize(struct max77818_charger *chg)
 	val |= BIT_PQEN;
 
 	ret = regmap_update_bits(chg->regmap, REG_CHG_CNFG_01,
-				 BIT_CHG_RSTRT | BIT_FCHGTIME, val);
+				 BIT_CHG_RSTRT | BIT_FCHGTIME | BIT_PQEN, val);
 	if (ret) {
 		dev_err(dev, "failed to update CNFG_01: %d\n", ret);
 		return ret;
