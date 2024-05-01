@@ -38,6 +38,7 @@
 static const char KEY_TRUSTED_PREFIX[] = "trusted:";
 static const char KEY_SECURE_PREFIX[] = "secure:";
 static const char KEY_USER_PREFIX[] = "user:";
+static const char KEY_LOGON_PREFIX[] = "logon:";
 static const char hash_alg[] = "sha256";
 static const char hmac_alg[] = "hmac(sha256)";
 static const char blkcipher_alg[] = "cbc(aes)";
@@ -50,6 +51,7 @@ static int blksize;
 #define KEY_TRUSTED_PREFIX_LEN (sizeof (KEY_TRUSTED_PREFIX) - 1)
 #define KEY_SECURE_PREFIX_LEN (sizeof(KEY_SECURE_PREFIX) - 1)
 #define KEY_USER_PREFIX_LEN (sizeof (KEY_USER_PREFIX) - 1)
+#define KEY_LOGON_PREFIX_LEN (sizeof (KEY_LOGON_PREFIX) - 1)
 #define KEY_ECRYPTFS_DESC_LEN 16
 #define HASH_SIZE SHA256_DIGEST_SIZE
 #define MAX_DATA_SIZE 4096
@@ -146,6 +148,8 @@ static int valid_master_desc(const char *new_desc, const char *orig_desc)
 		prefix_len = KEY_SECURE_PREFIX_LEN;
 	else if (!strncmp(new_desc, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN))
 		prefix_len = KEY_USER_PREFIX_LEN;
+	else if (!strncmp(new_desc, KEY_LOGON_PREFIX, KEY_LOGON_PREFIX_LEN))
+		prefix_len = KEY_LOGON_PREFIX_LEN;
 	else
 		return -EINVAL;
 
@@ -300,15 +304,18 @@ out:
 /*
  * request_user_key - request the user key
  *
- * Use a user provided key to encrypt/decrypt an encrypted-key.
+ * Use a master key provided as user or logon key type to encrypt/decrypt
+ * an encrypted-key.
  */
-static struct key *request_user_key(const char *master_desc, const u8 **master_key,
+static struct key *request_user_key(struct key_type *type,
+				    const char *master_desc,
+				    const u8 **master_key,
 				    size_t *master_keylen)
 {
 	const struct user_key_payload *upayload;
 	struct key *ukey;
 
-	ukey = request_key(&key_type_user, master_desc, NULL);
+	ukey = request_key(type, master_desc, NULL);
 	if (IS_ERR(ukey))
 		goto error;
 
@@ -440,8 +447,15 @@ static struct key *request_master_key(struct encrypted_key_payload *epayload,
 					  master_key, master_keylen);
 	} else if (!strncmp(epayload->master_desc, KEY_USER_PREFIX,
 			    KEY_USER_PREFIX_LEN)) {
-		mkey = request_user_key(epayload->master_desc +
+		mkey = request_user_key(&key_type_user,
+					epayload->master_desc +
 					KEY_USER_PREFIX_LEN,
+					master_key, master_keylen);
+	} else if (!strncmp(epayload->master_desc, KEY_LOGON_PREFIX,
+			    KEY_LOGON_PREFIX_LEN)) {
+		mkey = request_user_key(&key_type_logon,
+					epayload->master_desc +
+					KEY_LOGON_PREFIX_LEN,
 					master_key, master_keylen);
 	} else
 		goto out;
