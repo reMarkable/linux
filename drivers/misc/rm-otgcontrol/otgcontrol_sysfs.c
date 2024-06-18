@@ -49,7 +49,7 @@ static struct attribute_group control_attr_group = {
 	.name = "control"
 };
 
-struct attribute *status_attrs[STATUS_GROUP_ATTRIBUTE_COUNT + 1] = {
+static struct attribute *status_attrs[STATUS_GROUP_ATTRIBUTE_COUNT + 1] = {
 	/* STATUS_GROUP_ATTRIBUTE_COUNT number of NULLS */
 	NULL,
 
