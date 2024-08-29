@@ -25,6 +25,9 @@
 #include <linux/scatterlist.h>
 #include <linux/rbtree.h>
 #include <linux/ctype.h>
+#include <linux/genalloc.h>
+#include <linux/of.h>
+#include <linux/of_platform.h>
 #include <asm/page.h>
 #include <asm/unaligned.h>
 #include <crypto/hash.h>
@@ -41,6 +44,9 @@
 #include <linux/device-mapper.h>
 
 #define DM_MSG_PREFIX "crypt"
+
+static int require_key_on_chip = 1;
+module_param_named(require_key_on_chip, require_key_on_chip, int, 0);
 
 /*
  * context holding the current state of a multi-part conversion
@@ -207,7 +213,7 @@ struct crypt_config {
 	struct mutex bio_alloc_lock;
 
 	u8 *authenc_key; /* space for keys in authenc() format (if used) */
-	u8 key[0];
+	u8 *key;
 };
 
 #define MIN_IOS		64
@@ -2149,6 +2155,100 @@ static void crypt_page_free(void *page, void *pool_data)
 	percpu_counter_sub(&cc->n_allocated_pages, 1);
 }
 
+#if defined(CONFIG_OF) && defined(CONFIG_SRAM)
+static void *platform_zalloc_sram(size_t len)
+{
+	struct device_node *node;
+	struct platform_device *pdev;
+	struct gen_pool *sram_pool;
+	void *ptr = NULL;
+
+	node = of_find_compatible_node(NULL, NULL, "mmio-sram");
+	if (!node)
+		return NULL;
+
+	pdev = of_find_device_by_node(node);
+	if (!pdev)
+		goto put_node;
+
+	sram_pool = gen_pool_get(&pdev->dev, NULL);
+	if (!sram_pool)
+		goto put_device;
+
+	ptr = (void *)gen_pool_alloc(sram_pool, len);
+	if (!ptr)
+		goto put_device;
+
+	memset(ptr, 0, len);
+
+put_device:
+	put_device(&pdev->dev);
+put_node:
+	of_node_put(node);
+
+	return ptr;
+}
+
+static void *platform_zalloc(size_t len, int require_on_chip)
+{
+	void *ptr;
+
+	ptr = platform_zalloc_sram(len);
+	if (!ptr && !require_on_chip) {
+		DMWARN("platform_zalloc_sram failed, fallback to kzalloc");
+		return kzalloc(len, GFP_KERNEL);
+	}
+
+	return ptr;
+}
+
+static void platform_zfree_sram(void *ptr, size_t len)
+{
+	struct device_node *node;
+	struct platform_device *pdev;
+	struct gen_pool *sram_pool;
+
+	memset(ptr, 0, len);
+
+	node = of_find_compatible_node(NULL, NULL, "mmio-sram");
+	if (!node)
+		return;
+
+	pdev = of_find_device_by_node(node);
+	if (!pdev)
+		goto put_node;
+
+	sram_pool = gen_pool_get(&pdev->dev, NULL);
+	if (!sram_pool)
+		goto put_device;
+
+	gen_pool_free(sram_pool, (unsigned long)ptr, len);
+
+put_device:
+	put_device(&pdev->dev);
+put_node:
+	of_node_put(node);
+}
+
+static void platform_zfree(void *ptr, size_t len)
+{
+	if (is_ioremap_addr(ptr))
+		platform_zfree_sram(ptr, len);
+	else
+		kzfree(ptr);
+}
+#else
+static void *platform_zalloc(size_t len, int require_on_chip)
+{
+	return kzalloc(len, GFP_KERNEL);
+}
+
+static void platform_zfree(void *ptr, size_t len)
+{
+	kzfree(ptr);
+}
+#endif /* defined(CONFIG_OF) && defined(CONFIG_SRAM) */
+
 static void crypt_dtr(struct dm_target *ti)
 {
 	struct crypt_config *cc = ti->private;
@@ -2191,6 +2291,7 @@ static void crypt_dtr(struct dm_target *ti)
 	mutex_destroy(&cc->bio_alloc_lock);
 
 	/* Must zero key material before freeing */
+	platform_zfree(cc->key, cc->key_size);
 	kzfree(cc);
 
 	spin_lock(&dm_crypt_clients_lock);
@@ -2617,9 +2718,15 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		return -EINVAL;
 	}
 
-	cc = kzalloc(struct_size(cc, key, key_size), GFP_KERNEL);
+	cc = kzalloc(sizeof(*cc), GFP_KERNEL);
 	if (!cc) {
 		ti->error = "Cannot allocate encryption context";
+		return -ENOMEM;
+	}
+
+	cc->key = platform_zalloc(key_size, require_key_on_chip);
+	if (!cc->key) {
+		ti->error = "Cannot allocate encryption context key";
 		return -ENOMEM;
 	}
 	cc->key_size = key_size;
