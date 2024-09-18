@@ -735,7 +735,7 @@ static int imx7d_charger_secondary_detection(struct imx_usbmisc_data *data)
 	spin_unlock_irqrestore(&usbmisc->lock, flags);
 
 	/* TVDMSRC_ON */
-	msleep(40);
+	msleep(180);
 
 	/*
 	 * Per BC 1.2, check voltage of D+:
@@ -839,7 +839,7 @@ static int imx7d_charger_primary_detection(struct imx_usbmisc_data *data)
 	spin_unlock_irqrestore(&usbmisc->lock, flags);
 
 	/* TVDPSRC_ON */
-	msleep(40);
+	msleep(180);
 
 	/* Check if D- is less than VDAT_REF to determine an SDP per BC 1.2 */
 	val = readl(usbmisc->base + MX7D_USB_OTG_PHY_STATUS);
