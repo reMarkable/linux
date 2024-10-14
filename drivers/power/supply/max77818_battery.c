@@ -41,6 +41,7 @@
 #include <linux/power/max17042_battery.h>
 #include <linux/power/max77818_battery_utils.h>
 #include <linux/of.h>
+#include <linux/reboot.h>
 #include <linux/regmap.h>
 #include <linux/mfd/max77818/max77818.h>
 #include <linux/platform_device.h>
@@ -75,6 +76,7 @@ EXPORT_SYMBOL_GPL(unregister_max77818_notifier);
 
 /* Interrupt mask bits */
 #define CONFIG_ALRT_BIT_ENBL	(1 << 2)
+#define STATUS_INTR_DSOCI_BIT	(1 << 7)
 #define STATUS_INTR_SOCMIN_BIT	(1 << 10)
 #define STATUS_INTR_SOCMAX_BIT	(1 << 14)
 
@@ -1516,11 +1518,42 @@ static void max77818_fg_isr_work(struct work_struct *work)
 	}
 }
 
+static void max77818_shutoff_in_case_low_soc(struct max77818_chip *chip)
+{
+	int ret;
+	union power_supply_propval val;
+
+	/* status_ex: POWER_SUPPLY_STATUS_EX_NOT_CONNECTED = 0 */
+	if (chip->status_ex)
+		return;
+
+	ret = max77818_get_property(chip->battery, POWER_SUPPLY_PROP_CAPACITY, &val);
+	if (ret) {
+		dev_dbg(chip->dev, "Failed to read battery capacity\n");
+		return;
+	}
+
+	dev_dbg(chip->dev, "State of charge: %d, min_soc_alert: %d\n",
+		val.intval, chip->pdata->min_soc_alrt);
+	if (val.intval < ((int)chip->pdata->min_soc_alrt - 1)) {
+		dev_crit(chip->dev, "Battery critical capacity\n");
+		orderly_poweroff(true);
+	}
+}
+
 static irqreturn_t max77818_fg_isr(int id, void *dev)
 {
+	u32 val;
 	struct max77818_chip *chip = dev;
 
 	power_supply_changed(chip->battery);
+
+	regmap_read(chip->regmap, MAX17042_STATUS, &val);
+	if (val & STATUS_INTR_DSOCI_BIT) {
+		regmap_update_bits(chip->regmap, MAX17042_STATUS, STATUS_INTR_DSOCI_BIT, 0x0);
+		dev_dbg(chip->dev, "SoC capacity change alert\n");
+		max77818_shutoff_in_case_low_soc(chip);
+	}
 
 	if (chip->enable_soc_hysteresis)
 		schedule_work(&chip->fg_isr_work);
