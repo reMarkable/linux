@@ -23,6 +23,10 @@
 #include <linux/regulator/consumer.h>
 #include <linux/suspend.h>
 
+// Products
+#define PRODUCT_G14					0x0095
+#define PRODUCT_G15					0x0144
+
 // Bitmasks (for data[3])
 #define WACOM_TIP_SWITCH_bm         (1 << 0)
 #define WACOM_BARREL_SWITCH_bm      (1 << 1)
@@ -70,6 +74,23 @@
 #define WACOM_DEFAULT_WIDTH_MM	209
 #define WACOM_DEFAULT_HEIGHT_MM	157
 
+struct wacom_i2c_hid_desc {
+	__le16 hid_desc_length;
+	__le16 bcd_version;
+	__le16 report_desc_length;
+	__le16 report_desc_register;
+	__le16 input_register;
+	__le16 max_input_length;
+	__le16 output_register;
+	__le16 max_output_length;
+	__le16 command_register;
+	__le16 data_register;
+	__le16 vendor_id;
+	__le16 product_id;
+	__le16 version_id;
+	__le32 reserved;
+} __packed;
+
 struct wacom_features {
 	int x_max;
 	int y_max;
@@ -86,6 +107,10 @@ struct wacom_i2c {
 	struct input_dev *input;
 	struct wacom_features features;
 	struct regulator *vdd;
+	union {
+		__u8 hdesc_buffer[sizeof(struct wacom_i2c_hid_desc)];
+		struct wacom_i2c_hid_desc hid_desc;
+	};
 	u8 data[WACOM_MAX_DATA_SIZE];
 	bool prox;
 	int tool;
@@ -119,6 +144,46 @@ u8 sleep_cmd[] = {
 		POWER_SLEEP,
 		OPCODE_SET_POWER,
 };
+
+static int wacom_fetch_hid_descriptor(struct i2c_client *client, struct wacom_i2c *wac_i2c)
+{
+	int ret;
+
+	u8 get_hid_descriptor_cmd[] = {
+		0x01,
+		0
+	};
+
+	struct i2c_msg msgs[] = {
+		// Request reading of feature ReportID: 1 (HID descriptor)
+		{
+			.addr = client->addr,
+			.flags = 0,
+			.len = sizeof get_hid_descriptor_cmd,
+			.buf = get_hid_descriptor_cmd,
+		},
+		// Read 30 bytes
+		{
+			.addr = client->addr,
+			.flags = I2C_M_RD,
+			.len = sizeof(struct wacom_i2c_hid_desc),
+			.buf = wac_i2c->hdesc_buffer,
+		},
+	};
+
+	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
+	if (ret < 0) {
+		return ret;
+	}
+	if (ret != ARRAY_SIZE(msgs)) {
+		return -EIO;
+	}
+
+	dev_info(&client->dev, "vendor: 0x%04x, product 0x%04x, version 0x%04x",
+		wac_i2c->hid_desc.vendor_id, wac_i2c->hid_desc.product_id, wac_i2c->hid_desc.version_id);
+
+	return 0;
+}
 
 static int wacom_query_device(struct i2c_client *client,
 				  struct wacom_features *features)
@@ -281,6 +346,8 @@ static int wacom_setup_device(struct i2c_client *client)
 		return -EIO;
 	}
 
+	dev_dbg(&client->dev, "wacom position rate report config: %d", data[3]);
+
 	return 0;
 }
 
@@ -296,10 +363,17 @@ static irqreturn_t wacom_i2c_irq(int irq, void *dev_id)
 	unsigned char tip, f1, f2, eraser, transducer = 0;
 	short tilt_x, tilt_y, distance;
 	int error;
+	int report_size;
+
+	if (wac_i2c->hid_desc.product_id == PRODUCT_G15)
+		report_size = 19;
+	else
+		report_size = 17;
 
 	error = i2c_master_recv(wac_i2c->client,
-				wac_i2c->data, 17);
+				wac_i2c->data, report_size);
 	if (error < 0) {
+		dev_dbg(&wac_i2c->client->dev, "i2c failed, error %d", error);
 		goto out;
 	}
 
@@ -408,6 +482,10 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	if (error)
 		goto err_disable_vdd;
 
+	error = wacom_fetch_hid_descriptor(client, wac_i2c);
+	if (error)
+		goto err_disable_vdd;
+
 	error = wacom_setup_device(client);
 	if (error)
 		goto err_disable_vdd;
@@ -423,8 +501,9 @@ static int wacom_i2c_probe(struct i2c_client *client,
 
 	input->name = "Wacom I2C Digitizer";
 	input->id.bustype = BUS_I2C;
-	input->id.vendor = 0x56a;
-	input->id.version = features->fw_version;
+	input->id.vendor = wac_i2c->hid_desc.vendor_id;
+	input->id.product = wac_i2c->hid_desc.product_id;
+	input->id.version = wac_i2c->hid_desc.version_id;
 	input->dev.parent = &client->dev;
 	input->open = wacom_i2c_open;
 	input->close = wacom_i2c_close;
