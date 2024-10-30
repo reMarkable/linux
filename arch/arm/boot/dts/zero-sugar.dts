@@ -226,9 +226,12 @@
 
 &i2c2 {
 	clock-frequency = <100000>;
-	pinctrl-names = "default", "sleep";
+	pinctrl-names = "default", "sleep", "gpio";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	pinctrl-1 = <&pinctrl_i2c2>;
+	pinctrl-2 = <&pinctrl_i2c2_gpio>;
+	scl-gpios = <&gpio4 10 GPIO_ACTIVE_HIGH>;
+	sda-gpios = <&gpio4 11 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 
 	pmic: bd71815@4b {
@@ -858,6 +861,13 @@
 		fsl,pins = <
 			MX7D_PAD_I2C2_SDA__I2C2_SDA		0x4000007f
 			MX7D_PAD_I2C2_SCL__I2C2_SCL		0x4000007f
+		>;
+	};
+
+	pinctrl_i2c2_gpio: i2c2gpiogrp {
+		fsl,pins = <
+			MX7D_PAD_I2C2_SDA__GPIO4_IO11		0x7f
+			MX7D_PAD_I2C2_SCL__GPIO4_IO10		0x7f
 		>;
 	};
 
