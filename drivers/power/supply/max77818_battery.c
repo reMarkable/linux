@@ -82,6 +82,7 @@ EXPORT_SYMBOL_GPL(unregister_max77818_notifier);
 
 /* Config2 register bits */
 #define CONFIG2_LDMDL		(1 << 5)
+#define CONFIG2_DSOC_EN 	(1 << 7)
 
 #define VFSOC0_LOCK		0x0000
 #define VFSOC0_UNLOCK		0x0080
@@ -2227,7 +2228,7 @@ unreg_supply:
 	return ret;
 }
 
-static void max77818_recover_threshold_registers(struct platform_device *pdev)
+static void max77818_recover_registers(struct platform_device *pdev)
 {
 	struct max77818_chip *chip = platform_get_drvdata(pdev);
 	union power_supply_propval power_supply_propval;
@@ -2246,6 +2247,14 @@ static void max77818_recover_threshold_registers(struct platform_device *pdev)
 
 	for (i = 0; i < sizeof(max77818_custom_param_list); i++) {
 		if (max77818_custom_param_list[i].register_addr == MAX17042_TALRT_Th) {
+			max77818_write_of_param_if_mismatch(chip,
+					       &max77818_custom_param_list[i]);
+			break;
+		}
+	}
+
+	for (i = 0; i < sizeof(max77818_custom_param_list); i++) {
+		if (max77818_custom_param_list[i].register_addr == MAX77818_Config2) {
 			max77818_write_of_param_if_mismatch(chip,
 					       &max77818_custom_param_list[i]);
 			break;
@@ -2287,9 +2296,17 @@ static void max77818_recover_threshold_registers(struct platform_device *pdev)
 	}
 }
 
+static int max77818_suspend(struct platform_device *pdev, pm_message_t mesg)
+{
+	struct max77818_chip *chip = platform_get_drvdata(pdev);
+	regmap_update_bits(chip->regmap, MAX77818_Config2, CONFIG2_DSOC_EN, 0x0);
+
+	return 0;
+}
+
 static int max77818_resume(struct platform_device *pdev)
 {
-	max77818_recover_threshold_registers(pdev);
+	max77818_recover_registers(pdev);
 	return 0;
 }
 
@@ -2299,6 +2316,7 @@ static struct platform_driver max77818_fg_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = max77818_probe,
+	.suspend = max77818_suspend,
 	.resume = max77818_resume,
 };
 module_platform_driver(max77818_fg_driver);
